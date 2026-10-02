@@ -1,5 +1,5 @@
 import "server-only";
-import { getTransport, type RpcKind, type RpcTransport } from "./transport";
+import { getTransport, type RpcCaller, type RpcKind, type RpcTransport } from "./transport";
 import type { SessionKind } from "./types";
 
 /**
@@ -17,11 +17,16 @@ export function setTransport(transport: RpcTransport | null): void {
   override = transport ?? undefined;
 }
 
-function call<T>(fn: string, args: Record<string, unknown>, kind: RpcKind): Promise<T> {
-  return (override ?? getTransport()).call(fn, args, kind) as Promise<T>;
+export function call<T>(
+  fn: string,
+  args: Record<string, unknown>,
+  kind: RpcKind,
+  as?: RpcCaller,
+): Promise<T> {
+  return (override ?? getTransport()).call(fn, args, kind, as) as Promise<T>;
 }
 
-async function firstRow<T>(fn: string, args: Record<string, unknown>): Promise<T | null> {
+export async function firstRow<T>(fn: string, args: Record<string, unknown>): Promise<T | null> {
   const rows = await call<T[]>(fn, args, "table");
   return rows[0] ?? null;
 }

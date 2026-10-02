@@ -10,6 +10,7 @@ import csMarketing from "./messages/cs/marketing.json";
 import csPlaceholder from "./messages/cs/placeholder.json";
 import enAuth from "./messages/en/auth.json";
 import csSite from "./messages/cs/site.json";
+import csWizard from "./messages/cs/wizard.json";
 import enCatalog from "./messages/en/catalog.json";
 import enCommon from "./messages/en/common.json";
 import enLanding from "./messages/en/landing.json";
@@ -17,6 +18,7 @@ import enLegal from "./messages/en/legal.json";
 import enMarketing from "./messages/en/marketing.json";
 import enPlaceholder from "./messages/en/placeholder.json";
 import enSite from "./messages/en/site.json";
+import enWizard from "./messages/en/wizard.json";
 
 /** Zdrojem pravdy o klíčích je česká verze; angličtina musí mít stejné klíče (kontrola při sestavení). */
 const cs = {
@@ -28,6 +30,7 @@ const cs = {
   marketing: csMarketing,
   placeholder: csPlaceholder,
   site: csSite,
+  wizard: csWizard,
 } as const;
 
 const en: Record<keyof typeof cs, Record<string, MessageValue>> = {
@@ -39,6 +42,7 @@ const en: Record<keyof typeof cs, Record<string, MessageValue>> = {
   marketing: enMarketing,
   placeholder: enPlaceholder,
   site: enSite,
+  wizard: enWizard,
 };
 
 type Namespaces = typeof cs;

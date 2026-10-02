@@ -1,30 +1,39 @@
 "use server";
 
-import { headers } from "next/headers";
+import { assertSameOrigin, getClientIp } from "@/auth/request";
+import { dbWaitlistDeps } from "@/lib/waitlist-db";
 import { HONEYPOT_FIELD, submitWaitlist } from "@/lib/waitlist";
 import type { WaitlistFormState } from "./waitlist-state";
 
 /**
  * Server Action čekací listiny. Úvodní stránka je veřejná, proto se neověřuje relace; ověřuje se
- * vstup (zod v `submitWaitlist`), past na roboty a počet požadavků z jedné adresy.
- * Do logu se nedostane e-mail ani IP adresa.
+ * vstup (zod v `submitWaitlist`), past na roboty a počet požadavků z jedné adresy (databáze,
+ * klíč je HMAC). Zápis je idempotentní: stejný e-mail podruhé dá stejnou odpověď. Do logu se
+ * nedostane e-mail ani IP adresa.
  */
 export async function joinWaitlist(
   _previous: WaitlistFormState,
   formData: FormData,
 ): Promise<WaitlistFormState> {
-  const requestHeaders = await headers();
-  const forwarded = requestHeaders.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const clientKey = forwarded || requestHeaders.get("x-real-ip") || undefined;
-
   const email = formData.get("email");
-  const result = await submitWaitlist({
-    email,
-    consent: formData.get("consent"),
-    locale: formData.get("locale"),
-    honeypot: formData.get(HONEYPOT_FIELD),
-    clientKey,
-  });
+  // Mutace začíná kontrolou původu (CSRF, docs/security-privacy.md kap. 2), stejně jako ve správě.
+  try {
+    await assertSameOrigin();
+  } catch {
+    return { status: "error", email: typeof email === "string" ? email.slice(0, 254) : undefined };
+  }
+  const clientKey = await getClientIp();
+
+  const result = await submitWaitlist(
+    {
+      email,
+      consent: formData.get("consent"),
+      locale: formData.get("locale"),
+      honeypot: formData.get(HONEYPOT_FIELD),
+      clientKey,
+    },
+    dbWaitlistDeps(),
+  );
 
   switch (result.status) {
     case "success":

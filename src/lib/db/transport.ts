@@ -2,6 +2,8 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Pool } from "pg";
 import { env, requireEnv } from "@/env";
+import { createTenantClient } from "./client";
+import { buildTenantClaims, type MintTenantJwtInput } from "./jwt";
 
 /**
  * Doprava volání funkcí databáze (RPC). Aplikace volá databázi jen ze serveru a jen přes
@@ -15,9 +17,18 @@ import { env, requireEnv } from "@/env";
 
 export type RpcKind = "table" | "scalar";
 
+/**
+ * Volání jménem návštěvníka, náhledu nebo správce jedné svatby (role `authenticated` + claimy
+ * svatby, docs/data-model.md kap. 5.1). Bez něj se volá jako `service_role`.
+ */
+export type RpcCaller = MintTenantJwtInput;
+
 export interface RpcTransport {
-  /** `table`: pole řádků; `scalar`: jedna hodnota (nebo `null` u `void`). */
-  call(fn: string, args: Record<string, unknown>, kind: RpcKind): Promise<unknown>;
+  /**
+   * `table`: pole řádků; `scalar`: jedna hodnota (nebo `null` u `void`). S `as` se funkce volá
+   * s claimy jedné svatby (např. `get_public_site` jako `visitor`), jinak jako service role.
+   */
+  call(fn: string, args: Record<string, unknown>, kind: RpcKind, as?: RpcCaller): Promise<unknown>;
 }
 
 /** Chyba databáze bez argumentů volání (mohou nést osobní údaje): jen funkce, kód a krátká zpráva. */
@@ -51,13 +62,14 @@ export function getServiceClient(): SupabaseClient {
 }
 
 const supabaseTransport: RpcTransport = {
-  async call(fn, args) {
+  async call(fn, args, _kind, as) {
     const payload = Object.fromEntries(
       Object.entries(args)
         .filter(([, value]) => value !== undefined)
         .map(([key, value]) => [key, toPostgrest(value)]),
     );
-    const { data, error } = await getServiceClient().rpc(fn, payload);
+    const client = as ? createTenantClient(as) : getServiceClient();
+    const { data, error } = await client.rpc(fn, payload);
     if (error) throw new DbError(fn, error.code, error.message);
     return data;
   },
@@ -76,7 +88,7 @@ async function getPool(): Promise<Pool> {
 const IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
 
 const pgTransport: RpcTransport = {
-  async call(fn, args, kind) {
+  async call(fn, args, kind, as) {
     if (!IDENTIFIER.test(fn)) throw new Error("Neplatný název funkce");
     const entries = Object.entries(args).filter(([, value]) => value !== undefined);
     for (const [key] of entries) {
@@ -91,7 +103,15 @@ const pgTransport: RpcTransport = {
     const client = await (await getPool()).connect();
     try {
       await client.query("begin");
-      await client.query("set local role service_role");
+      if (as) {
+        // Jako PostgREST: role `authenticated` a claimy JWT v nastavení transakce.
+        await client.query("set local role authenticated");
+        await client.query("select set_config('request.jwt.claims', $1, true)", [
+          JSON.stringify(buildTenantClaims(as)),
+        ]);
+      } else {
+        await client.query("set local role service_role");
+      }
       const result = await client.query(
         sql,
         entries.map(([, value]) => value),

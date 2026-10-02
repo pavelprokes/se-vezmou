@@ -75,5 +75,5 @@ Skript odmítne aplikační roli a port 6543, založí majitele jen když ješt�
 ## TODO a otevřené
 
 - **Passkey (WebAuthn)** jako silnější druhý faktor vedle TOTP (OQ-52): tabulka pověření, registrace a ověření podpisu, záložní postup při ztrátě zařízení, aktualizace tohoto ADR.
-- **Oznámení páru o nahlédnutí operátora** do údajů hostů (e-mail správcům, `docs/security-privacy.md` kap. 5): patří k správě souhlasu v M7, funkce `op_view_guest_data` už zapisuje audit s důvodem a počtem (OQ-53).
+- ~~**Oznámení páru o nahlédnutí operátora**~~ **Hotovo (M7b, OQ-53):** po skutečném nahlédnutí jde e-mail správcům a na záložní adresu (`docs/security-privacy.md` kap. 7 a 13); posílá se až po nahlédnutí a jen nejlepším úsilím (OQ-63). Komentář `TODO M9` v migraci `20261002121000_functions_ops.sql` (řádek 71) je zastaralý, migrace se kvůli kontrolnímu součtu neupravuje.
 - Zda majitel chce, aby audit mohla číst i podpora (výchozí: jen majitel) a zda mají být relace operátora vázané na IP nebo zařízení (OQ-54).

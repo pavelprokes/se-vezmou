@@ -149,6 +149,9 @@ export function rsvpLabels(t: Translator): RsvpLabels {
     },
     health: {
       legend: t("rsvp.health.legend", { name: "{name}" }),
+      // Právní text k ověření právníkem (docs/security-privacy.md kap. 5.4). Lhůta „30 dní“ je v překladu
+      // pevná: skutečná hodnota je `app_settings.health_retention_days_after_wedding` a `rsvp_info` ji
+      // nevrací. Po změně nastavení je nutné upravit i tento text (OQ-58).
       notice: t("rsvp.health.notice"),
       diet: t("rsvp.health.diet"),
       dietHint: t("rsvp.health.dietHint"),

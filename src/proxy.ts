@@ -26,6 +26,10 @@ function applyHeaders(response: NextResponse, kind: HostKind | null, pathname = 
   if (kind === "tenant") {
     // Adresa webu páru se nesmí prozradit odkazovaným stránkám.
     response.headers.set("Referrer-Policy", "no-referrer");
+    // Náhled konceptu podle odkazu s tokenem se nikdy neukládá do mezipaměti.
+    if (/^(\/en)?\/nahled(\/|$)/.test(pathname)) {
+      response.headers.set("Cache-Control", "private, no-store");
+    }
   }
   return response;
 }

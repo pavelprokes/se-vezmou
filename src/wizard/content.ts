@@ -1,5 +1,4 @@
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
 import type { I18nText } from "@/site/i18n-text";
 import {
   publicContentSchema,
@@ -39,13 +38,19 @@ function inDefault(value: string, locale: Locale): I18nText {
   return { [locale]: value.trim() } as I18nText;
 }
 
+/**
+ * Výchozí názvy obřadu a hostiny jsou obsah webu (ne text rozhraní), proto nejsou v překladových
+ * souborech a neprochází kontrolou rozhraní; zobrazí se v každém jazyce webu a pár je může
+ * později přepsat. Typografii doplní `typo()` při vykreslení.
+ */
+export const DEFAULT_EVENT_TITLES: Record<"ceremony" | "reception", Record<Locale, string>> = {
+  ceremony: { cs: "Svatební obřad", en: "Wedding ceremony" },
+  reception: { cs: "Hostina", en: "Reception" },
+};
+
 function eventTitle(kind: "ceremony" | "reception", locales: readonly Locale[]): I18nText {
   const title: I18nText = {};
-  for (const locale of locales) {
-    title[locale] = createTranslator(locale)(
-      kind === "ceremony" ? "wizard.defaults.ceremony" : "wizard.defaults.reception",
-    );
-  }
+  for (const locale of locales) title[locale] = DEFAULT_EVENT_TITLES[kind][locale];
   return title;
 }
 

@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { createTranslator } from "@/i18n/translator";
 import { validatePalette } from "@/site/themes/validate";
 import { getPalette } from "@/site/themes/palettes";
 import { createSiteCtx, renderableBlocks } from "@/components/site/context";
 import { publicContentSchema } from "@/site/types";
-import { previewPhase, toPublicContent, toSensitiveContent, toWorkingSet } from "./content";
+import {
+  DEFAULT_EVENT_TITLES,
+  previewPhase,
+  toPublicContent,
+  toSensitiveContent,
+  toWorkingSet,
+} from "./content";
 import { createDraft, withLocales, type WizardDraft } from "./draft";
 
 let counter = 0;
@@ -113,10 +118,7 @@ describe("toPublicContent", () => {
     const draft = withLocales(full(), ["cs", "en"], "cs");
     const content = toPublicContent(draft, { slug: "x-a-y" });
     const ceremony = content.events.find((e) => e.kind === "ceremony");
-    expect(ceremony?.title).toEqual({
-      cs: createTranslator("cs")("wizard.defaults.ceremony"),
-      en: createTranslator("en")("wizard.defaults.ceremony"),
-    });
+    expect(ceremony?.title).toEqual(DEFAULT_EVENT_TITLES.ceremony);
   });
 
   it("nehotové položky se vynechají (událost bez času, místo bez adresy)", () => {

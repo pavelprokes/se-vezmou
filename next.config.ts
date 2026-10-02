@@ -31,6 +31,13 @@ const csp = [
   "frame-ancestors 'none'",
 ].join("; ");
 
+/**
+ * Rámec živého náhledu v průvodci (`/vytvorit/nahled`, česky i anglicky) smí vkládat jen vlastní
+ * stránka: `frame-ancestors 'self'` a `X-Frame-Options: SAMEORIGIN` jen pro tuto cestu, všude jinde
+ * zůstává zákaz vkládání. Hlavička se páruje s původní cestou požadavku (před přepisem proxy).
+ */
+const previewFrameCsp = csp.replace("frame-ancestors 'none'", "frame-ancestors 'self'");
+
 const securityHeaders = [
   { key: "Content-Security-Policy", value: csp },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -49,7 +56,21 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        // Pozdější pravidlo se stejným klíčem přepíše dřívější (docs: Header Overriding Behavior).
+        source: "/:lang(en)?/vytvorit/nahled",
+        headers: [
+          { key: "Content-Security-Policy", value: previewFrameCsp },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+        ],
+      },
+    ];
+  },
+  // PDF oznámení (M5) čte písma z repozitáře za běhu; do nasazení je musí přidat sledování souborů.
+  outputFileTracingIncludes: {
+    "/h/app/vytvorit/oznameni": ["./src/wizard/pdf/fonts/**/*"],
   },
 };
 

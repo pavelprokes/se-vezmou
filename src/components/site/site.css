@@ -1,0 +1,762 @@
+/*
+ * Web páru: společné bloky a čtyři šablony (editorial, eukalyptus, chateau, modern).
+ * Šablona mění jen tokeny (`--s-*`), typografii a kompozici; barvy dodává paleta jako
+ * proměnné `--s-<role>` na `.site-root` (src/site/themes/palettes.ts) a každou dvojici hlídá
+ * test kontrastu. Role `ornament`, `decor` a `decor2` jsou JEN dekor (linky, SVG listy): nikdy
+ * nenesou text. Animace jen s `prefers-reduced-motion: no-preference`.
+ */
+
+.site-root {
+  /* Tokeny šablon (výchozí = Eukalyptus). */
+  --s-font-display: var(--font-newsreader), ui-serif, Georgia, serif;
+  --s-font-body: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --s-names-size: clamp(2.75rem, 12vw, 5.5rem);
+  --s-names-weight: 400;
+  --s-names-leading: 1.02;
+  --s-names-tracking: 0;
+  --s-names-case: none;
+  --s-h2-size: clamp(1.9rem, 5.5vw, 2.6rem);
+  --s-h2-weight: 400;
+  --s-h2-case: none;
+  --s-h2-tracking: 0;
+  --s-section-pad: clamp(3rem, 9vw, 6rem);
+  --s-radius: 1.25rem;
+  --s-align: center;
+  --s-justify: center;
+  --s-card-border: 0;
+
+  position: relative;
+  flex: 1;
+  overflow-x: clip;
+  background: var(--s-bg);
+  color: var(--s-text);
+  font-family: var(--s-font-body);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  text-wrap: pretty;
+}
+
+.site-root[data-template="editorial"] {
+  --s-names-size: clamp(3.25rem, 15vw, 8.5rem);
+  /* Tenké řezy (300) jen na největších textech; menší text zůstává v běžné tloušťce. */
+  --s-names-weight: 300;
+  --s-names-leading: 0.95;
+  --s-names-tracking: -0.02em;
+  --s-h2-size: clamp(2rem, 6vw, 3rem);
+  --s-section-pad: clamp(3.5rem, 10vw, 7rem);
+  --s-radius: 0;
+  --s-align: left;
+  --s-justify: flex-start;
+}
+
+.site-root[data-template="chateau"] {
+  --s-names-size: clamp(2.25rem, 9vw, 4.25rem);
+  --s-names-weight: 400;
+  --s-names-leading: 1.15;
+  --s-names-tracking: 0.12em;
+  --s-names-case: uppercase;
+  --s-h2-size: clamp(1.75rem, 5vw, 2.25rem);
+  --s-h2-case: uppercase;
+  --s-h2-tracking: 0.1em;
+  --s-radius: 0.25rem;
+  --s-card-border: 1px;
+}
+
+.site-root[data-template="modern"] {
+  --s-font-display: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --s-names-size: clamp(3rem, 17vw, 10.5rem);
+  --s-names-weight: 800;
+  --s-names-leading: 0.9;
+  --s-names-tracking: -0.04em;
+  --s-names-case: uppercase;
+  --s-h2-size: clamp(2.25rem, 8vw, 4rem);
+  --s-h2-weight: 800;
+  --s-h2-case: uppercase;
+  --s-h2-tracking: -0.03em;
+  --s-section-pad: clamp(3.5rem, 10vw, 7rem);
+  --s-radius: 0;
+  --s-align: left;
+  --s-justify: flex-start;
+  --s-card-border: 3px;
+}
+
+/* Kotvy: cíl odkazu a zaměřený prvek se nesmí schovat pod ukotvené tlačítko (WCAG 2.4.11). */
+html:has(.site-root) {
+  scroll-padding-top: 1rem;
+}
+html:has(.site-root[data-sticky="true"]) {
+  scroll-padding-bottom: 6.5rem;
+}
+.site-root[data-sticky="true"] {
+  padding-bottom: 5.5rem;
+}
+
+.site-root :where(a, button, input, summary):focus-visible {
+  outline: 3px solid var(--s-focus);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.site-wrap {
+  width: 100%;
+  max-width: 64rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+}
+@media (min-width: 40rem) {
+  .site-wrap {
+    padding-inline: 2rem;
+  }
+}
+
+.site-root h1,
+.site-root h2,
+.site-root h3 {
+  font-family: var(--s-font-display);
+  color: var(--s-text);
+}
+
+/* Odkazy a tlačítka */
+.site-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--s-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  text-decoration-thickness: 2px;
+  overflow-wrap: anywhere;
+}
+.site-link:hover {
+  color: var(--s-text);
+}
+
+.site-btn {
+  display: inline-flex;
+  min-height: 44px;
+  min-width: 44px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--s-accent);
+  border-radius: min(var(--s-radius), 0.75rem);
+  background: var(--s-accent);
+  color: var(--s-onAccent);
+  padding: 0.5rem 1.5rem;
+  font: inherit;
+  font-weight: 600;
+  line-height: 1.3;
+  text-decoration: none;
+}
+.site-btn:hover {
+  border-color: var(--s-text);
+  background: var(--s-text);
+  color: var(--s-bg);
+}
+
+/* Pruh rychlé změny */
+.site-notice {
+  background: var(--s-accent);
+  color: var(--s-onAccent);
+}
+.site-notice .site-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding-block: 0.75rem;
+}
+.site-notice svg {
+  margin-top: 0.2rem;
+}
+.site-notice p {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Hlavička: navigace po kotvách a přepínač jazyka */
+.site-header {
+  background: var(--s-bg);
+  border-bottom: 1px solid var(--s-border);
+}
+.site-header-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  column-gap: 1.5rem;
+  padding-block: 0.25rem;
+}
+.site-nav ul,
+.site-lang ul {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.site-nav-link {
+  display: inline-flex;
+  min-height: 44px;
+  min-width: 44px;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 0.65rem;
+  color: var(--s-text);
+  font-size: 0.95rem;
+  font-weight: 500;
+  text-decoration: none;
+}
+.site-nav-link:hover {
+  color: var(--s-accent);
+  text-decoration: underline;
+  text-underline-offset: 0.3em;
+}
+.site-lang .site-nav-link[aria-current="true"] {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.3em;
+}
+
+/* Úvod */
+.site-hero {
+  position: relative;
+  overflow: hidden;
+  padding-block: clamp(3rem, 10vw, 7rem);
+  text-align: var(--s-align);
+  background: var(--s-bg);
+}
+.site-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: var(--s-justify);
+  gap: 0.75rem;
+}
+.site-eyebrow {
+  margin: 0;
+  color: var(--s-accent2);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+.site-root .site-names {
+  margin: 0;
+  font-size: var(--s-names-size);
+  font-weight: var(--s-names-weight);
+  line-height: var(--s-names-leading);
+  letter-spacing: var(--s-names-tracking);
+  text-transform: var(--s-names-case);
+  color: var(--s-display);
+  overflow-wrap: anywhere;
+}
+.site-amp {
+  color: var(--s-accent2);
+  font-style: italic;
+  font-weight: 400;
+}
+.site-date {
+  margin: 0.5rem 0 0;
+  font-size: clamp(1.25rem, 4vw, 1.75rem);
+  font-family: var(--s-font-display);
+}
+.site-place {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  color: var(--s-muted);
+}
+.site-countdown {
+  margin: 0.5rem 0 0;
+  color: var(--s-accent);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.site-lead {
+  max-width: 40rem;
+  margin: 0.5rem 0 0;
+  font-size: 1.1875rem;
+  color: var(--s-text);
+}
+.site-muted {
+  color: var(--s-muted);
+}
+.site-hint {
+  font-size: 0.9rem;
+}
+.site-label {
+  margin: 1rem 0 0.25rem;
+  color: var(--s-accent2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.site-strong {
+  margin: 0;
+  font-weight: 600;
+}
+
+/* Sekce */
+.site-section {
+  padding-block: var(--s-section-pad);
+  background: var(--s-bg);
+  scroll-margin-top: 1rem;
+}
+.site-section[data-tone="surface"] {
+  background: var(--s-surface);
+}
+.site-h2 {
+  margin: 0 0 1.25rem;
+  font-size: var(--s-h2-size);
+  font-weight: var(--s-h2-weight);
+  line-height: 1.1;
+  letter-spacing: var(--s-h2-tracking);
+  text-transform: var(--s-h2-case);
+  text-align: var(--s-align);
+}
+.site-h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.375rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.site-icon-title,
+.site-program-title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.site-section p {
+  margin: 0.5rem 0 0;
+}
+.site-section .site-lead {
+  margin-inline: 0;
+}
+.site-root:not([data-template="editorial"]):not([data-template="modern"]) .site-section .site-lead,
+.site-root:not([data-template="editorial"]):not([data-template="modern"])
+  .site-section
+  .site-rsvp-status {
+  margin-inline: auto;
+  text-align: center;
+}
+
+.site-divider {
+  display: block;
+  width: min(14rem, 60%);
+  height: auto;
+  margin: -0.25rem auto 1.5rem;
+}
+.site-divider-line {
+  stroke: var(--s-ornament);
+  stroke-width: 1.5;
+}
+.site-divider-gem {
+  fill: var(--s-ornament);
+}
+
+/* Karty */
+.site-cards {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+  margin-top: 1.5rem;
+}
+.site-card {
+  border: var(--s-card-border) solid var(--s-ornament);
+  border-radius: var(--s-radius);
+  background: var(--s-bg);
+  padding: 1.5rem;
+}
+.site-section[data-tone="bg"] .site-card {
+  background: var(--s-surface);
+}
+.site-root[data-template="modern"] .site-card {
+  border-color: var(--s-text);
+}
+.site-root[data-template="editorial"] .site-section .site-card {
+  border-top: 1px solid var(--s-border);
+  background: transparent;
+  padding: 1.25rem 0 0;
+}
+.site-address {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+}
+.site-address address {
+  font-style: normal;
+}
+.site-list {
+  display: grid;
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.site-contact-list {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.site-dresscode {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: var(--s-justify);
+  color: var(--s-accent);
+}
+.site-dresscode .site-lead {
+  margin-top: 0;
+}
+
+/* Program po hodinách */
+.site-program-day {
+  margin-top: 1.5rem;
+}
+.site-program {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--s-border);
+}
+.site-program-item {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.25rem 1.5rem;
+  border-bottom: 1px solid var(--s-border);
+  padding-block: 1.25rem;
+  text-align: left;
+}
+@media (min-width: 40rem) {
+  .site-program-item {
+    grid-template-columns: 9rem 1fr;
+  }
+}
+.site-section .site-program-time {
+  margin: 0;
+  color: var(--s-accent);
+  font-family: var(--s-font-display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Příběh a galerie */
+.site-story {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+@media (min-width: 48rem) {
+  .site-story[data-with-image="true"] {
+    grid-template-columns: 1.2fr 1fr;
+  }
+}
+.site-prose {
+  max-width: 40rem;
+  margin-inline: auto;
+}
+.site-story[data-with-image="true"] .site-prose {
+  margin-inline: 0;
+}
+.site-figure {
+  margin: 0;
+}
+.site-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--s-radius);
+}
+.site-gallery {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+  margin: 1.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* FAQ */
+.site-faq {
+  max-width: 44rem;
+  margin-inline: auto;
+  border-top: 1px solid var(--s-border);
+}
+.site-faq-item {
+  border-bottom: 1px solid var(--s-border);
+}
+.site-faq-summary {
+  display: flex;
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 0.9rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  text-align: left;
+}
+.site-faq-summary::-webkit-details-marker {
+  display: none;
+}
+.site-faq-chevron {
+  color: var(--s-accent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-faq-chevron {
+    transition: transform 0.2s ease;
+  }
+}
+.site-faq-item[open] .site-faq-chevron {
+  transform: rotate(180deg);
+}
+.site-faq-answer {
+  padding-bottom: 1rem;
+  color: var(--s-muted);
+  text-align: left;
+}
+
+/* Dary */
+.site-gifts {
+  display: grid;
+  gap: 2rem;
+  align-items: center;
+}
+@media (min-width: 48rem) {
+  .site-gifts {
+    grid-template-columns: 1fr auto;
+  }
+}
+.site-facts {
+  display: grid;
+  gap: 1rem;
+  margin: 1.25rem 0 0;
+}
+.site-facts dt {
+  color: var(--s-accent2);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.site-facts dd {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.site-account {
+  font-variant-numeric: tabular-nums;
+}
+.site-qr-figure {
+  margin: 0;
+  text-align: center;
+}
+.site-qr {
+  display: block;
+  width: 12rem;
+  height: 12rem;
+  margin-inline: auto;
+  border-radius: min(var(--s-radius), 0.5rem);
+}
+.site-qr-figure figcaption {
+  max-width: 12rem;
+  margin: 0.5rem auto 0;
+  font-size: 0.9rem;
+}
+.site-gate {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  justify-content: var(--s-justify);
+  color: var(--s-accent);
+}
+.site-pin {
+  flex: 1;
+  max-width: 28rem;
+  text-align: left;
+}
+.site-pin-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.site-pin-row .site-label {
+  flex-basis: 100%;
+  margin: 0;
+}
+.site-input {
+  min-height: 44px;
+  min-width: 0;
+  flex: 1 1 8rem;
+  border: 2px solid var(--s-border);
+  border-radius: min(var(--s-radius), 0.75rem);
+  background: var(--s-bg);
+  color: var(--s-text);
+  padding: 0.4rem 0.75rem;
+  font: inherit;
+}
+.site-section[data-tone="bg"] .site-input {
+  background: var(--s-surface);
+}
+
+.site-rsvp-status {
+  font-weight: 600;
+}
+
+/* Patička a ukotvené tlačítko */
+.site-footer {
+  border-top: 1px solid var(--s-border);
+  background: var(--s-bg);
+  padding-block: 2rem;
+  text-align: center;
+}
+.site-footer p {
+  margin: 0;
+}
+.site-footer-names {
+  font-family: var(--s-font-display);
+  font-size: 1.5rem;
+}
+.site-sticky {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid var(--s-border);
+  background: var(--s-bg);
+  padding: 0.75rem 1rem;
+}
+.site-btn-sticky {
+  width: 100%;
+  max-width: 24rem;
+}
+
+/* Dekorace (jen SVG, vždy pod textem) */
+.site-leaves {
+  position: absolute;
+  top: 0;
+  z-index: 0;
+  width: 7rem;
+  height: auto;
+  pointer-events: none;
+}
+.site-leaves-a {
+  left: 0;
+}
+.site-leaves-b {
+  right: 0;
+}
+.site-leaf-stem {
+  stroke: var(--s-ornament);
+  stroke-width: 3;
+}
+.site-leaf-1 {
+  fill: var(--s-decor);
+}
+.site-leaf-2 {
+  fill: var(--s-ornament);
+}
+.site-leaf-3 {
+  fill: var(--s-decor2);
+}
+.site-root[data-template="eukalyptus"] .site-hero {
+  /* Pod listy na mobilu se nevejde text; ty zabírají horní okraj. */
+  padding-top: 9rem;
+}
+@media (min-width: 62rem) {
+  .site-leaves {
+    top: 1rem;
+    width: 13rem;
+  }
+  .site-root[data-template="eukalyptus"] .site-hero {
+    padding-top: clamp(3rem, 10vw, 7rem);
+  }
+}
+
+.site-monogram {
+  width: 8rem;
+  height: 8rem;
+}
+.site-monogram-ring {
+  stroke: var(--s-ornament);
+  stroke-width: 2;
+}
+.site-monogram-ring-inner {
+  stroke: var(--s-ornament);
+  stroke-width: 0.75;
+}
+.site-monogram-text {
+  fill: var(--s-display);
+}
+.site-root[data-template="chateau"] .site-hero {
+  border-bottom: 4px double var(--s-ornament);
+}
+.site-root[data-template="chateau"] .site-section {
+  border-bottom: 1px solid var(--s-ornament);
+}
+
+/* Editorial: tenké linky místo ploch */
+.site-root[data-template="editorial"] .site-hero {
+  border-bottom: 1px solid var(--s-border);
+}
+.site-root[data-template="editorial"] .site-section[data-tone="surface"] {
+  background: var(--s-bg);
+  border-bottom: 1px solid var(--s-border);
+}
+.site-root[data-template="editorial"] .site-hero-inner {
+  max-width: 64rem;
+}
+.site-root[data-template="editorial"] .site-faq,
+.site-root[data-template="editorial"] .site-prose {
+  margin-inline: 0;
+}
+
+/* Modern: výrazný akcent */
+.site-root[data-template="modern"] .site-eyebrow {
+  align-self: flex-start;
+  background: var(--s-accent);
+  color: var(--s-onAccent);
+  padding: 0.35rem 0.8rem;
+}
+.site-root[data-template="modern"] .site-amp {
+  color: var(--s-accent);
+  font-style: normal;
+}
+.site-root[data-template="modern"] .site-h2 {
+  color: var(--s-accent);
+}
+.site-root[data-template="modern"] .site-section {
+  border-top: 3px solid var(--s-text);
+}
+.site-root[data-template="modern"] .site-faq,
+.site-root[data-template="modern"] .site-prose {
+  margin-inline: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .site-root[data-template="modern"] .site-names {
+    animation: site-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  @keyframes site-rise {
+    from {
+      transform: translateY(1.25rem);
+    }
+    to {
+      transform: none;
+    }
+  }
+}

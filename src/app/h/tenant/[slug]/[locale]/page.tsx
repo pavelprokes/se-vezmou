@@ -1,19 +1,61 @@
+import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
-import { isLocale } from "@/i18n/config";
+import { connection } from "next/server";
+import { SiteRenderer } from "@/components/site/site-renderer";
+import { isLocale, type Locale } from "@/i18n/config";
+import { localizedPath } from "@/i18n/pathnames";
 import { createTranslator } from "@/i18n/translator";
+import { getPublicContent } from "@/site/content";
+import { languageAlternates, originFromHeaders } from "@/site/origin";
 import { tenantExists } from "@/tenant/resolve";
 
-export default async function TenantPlaceholder({
-  params,
-}: PageProps<"/h/tenant/[slug]/[locale]">) {
-  const { slug, locale } = await params;
-  if (!isLocale(locale) || !tenantExists(slug)) notFound();
-  const t = createTranslator(locale);
+type Props = PageProps<"/h/tenant/[slug]/[locale]">;
 
+async function load(slug: string, locale: string) {
+  if (!isLocale(locale) || !tenantExists(slug)) return null;
+  const content = await getPublicContent(slug);
+  // Jazyk, který web nenabízí, je stejná 404 jako neexistující web.
+  if (!content || !content.locales.includes(locale)) return null;
+  return { content, locale };
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug, locale } = await params;
+  const loaded = await load(slug, locale);
+  if (!loaded) return {};
+  const { content } = loaded;
+  const h = await headers();
+  const origin = originFromHeaders(h.get("host"), h.get("x-forwarded-proto"));
+  const languages = languageAlternates(origin, content.locales, content.defaultLocale);
+  const t = createTranslator(loaded.locale);
+  return {
+    title: t("site.title", { a: content.partners.a, b: content.partners.b }),
+    // `hreflang` bez indexace: web zůstává `noindex` (hlavička z proxy i meta robots).
+    alternates: { canonical: languages[loaded.locale], languages },
+    robots: { index: false, follow: false },
+  };
+}
+
+/**
+ * Web páru z `getPublicContent(slug)`. Čte aktuální čas (odpočet), proto se vykresluje za běhu.
+ * TODO(M5): obsah z databáze (zveřejněný snímek); dosud ukázková fixture Klára a Matěj.
+ */
+export default async function TenantSite({ params }: Props) {
+  await connection();
+  const { slug, locale } = await params;
+  const loaded = await load(slug, locale);
+  if (!loaded) notFound();
+
+  const localeHrefs = Object.fromEntries(
+    loaded.content.locales.map((l: Locale) => [l, localizedPath("home", l)]),
+  );
   return (
-    <main id="obsah" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-16 sm:px-8">
-      <h1 className="text-ink text-4xl font-medium">{t("placeholder.tenant.title")}</h1>
-      <p className="text-muted mt-4 max-w-prose text-lg">{t("placeholder.tenant.body")}</p>
-    </main>
+    <SiteRenderer
+      content={loaded.content}
+      locale={loaded.locale}
+      localeHrefs={localeHrefs}
+      now={new Date()}
+    />
   );
 }

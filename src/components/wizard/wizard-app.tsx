@@ -158,6 +158,9 @@ function Wizard(props: WizardAppProps) {
   const router = useRouter();
   const [draft, setDraft] = useState<WizardDraft>(() => initialDraft(props));
   const [signedIn, setSignedIn] = useState(props.server !== null);
+  // Co pár chtěl udělat, když se zeptáme na e-mail a kód: po ověření se v tom pokračuje (bez dalšího kliknutí).
+  const signedInRef = useRef(props.server !== null);
+  const intent = useRef<"save" | "publish">("save");
   const [screen, setScreen] = useState(0);
   const [attempted, setAttempted] = useState<number | null>(null);
   const [conflict, setConflict] = useState<SlugConflict | null>(null);
@@ -427,6 +430,7 @@ function Wizard(props: WizardAppProps) {
       const result = await saveDraftAction(draftRef.current);
       switch (result.status) {
         case "created":
+          signedInRef.current = true;
           setSignedIn(true);
           setSaveOpen(false);
           setPreviewUrl(result.previewUrl);
@@ -473,12 +477,19 @@ function Wizard(props: WizardAppProps) {
     }
   }
 
+  function saveClicked() {
+    intent.current = "save";
+    void save();
+  }
+
   async function publishNow() {
-    if (!signedIn) {
+    if (!signedInRef.current) {
       // Zveřejnění potřebuje účet: nejdřív první uložení (e-mail, kód), pak se pokračuje.
+      intent.current = "publish";
       const saved = await save();
       if (!saved) return;
     }
+    intent.current = "save";
     setFinishError(null);
     setBusy("publish");
     try {
@@ -624,7 +635,7 @@ function Wizard(props: WizardAppProps) {
                   busy={busy}
                   error={finishError}
                   previewUrl={previewUrl}
-                  onSave={() => void save()}
+                  onSave={saveClicked}
                   onPublish={() => void publishNow()}
                   onRenewPreview={() => void renewPreview()}
                   onGoToReview={() => goTo(8)}
@@ -661,7 +672,7 @@ function Wizard(props: WizardAppProps) {
             <SaveStatusLine status={saveStatus} signedIn={signedIn} />
             <div className="flex items-center gap-2">
               {requiredOk && step > 3 && step < STEP_COUNT && !signedIn ? (
-                <Button variant="text" onClick={() => void save()}>
+                <Button variant="text" onClick={saveClicked}>
                   {t("wizard.nav.save")}
                 </Button>
               ) : null}
@@ -710,7 +721,8 @@ function Wizard(props: WizardAppProps) {
         open={saveOpen}
         onClose={() => setSaveOpen(false)}
         onVerified={async () => {
-          await save();
+          const saved = await save();
+          if (saved && intent.current === "publish") await publishNow();
         }}
       />
     </div>

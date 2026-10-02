@@ -1,7 +1,7 @@
 "use client";
 
 import { Monitor, Smartphone } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import type { Locale } from "@/i18n/config";
@@ -20,6 +20,11 @@ const FRAMES = {
   phone: { width: 390, height: 800 },
   desktop: { width: 1280, height: 800 },
 } as const;
+
+function subscribeResize(callback: () => void): () => void {
+  window.addEventListener("resize", callback);
+  return () => window.removeEventListener("resize", callback);
+}
 
 type Device = keyof typeof FRAMES;
 
@@ -96,7 +101,16 @@ export function PreviewPanel({
     return () => observer.disconnect();
   }, []);
 
-  const size = FRAMES[device];
+  // Rámec se vejde nad spodní lištu s tlačítky Zpět a Další i na nízkém okně.
+  const viewportHeight = useSyncExternalStore(
+    subscribeResize,
+    () => window.innerHeight,
+    () => 900,
+  );
+  const size = {
+    width: FRAMES[device].width,
+    height: Math.max(420, Math.min(FRAMES[device].height, viewportHeight - 320)),
+  };
   const scale = width > 0 ? Math.min(1, width / size.width) : 1;
 
   return (

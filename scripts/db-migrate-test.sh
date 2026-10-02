@@ -159,6 +159,40 @@ STRUCT_OUT="$("$PSQL" "$URL" -X -q -v ON_ERROR_STOP=1 -f supabase/tests/10_struc
 check "strukturální testy projdou i s evidenční tabulkou schema_migrations" "$RC"
 [[ $RC -eq 0 ]] || printf '%s\n' "$STRUCT_OUT" >&2
 
+# 5b. založení prvního operátora (npm run ops:create-owner) a obnova druhého faktoru (docs/adr/0012)
+ops() { RC=0; node scripts/ops-bootstrap.mjs "$@" >"$TMP_DIR/out" 2>&1 || RC=$?; }
+ops create-owner
+check "ops:create-owner bez e-mailu selže" "$([[ $RC -ne 0 ]] && out_has 'platný e-mail' && echo 0 || echo 1)"
+ops create-owner neni-email
+check "ops:create-owner s neplatným e-mailem selže" "$([[ $RC -ne 0 ]] && echo 0 || echo 1)"
+RC=0; (unset MIGRATE_DATABASE_URL; node scripts/ops-bootstrap.mjs create-owner a@example.test >"$TMP_DIR/out" 2>&1) || RC=$?
+check "ops:create-owner bez MIGRATE_DATABASE_URL selže" "$([[ $RC -ne 0 ]] && out_has 'Chybí MIGRATE_DATABASE_URL' && echo 0 || echo 1)"
+RC=0; MIGRATE_DATABASE_URL="postgresql://se_vezmou_app:x@localhost:5432/postgres" node scripts/ops-bootstrap.mjs create-owner a@example.test >"$TMP_DIR/out" 2>&1 || RC=$?
+check "ops:create-owner s aplikační rolí se odmítne" "$([[ $RC -ne 0 ]] && out_has 'aplikační roli' && echo 0 || echo 1)"
+ops create-owner Majitel@Example.test
+check "ops:create-owner založí majitele" "$([[ $RC -eq 0 ]] && out_has 'Majitel byl založen' && echo 0 || echo 1)"
+check "majitel je v databázi s rolí owner a bez druhého faktoru" \
+  "$([[ "$(sqlv "select role || ',' || (totp_confirmed_at is null) || ',' || (auth_user_id is not null) from se_vezmou.operators where email = 'majitel@example.test'")" == "owner,true,true" ]] && echo 0 || echo 1)"
+check "založení je v auditu bez e-mailu" \
+  "$([[ "$(sqlv "select count(*) from se_vezmou.audit_log where action = 'operator.bootstrap' and actor_type = 'system' and meta::text not like '%@%'")" -eq 1 ]] && echo 0 || echo 1)"
+ops create-owner majitel@example.test
+check "stejný e-mail podruhé se odmítne" "$([[ $RC -ne 0 ]] && out_has 'už existuje' && echo 0 || echo 1)"
+ops create-owner druhy@example.test
+check "další majitel se bez --allow-additional odmítne" "$([[ $RC -ne 0 ]] && out_has 'allow-additional' && echo 0 || echo 1)"
+check "odmítnutý majitel nevznikl" "$([[ "$(sqlv "select count(*) from se_vezmou.operators")" -eq 1 ]] && echo 0 || echo 1)"
+ops create-owner druhy@example.test --allow-additional
+check "s --allow-additional vznikne další majitel" "$([[ $RC -eq 0 && "$(sqlv "select count(*) from se_vezmou.operators where role = 'owner'")" -eq 2 ]] && echo 0 || echo 1)"
+ops reset-mfa nikdo@example.test
+check "ops:reset-mfa u neznámého e-mailu selže" "$([[ $RC -ne 0 ]] && out_has 'neexistuje' && echo 0 || echo 1)"
+sql -c "update se_vezmou.operators set totp_secret_enc = 'x', totp_confirmed_at = now(), totp_last_step = 5 where email = 'majitel@example.test'; insert into se_vezmou.operator_backup_codes (operator_id, code_hash) select id, sha256('a') from se_vezmou.operators where email = 'majitel@example.test'; insert into se_vezmou.operator_sessions (token_hash, operator_id, idle_seconds, idle_expires_at, absolute_expires_at) select sha256('t'), id, 1800, now() + interval '30 minutes', now() + interval '8 hours' from se_vezmou.operators where email = 'majitel@example.test'" >/dev/null
+ops reset-mfa majitel@example.test
+check "ops:reset-mfa zneplatní faktor, záložní kódy i relace" \
+  "$([[ $RC -eq 0 && "$(sqlv "select (totp_secret_enc is null and totp_confirmed_at is null and totp_last_step is null) || ',' || (select count(*) from se_vezmou.operator_backup_codes) || ',' || (select count(*) from se_vezmou.operator_sessions where revoked_at is null) from se_vezmou.operators where email = 'majitel@example.test'")" == "true,0,0" ]] && echo 0 || echo 1)"
+check "obnova faktoru je v auditu" "$([[ "$(sqlv "select count(*) from se_vezmou.audit_log where action = 'operator.mfa_reset' and actor_type = 'system'")" -eq 1 ]] && echo 0 || echo 1)"
+sql -c "set client_min_messages = warning; delete from se_vezmou.operator_sessions; delete from se_vezmou.operators;" >/dev/null 2>&1
+STRUCT2="$(sqlv "select count(*) from se_vezmou.operators")"
+check "úklid testovacích operátorů" "$([[ "$STRUCT2" -eq 0 ]] && echo 0 || echo 1)"
+
 # 6. změněná aplikovaná migrace
 cp -r supabase/migrations "$TMP_DIR/mig"
 printf '\n-- změna po aplikaci\n' >> "$TMP_DIR/mig/20261002120500_seed.sql"

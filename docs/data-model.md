@@ -675,7 +675,24 @@ Migrace `20261005120000_lifecycle_tables.sql`, `20261005120100_lifecycle_functio
 
 **Testy:** SQL `96_m10_lifecycle` a `97_m10_retention` (injektovaný čas, hranice lhůt, dry_run, idempotence, izolace svateb, audit bez osobních údajů, slug), Vitest (`src/lib/cron`, `src/lib/email/templates/retention-notice.test.ts`, `src/lib/export`, `src/lib/storage`, `src/lib/lifecycle`) a e2e `e2e/cron.e2e.ts` (autorizace, simulovaný průběh času, upozornění v outboxu, mazání po lhůtách).
 
-## 18. Odchylky a rozhodnutí implementace (M7a, správa webu)
+## 18. Odchylky a rozhodnutí implementace (M9, provozní administrace)
+
+Migrace `20261006120000_operators_auth.sql` a `20261006120100_operators_ops.sql`. Všechny nové funkce jsou `security definer`, mají `set search_path = ''` a právo spuštění jen pro `service_role`; operátor nemá politiky na žádné tabulce. Rozhodnutí o přihlášení bez Supabase Auth je v ADR 0012.
+
+- **`operators`**: `auth_user_id` už nikdo nedodává (výchozí `gen_random_uuid()`, sloupec zůstává kvůli kompatibilitě). Nové sloupce `totp_secret_enc` (šifrovaný klíč TOTP, šifruje aplikace klíčem `OPERATOR_MFA_KEY`), `totp_confirmed_at`, `totp_last_step` (poslední použitý časový krok, ochrana proti přehrání) a `last_login_at`.
+- **Úrovně přihlášení**: AAL1 = relace s `aal2_verified_at is null` (po kódu z e-mailu), AAL2 = druhý faktor ověřen. Relaci posouvá `auth_operator_validate_session` nejvýše jednou za minutu (nečinnost 30 minut, absolutně 8 hodin zadává aplikace).
+- **Výzvy a e-maily**: `login_challenges.purpose` má nový účel `operator_login`, `email_log.type` nový typ `operator_notice`.
+- **Hledání zakázek** (`op_list_weddings`): jména páru (bez diakritiky a velikosti písmen, více slov = všechna), adresa a e-maily aktivních správců; dotaz s `@` hledá jen e-mail. Údaje hostů se nehledají. Odchylka od kapitoly 4 (trigramový index na jmenech): hledání používá `normalize_name`, což se na stovkách až tisících zakázek obejde bez indexu.
+- **Detail** (`op_get_wedding`) vrací agregáty (počty hostů, domácností a odpovědí) a stav souhlasu s nahlédnutím (jen konec platnosti), nikdy jména ani odpovědi hostů. Odkaz na náhled konceptu se nezobrazuje: ukládá se jen otisk tajného odkazu a operátor ho nezná (zobrazí se jen odkaz na zveřejněný web).
+- **Změna stavu** (`op_set_wedding_status`): podpora smí jen zablokovat, ze smazaného stavu se vrací jen `op_restore_wedding`, zveřejnit jde jen web se zveřejněnou verzí a adresou.
+- **Změna adresy** (`op_change_slug`): starý slug přejde do `retired` (zveřejněný zůstává trvale zablokovaný), nový se zapíše jako `active` u už zveřejněného webu a jako `reserved` u konceptu; kontrola jako v průvodci (`slug_available`, vč. rezervovaných slov).
+- **Prodloužení** (`op_extend_retention`): `service` (`orders.service_ends_at`), `health` a `guests` (`health_purge_at`, `guest_purge_at`); lhůtu jde jen prodloužit a jen do budoucnosti, platí do konce zadaného dne v pásmu svatby.
+- **Poslání přihlašovacího odkazu** (`op_send_login_link`): HMAC e-mailu a kódu počítá aplikace, databáze v téže transakci vytvoří výzvu `admin_login` a zapíše audit, e-mail jde po odpovědi. Odkaz správce nepřihlásí sám (potvrzovací stránka z M4).
+- **Audit** (`op_list_audit`) čte jen majitel; `meta` zůstává jen s identifikátory, počty a stavy (hlídá spouštěč).
+- **Správa operátorů**: zakázání odvolá relace, majitel nezakáže ani neobnoví faktor sám sobě, obnova faktoru zneplatní klíč, záložní kódy a relace. První majitel vzniká skriptem `npm run ops:create-owner` (vlastník databáze).
+- **Neimplementováno**: oznámení správcům o nahlédnutí operátora do údajů hostů (M7, OQ-53); `op_view_guest_data` zapisuje audit s důvodem a počtem hostů.
+
+## 19. Odchylky a rozhodnutí implementace (M7a, správa webu)
 
 Migrace `20261006100000_admin_site.sql`, kód v `src/admin/site`, `src/components/admin` a `src/app/h/app/(sprava)`. Všechny funkce jsou `security definer` s prázdným `search_path`, právo spuštění má jen `authenticated`; každá vyžaduje `se_vezmou.is_wedding_admin()` a pracuje jen se svatbou z claimu (žádný argument s identifikátorem svatby).
 

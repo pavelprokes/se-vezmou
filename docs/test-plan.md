@@ -43,36 +43,36 @@ Hodnoty, které zadání neuvádí, jsou označeny `[OTÁZKA]` a vedou do `open-
 
 Každý scénář běží na viewportu telefonu i počítače, pokud není uvedeno jinak. Chyby jsou ověřeny i pro angličtinu.
 
-| ID     | Scénář                                                                                                                     | Ověřuje                        |
-| ------ | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
-| E2E-01 | Průvodce od jmen (Klára a Matěj) po zveřejnění na telefonu, bez registrace do kroku 3, měření času do zveřejnitelného webu | FR-WZ-1 až FR-WZ-3, FR-WZ-7    |
-| E2E-02 | Přeskočení kroků 4 až 8 a návrat k nim                                                                                     | FR-WZ-2                        |
-| E2E-03 | Průběžné ukládání: obnovení stránky a zavření prohlížeče neztratí rozepsaná data                                           | FR-WZ-3                        |
-| E2E-04 | Kolize adresy: nabídka variant, pár nepřijde o data, rezervace až při prvním uložení                                       | FR-WZ-4                        |
-| E2E-05 | Rezervace konceptu vyprší po době bez aktivity a adresa se uvolní (hodnota `[OTÁZKA]`)                                     | FR-WZ-6                        |
-| E2E-06 | Uložení jako koncept: neuhádnutelný odkaz na náhled, `noindex`                                                             | FR-WZ-5                        |
-| E2E-07 | Obrazovka „Hotovo“: adresa, QR kód, PIN, PDF oznámení                                                                      | FR-WZ-1, FR-ADM-6              |
-| E2E-08 | Přihlášení kódem: vložení ze schránky, platnost 10 minut, jednorázovost, opakované použití selže                           | zadání: autentizace            |
-| E2E-09 | Přihlášení PINem: pět chyb, pauza 15 minut, prodlužování, oznámení na záložní e-mail                                       | zadání: autentizace            |
-| E2E-10 | Správci: přidání a odebrání adresy, potvrzení, oznámení ostatním, strop N, povinný záložní e-mail                          | zadání: autentizace, FR-MAIL-1 |
-| E2E-11 | Neexistující e-mail a existující e-mail dávají stejnou odpověď i podobný čas                                               | zadání: bezpečnost             |
-| E2E-12 | RSVP samostatného hosta, slepé párování, překlep ve jménu, žádný našeptávač ani výpis                                      | FR-RSVP-1                      |
-| E2E-13 | RSVP domácnosti, „plus jedna“ s ručním jménem, děti s věkem                                                                | FR-RSVP-2                      |
-| E2E-14 | Větvení: host pozvaný jen na hostinu nevidí obřad                                                                          | FR-RSVP-3                      |
-| E2E-15 | Odeslání, úprava odpovědi, potvrzení na obrazovce a e-mailem, ohlášení čtečce                                              | FR-RSVP-6                      |
-| E2E-16 | RSVP před otevřením a po uzavření; host mimo seznam podle volby páru; ochrana před spamem                                  | FR-RSVP-5, FR-RSVP-7           |
-| E2E-17 | PIN hostů: citlivé bloky (číslo účtu, soukromé místo) skryté do zadání, omezení pokusů                                     | FR-PRIV-2                      |
-| E2E-18 | Správa: zapnutí bloků, řazení myší a tlačítky, koncept a zveřejněná verze, historie a vrácení (`e2e/admin-site.e2e.ts`)    | FR-ADM-1, FR-ADM-2             |
-| E2E-19 | „Rychlá změna“ se okamžitě zobrazí a skryje (`e2e/admin-site.e2e.ts`)                                                      | FR-ADM-3                       |
-| E2E-20 | Import hostů z Excelu, ruční zápis, export CSV a Excel, ruční zápis odpovědi po telefonu                                   | FR-ADM-4, FR-ADM-5             |
-| E2E-21 | Přepnutí do režimu poděkování: odpočet, RSVP a dary zmizí, galerie zůstane                                                 | FR-WEB-4                       |
-| E2E-22 | Životní cyklus podle dat se zrychleným časem; upozornění před vypršením, export, smazání                                   | FR-LC-1, FR-LC-2               |
-| E2E-23 | Mazání po retenci: dietní údaje po 30 dnech, ostatní po 12 měsících, záznam v auditu bez osobních údajů, nevratnost        | zadání: retence                |
-| E2E-24 | Provozní administrace: filtry, hledání, zásahy, audit každého zásahu, role podpory bez údajů hostů                         | FR-OPS-1 až FR-OPS-7           |
-| E2E-25 | Operátor: kód plus druhý faktor, záložní postup; nahlédnutí do údajů hostů jen po souhlasu s důvodem                       | zadání: operátor               |
-| E2E-26 | Čekací listina na úvodní stránce, souhlas, potvrzení                                                                       | MVP                            |
-| E2E-27 | Pole jmen ve výzvě úvodní stránky předvyplní průvodce                                                                      | FR-LP-5                        |
-| E2E-28 | Odkaz na externí galerii: karta z Open Graph načtená serverem, před i po svatbě, bez volání cizího webu, jen po PINu, SSRF | FR-WEB-4, FR-PRIV-2            |
+| ID     | Scénář                                                                                                                                                                              | Ověřuje                        |
+| ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| E2E-01 | Průvodce od jmen (Klára a Matěj) po zveřejnění na telefonu, bez registrace do kroku 3, měření času do zveřejnitelného webu                                                          | FR-WZ-1 až FR-WZ-3, FR-WZ-7    |
+| E2E-02 | Přeskočení kroků 4 až 8 a návrat k nim                                                                                                                                              | FR-WZ-2                        |
+| E2E-03 | Průběžné ukládání: obnovení stránky a zavření prohlížeče neztratí rozepsaná data                                                                                                    | FR-WZ-3                        |
+| E2E-04 | Kolize adresy: nabídka variant, pár nepřijde o data, rezervace až při prvním uložení                                                                                                | FR-WZ-4                        |
+| E2E-05 | Rezervace konceptu vyprší po době bez aktivity a adresa se uvolní (hodnota `[OTÁZKA]`)                                                                                              | FR-WZ-6                        |
+| E2E-06 | Uložení jako koncept: neuhádnutelný odkaz na náhled, `noindex`                                                                                                                      | FR-WZ-5                        |
+| E2E-07 | Obrazovka „Hotovo“: adresa, QR kód, PIN, PDF oznámení                                                                                                                               | FR-WZ-1, FR-ADM-6              |
+| E2E-08 | Přihlášení kódem: vložení ze schránky, platnost 10 minut, jednorázovost, opakované použití selže                                                                                    | zadání: autentizace            |
+| E2E-09 | Přihlášení PINem: pět chyb, pauza 15 minut, prodlužování, oznámení na záložní e-mail                                                                                                | zadání: autentizace            |
+| E2E-10 | Správci: přidání a odebrání adresy, potvrzení, oznámení ostatním, strop N, povinný záložní e-mail                                                                                   | zadání: autentizace, FR-MAIL-1 |
+| E2E-11 | Neexistující e-mail a existující e-mail dávají stejnou odpověď i podobný čas                                                                                                        | zadání: bezpečnost             |
+| E2E-12 | RSVP samostatného hosta, slepé párování, překlep ve jménu, žádný našeptávač ani výpis                                                                                               | FR-RSVP-1                      |
+| E2E-13 | RSVP domácnosti, „plus jedna“ s ručním jménem, děti s věkem                                                                                                                         | FR-RSVP-2                      |
+| E2E-14 | Větvení: host pozvaný jen na hostinu nevidí obřad                                                                                                                                   | FR-RSVP-3                      |
+| E2E-15 | Odeslání, úprava odpovědi, potvrzení na obrazovce a e-mailem, ohlášení čtečce                                                                                                       | FR-RSVP-6                      |
+| E2E-16 | RSVP před otevřením a po uzavření; host mimo seznam podle volby páru; ochrana před spamem                                                                                           | FR-RSVP-5, FR-RSVP-7           |
+| E2E-17 | PIN hostů: citlivé bloky (číslo účtu, soukromé místo) skryté do zadání, omezení pokusů                                                                                              | FR-PRIV-2                      |
+| E2E-18 | Správa: zapnutí bloků, řazení myší a tlačítky, koncept a zveřejněná verze, historie a vrácení (`e2e/admin-site.e2e.ts`)                                                             | FR-ADM-1, FR-ADM-2             |
+| E2E-19 | „Rychlá změna“ se okamžitě zobrazí a skryje (`e2e/admin-site.e2e.ts`)                                                                                                               | FR-ADM-3                       |
+| E2E-20 | Import hostů z Excelu, ruční zápis, export CSV a Excel, ruční zápis odpovědi po telefonu                                                                                            | FR-ADM-4, FR-ADM-5             |
+| E2E-21 | Přepnutí do režimu poděkování: odpočet, RSVP a dary zmizí, galerie zůstane                                                                                                          | FR-WEB-4                       |
+| E2E-22 | Životní cyklus podle dat se zrychleným časem; upozornění před vypršením, export, smazání                                                                                            | FR-LC-1, FR-LC-2               |
+| E2E-23 | Mazání po retenci: dietní údaje po 30 dnech, ostatní po 12 měsících, záznam v auditu bez osobních údajů, nevratnost                                                                 | zadání: retence                |
+| E2E-24 | Provozní administrace: filtry, hledání, zásahy, audit každého zásahu, role podpory bez údajů hostů (`e2e/ops-admin.e2e.ts`)                                                         | FR-OPS-1 až FR-OPS-7           |
+| E2E-25 | Operátor: kód plus druhý faktor, záložní postup; nahlédnutí do údajů hostů jen po souhlasu s důvodem (`e2e/ops-auth.e2e.ts`, `e2e/ops-admin.e2e.ts`, přístupnost `e2e/ops.a11y.ts`) | zadání: operátor               |
+| E2E-26 | Čekací listina na úvodní stránce, souhlas, potvrzení                                                                                                                                | MVP                            |
+| E2E-27 | Pole jmen ve výzvě úvodní stránky předvyplní průvodce                                                                                                                               | FR-LP-5                        |
+| E2E-28 | Odkaz na externí galerii: karta z Open Graph načtená serverem, před i po svatbě, bez volání cizího webu, jen po PINu, SSRF                                                          | FR-WEB-4, FR-PRIV-2            |
 
 ### 2.4 Izolace dat mezi svatbami
 

@@ -205,7 +205,7 @@ export function authRevokeSessions(weddingId: string, subjectId?: string): Promi
 // --- výzvy (kód z e-mailu) ---------------------------------------------------------------
 
 export type ChallengePurpose =
-  "admin_login" | "admin_add_confirm" | "operator_recovery" | "wizard_create";
+  "admin_login" | "admin_add_confirm" | "operator_recovery" | "wizard_create" | "operator_login";
 
 export function authCreateChallenge(input: {
   emailHash: Bytes;
@@ -351,7 +351,8 @@ export type EmailLogType =
   | "admin_changed"
   | "backup_login_notice"
   | "expiry_notice"
-  | "deletion_notice";
+  | "deletion_notice"
+  | "operator_notice";
 
 export type EmailLogStatus = "queued" | "sent" | "delivered" | "bounced" | "complained" | "failed";
 

@@ -42,6 +42,22 @@ export interface QueueEntry {
   attempt: number;
 }
 
+/**
+ * Chyby, které zopakování nespraví (typ souboru, rozměry, velikost, kvóta): tlačítko „Zkusit znovu“ se nenabízí,
+ * soubor je potřeba vyměnit. Ostatní chyby (síť, omezení počtu požadavků, úložiště) jsou přechodné.
+ */
+export const FINAL_ERRORS: readonly QueueError[] = [
+  "type",
+  "heic",
+  "unsupported_type",
+  "too_many_pixels",
+  "corrupt",
+  "empty",
+  "too_large",
+  "quota",
+  "closed",
+];
+
 export class PutError extends Error {
   constructor(readonly status: number) {
     super(`PUT ${status}`);
@@ -216,9 +232,14 @@ export class UploadQueue {
     let target: { url: string; headers: Record<string, string> };
     let mediaId = current().mediaId;
     try {
-      const requested = mediaId
+      let requested = mediaId
         ? await this.deps.actions.renewUpload({ id: mediaId, mime })
         : await this.deps.actions.requestUpload({ mime, bytes: blob.size });
+      if (mediaId && requested.status === "not_found") {
+        // Fotografie už není čekající (dokončila se, nebo ji server odmítl): nahraje se jako nová
+        mediaId = undefined;
+        requested = await this.deps.actions.requestUpload({ mime, bytes: blob.size });
+      }
       if (requested.status !== "ok") return this.fail(key, requestError(requested.status));
       target = { url: requested.url, headers: requested.headers };
       mediaId = requested.id;

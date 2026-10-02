@@ -1,6 +1,6 @@
 # ADR 0006: Úložiště a zpracování fotografií
 
-Stav: rozhodnuto majitelem pro **Cloudflare R2** (2. 10. 2026). Podrobnosti doručování a limity jsou doporučení k potvrzení. Nahrazuje původní návrh se Supabase Storage (ADR 0011: aplikace mluví s Postgresem přímo a nemá klíč `service_role`, takže Supabase Storage odpadá).
+Stav: rozhodnuto majitelem pro **Cloudflare R2** (2. 10. 2026), **implementováno v M7c** (odchylky a rozhodnutí implementace jsou na konci dokumentu). Podrobnosti doručování a limity jsou doporučení k potvrzení. Nahrazuje původní návrh se Supabase Storage (ADR 0011: aplikace mluví s Postgresem přímo a nemá klíč `service_role`, takže Supabase Storage odpadá).
 
 ## Kontext
 
@@ -78,3 +78,22 @@ Uložení fotografie vyžaduje popisek (alespoň v jazyce webu, další jazyky s
 - **Údržba:** `sharp` je nativní závislost, hlídat kompatibilitu s prostředím Vercelu (Node 24) a bezpečnostní aktualizace. Přenos z `g-gallery` je kopie s úpravami, ne sdílená knihovna: změny v `g-gallery` se nepřenášejí samy.
 - **Omezení:** HEIC se na serveru nedekóduje (patentově omezená podpora v předsestavené `sharp`), proto `accept` na JPEG, PNG a WebP, aby iOS převedl HEIC při výběru. Pro soubory, které prohlížeč ani server nezvládnou, je srozumitelná chybová zpráva s návodem (export do JPEG).
 - **Otevřené:** limity a počty `[OTÁZKA]`, ceny `[OTÁZKA]`, DPA a záložní politika `[OTÁZKA]`, limity funkcí na Vercelu `[OTÁZKA]`. Pokud se později ukáže, že pevné velikosti nestačí, lze přejít na variantu B (CDN host na zóně v Cloudflare) beze změny datového modelu, protože klíče a Média jsou stejné.
+
+## Implementace (M7c)
+
+Kód: `src/lib/storage` (rozhraní `PhotoStorage`, implementace `r2.ts` přes `aws4fetch`, `memory.ts` pro vývoj a testy), `src/lib/media` (limity, zpracování `sharp`, služba nahrávání), `src/lib/db/media.ts`, migrace `20261008120000_media.sql`, doručení `src/app/h/tenant/[slug]/[locale]/media/[id]/[width]/route.ts`, editor `src/components/admin/photos.tsx`, galerie a prohlížeč `src/components/site/blocks/gallery.tsx` a `gallery-lightbox.tsx`. Postup nasazení pro majitele (bucket, token, pravidlo životního cyklu, CORS, proměnné) je v `supabase/README.md`.
+
+**Výběr úložiště** (`getStorage`): proměnné `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (volitelně `R2_ENDPOINT`, `S3_REGION`) nastavené -> R2. Bez nich mimo produkci úložiště v paměti (jedna instance na proces, nahrání i doručení fungují přes podepsané adresy na interní cestu `/api/dev-storage`), takže vývoj a e2e testy fungují bez Cloudflare; e2e proti produkčnímu sestavení ho zapíná `STORAGE_DRIVER=memory` (na `VERCEL_ENV=production` se ignoruje). V produkci bez R2 se aplikace nerozbije při startu: výpis a mazání nic nedělají, ale jakékoli použití fotografií selže srozumitelně (`not_configured`, hláška v editoru, v logu názvy chybějících proměnných) a úloha retence **nesmaže web, který má fotografie**, dokud úložiště není nastavené.
+
+**Odchylky a upřesnění proti textu rozhodnutí**
+
+- **Popisek při zveřejnění, ne při uložení.** Fotografie se po nahrání uloží i bez popisku (jinak by se popisek musel zadat ještě před nahráním), ale **nezveřejní se**: při sestavení snímku se vynechá, editor ji hlásí upozorněním a v seznamu. Kontrola `media_alt_required` v databázi proto odpadla. Chybějící překlad (popisek jen v jednom jazyce) zveřejnění nebrání (zobrazí se dostupný jazyk, `lang` se označí).
+- **Rozměry média** (`media.width`, `height`) jsou rozměry největší varianty (poměr stran pro `<img width height>`), ne originálu. Šířky variant: 640, 1280 a 1920 px, jen ty nepřesahující originál; je-li originál menší než 1920 px a o víc než 10 % větší než nejbližší menší varianta, přibude jeho vlastní šířka (nikdy se nezvětšuje).
+- **Velikost při podepsaném PUT.** `aws4fetch` nepodepisuje `Content-Length` ani `Content-Type`, strop 40 MB proto nelze vynutit podpisem. Server ho vynucuje při dokončení (`HEAD` a čtení proudu se stropem, nad limit se objekt hned smaže); pravidlo bucketu maže karanténu po dni. Žádost o adresu odmítne deklarovanou velikost nad limit a databáze kvótu 12 fotografií hlídá atomicky (zámek svatby).
+- **Formát v adrese:** `/media/{id}/{šířka}?f=avif|webp` (výchozí WebP). Přípona v cestě by proxy (`isStaticAsset`) nepřepsala na web páru.
+- **Export:** místo archivu ZIP odkazy ke stažení největší varianty každé fotografie (`planPhotoExport` čte výpis předpony, `presignPhotoDownload`); u desítek fotografií je to pro pár i Vercel jednodušší a spolehlivější než archiv sestavovaný na serveru.
+- **Zmenšení v prohlížeči** probíhá v hlavním vlákně přes `createImageBitmap` a `OffscreenCanvas` (asynchronní dekódování mimo vlákno), ne ve vlastním workeru; při selhání se nahraje původní soubor.
+- **Smazání fotografie je okamžité** i z už zveřejněného webu: nejdřív se smažou soubory (originál i varianty), potom řádek; doručení vrací 404 a web média, která už nejsou v databázi, ze snímku vyřadí (`public_media_ids`), takže se po smazání nezobrazí rozbitý obrázek.
+- **Fotografie jen pro hosty s PINem** (`galleryData.photosProtected`): v takovém případě nejsou ve veřejném snímku ani jako identifikátory, jsou v `SensitiveContent.photos` a doručení (`get_public_media`) je podá jen roli `guest_pin`.
+- **Obrázek karty externí galerie** je médium druhu `card` (dekorativní, varianty 640 a 1280, mimo limit fotografií). Server ho stáhne se stejnými zárukami proti SSRF jako kartu (jen https na 443, žádné soukromé adresy ani po přesměrování, jen JPEG, PNG a WebP, strop 5 MB, časový limit), překóduje ho přes `sharp` jako každou fotografii a uloží; zůstanou dva nejnovější (současný a předchozí, na který může odkazovat zveřejněná verze). Bez nastaveného úložiště se nic nekopíruje (dnešní chování: karta bez obrázku).
+- **Content-Security-Policy:** původ R2 se doplní do `img-src` (přesměrování z `/media/…` se kontroluje i na cíli) a `connect-src` (PUT originálu z prohlížeče) při sestavení, jen když jsou proměnné R2 nastavené (`next.config.ts`).

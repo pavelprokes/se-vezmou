@@ -282,6 +282,10 @@ Vlastnosti všech úloh: idempotentní, po dávkách s omezením času, `pg_try_
 
 Ceny a tarify Vercelu, Supabase a e-mailové služby jsem do dokumentu nezapsal, protože se mění a nemám z podkladů ověřené hodnoty `[OVĚŘIT před schválením]`. Rozhodující je, že zaváděcí provoz zdarma potřebuje: produkční tarif databáze se zálohami, odesílání e-mailů, úložiště fotografií a cron. Podrobný přehled nákladů patří do `docs/implementation-plan.md`.
 
+## 9a. Úložiště a zpracování fotografií (M7c)
+
+Rozhodnutí: `docs/adr/0006-photo-storage.md`. Úložiště je za rozhraním `PhotoStorage` (`src/lib/storage`): Cloudflare R2 přes S3 API a `aws4fetch` (podepsané adresy, výpis a mazání předpon), v paměti pro vývoj a testy a „nenastavené“ úložiště pro produkci bez proměnných R2 (selže až použití fotografií). Tok: Server Action vydá podepsanou adresu pro PUT do karantény `incoming/{wedding_id}/{media_id}`, prohlížeč nahraje originál přímo do úložiště, druhá Server Action (`maxDuration` 60 s na stránce `/web`) originál zpracuje (`sharp`: typ podle obsahu, pixelové limity, otočení podle EXIF, sRGB, žádná metadata, šířky 640, 1280 a 1920 px ve WebP a AVIF) a uloží varianty. Doručení: `/media/{id}/{šířka}` na hostiteli webu páru přesměruje na čerstvě podepsanou adresu s časovým oknem. `sharp` je nativní závislost (Node 24, předsestavené binárky pro Vercel); `aws4fetch` nemá vlastní závislosti.
+
 ## 9. Otevřené body tohoto dokumentu
 
 - `[ROZHODNUTO M5]` PDF oznámení vzniká na serveru knihovnou `pdf-lib` s `@pdf-lib/fontkit` (písma Newsreader a DM Sans, licence OFL, vkládaná jako podmnožiny; vektorový QR z `qrcode-generator`). Soubory písem jsou v `outputFileTracingIncludes`. Cesta `/vytvorit/oznameni` je POST (cesta končící `.pdf` by proxy považovala za statický soubor). PDF není tagované (PDF/UA), má však titulek, autora a jazyk; značkování zůstává otevřené.

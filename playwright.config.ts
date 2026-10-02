@@ -60,7 +60,7 @@ export default defineConfig({
     },
     {
       name: "a11y-mobile",
-      testMatch: /(landing|wizard|admin-site|ops)\.a11y\.ts$/,
+      testMatch: /(landing|wizard|admin-site|photos|ops)\.a11y\.ts$/,
       use: { ...devices["Pixel 7"] },
     },
   ],
@@ -85,6 +85,9 @@ export default defineConfig({
       // Správa webu (M7a): falešný cílový server pro karty externí galerie. Jediná výjimka z ochrany
       // před SSRF: jméno `fotky-test.example` se bez DNS a bez TLS spojí s loopbackem (src/admin/site/og.ts).
       OG_FETCH_TEST_HOST: `${OG_HOST}=127.0.0.1:${OG_PORT}`,
+      // Fotografie (M7c): bez R2 běží úložiště v paměti (nahrání i doručení přes `/api/dev-storage`), takže se
+      // celý tok projde bez Cloudflare. Produkční sestavení ho jinak nezapne (src/lib/storage/index.ts).
+      STORAGE_DRIVER: "memory",
       // Adresa průvodce pro tlačítka a pole jmen: lokální hostitel `app.` (zástupná stránka).
       NEXT_PUBLIC_APP_URL: `http://app.localhost:${PORT}`,
     },

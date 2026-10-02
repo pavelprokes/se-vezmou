@@ -24,6 +24,7 @@ import { ConfirmButton } from "./confirm-button";
 import { LocalizedField, Note } from "./fields";
 import { useAdminT, type AdminKey, type AdminT } from "./i18n";
 import {
+  FINAL_ERRORS,
   UploadQueue,
   downscale,
   putWithProgress,
@@ -266,6 +267,18 @@ export function PhotosPanel(props: PhotosPanelProps) {
     setRemoveMessage(t("admin.photos.deleteFailed"));
   }
 
+  /** Odebrání z fronty; selhaná fotografie, která už má záznam v databázi, se uklidí i tam (nikdo ji jinak nesmaže). */
+  function dismiss(entry: QueueEntry) {
+    if (entry.mediaId && entry.status === "error") {
+      const id = entry.mediaId;
+      void actions
+        .remove(id)
+        .then(() => setMedia((items) => items.filter((m) => m.id !== id)))
+        .catch(() => undefined);
+    }
+    queue.current?.remove(entry.key);
+  }
+
   async function exportAll() {
     setExporting(true);
     setDownloads(null);
@@ -283,10 +296,9 @@ export function PhotosPanel(props: PhotosPanelProps) {
   }
 
   const activeQueue = entries;
+  // Fotografie, která je ve frontě (nahrává se nebo selhala), se v seznamu nahraných neukazuje podruhé
   const inQueue = new Set(
-    entries
-      .filter((e) => e.mediaId && e.status !== "error" && e.status !== "done")
-      .map((e) => e.mediaId),
+    entries.filter((e) => e.mediaId && e.status !== "done").map((e) => e.mediaId),
   );
   const full = slotsLeft === 0;
   const hasDone = entries.some((e) => e.status === "done");
@@ -393,7 +405,7 @@ export function PhotosPanel(props: PhotosPanelProps) {
                   ) : null}
                   {failed || entry.status === "done" || entry.status === "queued" ? (
                     <div className="flex flex-wrap gap-2">
-                      {failed && entry.error !== "type" && entry.error !== "heic" ? (
+                      {failed && entry.error && !FINAL_ERRORS.includes(entry.error) ? (
                         <Button
                           type="button"
                           variant="secondary"
@@ -408,7 +420,7 @@ export function PhotosPanel(props: PhotosPanelProps) {
                         type="button"
                         variant="text"
                         aria-label={t("admin.photos.dismissNamed", { name: entry.name })}
-                        onClick={() => queue.current?.remove(entry.key)}
+                        onClick={() => dismiss(entry)}
                       >
                         <Icon icon={X} />
                         {t("admin.photos.dismiss")}

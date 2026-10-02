@@ -30,6 +30,19 @@ Hodnoty, které zadání neuvádí, jsou označeny `[OTÁZKA]` a vedou do `open-
 | Hostitel          | z hlavičky `Host` se určí druh (úvodní stránka, průvodce, administrace, web páru) a slug; neznámý hostitel dává 404 bez výpisu webů                                                                                                            | zadání: hostitelé, FR-PRIV-3    |
 | Vícejazyčnost     | chybějící překlad dává dostupný jazyk, ne prázdné místo ani klíč                                                                                                                                                                               | zadání: datový model            |
 
+### 2.1a Fotografie (M7c)
+
+| Oblast                  | Co se ověřuje                                                                                                                                                                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Zpracování (Vitest)     | typ podle obsahu (SVG, GIF, HEIC a HTML převlečené za JPEG se odmítnou), limit pixelů z hlavičky (i „bomba“ s drobnými daty), otočení podle EXIF, sRGB, **žádný EXIF, GPS ani ICC ve výstupu**, šířky 640, 1280, 1920 bez zvětšení |
+| Úložiště (Vitest)       | R2 přes falešný `fetch` (podepsané adresy, stabilní okno, stránkování výpisu, mazání po tisících, chyba kusu = chyba, žádný klíč mimo dva známé tvary), paměť, výběr úložiště, produkce bez R2 selže až při použití                |
+| Služba (Vitest)         | žádost a kvóta, tok nahrání a zpracování, úklid po každé chybě, izolace svatby, mazání (soubory před řádkem), export, obrázek karty                                                                                                |
+| Databáze (SQL)          | `88_media`: oprávnění všech rolí, kvóta, stavy, kontrola klíčů, doručení jen ze zveřejněného snímku, chráněné fotografie jen po PINu, izolace svateb; matice `20_isolation` včetně `media_variants`                                |
+| SSRF u obrázku karty    | soukromé adresy, přesměrování po každém skoku, jen JPEG, PNG a WebP, strop velikosti a časový limit (`og-image.test.ts`, e2e s falešným cílovým serverem)                                                                          |
+| Fronta v prohlížeči     | pořadí, opakování s čekáním, obnovení adresy, srozumitelné chyby (HEIC, typ, velikost, kvóta), záloha na původní soubor při selhání zmenšení                                                                                       |
+| e2e (úložiště v paměti) | nahrání, popisek, zveřejnění, doručení bez EXIF a GPS, řazení, mazání, export, chráněné fotografie, izolace svateb, prohlížeč z klávesnice (šipky, Esc, uvěznění zaměření, návrat zaměření), kopie obrázku karty                   |
+| axe                     | editor galerie (prázdný, s frontou a chybami, s fotografiemi), web s galerií a otevřeným prohlížečem, česky i anglicky, počítač i telefon                                                                                          |
+
 ### 2.2 Komponentové
 
 - Všechna UI primitiva a bloky webu páru: popisek u každého pole, chyba popsaná slovy, stav nese ikonu nebo text, viditelné zaměření, cíl dotyku alespoň 24 × 24 px (navrženo 44 × 44 px).

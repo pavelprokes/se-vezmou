@@ -33,6 +33,8 @@ Migrace:
 12. `operators_auth` (M9, ADR 0012): sloupce `operators.totp_secret_enc`, `totp_confirmed_at`, `totp_last_step`, `last_login_at`, účel výzvy `operator_login`, typ e-mailu `operator_notice`, funkce `auth_operator_*` (vyhledání operátora, relace AAL1 a AAL2, zápis a ověření druhého faktoru TOTP s ochranou proti přehrání, záložní kódy).
 13. `operators_ops` (M9): provozní administrace `op_list_weddings`, `op_get_wedding`, `op_add_note`, `op_change_slug`, `op_extend_retention`, `op_restore_wedding`, `op_send_login_link`, `op_overview`, `op_analytics_summary`, `op_list_retention`, `op_list_audit`, správa operátorů (`op_list_operators`, `op_create_operator`, `op_set_operator_disabled`, `op_reset_operator_mfa`) a přepracovaná `op_set_wedding_status` (matice rolí, zveřejnění jen s verzí, obnovení jen přes `op_restore_wedding`).
 
+14. `media` (M7c, ADR 0006): fotografie na Cloudflare R2. `media` dostala druh (`photo`, `card`), stav zpracování (`pending`, `processing`, `ready`, `failed`), kód chyby; kontrola `media_alt_required` odpadla (fotografie bez popisku se uloží, ale nezveřejní). Nová tabulka `media_variants` (složený cizí klíč `(wedding_id, media_id)`, klíč objektu `{wedding_id}/{media_id}/{šířka}.{formát}` hlídá kontrola tvaru) a funkce správce `admin_media_list`, `admin_media_get`, `admin_media_request` (kvóta 12 fotografií a 40 MB z `app_settings`), `admin_media_begin`, `admin_media_complete`, `admin_media_fail`, `admin_media_update`, `admin_media_delete`, `admin_media_export`, `admin_media_variant`; doručení `get_public_media` (návštěvník nebo host po PINu) a `public_media_ids`.
+
 Matice rolí operátorů (každá `op_*` si roli ověřuje sama, `assert_operator`): čtení, poznámky, poslání přihlašovacího odkazu, nahlédnutí do údajů hostů se souhlasem páru a zablokování webu smí `owner` i `support`; ostatní změny stavu, změnu adresy, prodloužení lhůt, obnovu, audit a správu operátorů jen `owner`. Žádná z nich nevrací jména ani údaje hostů; k nim vede jediná cesta `op_view_guest_data` s aktivním `data_access_grants`, důvodem a auditem.
 
 Co je záměrně odložené (označeno `TODO` v `functions_core.sql`; PINy a pauzy dodala M4, koncept a publikaci M5, správu webu M7a, operátory M9): správa správců a souhlas s nahlédnutím (M7b), e-maily a export při retenci (M10).
@@ -71,6 +73,7 @@ V CI běží test jako samostatný job `db` (`.github/workflows/ci.yml`), spolu 
 - `95_auth_pin` (M4): pauzy po chybách (série, zdvojnásobování, strop 24 h, samovolný návrat úrovně, nulování), `auth_pin_get` (skrývá svatbu bez PINu, smazanou, bez správce), nastavení PINu (formát hashe, odvolání relací, audit bez hodnoty), `auth_session_context`, `email_log_*` a že správce tyto funkce nespustí.
 - `85_rsvp_m8` (M8): tolerance překlepů (`se_vezmou.osa_distance`, `se_vezmou.names_close`) a nejednoznačnost, vlastní a vestavěné otázky (typy, možnosti, povinnost, otázky k události), doprovod a děti, `rsvp_info`, host mimo seznam (vypnuto, zapnuto, zavřeno, role), správcovský seznam, přehled a ruční zápis (oprávnění, izolace svatby, audit bez osobních údajů), `analytics_record` bez identifikátorů.
 - `87_admin_site` (M7a): oprávnění funkcí správy (návštěvník, host, náhled, `anon`, service role), izolace mezi svatbami, optimistické zamykání, zveřejnění, stažení a znovuzveřejnění, průvodce po zveřejnění, oříznutí historie, rychlá změna, výběr svatby, audit bez obsahu webu.
+- `88_media` (M7c): oprávnění funkcí fotografií (návštěvník, host, náhled, `anon`, service role), žádost o nahrání (kvóta, typy, velikost, zablokovaná svatba, zapomenutá nahrávání), stavy zpracování (`begin`, `complete`, `fail`, převzetí zaseknutého zpracování), kontrola tvaru klíčů variant, popisek a dekorativní příznak, mazání a export, izolace mezi svatbami (funkce i RLS i složený cizí klíč) a doručení `get_public_media` (jen zveřejněný snímek, chráněné fotografie jen pro hosta po PINu, smazané, nezveřejněné i archivované médium nic nevrací).
 - `96_operator_auth` (M9): relace operátora (AAL1 a AAL2, nečinnost, absolutní doba, odvolání, zakázaný operátor), zápis druhého faktoru (rozepsaný klíč se nepřepíše, potvrzení, záložní kódy), ochrana proti přehrání kódu TOTP, jednorázové záložní kódy, účel výzvy `operator_login`, práva funkcí.
 - `97_operator_ops` (M9): `op_*` (seznam s filtry a hledáním bez údajů hostů, detail, poznámky, změna adresy a registr slugů, prodloužení lhůt, smazání a obnova, přihlašovací odkaz, přehled, analytika, retence, audit), matice rolí podpora versus majitel, správa operátorů, audit v téže transakci (atomicita), izolace od údajů hostů.
 - `90_lifecycle`: relace a výzvy, limit správců, retenční data a mazání, výmaz hosta, normalizace jmen.
@@ -98,7 +101,7 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
 7. **Ověření po nasazení** (SQL editor, role `postgres`):
 
    ```sql
-   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 22)
+   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 23)
    select count(*) from se_vezmou.schema_migrations;
    -- RLS je zapnuté na každé tabulce schématu (0 řádků = v pořádku)
    select relname from pg_class
@@ -113,6 +116,44 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
    ```
 
    Zapomenuté `set role` ověříte přihlášením jako `se_vezmou_app` (např. `psql` s `DATABASE_URL`): `select count(*) from se_vezmou.weddings;` musí skončit `permission denied for schema se_vezmou`. V aplikaci se načte `https://se-vezmou.cz` a přihlášení na `app.se-vezmou.cz` pošle kód (bez SES ho vypíše do logu). Ve Vercel logu se nesmí objevit `Chybí DATABASE_URL`.
+
+### Fotografie: Cloudflare R2 (M7c, `docs/adr/0006-photo-storage.md`)
+
+Fotografie páru leží v **novém samostatném bucketu** (ne v bucketu `g-gallery`), jurisdikce **EU**, **privátní**. Aplikace do něj píše a čte jen serverovými údaji a podepsanými adresami; bucket nemá veřejnou adresu ani vlastní doménu. Bez proměnných níže aplikace běží dál (vývoj a e2e testy používají úložiště v paměti); v produkci bez nich selže teprve použití fotografií (v editoru galerie se místo nahrávání ukáže hláška a do logu jde chyba s názvy chybějících proměnných) a trvalé smazání webu s fotografiemi se odloží, dokud úložiště není nastavené.
+
+1. **Bucket.** Cloudflare Dashboard, R2, _Create bucket_: název např. `se-vezmou-photos`, **Location: European Union (EU) jurisdiction** (nejde později změnit). Veřejný přístup (_Public access_ a vlastní domény) nechte **vypnutý**.
+2. **API token omezený na tento bucket.** R2, _Manage API tokens_, _Create API token_: oprávnění **Object Read & Write**, _Specify bucket(s)_: jen `se-vezmou-photos` (ne _Admin_ a ne všechny buckety). Uložte _Access Key ID_ a _Secret Access Key_ (zobrazí se jednou) a _Account ID_ (R2, přehled).
+3. **Pravidlo životního cyklu.** Bucket, _Settings_, _Object lifecycle rules_, _Add rule_: předpona `incoming/`, _Delete uploaded objects_ po **1 dni**. Originál s polohou tak v karanténě nepřežije déle než den, i kdyby se zpracování nedokončilo. (Aplikace ho po zpracování maže sama.)
+4. **CORS pro nahrávání z prohlížeče.** Bucket, _Settings_, _CORS policy_, vložte (u náhledů nasazení přidejte jejich adresy do `AllowedOrigins`):
+
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://app.se-vezmou.cz"],
+       "AllowedMethods": ["PUT"],
+       "AllowedHeaders": ["content-type"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+
+   Čtení fotografií CORS nepotřebuje (obrázky jdou přesměrováním z `/media/…`, ne přes `fetch`).
+
+5. **Proměnné na Vercelu** (jen serverové, Production i Preview podle potřeby; změna proměnných vyžaduje nové nasazení, protože adresa úložiště je i v Content-Security-Policy):
+
+   | Proměnná               | Hodnota                                                                              |
+   | ---------------------- | ------------------------------------------------------------------------------------ |
+   | `R2_ACCOUNT_ID`        | Account ID z Cloudflare                                                              |
+   | `R2_ACCESS_KEY_ID`     | Access Key ID z tokenu                                                               |
+   | `R2_SECRET_ACCESS_KEY` | Secret Access Key z tokenu                                                           |
+   | `R2_BUCKET`            | `se-vezmou-photos` (název bucketu)                                                   |
+   | `R2_ENDPOINT`          | `https://<account-id>.eu.r2.cloudflarestorage.com` (bez zadání se odvodí z účtu, EU) |
+   | `S3_REGION`            | `auto`                                                                               |
+
+   **Nenastavujte** `STORAGE_DRIVER` (jen pro automatické testy; na `VERCEL_ENV=production` ho aplikace ignoruje).
+
+6. **Ověření.** V editoru webu (`app.se-vezmou.cz/web`, sekce Fotografie) nahrajte fotografii s polohou, doplňte popisek, zveřejněte a otevřete web: obrázek se načte z adresy `…r2.cloudflarestorage.com` přes přesměrování z `/media/…`. V R2 po zpracování nezůstane nic v `incoming/` a v `{wedding_id}/{media_id}/` je šest souborů (640, 1280 a 1920 px ve WebP a AVIF). Stažení fotografie se nesmí obejít bez podepsané adresy (`https://<account-id>.eu.r2.cloudflarestorage.com/se-vezmou-photos/…` bez podpisu vrací 403).
+7. **Smlouva a záloha** (`[OTÁZKA]`, ADR 0006): smlouva o zpracování s Cloudflare a ověření umístění dat (jurisdikce EU) před betou; R2 samo nezálohuje.
 
 ### První operátor (majitel) a obnova druhého faktoru
 

@@ -10,6 +10,28 @@ const isDev = process.env.NODE_ENV !== "production";
 const appOrigin = new URL(process.env.NEXT_PUBLIC_APP_URL || "https://app.se-vezmou.cz").origin;
 
 /**
+ * Původ úložiště fotografií (Cloudflare R2, docs/adr/0006-photo-storage.md). Prohlížeč na něj posílá originály
+ * (PUT na podepsanou adresu, tedy `connect-src`) a obrázky se k němu dostanou přesměrováním z `/media/…`
+ * (`img-src` se kontroluje i po přesměrování). Bez proměnných R2 (vývoj, e2e s úložištěm v paměti) se nic nepřidává.
+ * Odvození je stejné jako v `src/lib/storage/r2.ts`: `R2_ENDPOINT`, jinak jurisdikce EU z `R2_ACCOUNT_ID`.
+ */
+function r2Origin(): string | null {
+  const endpoint =
+    process.env.R2_ENDPOINT?.trim() ||
+    (process.env.R2_ACCOUNT_ID?.trim()
+      ? `https://${process.env.R2_ACCOUNT_ID.trim()}.eu.r2.cloudflarestorage.com`
+      : "");
+  if (!endpoint || !process.env.R2_BUCKET?.trim()) return null;
+  try {
+    const url = new URL(endpoint);
+    return url.protocol === "https:" ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
+const r2 = r2Origin();
+
+/**
  * Content-Security-Policy. Přiměřená výchozí varianta bez nonce, aby zůstaly stránky statické:
  * skripty Next.js jsou vložené do HTML, proto `'unsafe-inline'` (přísná varianta s nonce
  * a `'strict-dynamic'` vyžaduje dynamické vykreslování všech stránek, viz docs/security-privacy.md).
@@ -21,9 +43,9 @@ const csp = [
   // Ve vývoji React potřebuje `eval` a Vercel Analytics načítá ladicí skript.
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  `img-src 'self' data: blob:${r2 ? ` ${r2}` : ""}`,
   "font-src 'self'",
-  `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+  `connect-src 'self'${r2 ? ` ${r2}` : ""}${isDev ? " ws: wss:" : ""}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",

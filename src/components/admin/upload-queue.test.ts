@@ -269,6 +269,27 @@ describe("UploadQueue", () => {
       expect(t.deps.actions.renewUpload).toHaveBeenCalledWith({ id: "id1", mime: "image/jpeg" });
     });
 
+    it("opakování po chybě u fotografie, která už není čekající (renew vrátí not_found), nahraje novou", async () => {
+      let failing = true;
+      const renewUpload = vi.fn(async () => ({ status: "not_found" as const }));
+      const t = setup({
+        put: vi.fn(async () => {
+          if (failing) throw new PutError(0);
+        }),
+      });
+      t.deps.actions.renewUpload = renewUpload;
+      t.queue.add([file("a.jpg", "image/jpeg")]);
+      await t.settle();
+      const [failed] = t.queue.snapshot();
+      expect(failed).toMatchObject({ status: "error", error: "network", mediaId: "id1" });
+      failing = false;
+      t.queue.retry(failed.key);
+      await t.settle();
+      expect(renewUpload).toHaveBeenCalledWith({ id: "id1", mime: "image/jpeg" });
+      expect(t.deps.actions.requestUpload).toHaveBeenCalledTimes(2);
+      expect(t.queue.snapshot()[0]).toMatchObject({ status: "done", mediaId: "id2" });
+    });
+
     it("chyba klienta (např. 400) se neopakuje", async () => {
       const put = vi.fn(async () => {
         throw new PutError(400);

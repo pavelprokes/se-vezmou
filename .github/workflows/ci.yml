@@ -26,6 +26,32 @@ jobs:
       - run: npm test
       - run: npm run build
 
+  # Testy databáze (M3): migrace a izolace dat na skutečném PostgreSQL 16, bez Dockeru a Supabase CLI.
+  # Skript scripts/db-test.sh použije službu postgres přes DATABASE_URL; DB_TEST_ALLOW_RESET potvrzuje,
+  # že jde o jednorázovou databázi, jejíž schémata může skript smazat.
+  db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
+      DB_TEST_ALLOW_RESET: "1"
+    steps:
+      - uses: actions/checkout@v4
+      # klient psql bývá na runneru předinstalovaný; kdyby chyběl, doinstalujeme ho
+      - run: command -v psql >/dev/null || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      - run: npm run db:test
+
   e2e:
     # E2E a přístupnost (Playwright + axe) proti produkčnímu sestavení, ADR 0004.
     runs-on: ubuntu-latest

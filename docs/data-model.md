@@ -1,6 +1,6 @@
 # Datový model
 
-Stav: návrh ke schválení (2. 10. 2026). Navazuje na `docs/technical-design.md` a ADR 0001 (databáze), 0002 (relace). Přesné tabulky a politiky vzniknou jako SQL migrace v `supabase/migrations`. Co zadání nedefinuje, je označeno `[OTÁZKA]` nebo `[OVĚŘIT]` (ověřit v aktuální dokumentaci dodavatele před implementací). Ukázková jména jsou Klára a Matěj.
+Stav: návrh ke schválení (2. 10. 2026); schéma implementováno v milníku M3 (`supabase/migrations`), odchylky implementace jsou v kapitole 13. Navazuje na `docs/technical-design.md` a ADR 0001 (databáze), 0002 (relace). Přesné tabulky a politiky vzniknou jako SQL migrace v `supabase/migrations`. Co zadání nedefinuje, je označeno `[OTÁZKA]` nebo `[OVĚŘIT]` (ověřit v aktuální dokumentaci dodavatele před implementací). Ukázková jména jsou Klára a Matěj.
 
 ## 1. Zásady
 
@@ -489,7 +489,7 @@ Další pravidla:
 
 ## 12. Ověření izolace
 
-Testy v `supabase/tests` (pgTAP, spouští `supabase test db` proti lokálnímu Postgresu, ADR 0004):
+Testy v `supabase/tests` (čisté SQL skripty se spouštěčem `npm run db:test` proti PostgreSQL 16, bez pgTAP a bez Dockeru; odchylka od původního návrhu, viz kapitola 13; ADR 0004):
 
 1. Pro každou tabulku s `wedding_id`: správce svatby A nemůže `select`, `insert`, `update` ani `delete` řádek svatby B; vložení řádku s cizím `wedding_id` selže na politice, vložení s odkazem na cizí rodičovský řádek selže na složeném cizím klíči.
 2. Role `anon` a `authenticated` bez claimu `wedding_id` nevidí nic.
@@ -497,6 +497,42 @@ Testy v `supabase/tests` (pgTAP, spouští `supabase test db` proti lokálnímu 
 4. Tabulka, kde je `wedding_id`, ale RLS není zapnuté, test shodí (kontrola přes `pg_class`).
 5. `rsvp_match` nevrací seznam ani rozdíl mezi „žádná shoda“ a „více shod“ ve tvaru odpovědi; `rsvp_submit` odmítne uzavřené RSVP a událost, na kterou host není pozván.
 6. `audit_log` nejde změnit ani smazat.
-7. Zlaté vektory normalizace jmen shodné s TypeScriptem.
+7. Zlaté vektory normalizace jmen shodné s TypeScriptem (soubor `supabase/tests/golden/name-vectors.tsv`, strana TypeScriptu přibude s `src/domain/names`).
 
 Test je podmínkou brány B (izolace dat).
+
+## 13. Odchylky implementace (M3)
+
+Zapsáno při implementaci schématu v `supabase/migrations` (milník M3). Kde zde není uvedeno jinak, platí kapitoly 1 až 12.
+
+**Schéma a tabulky**
+
+- `sessions` a `operator_sessions` mají navíc sloupec `idle_seconds` (délka klouzavého okna nečinnosti), aby šlo `idle_expires_at` prodlužovat bez znalosti druhu relace. Hodnoty lhůt zadává aplikace při vytvoření relace (`auth_create_session`), v databázi nejsou pevně.
+- `updated_at` mají všechny tabulky kromě `audit_log` (append-only, má `at`), `analytics_event` a `rate_limits`. Spouštěč se zakládá hromadně pro každou tabulku s tímto sloupcem.
+- `unique (wedding_id, id)` mají všechny tabulky s oběma sloupci kromě `audit_log`, `email_log` a `slug_registry` (bez složených klíčů na `weddings`). Tabulky s přirozeným klíčem bez sloupce `id` (`wedding_auth`, `rsvp_settings`, `invitations`, `rsvp_attendance`, `rsvp_health`, `rsvp_tickets`, `site_version_sensitive`) mají složené cizí klíče na rodiče, ale vlastní `unique (wedding_id, id)` nemají. Test kontroluje, že každý cizí klíč mezi tenant tabulkami obsahuje `wedding_id`.
+- Složené cizí klíče s volitelným odkazem používají `on delete set null (sloupec)` (PostgreSQL 15 a novější), aby se nevynuloval `wedding_id`.
+- `weddings`: navíc kontrola `published` vyžaduje i `published_version_id` (nejen slug); `weddings.slug` má odložený cizí klíč na `slug_registry.slug` (`on delete set null`), takže koncept s uvolněnou rezervací dostane `slug = null` automaticky. `slug_registry` má kontrolu tvaru řádku podle stavu a jedinečnost aktuální adresy na svatbu.
+- Rozšíření (`citext`, `pg_trgm`) leží ve schématu `extensions` (jako na Supabase). Funkce `security definer` s prázdným `search_path` proto porovnávají e-maily přes `lower(email::text)`; k tomu je funkční index na `wedding_admins`.
+- `media.mime` navíc odmítá `image/svg+xml` (ADR 0006: SVG od uživatelů se nepřijímá).
+- `wedding_auth`: správce čte jen nehašované sloupce (sloupcové `grant select`); hashe PINů nečte nikdy, ověření PINu bude přes funkce `auth_*` (M4).
+- `rsvp_settings.enabled_questions` je objekt s příznaky `plus_one`, `children`, `diet`, `lodging`, `transport`, `song`. Zdravotní údaje a doprovod `rsvp_submit` přijme jen při zapnutých příznacích `diet` a `plus_one`.
+- `data_access_grants`: správce má právo `select` (vidí, komu dal přístup); zápis jde přes RPC (M7/M9).
+- `app_settings` má navíc klíče `activity_touch_minutes` (5), `session_touch_minutes` (5), `rsvp_match_threshold` (0,7) a `analytics_retention_months` (24). Hodnoty `retention_notice_days_before` (14) a `deleted_site_restore_days` (30) jsou **zástupné** do rozhodnutí právníka (`[OTÁZKA]`, `[LHŮTY]`), výchozí `versions_keep` je 20.
+
+**Oprávnění a funkce**
+
+- Role `service_role` má `bypassrls`, proto jí migrace odebírá i práva k tabulkám (`grant` platí i pro `bypassrls`). Přímá práva zůstala jen u `analytics_event` (insert), `email_log` (select, insert, update) a `waitlist` (select, insert, delete). Všechno ostatní jde výhradně přes funkce `security definer`. Je to přísnější než původní text kapitoly 5.1 a test to hlídá.
+- `reserve_slug(wedding_id, slug)` rezervuje adresu pro již existující koncept a vrací `(ok, variants)`. Založení celé svatby v jedné transakci (kapitola 6 bod 2) bude funkce `wizard_create_draft` v M5.
+- `check_slug(slug, rate_key, rate_limit, rate_window)` volitelně sám zavolá `rate_limit_hit`; při překročení vrátí `reason = 'rate_limited'` a `available = null`. Důvod `unavailable` je stejný pro zabranou, rezervovanou i zakázanou adresu.
+- `resolve_slug` vrací jen svatby ve stavu `published` (stav `archived` zůstává `[OTÁZKA]`, viz OQ-23). Přibyla funkce `resolve_preview(slug, token_hash)` pro náhled konceptu.
+- `rsvp_match` vrací vždy přesně jeden řádek se sloupcem `ticket`; žádná shoda, více shod, zavřené RSVP i chybná role dávají `ticket = null` (kapitola 12 bod 5 má přednost před "žádá o upřesnění" v kapitole 5.5; výzvu k upřesnění zobrazí rozhraní při každém `null`).
+- `erase_guest(guest_id)` má jediný argument; svatba je vždy `app.wedding_id()` (kapitola 5.5). Volá ji správce, ne server s service role.
+- `op_view_guest_data` bez aktivního grantu nevrací řádky a zapíše `guest_data.view_denied` do auditu; akce `guest_data.*` bez důvodu odmítne i kontrola na tabulce `audit_log`.
+- `audit_log`: navíc spouštěč odmítne `meta` s klíči, které vypadají jako osobní údaje (`email`, `name`, `diet`, `allergies`, `phone`, `address`, `ip`, `user_agent`), a to i vnořené. Je to obrana do hloubky vedle allowlistu v aplikaci.
+- Retenční a úklidové funkce: `purge_health_data`, `purge_guest_data`, `purge_wedding`, `purge_deleted_weddings`, `purge_expired_slug_reservations`, `housekeeping`. Berou dávky a drží `pg_try_advisory_xact_lock`. Odesílání upozornění, export před smazáním a mazání souborů z úložiště (`purge_wedding` vrací cesty) zůstávají na M10.
+- `last_activity_at` se zapisuje jen při uložení správcem této svatby (úprava svatby, stránky, bloku, události, místa nebo média) a nejvýše jednou za `activity_touch_minutes`; zároveň prodlužuje rezervaci slugu konceptu.
+- Retenční data `health_purge_at` a `guest_purge_at` se přepočítávají při vložení a při změně `starts_on`, `ends_on` nebo `timezone`, ale ne tehdy, když téže změnou sloupec přepisuje operátor (prodloužení lhůty).
+
+**Testy**
+
+- Místo pgTAP a `supabase test db` (ADR 0004, D1) jsou testy čisté SQL skripty (`supabase/tests/*.test.sql`) se spouštěčem `scripts/db-test.sh` (`npm run db:test`). Důvod: běží na samotném PostgreSQL 16 bez Dockeru, Supabase CLI a rozšíření pgTAP, lokálně i v CI přes `DATABASE_URL`. Platformu Supabase (role, `auth`) nahrazuje jen testovací shim `supabase/tests/setup/00_shim.sql`, který se nenasazuje. ADR 0004 tím není upraven; pokud se později přejde na pgTAP, zůstanou scénáře stejné.

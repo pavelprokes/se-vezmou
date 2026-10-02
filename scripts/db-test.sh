@@ -1,0 +1,175 @@
+#!/usr/bin/env bash
+# Spustí testy databáze (M3): shim -> migrace -> pomocné funkce -> testy izolace -> souběžný test.
+#
+# Dvě varianty:
+#  1. Bez DATABASE_URL: skript sám inicializuje dočasný cluster PostgreSQL v $TMPDIR, spustí ho
+#     jen přes unixový socket (žádný TCP port), po testech ho zastaví a smaže. Pod rootem
+#     používá uživatele postgres (runuser), jinak běží pod aktuálním uživatelem.
+#  2. S DATABASE_URL (např. service container postgres:16 v CI): použije zadanou databázi.
+#     Skript v ní SMAŽE schémata public, app, auth, extensions a tap, proto je potřeba
+#     výslovný souhlas DB_TEST_ALLOW_RESET=1. Role v clusteru (anon, ...) zůstanou.
+#
+# Proměnné: DATABASE_URL, DB_TEST_ALLOW_RESET, PG_BIN (adresář s binárkami PostgreSQL),
+#           DB_TEST_VERBOSE=1 (vypíše všechny řádky "ok - ...").
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT"
+
+DB_DIR=""
+PG_RUN=()   # prefix pro spouštění serverových příkazů (runuser pod rootem)
+
+log() { printf '%s\n' "$*" >&2; }
+die() { log "CHYBA: $*"; exit 1; }
+
+find_pg_bin() {
+  if [[ -n "${PG_BIN:-}" && -x "$PG_BIN/initdb" ]]; then printf '%s' "$PG_BIN"; return; fi
+  local d
+  for d in /usr/lib/postgresql/16/bin /usr/lib/postgresql/*/bin /usr/local/pgsql/bin /opt/homebrew/opt/postgresql@16/bin; do
+    if [[ -x "$d/initdb" ]]; then printf '%s' "$d"; return; fi
+  done
+  if command -v pg_config >/dev/null 2>&1 && [[ -x "$(pg_config --bindir)/initdb" ]]; then
+    pg_config --bindir; return
+  fi
+  return 1
+}
+
+cleanup() {
+  local code=$?
+  if [[ -n "$DB_DIR" && -d "$DB_DIR" ]]; then
+    if [[ -f "$DB_DIR/data/postmaster.pid" ]]; then
+      "${PG_RUN[@]}" "$BIN/pg_ctl" -D "$DB_DIR/data" -m immediate -w stop >/dev/null 2>&1 || true
+    fi
+    if [[ $code -ne 0 && -f "$DB_DIR/server.log" ]]; then
+      log "--- posledních 20 řádků logu serveru ---"
+      tail -n 20 "$DB_DIR/server.log" >&2 || true
+    fi
+    rm -rf "$DB_DIR"
+  fi
+  exit "$code"
+}
+trap cleanup EXIT
+
+if [[ -n "${DATABASE_URL:-}" ]]; then
+  [[ "${DB_TEST_ALLOW_RESET:-}" == "1" ]] \
+    || die "DATABASE_URL je zadáno: skript v ní smaže schémata public, app, auth, extensions a tap. Potvrďte DB_TEST_ALLOW_RESET=1."
+  URL="$DATABASE_URL"
+  BIN=""
+else
+  BIN="$(find_pg_bin)" || die "Nenašel jsem binárky PostgreSQL (initdb). Nastavte PG_BIN nebo DATABASE_URL."
+  DB_DIR="$(mktemp -d "${TMPDIR:-/tmp}/sevezmou-pg.XXXXXX")"
+  if [[ "$(id -u)" -eq 0 ]]; then
+    command -v runuser >/dev/null 2>&1 || die "Pod rootem je potřeba runuser (nebo spusťte jako nerootový uživatel)."
+    chown postgres "$DB_DIR"
+    PG_RUN=(runuser -u postgres --)
+    # nadřazený adresář musí být průchozí i pro uživatele postgres; jinak použijeme /tmp
+    if ! "${PG_RUN[@]}" test -w "$DB_DIR"; then
+      rm -rf "$DB_DIR"
+      DB_DIR="$(mktemp -d /tmp/sevezmou-pg.XXXXXX)"
+      chown postgres "$DB_DIR"
+    fi
+  fi
+  # C.UTF-8 dává deterministické chování řazení a malých písmen; kdyby chyběla, zkusíme C
+  if ! "${PG_RUN[@]}" "$BIN/initdb" -D "$DB_DIR/data" -A trust -U postgres -E UTF8 --locale=C.UTF-8 >"$DB_DIR/initdb.log" 2>&1; then
+    rm -rf "$DB_DIR/data"
+    "${PG_RUN[@]}" "$BIN/initdb" -D "$DB_DIR/data" -A trust -U postgres -E UTF8 --locale=C >"$DB_DIR/initdb.log" 2>&1 \
+      || { cat "$DB_DIR/initdb.log" >&2; die "initdb selhal."; }
+  fi
+  "${PG_RUN[@]}" "$BIN/pg_ctl" -D "$DB_DIR/data" -l "$DB_DIR/server.log" -w \
+    -o "-k $DB_DIR -c listen_addresses= -c fsync=off -c synchronous_commit=off -c full_page_writes=off" start >/dev/null
+  URL="postgresql://postgres@/postgres?host=$DB_DIR"
+fi
+
+if command -v psql >/dev/null 2>&1; then
+  PSQL=psql
+elif [[ -n "$BIN" && -x "$BIN/psql" ]]; then
+  PSQL="$BIN/psql"
+else
+  die "Nenašel jsem psql."
+fi
+
+sql() { "$PSQL" "$URL" -X -q -v ON_ERROR_STOP=1 "$@"; }
+
+VERSION="$(sql -Atc 'show server_version')"
+log "PostgreSQL $VERSION"
+[[ "${VERSION%%.*}" -ge 15 ]] || die "Migrace vyžadují PostgreSQL 15 nebo novější (složené FK se set null (sloupec))."
+
+# 0. čistý stav (idempotence skriptu i při opakovaném spuštění nad stejnou databází)
+sql -c "drop schema if exists public cascade; drop schema if exists app cascade; drop schema if exists auth cascade; drop schema if exists extensions cascade; drop schema if exists tap cascade; create schema public;" >/dev/null
+
+run_file() { # soubor, popisek
+  log "  $2"
+  sql -f "$1" >/dev/null
+}
+
+log "Shim a migrace"
+for f in supabase/tests/setup/[0-9][0-9]_*.sql; do run_file "$f" "shim: $(basename "$f")"; done
+for f in supabase/migrations/*.sql; do run_file "$f" "migrace: $(basename "$f")"; done
+run_file supabase/tests/helpers.sql "pomocné funkce testů"
+
+log "Testy"
+FAILED=0
+TOTAL_OK=0
+for f in supabase/tests/*.test.sql; do
+  out="$(sql -f "$f" 2>&1)" && rc=0 || rc=$?
+  oks="$(printf '%s\n' "$out" | grep -c 'NOTICE:  ok - ' || true)"
+  TOTAL_OK=$((TOTAL_OK + oks))
+  if [[ $rc -ne 0 ]]; then
+    FAILED=$((FAILED + 1))
+    log "  SELHALO $(basename "$f") (úspěšných kontrol před chybou: $oks)"
+    printf '%s\n' "$out" | sed -e 's/^psql:[^ ]* NOTICE:  //' | grep -v '^ok - ' >&2 || true
+  else
+    log "  OK      $(basename "$f") ($oks kontrol)"
+    if [[ "${DB_TEST_VERBOSE:-}" == "1" ]]; then
+      printf '%s\n' "$out" | sed -n -e 's/^psql:[^ ]* NOTICE:  //p' >&2
+    fi
+  fi
+done
+
+# Souběžný test atomicity rate_limit_hit: skutečné paralelní spojení a potvrzené transakce.
+log "Souběžný test rate_limit_hit"
+CONC_KEY="dbtest:concurrency:$$"
+CONC_LIMIT=20
+CONC_WORKERS=8
+CONC_CALLS=10
+conc_ok=0
+for attempt in 1 2 3; do
+  sql -c "delete from public.rate_limits where bucket_key = '$CONC_KEY'" >/dev/null
+  pids=()
+  for w in $(seq 1 "$CONC_WORKERS"); do
+    # každé volání je samostatný příkaz s vlastní potvrzenou transakcí (autocommit)
+    (yes "select allowed from public.rate_limit_hit('$CONC_KEY', $CONC_LIMIT, interval '1 day');" \
+       | head -n "$CONC_CALLS" | sql -At -f - | grep -c '^t$' > "${DB_DIR:-${TMPDIR:-/tmp}}/conc.$$.$w" || true) &
+    pids+=($!)
+  done
+  for p in "${pids[@]}"; do wait "$p"; done
+  allowed=0
+  for w in $(seq 1 "$CONC_WORKERS"); do
+    allowed=$((allowed + $(cat "${DB_DIR:-${TMPDIR:-/tmp}}/conc.$$.$w")))
+    rm -f "${DB_DIR:-${TMPDIR:-/tmp}}/conc.$$.$w"
+  done
+  windows="$(sql -Atc "select count(*) from public.rate_limits where bucket_key = '$CONC_KEY'")"
+  total_hits="$(sql -Atc "select coalesce(sum(hits), 0) from public.rate_limits where bucket_key = '$CONC_KEY'")"
+  sql -c "delete from public.rate_limits where bucket_key = '$CONC_KEY'" >/dev/null
+  if [[ "$windows" -gt 1 ]]; then
+    log "  okno se během testu překlopilo (půlnoc UTC), opakuji ($attempt/3)"
+    continue
+  fi
+  expected_total=$((CONC_WORKERS * CONC_CALLS))
+  if [[ "$allowed" -eq "$CONC_LIMIT" && "$total_hits" -eq "$expected_total" ]]; then
+    log "  OK      povoleno přesně $allowed z $expected_total souběžných volání, součet čítače $total_hits"
+    TOTAL_OK=$((TOTAL_OK + 1))
+    conc_ok=1
+  else
+    log "  SELHALO povoleno $allowed (očekáváno $CONC_LIMIT), součet čítače $total_hits (očekáváno $expected_total)"
+  fi
+  break
+done
+[[ "$conc_ok" -eq 1 ]] || FAILED=$((FAILED + 1))
+
+log ""
+if [[ "$FAILED" -ne 0 ]]; then
+  log "DB TESTY SELHALY: souborů/kontrol s chybou $FAILED, úspěšných kontrol $TOTAL_OK"
+  exit 1
+fi
+log "DB testy prošly: $TOTAL_OK úspěšných kontrol"

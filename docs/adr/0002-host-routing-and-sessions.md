@@ -1,6 +1,6 @@
 # ADR 0002: Směrování podle hostitele a relace
 
-- Stav: navrženo (2. 10. 2026), čeká na schválení majitelem.
+- Stav: navrženo (2. 10. 2026), čeká na schválení majitelem. Poznámka (ADR 0011): krátkodobý JWT pro `supabase-js` zanikl, claimy se nastavují v transakci přímého spojení `pg`; zdroj identity operátorů bez `supabase-js` je otevřený (OQ-47).
 - Související: `docs/technical-design.md` (kapitola 2), `docs/data-model.md` (`sessions`, `operator_sessions`), ADR 0001, `docs/security-privacy.md`.
 
 ## Kontext

@@ -4,7 +4,7 @@ Stav: návrh ke schválení (2. 10. 2026). Navazuje na `docs/data-model.md` a AD
 
 ## 1. Architektura
 
-Jedna aplikace Next.js (App Router) na Vercelu obsluhuje čtyři druhy hostitelů. Data jsou v Supabase Postgres (EU, Frankfurt). E-maily, úložiště fotografií a analytika jsou samostatná rozhodnutí v dalších ADR; zde jsou jen jako integrace za rozhraními.
+Jedna aplikace Next.js (App Router) na Vercelu obsluhuje čtyři druhy hostitelů. Data jsou v Supabase Postgres (EU, Frankfurt), ve sdíleném projektu výhradně ve vlastním schématu `se_vezmou`; aplikace s ním mluví přímo přes `pg` (ADR 0011). E-maily, úložiště fotografií a analytika jsou samostatná rozhodnutí v dalších ADR; zde jsou jen jako integrace za rozhraními.
 
 ```
  prohlížeč ──► Vercel edge/CDN ──► Next.js (jedna aplikace, region fra1 [OVĚŘIT])
@@ -17,27 +17,27 @@ Jedna aplikace Next.js (App Router) na Vercelu obsluhuje čtyři druhy hostitel�
                                       │
         ┌─────────────────────────────┼──────────────────────────────┐
         ▼                             ▼                              ▼
-  Supabase Postgres (RLS)      e-mail (ADR e-mailů)        úložiště fotek (ADR)
-  Supabase Auth (jen operátoři)
+  Postgres, schéma se_vezmou   e-mail (ADR e-mailů)        úložiště fotek (ADR)
+  (RLS, přímé `pg`, ADR 0011)
 ```
 
 Principy:
 
 - **Jedna aplikace, striktní oddělení dat** (požadavek principal engineera). Oddělení dat mezi svatbami drží databáze (RLS), ne vrstva aplikace (`docs/data-model.md`, kapitola 5).
 - **Vše veřejné se vykresluje na serveru**; klientský JavaScript jen tam, kde je interakce (formuláře, průvodce, editor, přepínač náhledu).
-- **Prohlížeč nemluví s databází.** Žádný klient Supabase v prohlížeči. Server po ověření vlastní relace vydá krátkodobý JWT s claimy `wedding_id`, `role`, `sub` a volá `supabase-js` s ním. Service role má jen cron, retence, operátorské auditované cesty a úzká sada `security definer` funkcí (ADR 0001).
-- **Vlastní relace** (neprůhledný token, v DB hash, cookie `__Host-…`) pro správce a hosty; operátoři přes Supabase Auth + TOTP (ADR 0002).
+- **Prohlížeč nemluví s databází.** Žádný klient Supabase v prohlížeči, žádný PostgREST ani `supabase-js`. Server se připojuje přímo (`pg`, `Pool`, pooler Supabase v transaction módu) jako aplikační role `se_vezmou_app`, která sama nemá žádná práva. Každé volání je jedna transakce: `set local role service_role` (před ověřením, cron, operátor), nebo `set local role authenticated` a claimy `sub`, `wedding_id`, `wedding_role` v `set_config('request.jwt.claims', …, true)` (správce, host, návštěvník). Service role má jen cron, retence, operátorské auditované cesty a úzká sada `security definer` funkcí (ADR 0001, ADR 0011).
+- **Vlastní relace** (neprůhledný token, v DB hash, cookie `__Host-…`) pro správce a hosty; operátoři přes e-mail OTP a TOTP (ADR 0002; zdroj identity bez `supabase-js` je otevřený, OQ-47).
 - **Konfigurovatelnost na jednom místě:** ceny a texty zaváděcího provozu (`src/config/pricing.ts`, FR-LP-3), seznam rezervovaných slugů, provozní hodnoty v `app_settings` v databázi.
 
 ### Stav kostry repozitáře a co se mění
 
-Kostra obsahuje `@supabase/ssr`, `@supabase/supabase-js`, `@aws-sdk/client-sesv2`, `@sentry/nextjs`, `@vercel/analytics`, `@vercel/speed-insights`, `react-hook-form`, `zod`, `lucide-react`, Tailwind 4, `src/env.ts` a `vercel.json`. Rozdíly oproti tomuto návrhu:
+Kostra obsahovala `@supabase/ssr` a `@supabase/supabase-js` (`supabase-js` je odstraněn, ADR 0011), dále `@aws-sdk/client-sesv2`, `@sentry/nextjs`, `@vercel/analytics`, `@vercel/speed-insights`, `react-hook-form`, `zod`, `lucide-react`, Tailwind 4, `src/env.ts` a `vercel.json`. Rozdíly oproti tomuto návrhu:
 
 | Kostra                                                                      | Návrh                                                                                                                                                                                                |
 | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ADMIN_EMAILS` a přihlášení do administrace po Google loginu v `src/env.ts` | nahradit tabulkou `operators`, Supabase Auth e-mail OTP a povinným TOTP (ADR 0002)                                                                                                                   |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_URL`                 | anon key se nepoužívá, URL zůstává jen na serveru                                                                                                                                                    |
-| `@supabase/ssr`                                                             | jen pro přihlášení operátorů (Supabase Auth); správci a hosté ho nepotřebují                                                                                                                         |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_URL`                 | zrušeno: žádný anon key ani URL projektu, jen serverová `DATABASE_URL` (ADR 0011)                                                                                                                    |
+| `@supabase/ssr`                                                             | správci a hosté ho nepotřebují; pro operátory viz OQ-47                                                                                                                                              |
 | `vercel.json` s `ignoreCommand` (build jen z větve `main`)                  | zrušit nebo upravit, aby se stavěly náhledy pull requestů, na nichž poběží e2e testy                                                                                                                 |
 | `@aws-sdk/client-sesv2`, `@sentry/nextjs`, `@vercel/analytics`              | konečná volba v ADR e-mailů a analytiky jiného autora; zde se s nimi zachází jako s integracemi za rozhraním. U Sentry ověřit, že se neposílají osobní údaje a v jaké oblasti se ukládají `[OVĚŘIT]` |
 
@@ -83,21 +83,21 @@ Existenci svatby proxy neověřuje (žádný dotaz do DB). Segment `/h/tenant/[s
  app (routy, Server Components, Server Actions, route handlers)
    │ skládá
    ▼
- components ──► domain ◄── data ──► Supabase
- (UI, bloky,    (čistá logika,      (repozitáře, RPC,
-  šablony)       bez I/O)            JWT, typy)
+ components ──► domain ◄── data ──► Postgres (`pg`)
+ (UI, bloky,    (čistá logika,      (RPC přes `pg`,
+  šablony)       bez I/O)            claimy, typy)
                    ▲
  integrations ─────┘  (e-mail, úložiště, analytika, Vercel API) za rozhraními
  auth (relace, PIN, kódy, operátoři, omezení požadavků) používá data a integrations
 ```
 
-| Vrstva                           | Obsah                                                                                                                                                 | Pravidla                                                                                                                                                                                 |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **UI komponenty** (`components`) | primitiva design systému (tlačítko, pole, karta, FAQ, kroky průvodce, přepínač náhledu, výběr šablony), bloky webu páru, čtyři šablony, SVG ilustrace | žádná znalost databáze; texty přicházejí jako props nebo z `t()`; přístupnost (popisky, `aria-live`, cíle 44 px, zaměření) je součástí komponenty a ověřuje se testem komponenty a axe   |
-| **Doména** (`domain`)            | slugy a varianty, normalizace jmen, životní cyklus (fáze), retence, kontrast a palety, schémata bloků (Zod), pravidla RSVP, `typo()`                  | čisté funkce bez I/O, nejvíc jednotkových testů; nesmí importovat `next/*`, `react` ani `data`                                                                                           |
-| **Data** (`data`)                | repozitáře nad `supabase-js`, wrappery RPC, vydávání JWT, generované typy databáze                                                                    | jediné místo, kde se mluví s databází; dva klienty: `tenantClient(claims)` (JWT) a `privileged` (service role, `server-only`, lint pravidlo omezuje importy na cron, operátora a `auth`) |
-| **Integrace** (`integrations`)   | e-mail, úložiště fotografií, analytika, Vercel Domains API (později), generování PDF a QR                                                             | za rozhraním definovaným v `domain`/`integrations`, aby šla změnit volba z ADR bez zásahu do aplikace; žádný SDK dodavatele v UI                                                         |
-| **Autentizace** (`auth`)         | vlastní relace, cookie, jednorázové kódy, PIN, operátoři, omezení počtu požadavků                                                                     | výpisy v `docs/security-privacy.md`; každá Server Action a route handler volá `requireSession()`                                                                                         |
+| Vrstva                           | Obsah                                                                                                                                                 | Pravidla                                                                                                                                                                               |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **UI komponenty** (`components`) | primitiva design systému (tlačítko, pole, karta, FAQ, kroky průvodce, přepínač náhledu, výběr šablony), bloky webu páru, čtyři šablony, SVG ilustrace | žádná znalost databáze; texty přicházejí jako props nebo z `t()`; přístupnost (popisky, `aria-live`, cíle 44 px, zaměření) je součástí komponenty a ověřuje se testem komponenty a axe |
+| **Doména** (`domain`)            | slugy a varianty, normalizace jmen, životní cyklus (fáze), retence, kontrast a palety, schémata bloků (Zod), pravidla RSVP, `typo()`                  | čisté funkce bez I/O, nejvíc jednotkových testů; nesmí importovat `next/*`, `react` ani `data`                                                                                         |
+| **Data** (`data`)                | wrappery RPC nad `pg` (`src/lib/db`: pool, transakce, claimy), typy databáze                                                                          | jediné místo, kde se mluví s databází; dvě cesty v téže dopravě: s totožností svatby (`set local role authenticated` + claimy) a bez ní (`set local role service_role`, `server-only`) |
+| **Integrace** (`integrations`)   | e-mail, úložiště fotografií, analytika, Vercel Domains API (později), generování PDF a QR                                                             | za rozhraním definovaným v `domain`/`integrations`, aby šla změnit volba z ADR bez zásahu do aplikace; žádný SDK dodavatele v UI                                                       |
+| **Autentizace** (`auth`)         | vlastní relace, cookie, jednorázové kódy, PIN, operátoři, omezení počtu požadavků                                                                     | výpisy v `docs/security-privacy.md`; každá Server Action a route handler volá `requireSession()`                                                                                       |
 
 Kontrolu směru závislostí vynucuje ESLint (`no-restricted-imports` nebo plugin pro hranice modulů) v CI.
 
@@ -105,8 +105,9 @@ Kontrolu směru závislostí vynucuje ESLint (`no-restricted-imports` nebo plugi
 
 ```
 supabase/
-  migrations/                    # SQL migrace (jediný zdroj schématu)
-  tests/                         # pgTAP testy izolace a funkcí
+  migrations/                    # SQL migrace (jediný zdroj schématu, schéma se_vezmou)
+  init/                          # jednorázový init sdíleného projektu (schéma, rozšíření, role se_vezmou_app)
+  tests/                         # SQL testy izolace a funkcí, test izolace migrací
   seed.sql                       # jen vymyšlená testovací data (Klára a Matěj)
 e2e/                             # Playwright scénáře a fixtury
 scripts/                         # check-i18n, kontrola kontrastu palet, generování typů
@@ -138,7 +139,7 @@ src/
   domain/
     slug/, names/, lifecycle/, retention/, rsvp/, blocks/, palettes/, contrast/, typography/
   data/
-    client.ts, jwt.ts, privileged.ts, repositories/, rpc/, database.types.ts
+    pool.ts, transport.ts, claims.ts, rpc.ts (src/lib/db)
   auth/
     session.ts, cookies.ts, otp.ts, pin.ts, operator.ts, rate-limit.ts
   integrations/
@@ -160,17 +161,17 @@ Verze se nepřipíšou do tohoto dokumentu, určí je `package.json` při implem
 | `lucide-react`                                                                           | je           | jediná knihovna ikon (zadání)                                                                                                           |                                                                               |
 | `zod`                                                                                    | je           | schémata bloků, validace formulářů a env                                                                                                |                                                                               |
 | `react-hook-form`, `@hookform/resolvers`                                                 | je           | formuláře průvodce a správy s popisky a chybami                                                                                         | vlastní správa stavu: víc chyb v přístupnosti                                 |
-| `@supabase/supabase-js`                                                                  | je           | klient pro RPC a dotazy s JWT                                                                                                           | přímý `pg` ovladač: ztráta PostgREST a RLS-JWT modelu                         |
-| `@supabase/ssr`                                                                          | je           | jen Supabase Auth operátorů                                                                                                             | nepoužívat pro správce a hosty                                                |
+| `pg` (+ `@vercel/functions` pro `attachDatabasePool`)                                    | je           | přímé spojení s Postgresem přes pooler (ADR 0011); `@supabase/supabase-js` byl odstraněn                                                | `supabase-js`: vyžaduje klíče s právy nad celým sdíleným projektem            |
+| `@supabase/ssr`                                                                          | je           | původně jen Supabase Auth operátorů; po ADR 0011 k přehodnocení (OQ-47)                                                                 | nepoužívat pro správce a hosty                                                |
 | `server-only`                                                                            | je           | blokuje import tajných modulů do klienta                                                                                                |                                                                               |
-| `jose`                                                                                   | přidat       | podpis a ověření JWT, standardní a malá knihovna                                                                                        | `jsonwebtoken`: starší API, bez Web Crypto                                    |
+| `jose`                                                                                   | zrušeno      | JWT se nevydávají (ADR 0011); případně jen pro budoucí podepsané odkazy                                                                 |                                                                               |
 | `@dnd-kit/core`, `@dnd-kit/sortable`                                                     | přidat       | řazení přetažením s klávesnicí; vždy s tlačítky nahoru/dolů (WCAG 2.5.7)                                                                | vlastní řešení: drahé, rizikové pro přístupnost                               |
 | `qrcode` (výstup SVG)                                                                    | přidat       | QR adresy a QR platba                                                                                                                   |                                                                               |
 | `@react-pdf/renderer` nebo tiskové CSS                                                   | rozhodnout   | PDF oznámení (FR-ADM-6) `[OTÁZKA: knihovna, rozhodne prototyp; kritéria: česká diakritika a písma Newsreader a DM Sans, přístupné PDF]` | tiskové CSS + uložení z prohlížeče: nulová závislost, horší kontrola výsledku |
 | `exceljs` nebo `read-excel-file` + CSV                                                   | rozhodnout   | import a export Excelu (FR-ADM-4)                                                                                                       | `xlsx` (SheetJS) z npm se přestal udržovat; neuvažovat                        |
 | `vitest`, `@testing-library/react`, `@testing-library/user-event`, `jsdom`               | přidat       | ADR 0004                                                                                                                                | Jest: pomalejší ESM/TS konfigurace                                            |
 | `@playwright/test`, `@axe-core/playwright`                                               | přidat       | e2e a přístupnost, ADR 0004                                                                                                             | Cypress: slabší podpora více hostitelů a WebKit                               |
-| `supabase` (CLI)                                                                         | přidat (dev) | migrace, lokální Postgres, pgTAP, generování typů                                                                                       |                                                                               |
+| `supabase` (CLI)                                                                         | nepoužívá se | migrace nasazuje `npm run db:migrate` (node + `pg`), testy běží na čistém Postgresu (`scripts/db-test.sh`)                              |                                                                               |
 | `@sentry/nextjs`, `@vercel/analytics`, `@vercel/speed-insights`, `@aws-sdk/client-sesv2` | jsou         | viz tabulka kostry v kapitole 1; konečná volba v ADR e-mailů a analytiky                                                                |                                                                               |
 | `next/font/local` + vlastní soubory písem                                                | v Next.js    | vlastní hosting Newsreader a DM Sans s `latin` a `latin-ext` (česká diakritika)                                                         | Google Fonts za běhu: zadání zakazuje volání třetí strany                     |
 
@@ -231,14 +232,14 @@ Cíle zadání: LCP do 2,5 s, CLS do 0,1, INP do 200 ms na průměrném telefonu
 
 ### 8.1 Prostředí
 
-| Prostředí   | Aplikace                  | Databáze                                   |
-| ----------- | ------------------------- | ------------------------------------------ |
-| Lokální     | `next dev`, `*.localhost` | Supabase CLI (Docker), `supabase/seed.sql` |
-| Náhled (PR) | Vercel preview            | Supabase `staging` (EU)                    |
-| Produkce    | Vercel production, `main` | Supabase `prod` (EU, Frankfurt)            |
+| Prostředí   | Aplikace                  | Databáze                                                   |
+| ----------- | ------------------------- | ---------------------------------------------------------- |
+| Lokální     | `next dev`, `*.localhost` | vlastní PostgreSQL 15+ se shimem, init skripty a migracemi |
+| Náhled (PR) | Vercel preview            | testovací data, nikdy produkční schéma (OQ-48)             |
+| Produkce    | Vercel production, `main` | sdílený Supabase projekt (EU), schéma `se_vezmou`          |
 
-- Migrace se aplikují z CI (`supabase db push`) nejdřív na `staging`, na produkci po ručním schválení. Nikdy se neupravuje schéma ručně v konzoli.
-- Tajné hodnoty (service role, podpisový klíč JWT, `CRON_SECRET`, klíče e-mailu) jsou v proměnných prostředí Vercelu po prostředích, mimo repozitář; `.env.example` obsahuje jen názvy. Podpisový klíč a service role mají odlišné hodnoty pro `staging` a `prod`.
+- Migrace aplikuje majitel nástrojem `npm run db:migrate` (`MIGRATE_DATABASE_URL` vlastníka, jen na jeho počítači; `--dry-run` nejdřív), evidence je v `se_vezmou.schema_migrations`. Nikdy se neupravuje schéma ručně v konzoli. Postup: `supabase/README.md`.
+- Tajné hodnoty (`DATABASE_URL` s heslem role `se_vezmou_app`, `AUTH_SECRET`, `RATE_LIMIT_SECRET`, `PIN_PEPPER`, `CRON_SECRET`, klíče e-mailu) jsou v proměnných prostředí Vercelu, mimo repozitář; `.env.example` obsahuje jen názvy. Klíč `service_role` ani JWT secret sdíleného projektu na Vercelu nejsou. `MIGRATE_DATABASE_URL` (role `postgres`) není na Vercelu nikdy.
 - Záznamy (logy, Sentry) bez osobních údajů: žádná jména ani e-maily hostů, jen ID.
 - Zálohy a obnova: nastavení zálohování a pravidelná zkouška obnovy je provozní úkol DevOps; dostupnost záloh a obnovy k bodu v čase závisí na tarifu Supabase `[OVĚŘIT]`. Bezplatný tarif pro produkční provoz nepředpokládám `[OVĚŘIT aktuální podmínky a ceny]`.
 
@@ -283,4 +284,4 @@ Ceny a tarify Vercelu, Supabase a e-mailové služby jsem do dokumentu nezapsal,
 
 - `[OTÁZKA]` Knihovna pro PDF oznámení a knihovna pro Excel (kapitola 5); doporučení: prototypy před milníkem průvodce.
 - `[OTÁZKA]` Název prefixu interních segmentů (`/h`) je jen technický detail, nemá dopad na majitele.
-- `[OVĚŘIT]` Podpora vlastního podpisu JWT u nových klíčů Supabase, limity cronu a regionu na zvoleném tarifu, chování cookie `__Host-` na `localhost`, cache API Next.js 16 (ADR 0001, 0002).
+- `[OVĚŘIT]` Limity cronu a regionu na zvoleném tarifu, chování cookie `__Host-` na `localhost`, cache API Next.js 16 (ADR 0001, 0002).

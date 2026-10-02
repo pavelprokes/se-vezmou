@@ -43,14 +43,6 @@ export function proxy(request: NextRequest) {
       // Prázdné 404, které nic nenabízí (žádný výpis webů, FR-PRIV-3).
       return applyHeaders(new NextResponse(null, { status: 404 }), decision.kind);
 
-    case "redirectWww": {
-      // Absolutní adresa holé domény (port z původní hlavičky Host, např. lokálně :3000).
-      const port = /:(\d{1,5})$/.exec(request.headers.get("host") ?? "")?.[1];
-      const origin = `${url.protocol}//${hostConfig.rootDomains[0]}${port ? `:${port}` : ""}`;
-      const location = new URL(`${url.pathname}${url.search}`, origin).toString();
-      return new NextResponse(null, { status: 308, headers: { Location: location } });
-    }
-
     case "passThrough":
       return applyHeaders(NextResponse.next(), decision.kind, url.pathname);
 

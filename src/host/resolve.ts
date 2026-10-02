@@ -7,10 +7,7 @@ import { RESERVED_SLUGS } from "@/config/reserved-slugs";
 export type HostKind = "marketing" | "app" | "admin" | "tenant";
 
 export type HostResolution =
-  | { kind: "marketing" | "app" | "admin" }
-  | { kind: "tenant"; slug: string }
-  | { kind: "redirect-www" }
-  | { kind: "invalid" };
+  { kind: "marketing" | "app" | "admin" } | { kind: "tenant"; slug: string } | { kind: "invalid" };
 
 export interface HostConfig {
   /** Kořenové domény (`se-vezmou.cz`, lokálně `localhost`), malými písmeny. */
@@ -70,7 +67,9 @@ export function resolveHost(header: string | null | undefined, config: HostConfi
     const label = host.slice(0, -(root.length + 1));
     // Víceúrovňové subdomény (`a.b.se-vezmou.cz`) neexistují.
     if (label.includes(".")) return { kind: "invalid" };
-    if (label === "www") return { kind: "redirect-www" };
+    // `www.` je stejná úvodní stránka; které z obou jmen je hlavní, určuje přesměrování domény ve Vercelu
+    // (aplikace nepřesměrovává, aby nevznikla smyčka s tímto nastavením) a kanonická adresa v metadatech.
+    if (label === "www") return { kind: "marketing" };
     if (label === "app") return { kind: "app" };
     if (label === "admin") return { kind: "admin" };
     return isValidSlug(label) ? { kind: "tenant", slug: label } : { kind: "invalid" };

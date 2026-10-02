@@ -57,7 +57,7 @@ Kostra obsahovala `@supabase/ssr` a `@supabase/supabase-js` (`supabase-js` je od
 Next.js 16 nahrazuje `middleware` souborem `proxy` (běží v Node.js runtime, `runtime` se v něm nenastavuje). Proxy dělá jen rychlé čisté rozhodnutí bez dotazu do databáze:
 
 1. Z hlavičky `Host` odstraní port a převede na malá písmena. Z `ROOT_DOMAIN` (env, `se-vezmou.cz`) určí druh hostitele:
-   - rovno `ROOT_DOMAIN` nebo `www.` → `marketing` (`www` přesměruje 308 na holou doménu `[OTÁZKA: zadání se o `www`nezmiňuje; návrh je přesměrování,`www` je mezi rezervovanými názvy]`),
+   - rovno `ROOT_DOMAIN` nebo `www.` → `marketing`. Aplikace `www` **nepřesměrovává**: které z obou jmen je hlavní, určuje přesměrování domény ve Vercelu a kanonická adresa (`NEXT_PUBLIC_SITE_URL`); přesměrování v aplikaci i ve Vercelu zároveň dává smyčku (`ERR_TOO_MANY_REDIRECTS`). `www` zůstává mezi rezervovanými názvy webů párů,
    - `app.` → `app`, `admin.` → `admin`,
    - jedna úroveň navíc a platný slug (`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$`, bez `--`) → `tenant`, slug = první štítek,
    - cokoli jiného (víceúrovňové subdomény, neznámé hostitele) → odpověď 404 bez těla, která nic nenabízí.
@@ -253,7 +253,7 @@ Zadání: wildcard `*.se-vezmou.cz` vyžaduje nameservery Vercelu (`ns1.vercel-d
    2. Ve Vercelu přidat doménu a vytvořit identické záznamy předem, včetně e-mailových (MX, SPF, DKIM, DMARC), dřív než se změní nameservery.
    3. Snížit TTL u registrátora s předstihem.
    4. Změnit nameservery, sledovat doručování e-mailů a dostupnost všech čtyř druhů hostitelů.
-3. **Projekt ve Vercelu** má domény: `se-vezmou.cz` (apex), `www` (přesměrování), `app`, `admin` a wildcard `*.se-vezmou.cz` (web páru). Explicitní `app.` a `admin.` mají přednost před wildcardem.
+3. **Projekt ve Vercelu** má domény: `se-vezmou.cz` (apex), `www` (přesměrování nastavte jen ve Vercelu a `NEXT_PUBLIC_SITE_URL` shodně s hlavním jménem), `app`, `admin` a wildcard `*.se-vezmou.cz` (web páru). Explicitní `app.` a `admin.` mají přednost před wildcardem.
 4. **E-mailová doména** (odesílání z `se-vezmou.cz`, FR-MAIL-2):
    - **SPF:** jeden záznam TXT povolující jen zvoleného e-mailového poskytovatele; pozor na více záznamů SPF (je neplatné) a limit na počet vyhledávání.
    - **DKIM:** záznamy (CNAME nebo TXT) podle poskytovatele; rotace klíčů podle jeho postupu.

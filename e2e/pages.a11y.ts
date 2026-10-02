@@ -25,6 +25,8 @@ const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 for (const { name, host, path } of pages) {
   test(`axe: ${name}`, async ({ page }) => {
     await page.goto(pageUrl(host, path));
+    // Počkat na titulek: po překreslení stránky (např. po akci serveru) může být na okamžik prázdný a axe by hlásil document-title.
+    await expect(page).toHaveTitle(/.+/);
     const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
     expect(
       results.violations.map((v) => ({
@@ -39,6 +41,8 @@ for (const { name, host, path } of pages) {
 test("katalog UI: axe s rozbalenými položkami a chybovým stavem", async ({ page }) => {
   await page.goto(pageUrl(HOSTS.marketing, "/ui-catalog"));
   for (const summary of await page.locator("summary").all()) await summary.click();
+  // Počkat na titulek: po překreslení stránky (např. po akci serveru) může být na okamžik prázdný a axe by hlásil document-title.
+  await expect(page).toHaveTitle(/.+/);
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   expect(results.violations).toEqual([]);
 });

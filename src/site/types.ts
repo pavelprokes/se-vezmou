@@ -173,7 +173,7 @@ export const galleryCardSchema = z.object({
 export type GalleryCard = z.infer<typeof galleryCardSchema>;
 
 /**
- * Odkaz na externí fotogalerii (např. u fotografa). Nahrávání fotek se nepodporuje (OQ-47), odkaz
+ * Odkaz na externí fotogalerii (např. u fotografa). Vlastní fotografie páru jsou v `galleryData.mediaIds` (M7c), odkaz
  * je jediná cesta k velké galerii. Veřejný odkaz je přímo ve snímku; chráněný odkaz (`protected`)
  * v něm není (`url = null`, ani `card`): je v `SensitiveContent.gallery` a vykreslí se až po PINu hostů.
  */

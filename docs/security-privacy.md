@@ -223,9 +223,10 @@ Správa webu umožňuje uvést odkaz na externí fotogalerii. Server k němu př
 - překlad jména provádí server sám a odmítne **celé jméno**, pokud kterákoli adresa je soukromá, loopback, link-local, sdílená (100.64/10), dokumentační, vícesměrová nebo vyhrazená (IPv4, IPv6 včetně `::ffff:`, NAT64, 6to4); spojení jde přímo na ověřenou adresu (žádný druhý překlad, takže DNS rebinding nepomůže), TLS se ověřuje proti jménu hostitele;
 - stejná kontrola po každém přesměrování, nejvýše 3;
 - časový limit 5 s na celé načtení, odpověď nejvýše 512 kB, jen `text/html`, bez komprese; parsuje se jen začátek dokumentu (`<head>`), nic se nespouští, žádné cookies, vlastní `User-Agent` (`se-vezmou.cz-linkpreview/1.0`);
-- nedůvěryhodný text: titulek a popis se zbavují řídicích a směrových znaků, zkracují a na webu se vypisují jako text (React escapuje); adresa obrázku se jen ukládá, web ji nevykresluje, takže host nikdy nevolá cizí stránku;
+- nedůvěryhodný text: titulek a popis se zbavují řídicích a směrových znaků, zkracují a na webu se vypisují jako text (React escapuje); adresa obrázku se ukládá jako zdroj a web ji nevykresluje (od M7c jen kopie ve vlastním úložišti), takže host nikdy nevolá cizí stránku;
 - omezení počtu načtení na svatbu (20/hod), selhání nic neblokuje (karta spadne na doménu a text odkazu);
 - chráněný odkaz (jen po PINu hostů) má chráněnou i kartu: ve veřejném snímku, v HTML ani v RSC payloadu bez odemčení není.
+- **Obrázek karty (M7c):** server stáhne i `og:image` stejným strážcem (jen https na 443, bez soukromých adres ani po přesměrování, časový limit 10 s), jen `image/jpeg`, `image/png` a `image/webp` (SVG ani nic jiného), bez komprese, nejvýše 5 MB (hlavička i skutečně přijaté bajty); obsah se nikdy nepodává dál tak, jak přišel: typ se ověří z obsahu a obrázek se překóduje přes `sharp` (limit 25 megapixelů, bez metadat) a uloží do vlastního úložiště. Web vykresluje jen tuto kopii (kap. 13).
 
 Výjimka pro e2e testy: proměnná prostředí `OG_FETCH_TEST_HOST` (`jmeno=127.0.0.1:port`) spojí jedno jméno hostitele bez DNS a bez TLS s loopbackem. Cíl smí být jen `127.0.0.1`, ostatní pravidla (tvar adresy, přesměrování) platí dál. V produkci se proměnná **nenastavuje** (není v `.env.example` ani na Vercelu).
 

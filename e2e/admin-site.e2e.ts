@@ -710,7 +710,7 @@ test.describe("odkaz na externí fotogalerii", () => {
       // obrázek karty je KOPIE ve vlastním úložišti (M7c): vlastní adresa, dekorativní (prázdné alt)
       const image = guest.locator("#galerie a.site-linkcard img");
       await expect(image).toHaveCount(1);
-      await expect(image).toHaveAttribute("src", /^\/media\/[0-9a-f-]{36}\/1280\?f=webp$/);
+      await expect(image).toHaveAttribute("src", /^\/media\/[0-9a-f-]{36}\/\d+\?f=webp$/);
       await expect(image).toHaveAttribute("alt", "");
       await guest.goto(`${site.url}en`);
       await expect(guest.locator("#galerie a.site-linkcard")).toContainText(

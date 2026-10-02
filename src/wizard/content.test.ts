@@ -189,7 +189,7 @@ describe("toPublicContent", () => {
   });
 
   it("obsah za PINem je prázdný (průvodce žádný nemá)", () => {
-    expect(toSensitiveContent()).toEqual({ venues: {}, gifts: null, gallery: null });
+    expect(toSensitiveContent()).toEqual({ venues: {}, gifts: null, gallery: null, photos: [] });
   });
 });
 

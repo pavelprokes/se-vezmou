@@ -239,7 +239,7 @@ Cíle zadání: LCP do 2,5 s, CLS do 0,1, INP do 200 ms na průměrném telefonu
 | Produkce    | Vercel production, `main` | sdílený Supabase projekt (EU), schéma `se_vezmou`          |
 
 - Migrace aplikuje majitel nástrojem `npm run db:migrate` (`MIGRATE_DATABASE_URL` vlastníka, jen na jeho počítači; `--dry-run` nejdřív), evidence je v `se_vezmou.schema_migrations`. Nikdy se neupravuje schéma ručně v konzoli. Postup: `supabase/README.md`.
-- Tajné hodnoty (`DATABASE_URL` s heslem role `se_vezmou_app`, `AUTH_SECRET`, `RATE_LIMIT_SECRET`, `PIN_PEPPER`, `CRON_SECRET`, klíče e-mailu) jsou v proměnných prostředí Vercelu, mimo repozitář; `.env.example` obsahuje jen názvy. Klíč `service_role` ani JWT secret sdíleného projektu na Vercelu nejsou. `MIGRATE_DATABASE_URL` (role `postgres`) není na Vercelu nikdy.
+- Tajné hodnoty (`DATABASE_URL` s heslem role `se_vezmou_app`, `AUTH_SECRET`, `RATE_LIMIT_SECRET`, `PIN_PEPPER`, `CRON_SECRET`, klíče e-mailu, klíč R2 `R2_ACCESS_KEY_ID` a `R2_SECRET_ACCESS_KEY`) jsou v proměnných prostředí Vercelu, mimo repozitář; `.env.example` obsahuje jen názvy. Úložiště fotografií (M7c, ADR 0006) čte serverové proměnné `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT` a `S3_REGION` (`auto`); bez nich mimo produkci běží úložiště v paměti a v produkci selže teprve použití fotografií. `STORAGE_DRIVER=memory` je jen pro automatické testy. Klíč `service_role` ani JWT secret sdíleného projektu na Vercelu nejsou. `MIGRATE_DATABASE_URL` (role `postgres`) není na Vercelu nikdy.
 - Záznamy (logy, Sentry) bez osobních údajů: žádná jména ani e-maily hostů, jen ID.
 - Zálohy a obnova: nastavení zálohování a pravidelná zkouška obnovy je provozní úkol DevOps; dostupnost záloh a obnovy k bodu v čase závisí na tarifu Supabase `[OVĚŘIT]`. Bezplatný tarif pro produkční provoz nepředpokládám `[OVĚŘIT aktuální podmínky a ceny]`.
 
@@ -281,6 +281,10 @@ Vlastnosti všech úloh: idempotentní, po dávkách s omezením času, `pg_try_
 ### 8.4 Plán a cena provozu (kvalitativně)
 
 Ceny a tarify Vercelu, Supabase a e-mailové služby jsem do dokumentu nezapsal, protože se mění a nemám z podkladů ověřené hodnoty `[OVĚŘIT před schválením]`. Rozhodující je, že zaváděcí provoz zdarma potřebuje: produkční tarif databáze se zálohami, odesílání e-mailů, úložiště fotografií a cron. Podrobný přehled nákladů patří do `docs/implementation-plan.md`.
+
+## 9a. Úložiště a zpracování fotografií (M7c)
+
+Rozhodnutí: `docs/adr/0006-photo-storage.md`. Úložiště je za rozhraním `PhotoStorage` (`src/lib/storage`): Cloudflare R2 přes S3 API a `aws4fetch` (podepsané adresy, výpis a mazání předpon), v paměti pro vývoj a testy a „nenastavené“ úložiště pro produkci bez proměnných R2 (selže až použití fotografií). Tok: Server Action vydá podepsanou adresu pro PUT do karantény `incoming/{wedding_id}/{media_id}`, prohlížeč nahraje originál přímo do úložiště, druhá Server Action (`maxDuration` 60 s na stránce `/web`) originál zpracuje (`sharp`: typ podle obsahu, pixelové limity, otočení podle EXIF, sRGB, žádná metadata, šířky 640, 1280 a 1920 px ve WebP a AVIF) a uloží varianty. Doručení: `/media/{id}/{šířka}` na hostiteli webu páru přesměruje na čerstvě podepsanou adresu s časovým oknem. `sharp` je nativní závislost (Node 24, předsestavené binárky pro Vercel); `aws4fetch` nemá vlastní závislosti.
 
 ## 9. Otevřené body tohoto dokumentu
 

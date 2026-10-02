@@ -11,6 +11,22 @@ import type {
   SaveActionResult,
   SimpleActionResult,
 } from "@/admin/site/action-types";
+import type {
+  DeleteMediaActionResult,
+  FinishUploadActionResult,
+  PhotoExportActionResult,
+  RenewUploadActionResult,
+  RequestUploadActionResult,
+  UpdateMediaActionResult,
+} from "@/lib/media/action-types";
+import {
+  deleteMedia,
+  exportPhotos,
+  finishUpload,
+  renewUpload,
+  requestUpload,
+  updateMedia,
+} from "@/lib/media/service";
 import {
   createCheckpoint,
   publishSiteVersion,
@@ -73,4 +89,33 @@ export async function refreshGalleryCardAction(url: unknown): Promise<GalleryCar
     if (!parsed.success) return { status: "invalid_url" as const };
     return refreshGalleryCard(session, parsed.data);
   });
+}
+
+// --- fotografie (M7c, docs/adr/0006-photo-storage.md) -----------------------------------------------------
+// Bajty fotografie neprocházejí Vercelem: prohlížeč je nahrává přímo do úložiště na podepsanou adresu z
+// `requestPhotoUploadAction`; `finishPhotoUploadAction` je zpracuje na serveru (sharp, dlouhý běh: `maxDuration`
+// stránky `web/page.tsx`, kde se Server Actions volají).
+
+export async function requestPhotoUploadAction(input: unknown): Promise<RequestUploadActionResult> {
+  return guarded("žádost o nahrání fotografie", (session) => requestUpload(session, input));
+}
+
+export async function renewPhotoUploadAction(input: unknown): Promise<RenewUploadActionResult> {
+  return guarded("obnovení nahrání fotografie", (session) => renewUpload(session, input));
+}
+
+export async function finishPhotoUploadAction(mediaId: unknown): Promise<FinishUploadActionResult> {
+  return guarded("zpracování fotografie", (session) => finishUpload(session, mediaId));
+}
+
+export async function updatePhotoAction(input: unknown): Promise<UpdateMediaActionResult> {
+  return guarded("úprava popisku fotografie", (session) => updateMedia(session, input));
+}
+
+export async function deletePhotoAction(mediaId: unknown): Promise<DeleteMediaActionResult> {
+  return guarded("smazání fotografie", (session) => deleteMedia(session, mediaId));
+}
+
+export async function exportPhotosAction(): Promise<PhotoExportActionResult> {
+  return guarded("export fotografií", (session) => exportPhotos(session));
 }

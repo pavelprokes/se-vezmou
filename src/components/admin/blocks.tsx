@@ -7,6 +7,8 @@ import { Field } from "@/components/ui/field";
 import { QrCode } from "@/components/wizard/qr-code";
 import type { Locale } from "@/i18n/config";
 import { buildSpayd } from "@/site/payment";
+import type { MediaActions } from "@/lib/media/action-types";
+import type { MediaItem } from "@/lib/media/types";
 import type { GalleryCard } from "@/site/types";
 import {
   newId,
@@ -19,6 +21,7 @@ import { normalizeHttpsUrl, normalizePhone, normalizeUrl } from "@/admin/site/no
 import { EventsEditor, VenuesEditor } from "./events";
 import { AddButton, ItemCard, LocalizedField, Note } from "./fields";
 import { useAdminT } from "./i18n";
+import { PhotosPanel } from "./photos";
 
 /** Výsledek načtení karty externí galerie (server, `refreshGalleryCardAction`). */
 export type CardOutcome =
@@ -34,6 +37,12 @@ export interface EditorContext {
   guestPinReady: boolean;
   update: (fn: (doc: EditorDoc) => EditorDoc) => void;
   refreshCard: (url: string) => Promise<CardOutcome>;
+  /** Média svatby (fotografie a obrázky karet); drží je editor, aby je viděl i živý náhled. */
+  media: readonly MediaItem[];
+  setMedia: (fn: (items: MediaItem[]) => MediaItem[]) => void;
+  mediaActions: MediaActions;
+  /** Úložiště fotografií je nastavené (jinak se nahrávání nenabízí). */
+  photosAvailable: boolean;
 }
 
 type Patch = Record<string, unknown>;
@@ -437,9 +446,33 @@ function GalleryEditor({ block, ctx }: Props<"gallery">) {
   }
 
   const card = link?.card ?? null;
+  const patchIds = (change: (ids: string[]) => string[]) =>
+    ctx.update((doc) => ({
+      ...doc,
+      blocks: doc.blocks.map((b) =>
+        b.id === block.id && b.type === "gallery"
+          ? { ...b, data: { ...b.data, mediaIds: change(b.data.mediaIds) } }
+          : b,
+      ),
+    }));
+
   return (
     <>
-      <p className="text-muted">{t("admin.gallery.noUpload")}</p>
+      <PhotosPanel
+        ids={block.data.mediaIds}
+        media={ctx.media}
+        setMedia={ctx.setMedia}
+        actions={ctx.mediaActions}
+        available={ctx.photosAvailable}
+        locales={ctx.locales}
+        onReorder={(ids) => patchIds(() => ids)}
+        onAdd={(id) => patchIds((ids) => (ids.includes(id) ? ids : [...ids, id]))}
+        onRemove={(id) => patchIds((ids) => ids.filter((x) => x !== id))}
+        photosProtected={block.data.photosProtected}
+        onProtectedChange={(value) => patchBlock(ctx, block.id, { photosProtected: value })}
+        guestPinReady={ctx.guestPinReady}
+      />
+      <h4 className="text-ink font-sans text-base font-semibold">{t("admin.gallery.linkTitle")}</h4>
       <Checkbox
         label={t("admin.gallery.enableLink")}
         checked={link !== null}

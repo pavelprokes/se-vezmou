@@ -1,6 +1,6 @@
-import Image from "next/image";
 import type { BlockOf } from "@/site/types";
 import type { SiteCtx } from "../context";
+import { Picture } from "../picture";
 import { Paragraphs, Section } from "./section";
 
 /** Náš příběh: text a volitelný obrázek (s popiskem nebo dekorativní). */
@@ -24,14 +24,11 @@ export function Story({
         </div>
         {showImage ? (
           <figure className="site-figure">
-            <Image
-              src={media.src}
-              width={media.width}
-              height={media.height}
-              alt={media.decorative ? "" : alt}
-              lang={media.decorative ? undefined : ctx.lang(media.alt)}
+            <Picture
+              media={media}
+              alt={alt}
+              lang={ctx.lang(media.alt)}
               sizes="(min-width: 768px) 40vw, 100vw"
-              unoptimized
             />
           </figure>
         ) : null}

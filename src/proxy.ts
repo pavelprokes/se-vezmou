@@ -64,7 +64,8 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Vynecháno: statické soubory Next.js, tunel Sentry (`/monitoring`) a cron.
-    "/((?!_next/static|_next/image|monitoring|api/cron).*)",
+    // Vynecháno: statické soubory Next.js, tunel Sentry (`/monitoring`), cron a vývojová obdoba podepsaných
+    // adres úložiště (`/api/dev-storage`, jen s úložištěm v paměti, jinak 404; fotografie M7c).
+    "/((?!_next/static|_next/image|monitoring|api/cron|api/dev-storage).*)",
   ],
 };

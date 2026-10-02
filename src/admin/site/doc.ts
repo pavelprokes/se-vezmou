@@ -14,8 +14,10 @@ import {
   type BlockType,
   type Phase,
   type PublicContent,
+  type PublicMedia,
   type SensitiveContent,
 } from "@/site/types";
+import { mediaSrc, isReady, type MediaItem } from "@/lib/media/types";
 import { normalizeHttpsUrl, normalizePhone, normalizeUrl } from "./normalize";
 
 /**
@@ -124,7 +126,10 @@ const dataSchemas = {
   story: z.object({ text: text().default({}), mediaId: z.string().nullable().default(null) }),
   gifts: giftsDataSchema,
   gallery: z.object({
+    /** Fotografie galerie v pořadí (identifikátory médií, `admin_media_list`); soubory a popisky jsou v tabulce media. */
     mediaIds: z.array(z.string()).max(60).default([]),
+    /** Fotografie jsou jen pro hosty s PINem (ve veřejném snímku nejsou). */
+    photosProtected: z.boolean().default(false),
     link: galleryLinkEditSchema.nullable().default(null),
   }),
   rsvp: z.object({ intro: optionalText() }),
@@ -566,6 +571,7 @@ export type IssueCode =
   | "storyEmpty"
   | "giftsAccount"
   | "galleryUrl"
+  | "photoNoCaption"
   | "lodgingUrl"
   | "lodgingName"
   | "faqIncomplete"
@@ -589,6 +595,8 @@ export interface Issue {
 export interface ValidateContext {
   /** PIN hostů je nastavený (zapnutý a s hodnotou). Bez něj citlivé údaje nikdo neuvidí. */
   guestPinReady: boolean;
+  /** Média svatby (`admin_media_list`); bez nich se fotografie nekontrolují (starší volání, testy). */
+  media?: readonly MediaItem[];
 }
 
 function filled(value: I18nText | null | undefined, locale: Locale): boolean {
@@ -615,8 +623,66 @@ export function usesSensitive(doc: EditorDoc): boolean {
     venueBlock?.type === "venue" &&
     doc.venues.some((v) => v.isPrivate && venueBlock.data.venueIds.includes(v.id));
   return Boolean(
-    privateVenue || gifts || (gallery?.type === "gallery" && gallery.data.link?.protected === true),
+    privateVenue ||
+    gifts ||
+    (gallery?.type === "gallery" &&
+      (gallery.data.link?.protected === true || gallery.data.photosProtected)),
   );
+}
+
+/** Hotové fotografie (ne obrázky karet) z uvedených identifikátorů v pořadí, bez duplicit. */
+function galleryPhotos(
+  ids: readonly string[],
+  media: readonly MediaItem[] | undefined,
+): MediaItem[] {
+  if (!media) return [];
+  const byId = new Map(media.map((item) => [item.id, item]));
+  const seen = new Set<string>();
+  const out: MediaItem[] = [];
+  for (const id of ids) {
+    const item = byId.get(id);
+    if (!item || item.kind !== "photo" || !isReady(item) || seen.has(id)) continue;
+    seen.add(id);
+    out.push(item);
+  }
+  return out;
+}
+
+/**
+ * Pořadí fotografií v galerii sjednocené s tabulkou médií: zůstanou jen hotové fotografie, které existují (smazané
+ * zmizí), v pořadí z dokumentu; fotografie, které v dokumentu ještě nejsou (nahrané těsně před zavřením okna, než
+ * se uložil koncept), přibudou na konec. Galerie obsahuje všechny hotové fotografie svatby. Vrací stejný objekt,
+ * když se nic nemění.
+ */
+export function reconcileGalleryMedia(doc: EditorDoc, media: readonly MediaItem[]): EditorDoc {
+  const ready = media.filter((item) => item.kind === "photo" && isReady(item));
+  const readyIds = new Set(ready.map((item) => item.id));
+  let changed = false;
+  const blocks = doc.blocks.map((block) => {
+    if (block.type !== "gallery") return block;
+    const kept = block.data.mediaIds.filter(
+      (id, i, all) => readyIds.has(id) && all.indexOf(id) === i,
+    );
+    const missing = ready.map((item) => item.id).filter((id) => !kept.includes(id));
+    const ids = [...kept, ...missing];
+    if (
+      ids.length === block.data.mediaIds.length &&
+      ids.every((id, i) => id === block.data.mediaIds[i])
+    ) {
+      return block;
+    }
+    changed = true;
+    return { ...block, data: { ...block.data, mediaIds: ids } };
+  });
+  return changed ? { ...doc, blocks } : doc;
+}
+
+/**
+ * Fotografie se smí zveřejnit, když má popisek aspoň v jednom jazyce, nebo je dekorativní (prázdný `alt`).
+ * Chybějící překlad zveřejnění nebrání (zobrazí se dostupný jazyk a správce se o tom dozví).
+ */
+export function publishable(item: MediaItem): boolean {
+  return item.decorative || anyFilled(item.alt);
 }
 
 export function validateDoc(doc: EditorDoc, context: ValidateContext): Issue[] {
@@ -729,10 +795,17 @@ export function validateDoc(doc: EditorDoc, context: ValidateContext): Issue[] {
         break;
       case "gallery": {
         const link = block.data.link;
+        const photos = galleryPhotos(block.data.mediaIds, context.media);
+        // Fotografie bez popisku a bez příznaku dekorativní se nezveřejní (ADR 0006, WCAG 1.1.1): upozornění
+        for (const photo of photos) {
+          if (!publishable(photo)) {
+            add({ code: "photoNoCaption", severity: "warning", area: "gallery", itemId: photo.id });
+          }
+        }
         if (link) {
           if (normalizeHttpsUrl(link.url) === null)
             add({ code: "galleryUrl", severity: "error", area: "gallery" });
-        } else {
+        } else if (!photos.some(publishable)) {
           add({ code: "emptyBlock", severity: "warning", area: "gallery" });
         }
         break;
@@ -767,7 +840,7 @@ export interface TranslationGap {
  * chybí. Web v takovém případě ukáže dostupný jazyk (`pick`), správce se o tom dozví tady.
  * Zcela prázdné nepovinné texty se nehlásí (pole se prostě nepoužívá).
  */
-export function translationGaps(doc: EditorDoc): TranslationGap[] {
+export function translationGaps(doc: EditorDoc, media?: readonly MediaItem[]): TranslationGap[] {
   const counts = new Map<string, TranslationGap>();
   const note = (area: TranslationGap["area"], value: I18nText | null | undefined) => {
     if (!anyFilled(value)) return;
@@ -821,6 +894,10 @@ export function translationGaps(doc: EditorDoc): TranslationGap[] {
         break;
       case "gallery":
         if (block.data.link) note("gallery", block.data.link.label);
+        // Popisky fotografií (jen dekorativní se nepopisují); chybějící překlad se hlásí stejně jako u textů
+        for (const photo of galleryPhotos(block.data.mediaIds, media)) {
+          if (!photo.decorative) note("gallery", photo.alt);
+        }
         break;
     }
   }
@@ -863,6 +940,26 @@ export interface BuildOptions {
   quickNotice?: I18nText | null;
   phase?: Phase;
   now?: Date;
+  /**
+   * Média svatby (`admin_media_list`). Do snímku se dostanou jen hotová, zveřejnitelná a použitá v zapnutém bloku
+   * (fotografie bez popisku a bez příznaku dekorativní se vynechají). Bez zadání (starší volání, testy) zůstane
+   * `media` prázdné a odkazy na média beze změny.
+   */
+  media?: readonly MediaItem[];
+}
+
+function toPublicMedia(item: MediaItem): PublicMedia {
+  const largest = item.widths[item.widths.length - 1];
+  return {
+    id: item.id,
+    src: mediaSrc(item.id, largest),
+    width: item.width ?? 1,
+    height: item.height ?? 1,
+    // Obrázek karty je vždy dekorativní a bez popisku
+    alt: item.kind === "card" ? null : cleanText(item.alt),
+    decorative: item.kind === "card" ? true : item.decorative,
+    widths: item.widths,
+  };
 }
 
 /**
@@ -908,6 +1005,15 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
   let giftsSensitive: SensitiveContent["gifts"] = null;
   let gallerySensitive: SensitiveContent["gallery"] = null;
 
+  // Média do snímku: veřejná v `content.media`, chráněná PINem v `sensitive.photos` (stejné pořadí jako v galerii)
+  const mediaGiven = options.media !== undefined;
+  const mediaById = new Map((options.media ?? []).filter(isReady).map((item) => [item.id, item]));
+  const publicMedia: PublicMedia[] = [];
+  const sensitivePhotos: PublicMedia[] = [];
+  const addMedia = (target: PublicMedia[], item: MediaItem) => {
+    if (!target.some((m) => m.id === item.id)) target.push(toPublicMedia(item));
+  };
+
   const blocks = normalizeBlocks(clean.blocks).map((block) => {
     const base = {
       id: block.id,
@@ -932,7 +1038,22 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
       case "gallery": {
         const link = block.data.link;
         const url = link ? normalizeHttpsUrl(link.url) : null;
-        const card = link?.card ?? null;
+        // Kopie obrázku karty: jen hotové médium druhu card a jen když se karta načetla
+        const cardImage =
+          mediaGiven && link?.card?.status === "ok" && link.card.imageMediaId
+            ? mediaById.get(link.card.imageMediaId)
+            : undefined;
+        const card = link?.card
+          ? {
+              ...link.card,
+              imageMediaId:
+                cardImage?.kind === "card"
+                  ? cardImage.id
+                  : mediaGiven
+                    ? null
+                    : link.card.imageMediaId,
+            }
+          : null;
         const publicLink =
           link && url
             ? {
@@ -943,10 +1064,30 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
               }
             : null;
         if (link && url && link.protected && block.enabled) gallerySensitive = { url, card };
+
+        // Fotografie: jen z hotových, zveřejnitelných a jen ze zapnutého bloku
+        let mediaIds = block.data.mediaIds;
+        if (mediaGiven) {
+          mediaIds = block.enabled
+            ? galleryPhotos(block.data.mediaIds, options.media)
+                .filter(publishable)
+                .map((item) => item.id)
+            : [];
+          const target = block.data.photosProtected ? sensitivePhotos : publicMedia;
+          for (const id of mediaIds) addMedia(target, mediaById.get(id)!);
+          if (block.enabled && cardImage?.kind === "card" && url) {
+            addMedia(link?.protected ? sensitivePhotos : publicMedia, cardImage);
+          }
+        }
         return {
           ...base,
           type: block.type,
-          data: { mediaIds: block.data.mediaIds, link: publicLink },
+          data: {
+            // Chráněné fotografie nejsou ve veřejném snímku ani jako identifikátory
+            mediaIds: block.data.photosProtected ? [] : mediaIds,
+            photosProtected: block.data.photosProtected,
+            link: publicLink,
+          },
         };
       }
       case "hero":
@@ -1015,12 +1156,21 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
               })),
           },
         };
-      case "story":
+      case "story": {
+        // Obrázek příběhu: s přehledem médií jen hotové zveřejnitelné médium (jinak žádný obrázek)
+        const image =
+          mediaGiven && block.data.mediaId ? mediaById.get(block.data.mediaId) : undefined;
+        const usable = image && image.kind === "photo" && publishable(image) && block.enabled;
+        if (usable) addMedia(publicMedia, image);
         return {
           ...base,
           type: block.type,
-          data: { text: cleanText(block.data.text) ?? {}, mediaId: block.data.mediaId },
+          data: {
+            text: cleanText(block.data.text) ?? {},
+            mediaId: mediaGiven ? (usable ? image.id : null) : block.data.mediaId,
+          },
         };
+      }
     }
   });
 
@@ -1060,7 +1210,7 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
     thanksMessage: null,
     venues,
     events,
-    media: [],
+    media: publicMedia,
     blocks,
   });
   if (!content.success) return null;
@@ -1069,6 +1219,7 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
     venues: sensitiveVenues,
     gifts: giftsSensitive,
     gallery: gallerySensitive,
+    photos: sensitivePhotos,
   });
   if (!sensitive.success) return null;
   return { content: content.data, sensitive: sensitive.data };
@@ -1106,10 +1257,15 @@ export function publicToDoc(content: PublicContent, sensitive: SensitiveContent)
         };
       case "gallery": {
         const link = block.data.link;
+        // Chráněné fotografie (bez obrázku karty) se vrací z citlivé části v původním pořadí
+        const cardImageId = (link?.protected ? sensitive.gallery?.card : link?.card)?.imageMediaId;
         return {
           ...block,
           data: {
-            mediaIds: block.data.mediaIds,
+            mediaIds: block.data.photosProtected
+              ? sensitive.photos.map((m) => m.id).filter((id) => id !== cardImageId)
+              : block.data.mediaIds,
+            photosProtected: block.data.photosProtected,
             link: link
               ? {
                   url: link.protected ? (sensitive.gallery?.url ?? "") : (link.url ?? ""),

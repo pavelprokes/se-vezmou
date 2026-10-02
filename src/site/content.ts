@@ -1,7 +1,9 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { publicMediaIds, visitorIdentity } from "@/lib/db/media";
 import { resolveSlug } from "@/lib/db/rpc";
 import { getPublicSite, resolvePreview } from "@/lib/db/rpc-wizard";
+import { liveMedia } from "./live-media";
 import { previewToPublicContent } from "./preview";
 import { publicContentSchema, type PublicContent } from "./types";
 
@@ -51,7 +53,23 @@ export async function getPublicContent(slug: string): Promise<PublicContent | nu
     console.error("[site] zveřejněný snímek neodpovídá schématu");
     return null;
   }
-  return parsed.data;
+  return withLiveMedia(parsed.data, resolved.weddingId);
+}
+
+/**
+ * Smazaná fotografie zmizí z webu hned, i když zveřejněný snímek na ni ještě odkazuje: média, která už v databázi
+ * nejsou hotová, se vyřadí (`public_media_ids`). Selhání dotazu snímek nemění (obrázek by se nedoručil, 404).
+ */
+async function withLiveMedia(content: PublicContent, weddingId: string): Promise<PublicContent> {
+  if (content.media.every((item) => item.widths.length === 0)) return content;
+  try {
+    const alive = new Set(
+      (await publicMediaIds(visitorIdentity(weddingId))).map((id) => id.toLowerCase()),
+    );
+    return { ...content, media: liveMedia(content.media, alive) };
+  } catch {
+    return content;
+  }
 }
 
 export async function getPreviewContent(

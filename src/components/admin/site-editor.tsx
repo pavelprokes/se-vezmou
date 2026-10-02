@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { EditorActions } from "@/admin/site/action-types";
+import type { MediaActions } from "@/lib/media/action-types";
+import type { MediaItem } from "@/lib/media/types";
 import {
   docToPublic,
   moveBlock,
@@ -87,6 +89,7 @@ const ISSUE_TEXT: Record<IssueCode, AdminKey> = {
   storyEmpty: "admin.issue.storyEmpty",
   giftsAccount: "admin.issue.giftsAccount",
   galleryUrl: "admin.issue.galleryUrl",
+  photoNoCaption: "admin.issue.photoNoCaption",
   lodgingUrl: "admin.issue.lodgingUrl",
   lodgingName: "admin.issue.lodgingName",
   faqIncomplete: "admin.issue.faqIncomplete",
@@ -124,6 +127,11 @@ export interface SiteEditorProps {
   uiLocale: Locale;
   initial: { doc: EditorDoc; meta: ClientMeta };
   actions: EditorActions;
+  /** Média svatby (fotografie) z databáze při otevření editoru. */
+  initialMedia: MediaItem[];
+  mediaActions: MediaActions;
+  /** Úložiště fotografií je nastavené. */
+  photosAvailable: boolean;
   siteHref: string | null;
   historyHref: string;
   /** Poslední verze je stará: při otevření editoru se uloží bod pro vrácení. */
@@ -140,6 +148,9 @@ export function SiteEditor({
   uiLocale,
   initial,
   actions,
+  initialMedia,
+  mediaActions,
+  photosAvailable,
   siteHref,
   historyHref,
   needsCheckpoint,
@@ -147,6 +158,8 @@ export function SiteEditor({
   const t = useAdminT();
   const [doc, setDoc] = useState(initial.doc);
   const [meta, setMeta] = useState(initial.meta);
+  const [media, setMediaState] = useState<MediaItem[]>(initialMedia);
+  const setMedia = useCallback((fn: (items: MediaItem[]) => MediaItem[]) => setMediaState(fn), []);
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [announce, setAnnounce] = useState("");
@@ -178,9 +191,12 @@ export function SiteEditor({
   const failed = useRef(false);
 
   const guestPinReady = meta.guestPinEnabled && meta.hasGuestPin;
-  const issues = useMemo(() => validateDoc(doc, { guestPinReady }), [doc, guestPinReady]);
+  const issues = useMemo(
+    () => validateDoc(doc, { guestPinReady, media }),
+    [doc, guestPinReady, media],
+  );
   const errors = issues.filter((issue) => issue.severity === "error");
-  const gaps = useMemo(() => translationGaps(doc), [doc]);
+  const gaps = useMemo(() => translationGaps(doc, media), [doc, media]);
 
   const preview = useMemo(
     () =>
@@ -192,8 +208,9 @@ export function SiteEditor({
           new Date(),
           doc.wedding.timezone,
         ),
+        media,
       }),
-    [doc, meta.slug, meta.quickNotice, meta.quickNoticeEnabled],
+    [doc, media, meta.slug, meta.quickNotice, meta.quickNoticeEnabled],
   );
 
   const flush = useCallback(async (): Promise<boolean> => {
@@ -321,6 +338,10 @@ export function SiteEditor({
     guestPinReady,
     update,
     refreshCard,
+    media,
+    setMedia,
+    mediaActions,
+    photosAvailable,
   };
 
   // --- řazení bloků ------------------------------------------------------------------------
@@ -465,7 +486,7 @@ export function SiteEditor({
       const target =
         (issue.itemId &&
           document.getElementById(
-            `${issue.area === "events" ? "event" : "venue"}-${issue.itemId}`,
+            `${issue.area === "events" ? "event" : issue.area === "gallery" ? "photo" : "venue"}-${issue.itemId}`,
           )) ||
         document.getElementById(blockType ? `block-${blockType}` : "panel-general");
       if (target instanceof HTMLElement) {

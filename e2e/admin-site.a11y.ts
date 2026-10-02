@@ -195,6 +195,7 @@ test.describe("axe: karta externí galerie na webu páru", () => {
                 enabled: true,
                 data: {
                   mediaIds: [],
+                  photosProtected: false,
                   link: {
                     url: `${OG_BASE}/galerie?t=${Math.random().toString(36).slice(2)}`,
                     label: { cs: "Fotky od Anny", en: "Photos by Anna" },
@@ -204,6 +205,7 @@ test.describe("axe: karta externí galerie na webu páru", () => {
                       description: "Fotky ze svatby",
                       imageUrl: null,
                       fetchedAt: null,
+                      imageMediaId: null,
                       status: "ok" as const,
                     },
                   },
@@ -230,6 +232,7 @@ test.describe("axe: karta externí galerie na webu páru", () => {
                 enabled: true,
                 data: {
                   mediaIds: [],
+                  photosProtected: false,
                   link: {
                     url: `${OG_BASE}/galerie?t=tajne`,
                     label: { cs: "Tajná galerie" },

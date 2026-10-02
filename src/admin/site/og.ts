@@ -44,7 +44,8 @@ export type OgFailure =
   | "not_html"
   | "redirects"
   | "status"
-  | "no_tags";
+  | "no_tags"
+  | "not_image";
 
 export type OgResult =
   { ok: true; card: GalleryCard } | { ok: false; reason: OgFailure; card: GalleryCard };
@@ -144,6 +145,8 @@ export interface PageRequest {
   /** Ověřená adresa, na kterou se spojení skutečně naváže. */
   address: string;
   signal: AbortSignal;
+  /** Hlavička `Accept` (HTML pro kartu, obrázky pro náhledový obrázek); bez ní HTML. */
+  accept?: string;
   /** Jen e2e (`OG_FETCH_TEST_HOST`): spojení bez TLS na tento port loopbacku. */
   plainPort?: number;
 }
@@ -176,7 +179,7 @@ const defaultDeps: OgDeps = {
     const records = await dnsLookup(hostname, { all: true, verbatim: true });
     return records.map((record) => record.address);
   },
-  request({ url, address, signal, plainPort }) {
+  request({ url, address, signal, plainPort, accept }) {
     return new Promise<PageResponse>((resolve, reject) => {
       const secure = plainPort === undefined && url.protocol === "https:";
       const req = (secure ? httpsRequest : httpRequest)(
@@ -190,7 +193,7 @@ const defaultDeps: OgDeps = {
           headers: {
             host: url.host,
             "user-agent": OG_USER_AGENT,
-            accept: "text/html,application/xhtml+xml;q=0.9",
+            accept: accept ?? "text/html,application/xhtml+xml;q=0.9",
             "accept-encoding": "identity",
             "accept-language": "cs,en;q=0.8",
           },
@@ -367,6 +370,73 @@ async function readHead(response: PageResponse): Promise<string> {
   return Buffer.concat(chunks).toString("utf8");
 }
 
+type Opened = { ok: true; response: PageResponse; url: URL } | { ok: false; reason: OgFailure };
+
+/**
+ * Společná, SSRF-bezpečná část načtení cizí adresy (karta i obrázek): kontrola tvaru adresy, vlastní překlad
+ * jména s odmítnutím celého jména při jediné neveřejné adrese, spojení na ověřenou adresu a totéž po každém
+ * přesměrování (nejvýše 3). Vrací odpověď se stavem 2xx; typ a velikost obsahu kontroluje volající.
+ * Výjimky (chyba sítě, DNS) vyhazuje, volající je převede na selhání.
+ */
+async function openGuarded(
+  rawUrl: string,
+  deps: OgDeps,
+  signal: AbortSignal,
+  accept: string,
+): Promise<Opened> {
+  let url: URL;
+  try {
+    url = new URL(rawUrl);
+  } catch {
+    return { ok: false, reason: "invalid_url" };
+  }
+
+  for (let hop = 0; hop <= OG_LIMITS.maxRedirects; hop++) {
+    if (!isAllowedTarget(url)) {
+      return { ok: false, reason: hop === 0 ? "invalid_url" : "blocked" };
+    }
+
+    let address: string;
+    const viaTest = deps.testHost !== null && url.hostname === deps.testHost.hostname;
+    if (viaTest) {
+      address = deps.testHost!.address;
+    } else {
+      const addresses = await deps.resolve(url.hostname);
+      if (addresses.length === 0) return { ok: false, reason: "unreachable" };
+      // Jedna soukromá adresa znehodnotí celé jméno (útočník řídí, co DNS vrátí).
+      if (!addresses.every(isPublicAddress)) return { ok: false, reason: "blocked" };
+      address = addresses[0];
+    }
+
+    const response = await deps.request({
+      url,
+      address,
+      signal,
+      accept,
+      plainPort: viaTest ? deps.testHost!.port : undefined,
+    });
+
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      response.destroy();
+      const location = response.headers.location;
+      if (!location) return { ok: false, reason: "status" };
+      if (hop === OG_LIMITS.maxRedirects) return { ok: false, reason: "redirects" };
+      try {
+        url = new URL(location, url);
+      } catch {
+        return { ok: false, reason: "invalid_url" };
+      }
+      continue;
+    }
+    if (response.status < 200 || response.status >= 300) {
+      response.destroy();
+      return { ok: false, reason: "status" };
+    }
+    return { ok: true, response, url };
+  }
+  return { ok: false, reason: "redirects" };
+}
+
 /**
  * Načte metadata stránky. Nikdy nevyhodí: neúspěch je výsledek s důvodem (`reason`) a kartou ve
  * stavu `failed`, takže uložení odkazu nic neblokuje a web spadne na doménu a text odkazu.
@@ -381,79 +451,106 @@ export async function fetchOgCard(
   const timer = setTimeout(() => controller.abort(), deps.timeoutMs);
 
   try {
-    let url: URL;
-    try {
-      url = new URL(rawUrl);
-    } catch {
-      return failure("invalid_url", now);
+    const opened = await openGuarded(
+      rawUrl,
+      deps,
+      controller.signal,
+      "text/html,application/xhtml+xml;q=0.9",
+    );
+    if (!opened.ok) return failure(opened.reason, now);
+    const { response, url } = opened;
+
+    const type = (response.headers["content-type"] ?? "").toLowerCase();
+    if (!/^(text\/html|application\/xhtml\+xml)\b/.test(type)) {
+      response.destroy();
+      return failure("not_html", now);
+    }
+    const encoding = (response.headers["content-encoding"] ?? "identity").toLowerCase();
+    if (encoding !== "identity") {
+      response.destroy();
+      return failure("not_html", now);
+    }
+    const length = Number(response.headers["content-length"] ?? 0);
+    if (Number.isFinite(length) && length > OG_LIMITS.maxBytes * 4) {
+      response.destroy();
+      return failure("too_large", now);
     }
 
-    for (let hop = 0; hop <= OG_LIMITS.maxRedirects; hop++) {
-      if (!isAllowedTarget(url)) {
-        return failure(hop === 0 ? "invalid_url" : "blocked", now);
-      }
-
-      let address: string;
-      const viaTest = deps.testHost !== null && url.hostname === deps.testHost.hostname;
-      if (viaTest) {
-        address = deps.testHost!.address;
-      } else {
-        const addresses = await deps.resolve(url.hostname);
-        if (addresses.length === 0) return failure("unreachable", now);
-        // Jedna soukromá adresa znehodnotí celé jméno (útočník řídí, co DNS vrátí).
-        if (!addresses.every(isPublicAddress)) return failure("blocked", now);
-        address = addresses[0];
-      }
-
-      const response = await deps.request({
-        url,
-        address,
-        signal: controller.signal,
-        plainPort: viaTest ? deps.testHost!.port : undefined,
-      });
-
-      if ([301, 302, 303, 307, 308].includes(response.status)) {
-        response.destroy();
-        const location = response.headers.location;
-        if (!location) return failure("status", now);
-        if (hop === OG_LIMITS.maxRedirects) return failure("redirects", now);
-        try {
-          url = new URL(location, url);
-        } catch {
-          return failure("invalid_url", now);
-        }
-        continue;
-      }
-      if (response.status < 200 || response.status >= 300) {
-        response.destroy();
-        return failure("status", now);
-      }
-
-      const type = (response.headers["content-type"] ?? "").toLowerCase();
-      if (!/^(text\/html|application\/xhtml\+xml)\b/.test(type)) {
-        response.destroy();
-        return failure("not_html", now);
-      }
-      const encoding = (response.headers["content-encoding"] ?? "identity").toLowerCase();
-      if (encoding !== "identity") {
-        response.destroy();
-        return failure("not_html", now);
-      }
-      const length = Number(response.headers["content-length"] ?? 0);
-      if (Number.isFinite(length) && length > OG_LIMITS.maxBytes * 4) {
-        response.destroy();
-        return failure("too_large", now);
-      }
-
-      const html = await readHead(response);
-      const card = parseOgCard(html, url, now);
-      return card ? { ok: true, card } : failure("no_tags", now);
-    }
-    return failure("redirects", now);
+    const html = await readHead(response);
+    const card = parseOgCard(html, url, now);
+    return card ? { ok: true, card } : failure("no_tags", now);
   } catch (error) {
     if (error instanceof Stop) return failure(error.reason, now);
     if (controller.signal.aborted) return failure("timeout", now);
     return failure("unreachable", now);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// --- obrázek karty -------------------------------------------------------------------------------
+
+export const OG_IMAGE_LIMITS = {
+  /** Největší stažený obrázek (po něm už se nečte). */
+  maxBytes: 5 * 1024 * 1024,
+  timeoutMs: 10_000,
+} as const;
+
+export type OgImageResult =
+  { ok: true; data: Buffer; contentType: string } | { ok: false; reason: OgFailure };
+
+/**
+ * Stáhne náhledový obrázek cílové stránky (`og:image`) SERVEREM, s týmiž zárukami proti SSRF jako karta
+ * (`openGuarded`): jen https na portu 443, žádné soukromé adresy ani po přesměrování, časový limit. Navíc jen
+ * typ JPEG, PNG nebo WebP (SVG ani nic jiného), bez komprese a se stropem velikosti. Obsah se tu jen načte;
+ * skutečný typ a rozměry ověří a obrázek překóduje `processImage` (nikdy se nepodává dál tak, jak přišel).
+ * Nikdy nevyhodí.
+ */
+export async function fetchOgImage(
+  rawUrl: string,
+  overrides: Partial<OgDeps> = {},
+): Promise<OgImageResult> {
+  const deps: OgDeps = { ...envDeps(), timeoutMs: OG_IMAGE_LIMITS.timeoutMs, ...overrides };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), deps.timeoutMs);
+  try {
+    const opened = await openGuarded(
+      rawUrl,
+      deps,
+      controller.signal,
+      "image/jpeg,image/png,image/webp;q=0.9",
+    );
+    if (!opened.ok) return { ok: false, reason: opened.reason };
+    const { response } = opened;
+
+    const type = (response.headers["content-type"] ?? "").toLowerCase().split(";")[0].trim();
+    const encoding = (response.headers["content-encoding"] ?? "identity").toLowerCase();
+    if (!["image/jpeg", "image/png", "image/webp"].includes(type) || encoding !== "identity") {
+      response.destroy();
+      return { ok: false, reason: "not_image" };
+    }
+    const length = Number(response.headers["content-length"] ?? 0);
+    if (Number.isFinite(length) && length > OG_IMAGE_LIMITS.maxBytes) {
+      response.destroy();
+      return { ok: false, reason: "too_large" };
+    }
+
+    const chunks: Buffer[] = [];
+    let size = 0;
+    try {
+      for await (const chunk of response.body) {
+        const buffer = Buffer.from(chunk);
+        size += buffer.length;
+        if (size > OG_IMAGE_LIMITS.maxBytes) return { ok: false, reason: "too_large" };
+        chunks.push(buffer);
+      }
+    } finally {
+      response.destroy();
+    }
+    if (size === 0) return { ok: false, reason: "not_image" };
+    return { ok: true, data: Buffer.concat(chunks), contentType: type };
+  } catch {
+    return { ok: false, reason: controller.signal.aborted ? "timeout" : "unreachable" };
   } finally {
     clearTimeout(timer);
   }

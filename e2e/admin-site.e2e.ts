@@ -707,7 +707,11 @@ test.describe("odkaz na externí fotogalerii", () => {
       await expect(card).toContainText(`${OG_PAGES.galerie.description} & videa`);
       await expect(card).toContainText("Odkaz se otevře na jiném webu");
       await expect(card).toContainText("fotky-test.example");
-      await expect(guest.locator("#galerie img")).toHaveCount(0);
+      // obrázek karty je KOPIE ve vlastním úložišti (M7c): vlastní adresa, dekorativní (prázdné alt)
+      const image = guest.locator("#galerie a.site-linkcard img");
+      await expect(image).toHaveCount(1);
+      await expect(image).toHaveAttribute("src", /^\/media\/[0-9a-f-]{36}\/\d+\?f=webp$/);
+      await expect(image).toHaveAttribute("alt", "");
       await guest.goto(`${site.url}en`);
       await expect(guest.locator("#galerie a.site-linkcard")).toContainText(
         "Link opens on another website",
@@ -716,7 +720,8 @@ test.describe("odkaz na externí fotogalerii", () => {
     // hosté a jejich prohlížeče nevolají cizí web: jen vlastní původ webu páru
     expect([...hosts]).toEqual([`${site.slug}.localhost`]);
     expect(await ogHits(path)).toBe(1);
-    expect(await ogHits("/cover.jpg")).toBe(0);
+    // obrázek stáhl server jednou při načtení karty, hosté ho od cizího serveru nikdy nenačítají
+    expect(await ogHits(`/cover.jpg?t=${site.tag}`)).toBe(1);
   });
 
   test("název od páru po jazycích přepíše název z cílové stránky", async ({ page, context }) => {

@@ -165,7 +165,7 @@ describe("SiteRenderer: bloky a struktura", () => {
         b.type === "faq"
           ? { ...b, enabled: false }
           : b.type === "gallery"
-            ? { ...b, data: { mediaIds: [], link: null } }
+            ? { ...b, data: { mediaIds: [], photosProtected: false, link: null } }
             : b,
       ),
     };
@@ -344,6 +344,7 @@ describe("SiteRenderer: odkaz na externí fotogalerii", () => {
       description: "Fotky z obřadu a hostiny",
       imageUrl: "https://fotky.example/og.jpg",
       fetchedAt: "2026-10-02T08:00:00.000Z",
+      imageMediaId: null,
       status: "ok",
     },
   };
@@ -373,7 +374,14 @@ describe("SiteRenderer: odkaz na externí fotogalerii", () => {
       withLink({
         ...publicLink,
         label: null,
-        card: { title: null, description: null, imageUrl: null, fetchedAt: null, status: "failed" },
+        card: {
+          title: null,
+          description: null,
+          imageUrl: null,
+          fetchedAt: null,
+          imageMediaId: null,
+          status: "failed",
+        },
       }),
     );
     expect(screen.getByRole("link", { name: /Zobrazit všechny fotografie/ })).toBeInTheDocument();
@@ -424,7 +432,9 @@ describe("SiteRenderer: odkaz na externí fotogalerii", () => {
       ...eukalyptusFixture,
       media: [],
       blocks: eukalyptusFixture.blocks.map((b) =>
-        b.type === "gallery" ? { ...b, data: { mediaIds: [], link: publicLink } } : b,
+        b.type === "gallery"
+          ? { ...b, data: { mediaIds: [], photosProtected: false, link: publicLink } }
+          : b,
       ),
     };
     const { container } = renderSite(content);
@@ -448,6 +458,7 @@ describe("SiteRenderer: odkaz na externí fotogalerii", () => {
           description: "Jen pro hosty",
           imageUrl: null,
           fetchedAt: null,
+          imageMediaId: null,
           status: "ok" as const,
         },
       },

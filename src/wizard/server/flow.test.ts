@@ -395,7 +395,7 @@ describe("publish", () => {
     expect(call.args).toMatchObject({ p_wedding_id: WEDDING, p_actor_admin_id: ADMIN });
     expect(publicContentSchema.safeParse(call.args.p_public_content).success).toBe(true);
     expect((call.args.p_public_content as { slug: string }).slug).toBe("klara-a-matej");
-    expect(call.args.p_sensitive).toEqual({ venues: {}, gifts: null, gallery: null });
+    expect(call.args.p_sensitive).toEqual({ venues: {}, gifts: null, gallery: null, photos: [] });
 
     const event = db.calls.find((c) => c.fn === "analytics_record")!;
     expect(event.args).toEqual({

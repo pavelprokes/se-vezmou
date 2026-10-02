@@ -37,15 +37,22 @@ export const blockTypes = [
 ] as const;
 export type BlockType = (typeof blockTypes)[number];
 
-const mediaSchema = z.object({
+export const publicMediaSchema = z.object({
   id: z.string(),
+  /** Adresa největší varianty (`/media/{id}/{šířka}`) nebo jediného souboru starších snímků a fixtur. */
   src: z.string().min(1),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
   /** Popisek (povinný, pokud obrázek není dekorativní; WCAG 1.1.1). */
   alt: i18nTextSchema.nullable(),
   decorative: z.boolean().default(false),
+  /**
+   * Šířky dostupných variant (px; každá ve WebP i AVIF, M7c). Se šířkami se vykreslí `<picture>` se `srcset`
+   * (AVIF před WebP); bez nich (starší snímek, fixtura) jediný obrázek na `src`.
+   */
+  widths: z.array(z.number().int().positive()).max(8).default([]),
 });
+const mediaSchema = publicMediaSchema;
 
 const venueSchema = z
   .object({
@@ -146,21 +153,27 @@ export const giftsData = z.object({ intro: i18nTextSchema.nullable().default(nul
 /**
  * Karta odkazu na externí galerii: údaje z Open Graph cílové stránky, které načetl SERVER při uložení
  * nebo změně odkazu (ne při zobrazení hostovi). Titulek a popis jsou nedůvěryhodný text (vždy se
- * vypisují jako text). `imageUrl` se na webu NEVYKRESLUJE (žádný hotlink, host nevolá cizí web):
- * drží se jen pro pozdější zkopírování do vlastního úložiště fotek (OQ-47).
+ * vypisují jako text). `imageUrl` se na webu NEVYKRESLUJE (žádný hotlink, host nevolá cizí web);
+ * vykresluje se až jeho kopie ve vlastním úložišti (`imageMediaId`, M7c).
  */
 export const galleryCardSchema = z.object({
   title: z.string().max(200).nullable().default(null),
   description: z.string().max(400).nullable().default(null),
   imageUrl: httpsUrl.nullable().default(null),
   fetchedAt: isoDateTime.nullable().default(null),
+  /**
+   * Náhledový obrázek cílové stránky ZKOPÍROVANÝ do vlastního úložiště (M7c): server ho stáhl při načtení karty,
+   * překódoval a uložil jako dekorativní médium. Web vykresluje jen tento obrázek ze své adresy `/media/…`,
+   * nikdy `imageUrl` (host nevolá cizí web). `null`, když úložiště není nastavené nebo se obrázek nepodařilo uložit.
+   */
+  imageMediaId: z.guid().nullable().default(null),
   /** `ok`: něco se načetlo; `failed`: pokus selhal (karta spadne na doménu a text odkazu). */
   status: z.enum(["ok", "failed"]).default("ok"),
 });
 export type GalleryCard = z.infer<typeof galleryCardSchema>;
 
 /**
- * Odkaz na externí fotogalerii (např. u fotografa). Nahrávání fotek se nepodporuje (OQ-47), odkaz
+ * Odkaz na externí fotogalerii (např. u fotografa). Vlastní fotografie páru jsou v `galleryData.mediaIds` (M7c), odkaz
  * je jediná cesta k velké galerii. Veřejný odkaz je přímo ve snímku; chráněný odkaz (`protected`)
  * v něm není (`url = null`, ani `card`): je v `SensitiveContent.gallery` a vykreslí se až po PINu hostů.
  */
@@ -182,7 +195,10 @@ export const galleryLinkSchema = z
 export type GalleryLink = z.infer<typeof galleryLinkSchema>;
 
 export const galleryData = z.object({
+  /** Fotografie galerie v pořadí. U fotografií chráněných PINem je pole prázdné (jsou v `SensitiveContent.photos`). */
   mediaIds: z.array(z.string()),
+  /** Fotografie jsou jen pro hosty s PINem (FR-PRIV-2): ve veřejném snímku ani v doručení nejsou. */
+  photosProtected: z.boolean().default(false),
   link: galleryLinkSchema.nullable().default(null),
 });
 export const rsvpData = z.object({ intro: i18nTextSchema.nullable().default(null) });
@@ -267,6 +283,11 @@ export const sensitiveContentSchema = z.object({
     .object({ url: httpsUrl, card: galleryCardSchema.nullable().default(null) })
     .nullable()
     .default(null),
+  /**
+   * Fotografie chráněné PINem hostů (`GalleryData.photosProtected`) a obrázek karty chráněného odkazu v pořadí
+   * galerie; vykreslí se jen s příznakem `sensitiveUnlocked` a doručí je jen host s relací po PINu.
+   */
+  photos: z.array(publicMediaSchema).default([]),
   gifts: z
     .object({
       /** Číslo účtu v tuzemském tvaru pro zobrazení, např. `19-2000145399/0800`. */

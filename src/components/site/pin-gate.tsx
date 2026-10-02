@@ -32,22 +32,24 @@ export interface PinGateLabels {
 export interface PinGateProps {
   labels: PinGateLabels;
   locale: string;
+  /** Které odemčené místo má po úspěchu dostat zaměření (`gifts`, `venue:<id>`); páruje se s `UnlockedRegion`. */
+  unlockKey: string;
   /** Úroveň nadpisu formuláře (uvnitř karty místa je to 4). */
   headingLevel?: 3 | 4;
 }
 
 const FLAG = "sv-unlocked";
 
-function remember(value: boolean) {
+function remember(key: string | null) {
   try {
-    if (value) window.sessionStorage.setItem(FLAG, "1");
+    if (key) window.sessionStorage.setItem(FLAG, key);
     else window.sessionStorage.removeItem(FLAG);
   } catch {
     // úložiště nemusí být k dispozici (soukromé okno); zaměření se pak jen nepřesune
   }
 }
 
-export function PinGate({ labels, locale, headingLevel = 3 }: PinGateProps) {
+export function PinGate({ labels, locale, unlockKey, headingLevel = 3 }: PinGateProps) {
   const id = useId();
   const [state, action, pending] = useActionState<PinState, FormData>(unlockAction, null);
   const input = useRef<HTMLInputElement>(null);
@@ -55,7 +57,7 @@ export function PinGate({ labels, locale, headingLevel = 3 }: PinGateProps) {
 
   useEffect(() => {
     if (state?.error) {
-      remember(false);
+      remember(null);
       input.current?.focus();
     }
   }, [state]);
@@ -71,7 +73,7 @@ export function PinGate({ labels, locale, headingLevel = 3 }: PinGateProps) {
       className="site-pin"
       aria-labelledby={`${id}-title`}
       action={action}
-      onSubmit={() => remember(true)}
+      onSubmit={() => remember(unlockKey)}
       noValidate
     >
       <Heading id={`${id}-title`} className="site-h3">
@@ -125,19 +127,29 @@ export function PinGate({ labels, locale, headingLevel = 3 }: PinGateProps) {
  * Odemčený obsah za PINem. Hned po zadání PINu (formulář zmizel) přijímá zaměření, aby klávesnice
  * a čtečka nezůstaly na odstraněném tlačítku; při běžném načtení stránky zaměření nekrade.
  */
-export function UnlockedRegion({ label, children }: { label: string; children: ReactNode }) {
+export function UnlockedRegion({
+  label,
+  unlockKey,
+  children,
+}: {
+  label: string;
+  unlockKey: string;
+  children: ReactNode;
+}) {
   const region = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     try {
-      if (window.sessionStorage.getItem(FLAG) === "1") {
+      // PIN se zadává v jednom z formulářů, ale odemknou se všechna místa: zaměření dostane jen to,
+      // jehož formulář se odeslal.
+      if (window.sessionStorage.getItem(FLAG) === unlockKey) {
         window.sessionStorage.removeItem(FLAG);
         region.current?.focus();
       }
     } catch {
       // bez úložiště se zaměření nepřesouvá
     }
-  }, []);
+  }, [unlockKey]);
 
   return (
     <div ref={region} role="group" aria-label={label} tabIndex={-1} className="site-unlocked">

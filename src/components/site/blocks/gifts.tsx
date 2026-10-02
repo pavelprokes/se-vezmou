@@ -58,7 +58,7 @@ export function Gifts({
   return (
     <Section block={block} ctx={ctx} tone={tone}>
       {gifts ? (
-        <UnlockedRegion label={t("site.pin.unlocked")}>
+        <UnlockedRegion label={t("site.pin.unlocked")} unlockKey="gifts">
           <div className="site-gifts">
             <div>
               <Paragraphs value={block.data.intro} ctx={ctx} className="site-lead" />
@@ -87,7 +87,7 @@ export function Gifts({
       ) : (
         <div className="site-gate">
           <Icon icon={Lock} size={28} />
-          <PinGate labels={pinGateLabels(t, "gifts")} locale={ctx.locale} />
+          <PinGate labels={pinGateLabels(t, "gifts")} locale={ctx.locale} unlockKey="gifts" />
         </div>
       )}
     </Section>

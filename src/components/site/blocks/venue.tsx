@@ -46,6 +46,7 @@ export function Venue({
                   <PinGate
                     labels={pinGateLabels(t, "venue")}
                     locale={ctx.locale}
+                    unlockKey={`venue:${venue.id}`}
                     headingLevel={4}
                   />
                 </div>
@@ -53,7 +54,7 @@ export function Venue({
                 <div className="site-address">
                   <Icon icon={MapPin} label={t("site.venue.address")} />
                   {venue.isPrivate ? (
-                    <UnlockedRegion label={t("site.pin.unlocked")}>
+                    <UnlockedRegion label={t("site.pin.unlocked")} unlockKey={`venue:${venue.id}`}>
                       <address>{address}</address>
                     </UnlockedRegion>
                   ) : (

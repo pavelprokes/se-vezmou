@@ -150,7 +150,7 @@ test.describe("placeholdery ostatních hostitelů", () => {
     }
   });
 
-  test("web páru Klára a Matěj je zástupný a neindexovatelný", async ({ page }) => {
+  test("web páru Klára a Matěj (fixtura) je neindexovatelný", async ({ page }) => {
     const response = await page.goto(pageUrl(HOSTS.tenant, "/"));
     expect(response?.status()).toBe(200);
     expect(response?.headers()["x-robots-tag"]).toBe("noindex, nofollow");
@@ -158,15 +158,14 @@ test.describe("placeholdery ostatních hostitelů", () => {
       "content",
       "noindex, nofollow",
     );
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Svatební web páru");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Klára & Matěj");
   });
 
   test("web páru v angličtině", async ({ page }) => {
     await page.goto(pageUrl(HOSTS.tenant, "/en"));
     await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-      "The couple’s wedding website",
-    );
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Klára & Matěj");
+    await expect(page.getByRole("link", { name: "RSVP" }).first()).toBeVisible();
   });
 
   test("404 neexistujícího webu páru je stejná stránka bez slugu", async ({ page }) => {

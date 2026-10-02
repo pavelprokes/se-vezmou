@@ -5,10 +5,12 @@ import csCatalog from "./messages/cs/catalog.json";
 import csCommon from "./messages/cs/common.json";
 import csMarketing from "./messages/cs/marketing.json";
 import csPlaceholder from "./messages/cs/placeholder.json";
+import csSite from "./messages/cs/site.json";
 import enCatalog from "./messages/en/catalog.json";
 import enCommon from "./messages/en/common.json";
 import enMarketing from "./messages/en/marketing.json";
 import enPlaceholder from "./messages/en/placeholder.json";
+import enSite from "./messages/en/site.json";
 
 /** Zdrojem pravdy o klíčích je česká verze; angličtina musí mít stejné klíče (kontrola při sestavení). */
 const cs = {
@@ -16,6 +18,7 @@ const cs = {
   common: csCommon,
   marketing: csMarketing,
   placeholder: csPlaceholder,
+  site: csSite,
 } as const;
 
 const en: Record<keyof typeof cs, Record<string, MessageValue>> = {
@@ -23,6 +26,7 @@ const en: Record<keyof typeof cs, Record<string, MessageValue>> = {
   common: enCommon,
   marketing: enMarketing,
   placeholder: enPlaceholder,
+  site: enSite,
 };
 
 type Namespaces = typeof cs;

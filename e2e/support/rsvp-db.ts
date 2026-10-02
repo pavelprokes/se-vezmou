@@ -125,7 +125,7 @@ export async function lockWedding(): Promise<() => Promise<void>> {
 }
 
 async function ensureWedding(db: Client): Promise<void> {
-  const exists = await db.query("select 1 from public.weddings where id = $1", [WEDDING_ID]);
+  const exists = await db.query("select 1 from se_vezmou.weddings where id = $1", [WEDDING_ID]);
   if (exists.rowCount) return;
 
   const versionId = "5e2e0000-0000-4000-8000-0000000000a1";
@@ -133,25 +133,28 @@ async function ensureWedding(db: Client): Promise<void> {
   await db.query("begin");
   await db.query("set constraints all deferred");
   await db.query(
-    "insert into public.weddings (id, partner_a_name, partner_b_name, starts_on) values ($1, 'Klára', 'Matěj', current_date + 200)",
+    "insert into se_vezmou.weddings (id, partner_a_name, partner_b_name, starts_on) values ($1, 'Klára', 'Matěj', current_date + 200)",
     [WEDDING_ID],
   );
   await db.query(
-    "insert into public.slug_registry (slug, state, wedding_id, reserved_until) values ($1, 'reserved', $2, now() + interval '30 days')",
+    "insert into se_vezmou.slug_registry (slug, state, wedding_id, reserved_until) values ($1, 'reserved', $2, now() + interval '30 days')",
     [TENANT_SLUG, WEDDING_ID],
   );
-  await db.query("update public.weddings set slug = $1 where id = $2", [TENANT_SLUG, WEDDING_ID]);
-  await db.query("insert into public.orders (wedding_id) values ($1)", [WEDDING_ID]);
+  await db.query("update se_vezmou.weddings set slug = $1 where id = $2", [
+    TENANT_SLUG,
+    WEDDING_ID,
+  ]);
+  await db.query("insert into se_vezmou.orders (wedding_id) values ($1)", [WEDDING_ID]);
   await db.query(
-    "insert into public.wedding_admins (id, wedding_id, email) values ($1, $2, 'rsvp-spravce@example.test')",
+    "insert into se_vezmou.wedding_admins (id, wedding_id, email) values ($1, $2, 'rsvp-spravce@example.test')",
     [adminId, WEDDING_ID],
   );
   await db.query(
-    "insert into public.wedding_auth (wedding_id, backup_email) values ($1, 'rsvp-zaloha@example.test')",
+    "insert into se_vezmou.wedding_auth (wedding_id, backup_email) values ($1, 'rsvp-zaloha@example.test')",
     [WEDDING_ID],
   );
   await db.query(
-    "insert into public.events (id, wedding_id, kind, title, starts_at, rsvp_enabled, position) values ($1, $4, 'ceremony', $5, now() + interval '200 days', true, 1), ($2, $4, 'reception', $6, now() + interval '200 days 3 hours', true, 2), ($3, $4, 'other', $7, now() + interval '201 days', false, 3)",
+    "insert into se_vezmou.events (id, wedding_id, kind, title, starts_at, rsvp_enabled, position) values ($1, $4, 'ceremony', $5, now() + interval '200 days', true, 1), ($2, $4, 'reception', $6, now() + interval '200 days 3 hours', true, 2), ($3, $4, 'other', $7, now() + interval '201 days', false, 3)",
     [
       EVENT_IDS.obrad,
       EVENT_IDS.hostina,
@@ -163,11 +166,11 @@ async function ensureWedding(db: Client): Promise<void> {
     ],
   );
   await db.query(
-    "insert into public.site_versions (id, wedding_id, version_no, kind, public_content, created_by) values ($1, $2, 1, 'publish', '{\"version\": 1}', $3)",
+    "insert into se_vezmou.site_versions (id, wedding_id, version_no, kind, public_content, created_by) values ($1, $2, 1, 'publish', '{\"version\": 1}', $3)",
     [versionId, WEDDING_ID, adminId],
   );
   await db.query(
-    "insert into public.site_version_sensitive (version_id, wedding_id, sensitive_content) values ($1, $2, $3)",
+    "insert into se_vezmou.site_version_sensitive (version_id, wedding_id, sensitive_content) values ($1, $2, $3)",
     [
       versionId,
       WEDDING_ID,
@@ -185,7 +188,7 @@ async function ensureWedding(db: Client): Promise<void> {
     ],
   );
   await db.query(
-    "update public.weddings set published_version_id = $1, status = 'published' where id = $2",
+    "update se_vezmou.weddings set published_version_id = $1, status = 'published' where id = $2",
     [versionId, WEDDING_ID],
   );
   await db.query("commit");
@@ -219,20 +222,20 @@ export async function prepareWedding(ip: string, setup: RsvpSetup = {}): Promise
   await withDb(async (db) => {
     await ensureWedding(db);
     await db.query("begin");
-    await db.query("delete from public.rsvp_responses where wedding_id = $1", [WEDDING_ID]);
-    await db.query("delete from public.households where wedding_id = $1", [WEDDING_ID]);
-    await db.query("delete from public.rsvp_questions where wedding_id = $1", [WEDDING_ID]);
-    await db.query("delete from public.rsvp_tickets where wedding_id = $1", [WEDDING_ID]);
-    await db.query("delete from public.sessions where wedding_id = $1 and kind = 'guest_pin'", [
+    await db.query("delete from se_vezmou.rsvp_responses where wedding_id = $1", [WEDDING_ID]);
+    await db.query("delete from se_vezmou.households where wedding_id = $1", [WEDDING_ID]);
+    await db.query("delete from se_vezmou.rsvp_questions where wedding_id = $1", [WEDDING_ID]);
+    await db.query("delete from se_vezmou.rsvp_tickets where wedding_id = $1", [WEDDING_ID]);
+    await db.query("delete from se_vezmou.sessions where wedding_id = $1 and kind = 'guest_pin'", [
       WEDDING_ID,
     ]);
-    await db.query("delete from public.email_log where wedding_id = $1", [WEDDING_ID]);
+    await db.query("delete from se_vezmou.email_log where wedding_id = $1", [WEDDING_ID]);
     const keys = limitKeys(ip);
-    await db.query("delete from public.rate_limits where bucket_key = any($1)", [keys.rate]);
-    await db.query("delete from public.lockouts where bucket_key = any($1)", [keys.lockouts]);
+    await db.query("delete from se_vezmou.rate_limits where bucket_key = any($1)", [keys.rate]);
+    await db.query("delete from se_vezmou.lockouts where bucket_key = any($1)", [keys.lockouts]);
 
     await db.query(
-      `insert into public.rsvp_settings (wedding_id, opens_at, closes_at, allow_unlisted, email_confirmation, enabled_questions)
+      `insert into se_vezmou.rsvp_settings (wedding_id, opens_at, closes_at, allow_unlisted, email_confirmation, enabled_questions)
        values ($1, $2, $3, $4, $5, $6)
        on conflict (wedding_id) do update set opens_at = excluded.opens_at, closes_at = excluded.closes_at,
          allow_unlisted = excluded.allow_unlisted, email_confirmation = excluded.email_confirmation,
@@ -249,7 +252,7 @@ export async function prepareWedding(ip: string, setup: RsvpSetup = {}): Promise
     let position = 0;
     for (const question of setup.custom ?? []) {
       await db.query(
-        `insert into public.rsvp_questions (wedding_id, key, type, label, options, required, event_id, position)
+        `insert into se_vezmou.rsvp_questions (wedding_id, key, type, label, options, required, event_id, position)
          values ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [
           WEDDING_ID,
@@ -263,11 +266,11 @@ export async function prepareWedding(ip: string, setup: RsvpSetup = {}): Promise
         ],
       );
     }
-    await db.query("update public.wedding_auth set guest_pin_hash = $2 where wedding_id = $1", [
+    await db.query("update se_vezmou.wedding_auth set guest_pin_hash = $2 where wedding_id = $1", [
       WEDDING_ID,
       pinHash,
     ]);
-    await db.query("update public.weddings set guest_pin_enabled = $2 where id = $1", [
+    await db.query("update se_vezmou.weddings set guest_pin_enabled = $2 where id = $1", [
       WEDDING_ID,
       pinHash !== null,
     ]);
@@ -279,21 +282,21 @@ export async function prepareWedding(ip: string, setup: RsvpSetup = {}): Promise
     async addHousehold(label, guests) {
       return withDb(async (db) => {
         const household = await db.query<{ id: string }>(
-          "insert into public.households (wedding_id, label) values ($1, $2) returning id",
+          "insert into se_vezmou.households (wedding_id, label) values ($1, $2) returning id",
           [WEDDING_ID, label],
         );
         const householdId = household.rows[0].id;
         const guestIds: string[] = [];
         for (const guest of guests) {
           const row = await db.query<{ id: string }>(
-            "insert into public.guests (wedding_id, household_id, display_name, is_child, age) values ($1, $2, $3, $4, $5) returning id",
+            "insert into se_vezmou.guests (wedding_id, household_id, display_name, is_child, age) values ($1, $2, $3, $4, $5) returning id",
             [WEDDING_ID, householdId, guest.name, guest.child ?? false, guest.age ?? null],
           );
           const guestId = row.rows[0].id;
           guestIds.push(guestId);
           for (const event of guest.events ?? ["obrad", "hostina"]) {
             await db.query(
-              "insert into public.invitations (wedding_id, guest_id, event_id) values ($1, $2, $3)",
+              "insert into se_vezmou.invitations (wedding_id, guest_id, event_id) values ($1, $2, $3)",
               [WEDDING_ID, guestId, EVENT_IDS[event]],
             );
           }
@@ -304,7 +307,7 @@ export async function prepareWedding(ip: string, setup: RsvpSetup = {}): Promise
     async closeNow() {
       await withDb((db) =>
         db.query(
-          "update public.rsvp_settings set closes_at = now() - interval '1 minute' where wedding_id = $1",
+          "update se_vezmou.rsvp_settings set closes_at = now() - interval '1 minute' where wedding_id = $1",
           [WEDDING_ID],
         ),
       );
@@ -312,16 +315,16 @@ export async function prepareWedding(ip: string, setup: RsvpSetup = {}): Promise
     async state() {
       return withDb(async (db) => {
         const responses = await db.query(
-          "select id, household_id, entered_by, contact_email::text as contact_email, answers, last_edited_at, submitted_at from public.rsvp_responses where wedding_id = $1 order by submitted_at, id",
+          "select id, household_id, entered_by, contact_email::text as contact_email, answers, last_edited_at, submitted_at from se_vezmou.rsvp_responses where wedding_id = $1 order by submitted_at, id",
           [WEDDING_ID],
         );
         const people = await db.query(
           `select p.response_id, p.guest_id, p.person_name, p.is_plus_one, p.is_child, p.age,
                   coalesce((select jsonb_object_agg(a.event_id::text, a.attending)
-                              from public.rsvp_attendance a where a.person_id = p.id), '{}'::jsonb) as attendance,
+                              from se_vezmou.rsvp_attendance a where a.person_id = p.id), '{}'::jsonb) as attendance,
                   h.diet, h.allergies
-             from public.rsvp_people p
-             left join public.rsvp_health h on h.person_id = p.id
+             from se_vezmou.rsvp_people p
+             left join se_vezmou.rsvp_health h on h.person_id = p.id
             where p.wedding_id = $1 order by p.created_at, p.id`,
           [WEDDING_ID],
         );
@@ -343,7 +346,7 @@ export async function guestSessions() {
       absolute_expires_at: Date;
       last_seen_at: Date;
     }>(
-      "select id, kind, subject_id, revoked_at, encode(token_hash, 'hex') as token_hash, idle_expires_at, absolute_expires_at, last_seen_at from public.sessions where wedding_id = $1 and kind = 'guest_pin' order by created_at",
+      "select id, kind, subject_id, revoked_at, encode(token_hash, 'hex') as token_hash, idle_expires_at, absolute_expires_at, last_seen_at from se_vezmou.sessions where wedding_id = $1 and kind = 'guest_pin' order by created_at",
       [WEDDING_ID],
     );
     return result.rows;
@@ -355,7 +358,7 @@ export async function endGuestLockout(ip: string): Promise<void> {
   const keys = limitKeys(ip);
   await withDb((db) =>
     db.query(
-      "update public.lockouts set locked_until = now() - interval '1 second' where bucket_key = any($1)",
+      "update se_vezmou.lockouts set locked_until = now() - interval '1 second' where bucket_key = any($1)",
       [keys.lockouts],
     ),
   );
@@ -365,7 +368,7 @@ export async function guestLockouts(ip: string) {
   const keys = limitKeys(ip);
   return withDb(async (db) => {
     const result = await db.query<{ bucket_key: string; level: number; failures: number }>(
-      "select bucket_key, level, failures from public.lockouts where bucket_key = any($1)",
+      "select bucket_key, level, failures from se_vezmou.lockouts where bucket_key = any($1)",
       [keys.lockouts],
     );
     return result.rows;
@@ -375,7 +378,7 @@ export async function guestLockouts(ip: string) {
 export async function analyticsRows() {
   return withDb(async (db) => {
     const result = await db.query<Record<string, unknown>>(
-      "select * from public.analytics_event where event = 'rsvp_completed' order by id",
+      "select * from se_vezmou.analytics_event where event = 'rsvp_completed' order by id",
     );
     return result.rows;
   });
@@ -384,7 +387,7 @@ export async function analyticsRows() {
 export async function emailLogRows() {
   return withDb(async (db) => {
     const result = await db.query<Record<string, unknown>>(
-      "select * from public.email_log where wedding_id = $1 order by created_at",
+      "select * from se_vezmou.email_log where wedding_id = $1 order by created_at",
       [WEDDING_ID],
     );
     return result.rows;

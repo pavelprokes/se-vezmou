@@ -473,7 +473,7 @@ test.describe("relace", () => {
 
     await withDb((db) =>
       db.query(
-        "update public.sessions set idle_expires_at = now() - interval '1 second' where wedding_id = $1",
+        "update se_vezmou.sessions set idle_expires_at = now() - interval '1 second' where wedding_id = $1",
         [wedding.weddingId],
       ),
     );
@@ -483,7 +483,7 @@ test.describe("relace", () => {
     await login(page, wedding.adminEmail);
     await withDb((db) =>
       db.query(
-        "update public.sessions set absolute_expires_at = now() - interval '1 second', idle_expires_at = now() + interval '1 day' where wedding_id = $1 and revoked_at is null",
+        "update se_vezmou.sessions set absolute_expires_at = now() - interval '1 second', idle_expires_at = now() + interval '1 day' where wedding_id = $1 and revoked_at is null",
         [wedding.weddingId],
       ),
     );
@@ -502,7 +502,7 @@ test.describe("relace", () => {
 
     await withDb((db) =>
       db.query(
-        "update public.sessions set last_seen_at = now() - interval '10 minutes', idle_expires_at = now() + interval '1 day' where wedding_id = $1",
+        "update se_vezmou.sessions set last_seen_at = now() - interval '10 minutes', idle_expires_at = now() + interval '1 day' where wedding_id = $1",
         [wedding.weddingId],
       ),
     );
@@ -515,7 +515,7 @@ test.describe("relace", () => {
     const wedding = await seedWedding();
     await login(page, wedding.adminEmail);
     await withDb((db) =>
-      db.query("update public.wedding_admins set removed_at = now() where id = $1", [
+      db.query("update se_vezmou.wedding_admins set removed_at = now() where id = $1", [
         wedding.adminId,
       ]),
     );

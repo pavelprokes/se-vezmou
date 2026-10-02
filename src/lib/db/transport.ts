@@ -1,32 +1,32 @@
 import "server-only";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Pool } from "pg";
-import { env, requireEnv } from "@/env";
-import { createTenantClient } from "./client";
-import { buildTenantClaims, type MintTenantJwtInput } from "./jwt";
+import { buildTenantClaims, type TenantIdentity } from "./claims";
+import { getPool } from "./pool";
 
 /**
- * Doprava volání funkcí databáze (RPC). Aplikace volá databázi jen ze serveru a jen přes
- * funkce `security definer` (docs/adr/0001, docs/data-model.md kap. 5.5).
+ * Doprava volání funkcí databáze (RPC). Aplikace volá databázi jen ze serveru a jen přes funkce
+ * `security definer` ve schématu `se_vezmou` (docs/adr/0011, docs/data-model.md kap. 5.5).
  *
- * - `supabase` (výchozí, produkce): supabase-js s klíčem service role, volání jde přes PostgREST.
- * - `pg` (jen automatické testy, `DB_TRANSPORT=pg`): přímé spojení s PostgreSQL bez PostgREST,
- *   aby šel e2e test spustit proti obyčejnému Postgresu v CI. Každé volání běží v transakci jako
- *   role `service_role`, takže platí stejná oprávnění jako v produkci. V produkci je odmítnuta.
+ * Jediná cesta je přímé spojení `pg` (src/lib/db/pool.ts) jako aplikační role `se_vezmou_app`, která sama
+ * nemá žádná práva. KAŽDÉ volání je jedna transakce:
+ *  - před ověřením, cron a operátor: `set local role service_role`;
+ *  - správce, host po PINu a návštěvník webu páru: `set local role authenticated` a claimy
+ *    `set_config('request.jwt.claims', <json>, true)` (jen pro tuto transakci).
+ * Zapomenuté `set role` skončí chybou oprávnění (role se_vezmou_app nemá k ničemu práva).
  */
+
+export type { TenantIdentity };
 
 export type RpcKind = "table" | "scalar";
 
 /**
- * Totožnost volajícího pro funkce, které čtou claimy JWT (`app.wedding_id()`, `app.wedding_role()`):
+ * Totožnost volajícího pro funkce, které čtou claimy transakce (`se_vezmou.wedding_id()`, `se_vezmou.wedding_role()`):
  * návštěvník, host po PINu nebo správce jedné svatby. Bez ní se funkce volá jako service role.
  */
-export type TenantIdentity = MintTenantJwtInput;
 
 export interface RpcTransport {
   /**
    * `table`: pole řádků; `scalar`: jedna hodnota (nebo `null` u `void`). S `as` se funkce volá
-   * s rolí `authenticated` a claimy té svatby (stejně jako v produkci přes krátkodobé JWT).
+   * s rolí `authenticated` a claimy té svatby.
    */
   call(
     fn: string,
@@ -58,48 +58,6 @@ export class DbError extends Error {
   }
 }
 
-/** Binární argumenty (bytea) se do PostgREST posílají jako hexadecimální řetězec `\x…`. */
-function toPostgrest(value: unknown): unknown {
-  return Buffer.isBuffer(value) ? `\\x${value.toString("hex")}` : value;
-}
-
-let serviceClient: SupabaseClient | undefined;
-
-/** Klient s klíčem service role. Jen na serveru, nikdy se nepředává prohlížeči. */
-export function getServiceClient(): SupabaseClient {
-  serviceClient ??= createClient(
-    requireEnv("NEXT_PUBLIC_SUPABASE_URL"),
-    requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
-    // Žádná relace Supabase Auth: vlastní relace jsou v naší databázi (docs/adr/0002).
-    { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } },
-  );
-  return serviceClient;
-}
-
-const supabaseTransport: RpcTransport = {
-  async call(fn, args, _kind, as) {
-    const payload = Object.fromEntries(
-      Object.entries(args)
-        .filter(([, value]) => value !== undefined)
-        .map(([key, value]) => [key, toPostgrest(value)]),
-    );
-    const client = as ? createTenantClient(as) : getServiceClient();
-    const { data, error } = await client.rpc(fn, payload);
-    if (error) throw new DbError(fn, error.code, error.message);
-    return data;
-  },
-};
-
-let pool: Pool | undefined;
-
-async function getPool(): Promise<Pool> {
-  if (!pool) {
-    const { Pool: PgPool } = await import("pg");
-    pool = new PgPool({ connectionString: requireEnv("DATABASE_URL"), max: 5 });
-  }
-  return pool;
-}
-
 const IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
 
 const pgTransport: RpcTransport = {
@@ -112,20 +70,19 @@ const pgTransport: RpcTransport = {
     const placeholders = entries.map(([key], index) => `${key} => $${index + 1}`).join(", ");
     const sql =
       kind === "table"
-        ? `select * from public.${fn}(${placeholders})`
-        : `select public.${fn}(${placeholders}) as v`;
+        ? `select * from se_vezmou.${fn}(${placeholders})`
+        : `select se_vezmou.${fn}(${placeholders}) as v`;
+    // Totožnost se ověří dřív, než se vezme spojení: chybný vstup se do databáze nedostane.
+    const claims = as ? JSON.stringify(buildTenantClaims(as)) : undefined;
 
     const client = await (await getPool()).connect();
+    let broken = false;
     try {
-      await client.query("begin");
-      if (as) {
-        // Jako PostgREST: claimy JWT v nastavení transakce a role `authenticated`.
-        await client.query("select set_config('request.jwt.claims', $1, true)", [
-          JSON.stringify(buildTenantClaims(as)),
-        ]);
-        await client.query("set local role authenticated");
-      } else {
-        await client.query("set local role service_role");
+      // Role se mění uvnitř transakce (`set local`), takže přežije jen do commitu a spojení vrácené
+      // poolerem nemůže nést cizí totožnost. Dva příkazy v jednom jednoduchém dotazu šetří cestu sítí.
+      await client.query(`begin; set local role ${as ? "authenticated" : "service_role"}`);
+      if (claims) {
+        await client.query("select set_config('request.jwt.claims', $1, true)", [claims]);
       }
       const result = await client.query(
         sql,
@@ -134,7 +91,9 @@ const pgTransport: RpcTransport = {
       await client.query("commit");
       return kind === "table" ? result.rows : (result.rows[0]?.v ?? null);
     } catch (error) {
-      await client.query("rollback").catch(() => undefined);
+      await client.query("rollback").catch(() => {
+        broken = true;
+      });
       const code = (error as { code?: string }).code;
       const message = (error as { message?: string }).message ?? "";
       throw new DbError(
@@ -143,18 +102,13 @@ const pgTransport: RpcTransport = {
         REASON_PATTERN.test(message) ? message : code ? "chyba SQL" : "chyba spojení",
       );
     } finally {
-      client.release();
+      // Spojení, na kterém selhal i rollback, se zahodí, ať se nevrátí do poolu v nejasném stavu.
+      client.release(broken);
     }
   },
 };
 
+/** Doprava databáze. Bez `DATABASE_URL` selže volání (ne sestavení) jasnou zprávou, viz pool.ts. */
 export function getTransport(): RpcTransport {
-  if (env.DB_TRANSPORT === "pg") {
-    // Pojistka: testovací doprava nesmí běžet v ostré produkci.
-    if (process.env.VERCEL_ENV === "production") {
-      throw new Error("DB_TRANSPORT=pg není v produkci povolen");
-    }
-    return pgTransport;
-  }
-  return supabaseTransport;
+  return pgTransport;
 }

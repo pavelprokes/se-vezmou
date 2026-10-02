@@ -59,23 +59,23 @@ export async function seedWedding(
     await db.query("begin");
     await db.query("set constraints all deferred");
     await db.query(
-      "insert into public.weddings (id, partner_a_name, partner_b_name, starts_on) values ($1, $2, $3, current_date + 200)",
+      "insert into se_vezmou.weddings (id, partner_a_name, partner_b_name, starts_on) values ($1, $2, $3, current_date + 200)",
       [seeded.weddingId, a, b],
     );
     await db.query(
-      "insert into public.slug_registry (slug, state, wedding_id, reserved_until) values ($1, 'reserved', $2, now() + interval '30 days')",
+      "insert into se_vezmou.slug_registry (slug, state, wedding_id, reserved_until) values ($1, 'reserved', $2, now() + interval '30 days')",
       [seeded.slug, seeded.weddingId],
     );
-    await db.query("update public.weddings set slug = $1 where id = $2", [
+    await db.query("update se_vezmou.weddings set slug = $1 where id = $2", [
       seeded.slug,
       seeded.weddingId,
     ]);
     await db.query(
-      "insert into public.wedding_admins (id, wedding_id, email) values ($1, $2, $3)",
+      "insert into se_vezmou.wedding_admins (id, wedding_id, email) values ($1, $2, $3)",
       [seeded.adminId, seeded.weddingId, seeded.adminEmail],
     );
     await db.query(
-      "insert into public.wedding_auth (wedding_id, backup_email, admin_pin_hash) values ($1, $2, $3)",
+      "insert into se_vezmou.wedding_auth (wedding_id, backup_email, admin_pin_hash) values ($1, $2, $3)",
       [seeded.weddingId, seeded.backupEmail, pinHash],
     );
     await db.query("commit");
@@ -95,7 +95,7 @@ export async function sessionsOf(weddingId: string) {
       absolute_expires_at: Date;
       last_seen_at: Date;
     }>(
-      "select id, encode(token_hash, 'hex') as token_hash, kind, subject_id, revoked_at, idle_expires_at, absolute_expires_at, last_seen_at from public.sessions where wedding_id = $1 order by created_at",
+      "select id, encode(token_hash, 'hex') as token_hash, kind, subject_id, revoked_at, idle_expires_at, absolute_expires_at, last_seen_at from se_vezmou.sessions where wedding_id = $1 order by created_at",
       [weddingId],
     );
     return result.rows;
@@ -110,7 +110,7 @@ export async function challengeOf(email: string) {
       expires_at: Date;
       created_at: Date;
     }>(
-      "select attempts, consumed_at, expires_at, created_at from public.login_challenges where email_hash = $1 order by created_at desc",
+      "select attempts, consumed_at, expires_at, created_at from se_vezmou.login_challenges where email_hash = $1 order by created_at desc",
       [emailHash(E2E_SECRETS.AUTH_SECRET, email)],
     );
     return result.rows;
@@ -120,7 +120,7 @@ export async function challengeOf(email: string) {
 export async function expireChallenges(email: string): Promise<void> {
   await withDb((db) =>
     db.query(
-      "update public.login_challenges set expires_at = now() - interval '1 second' where email_hash = $1",
+      "update se_vezmou.login_challenges set expires_at = now() - interval '1 second' where email_hash = $1",
       [emailHash(E2E_SECRETS.AUTH_SECRET, email)],
     ),
   );
@@ -134,7 +134,7 @@ export async function lockoutsFor(slug: string) {
       failures: number;
       remaining: number | null;
     }>(
-      "select level, failures, extract(epoch from (locked_until - now()))::int as remaining from public.lockouts where bucket_key = $1",
+      "select level, failures, extract(epoch from (locked_until - now()))::int as remaining from se_vezmou.lockouts where bucket_key = $1",
       [key],
     );
     return result.rows[0] ?? null;
@@ -146,7 +146,7 @@ export async function endLockout(slug: string): Promise<void> {
   const key = rateKey(E2E_SECRETS.RATE_LIMIT_SECRET, "pin-admin-wedding", slug);
   await withDb((db) =>
     db.query(
-      "update public.lockouts set locked_until = now() - interval '1 second' where bucket_key = $1",
+      "update se_vezmou.lockouts set locked_until = now() - interval '1 second' where bucket_key = $1",
       [key],
     ),
   );
@@ -157,7 +157,9 @@ export async function exhaustRateLimit(scope: string, value: string, hits: numbe
   const key = rateKey(E2E_SECRETS.RATE_LIMIT_SECRET, scope, value);
   await withDb(async (db) => {
     for (let i = 0; i < hits; i++) {
-      await db.query("select * from public.rate_limit_hit($1, 1000000, interval '1 hour')", [key]);
+      await db.query("select * from se_vezmou.rate_limit_hit($1, 1000000, interval '1 hour')", [
+        key,
+      ]);
     }
   });
 }
@@ -165,7 +167,7 @@ export async function exhaustRateLimit(scope: string, value: string, hits: numbe
 export async function emailLogFor(email: string) {
   return withDb(async (db) => {
     const result = await db.query<Record<string, unknown>>(
-      "select * from public.email_log where recipient_hash = $1 order by created_at",
+      "select * from se_vezmou.email_log where recipient_hash = $1 order by created_at",
       [hmac(E2E_SECRETS.AUTH_SECRET, "email-log", email)],
     );
     return result.rows;

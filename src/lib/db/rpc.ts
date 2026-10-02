@@ -36,7 +36,7 @@ export function serviceRpc<T>(
 }
 
 /**
- * Funkce, které čtou claimy JWT (visitor, guest_pin, admin): volají se s totožností jedné svatby
+ * Funkce, které čtou claimy transakce (visitor, guest_pin, admin): volají se s totožností jedné svatby
  * (role `authenticated`), ne jako service role. Typované obaly jsou v `src/lib/rsvp`.
  */
 export function tenantRpc<T>(

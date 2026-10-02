@@ -49,7 +49,8 @@ export function GuestList({
 }: {
   data: GuestListData;
   locale: Locale;
-  hrefs: { add: string; household: (id: string) => string; response: (id: string) => string };
+  /** Předpony adres (s jazykem), za které se přidá identifikátor domácnosti. */
+  hrefs: { add: string; householdPrefix: string; responsePrefix: string };
   actions: { bulkInvite: BulkInviteAction };
   saved: "saved" | "deleted" | null;
 }) {
@@ -209,7 +210,7 @@ export function GuestList({
                 </ul>
                 <div className="mt-4 flex flex-wrap gap-3">
                   <a
-                    href={hrefs.household(household.id)}
+                    href={`${hrefs.householdPrefix}${household.id}`}
                     className={buttonVariants({ variant: "secondary" })}
                     aria-label={t("admin.guests.list.editLabel", { name: heading })}
                   >
@@ -217,7 +218,7 @@ export function GuestList({
                     {t("admin.guests.list.edit")}
                   </a>
                   <a
-                    href={hrefs.response(household.id)}
+                    href={`${hrefs.responsePrefix}${household.id}`}
                     className={buttonVariants({ variant: "text" })}
                     aria-label={t("admin.guests.list.enterLabel", { name: heading })}
                   >

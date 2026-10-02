@@ -218,7 +218,7 @@ begin
   perform tap.ok(jsonb_array_length(j -> 'events') = 2 and j::text not like '%Svoboda%', 'settings_get: události jen vlastní svatby');
 
   perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
-  perform se_vezmou.admin_rsvp_settings_save(jsonb_build_object(
+  j := se_vezmou.admin_rsvp_settings_save(jsonb_build_object(
     'opens_at', '2027-01-01T00:00:00+01:00', 'closes_at', '2027-06-01T00:00:00+02:00',
     'allow_unlisted', true, 'email_confirmation', true,
     'enabled_questions', '{"plus_one": false, "children": true, "diet": true, "lodging": true, "neznamy": true}'::jsonb,
@@ -231,6 +231,10 @@ begin
   perform tap.reset();
   perform tap.ok((select allow_unlisted and email_confirmation and closes_at is not null from se_vezmou.rsvp_settings where wedding_id = tap.wa()),
     'settings_save: hodnoty se uloží');
+  perform tap.ok(jsonb_array_length(j) = 2 and exists (
+      select 1 from jsonb_array_elements(j) x
+        join se_vezmou.rsvp_questions q on q.id = (x ->> 'id')::uuid and q.key = x ->> 'key' and q.wedding_id = tap.wa()
+       where x ->> 'key' = 'menu'), 'settings_save: vrací identifikátory otázek podle klíče');
   perform tap.ok((select enabled_questions from se_vezmou.rsvp_settings where wedding_id = tap.wa())
     = '{"children": true, "diet": true, "lodging": true, "plus_one": false}'::jsonb, 'settings_save: neznámý příznak se zahodí');
   perform tap.eq((select count(*) from se_vezmou.rsvp_questions where wedding_id = tap.wa()), 2, 'settings_save: otázky se nahradí (původní zmizela)');

@@ -164,6 +164,8 @@ export async function previewImport(
   return { status: "ok", rows, totals: totals(rows, false) };
 }
 
+const savedQuestionsSchema = z.array(z.object({ key: z.string(), id: z.string() }));
+
 const importRowSchema = z.object({
   line: z.number().int().min(1).max(100000),
   household: z.string().max(1000),
@@ -231,7 +233,9 @@ export async function loadRsvpSettings(session: AdminIdentity): Promise<RsvpSett
 }
 
 export type SaveSettingsResult =
-  { status: "saved" } | { status: "invalid"; reason?: "period" | "question" | "event" } | Limited;
+  | { status: "saved"; questions: { key: string; id: string }[] }
+  | { status: "invalid"; reason?: "period" | "question" | "event" }
+  | Limited;
 
 export async function saveRsvpSettings(
   session: AdminIdentity,
@@ -246,8 +250,10 @@ export async function saveRsvpSettings(
   const retry = await limited("guests-write", session.weddingId, RATE_RULES.guestsWriteWedding);
   if (retry !== null) return { status: "limited", retryAfter: retry };
   try {
-    await adminRsvpSettingsSave(session, settingsToPayload(parsed.data));
-    return { status: "saved" };
+    const ids = savedQuestionsSchema.parse(
+      await adminRsvpSettingsSave(session, settingsToPayload(parsed.data)),
+    );
+    return { status: "saved", questions: ids };
   } catch (error) {
     const reason = reasonOf(error);
     if (reason === "invalid_period") return { status: "invalid", reason: "period" };

@@ -1,7 +1,7 @@
 "use client";
 
 import { CircleAlert, CircleCheck, Copy, FileSpreadsheet } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { CommitImportAction } from "@/admin/guests/action-types";
 import {
   IMPORT_LIMITS,
@@ -76,7 +76,10 @@ export function ImportFlow({
 
   const sum = totals(rows, includeDuplicates);
 
-  const focusHeading = () => queueMicrotask(() => heading.current?.focus());
+  // po přechodu na další krok se zaměření přesune na jeho nadpis (čtečka ohlásí, kde je)
+  useEffect(() => {
+    if (step !== "choose") heading.current?.focus();
+  }, [step]);
 
   const loadPreview = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -105,7 +108,6 @@ export function ImportFlow({
     if (response.status === "ok") {
       setRows(response.rows);
       setStep("preview");
-      focusHeading();
     } else if (response.status === "failed") {
       setError(t(FAIL_KEY[response.reason] ?? "admin.guests.import.fail.unreadable"));
     } else if (response.status === "limited") {
@@ -135,7 +137,6 @@ export function ImportFlow({
       setResult({ households: outcome.households, guests: outcome.guests });
       setStep("done");
       setState("idle");
-      focusHeading();
       return;
     }
     setState("idle");
@@ -350,15 +351,14 @@ export function ImportFlow({
         <li>{t("admin.guests.import.choose.col3")}</li>
         <li>{t("admin.guests.import.choose.col4")}</li>
       </ul>
-      <p className="mt-3">
-        <a href={`${templateUrl}?format=xlsx`} className="text-pine underline underline-offset-4">
+      <div className="mt-3 flex flex-wrap gap-x-2">
+        <a href={`${templateUrl}?format=xlsx`} className={buttonVariants({ variant: "text" })}>
           {t("admin.guests.import.choose.templateXlsx")}
         </a>
-        {" · "}
-        <a href={`${templateUrl}?format=csv`} className="text-pine underline underline-offset-4">
+        <a href={`${templateUrl}?format=csv`} className={buttonVariants({ variant: "text" })}>
           {t("admin.guests.import.choose.templateCsv")}
         </a>
-      </p>
+      </div>
       <form onSubmit={loadPreview} className="mt-5 flex flex-col gap-4" noValidate>
         <div className="flex flex-col gap-1.5">
           <label htmlFor={`${id}-file`} className="text-ink font-medium">

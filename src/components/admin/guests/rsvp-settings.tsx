@@ -241,6 +241,13 @@ export function RsvpSettings({
     setState("busy");
     const result = await save(input);
     if (result.status === "saved") {
+      // nové otázky dostaly při uložení identifikátor; další uložení je upraví, nezaloží znovu
+      setQuestions((current) =>
+        current.map((q) => ({
+          ...q,
+          id: q.id ?? result.questions.find((saved) => saved.key === q.questionKey)?.id ?? null,
+        })),
+      );
       setState("done");
       return;
     }

@@ -81,8 +81,9 @@ function fakeDb(
         case "admin_household_save":
           return HOUSEHOLD;
         case "admin_household_delete":
-        case "admin_rsvp_settings_save":
           return null;
+        case "admin_rsvp_settings_save":
+          return [{ key: "menu", id: "66666666-6666-4666-8666-666666666666" }];
         case "admin_invitations_bulk":
           return 3;
         case "admin_guests_import":
@@ -431,7 +432,10 @@ describe("nastavení RSVP", () => {
           ],
         }),
       ),
-    ).toEqual({ status: "saved" });
+    ).toEqual({
+      status: "saved",
+      questions: [{ key: "menu", id: "66666666-6666-4666-8666-666666666666" }],
+    });
     const payload = calls.find((c) => c.fn === "admin_rsvp_settings_save")!.args.p_payload as {
       closes_at: string;
       allow_unlisted: boolean;

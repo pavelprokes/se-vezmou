@@ -49,8 +49,8 @@ export default async function GuestsPage({ searchParams }: PageProps<"/h/app/hos
             saved={flag}
             hrefs={{
               add: appHref(householdPath("nova"), locale),
-              household: (id) => appHref(householdPath(id), locale),
-              response: (id) => appHref(responsePath(id), locale),
+              householdPrefix: appHref(householdPath(""), locale),
+              responsePrefix: appHref(responsePath(""), locale),
             }}
             actions={{ bulkInvite: bulkInviteAction }}
           />

@@ -319,7 +319,7 @@ $$;
 -- payload: {opens_at, closes_at, allow_unlisted, email_confirmation,
 --           enabled_questions: {plus_one, children, diet, lodging, transport, song},
 --           questions: [{id?, key?, type, label, options?, required, event_id?, enabled}]}
-create function se_vezmou.admin_rsvp_settings_save(p_payload jsonb) returns void
+create function se_vezmou.admin_rsvp_settings_save(p_payload jsonb) returns jsonb
   language plpgsql volatile security definer set search_path = ''
   as $$
 declare
@@ -342,6 +342,7 @@ declare
   v_event uuid;
   v_kept uuid[] := '{}';
   v_option jsonb;
+  v_ids jsonb := '[]'::jsonb;
 begin
   if not se_vezmou.is_wedding_admin() then
     raise exception 'forbidden' using errcode = '42501';
@@ -445,6 +446,8 @@ begin
       returning id into v_id;
     end if;
     v_kept := v_kept || v_id;
+    select q.key into v_key from se_vezmou.rsvp_questions q where q.id = v_id;
+    v_ids := v_ids || jsonb_build_object('key', v_key, 'id', v_id);
   end loop;
 
   delete from se_vezmou.rsvp_questions q
@@ -453,6 +456,8 @@ begin
   perform se_vezmou.write_audit('admin', se_vezmou.actor_id(), v_wedding_id, 'rsvp.settings_save',
     'wedding', v_wedding_id, null,
     jsonb_build_object('questions', v_position, 'allow_unlisted', (p_payload ->> 'allow_unlisted')::boolean));
+  -- identifikátory otázek (nové dostanou id při uložení), aby další uložení otázky upravilo, ne založilo znovu
+  return v_ids;
 end
 $$;
 

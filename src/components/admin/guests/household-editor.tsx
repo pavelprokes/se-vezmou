@@ -4,7 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { DeleteHouseholdAction, SaveHouseholdAction } from "@/admin/guests/action-types";
 import { GUEST_LIMITS } from "@/admin/guests/types";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/choice";
 import { Field, Fieldset } from "@/components/ui/field";
@@ -271,12 +271,12 @@ export function HouseholdEditor({
                 ) : null}
                 <Fieldset legend={t("admin.guests.editor.invited")}>
                   {events.length === 0 ? (
-                    <p className="text-muted">
-                      {t("admin.guests.editor.noEvents")}{" "}
-                      <a href={eventsHref} className="text-pine underline underline-offset-4">
+                    <div className="flex flex-wrap items-center gap-x-2">
+                      <p className="text-muted">{t("admin.guests.editor.noEvents")}</p>
+                      <a href={eventsHref} className={buttonVariants({ variant: "text" })}>
                         {t("admin.guests.editor.noEventsLink")}
                       </a>
-                    </p>
+                    </div>
                   ) : (
                     events.map((eventOption) => (
                       <Checkbox

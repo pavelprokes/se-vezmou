@@ -32,10 +32,12 @@ Migrace:
 11. `admin_site` (M7a): správa webu páru. `venues.map_url`, `weddings.site_rev`, `weddings.draft_saved_at`; funkce správce `admin_site_load`, `admin_site_save` (optimistické zamykání), `admin_site_publish`, `admin_site_unpublish`, `admin_site_checkpoint`, `admin_site_version_get`, `admin_quick_notice_set`, `admin_my_weddings`; po zveřejnění průvodce pracovní kopii nepřepíše (`wizard_load`, `wizard_save`); `get_public_site` (koncept) nese odkaz na mapu.
 12. `operators_auth` (M9, ADR 0012): sloupce `operators.totp_secret_enc`, `totp_confirmed_at`, `totp_last_step`, `last_login_at`, účel výzvy `operator_login`, typ e-mailu `operator_notice`, funkce `auth_operator_*` (vyhledání operátora, relace AAL1 a AAL2, zápis a ověření druhého faktoru TOTP s ochranou proti přehrání, záložní kódy).
 13. `operators_ops` (M9): provozní administrace `op_list_weddings`, `op_get_wedding`, `op_add_note`, `op_change_slug`, `op_extend_retention`, `op_restore_wedding`, `op_send_login_link`, `op_overview`, `op_analytics_summary`, `op_list_retention`, `op_list_audit`, správa operátorů (`op_list_operators`, `op_create_operator`, `op_set_operator_disabled`, `op_reset_operator_mfa`) a přepracovaná `op_set_wedding_status` (matice rolí, zveřejnění jen s verzí, obnovení jen přes `op_restore_wedding`).
+14. `admin_guests` (M7b): správa hostů a nastavení RSVP správcem: `admin_household_save`, `admin_household_delete`, `admin_guests_import`, `admin_invitations_bulk`, `admin_rsvp_settings_get`, `admin_rsvp_settings_save` (interní `household_write`).
+15. `admin_access` (M7b): přístup ke správě: `admin_access_load`, `admin_admin_add`, `admin_admin_remove`, `admin_backup_email_set`, `admin_guest_pin_enabled_set`, `grant_operator_access`, `revoke_operator_access`, `admin_wedding_delete` a pro oznámení o nahlédnutí provozovatele `guest_data_notice_recipients` (service role).
 
 Matice rolí operátorů (každá `op_*` si roli ověřuje sama, `assert_operator`): čtení, poznámky, poslání přihlašovacího odkazu, nahlédnutí do údajů hostů se souhlasem páru a zablokování webu smí `owner` i `support`; ostatní změny stavu, změnu adresy, prodloužení lhůt, obnovu, audit a správu operátorů jen `owner`. Žádná z nich nevrací jména ani údaje hostů; k nim vede jediná cesta `op_view_guest_data` s aktivním `data_access_grants`, důvodem a auditem.
 
-Co je záměrně odložené (označeno `TODO` v `functions_core.sql`; PINy a pauzy dodala M4, koncept a publikaci M5, správu webu M7a, operátory M9): správa správců a souhlas s nahlédnutím (M7b), e-maily a export při retenci (M10).
+Co je záměrně odložené (označeno `TODO` v `functions_core.sql`; PINy a pauzy dodala M4, koncept a publikaci M5, správu webu M7a, operátory M9, hosty a přístup M7b): e-maily a export při retenci (M10).
 
 ## Spuštění testů
 
@@ -73,6 +75,7 @@ V CI běží test jako samostatný job `db` (`.github/workflows/ci.yml`), spolu 
 - `87_admin_site` (M7a): oprávnění funkcí správy (návštěvník, host, náhled, `anon`, service role), izolace mezi svatbami, optimistické zamykání, zveřejnění, stažení a znovuzveřejnění, průvodce po zveřejnění, oříznutí historie, rychlá změna, výběr svatby, audit bez obsahu webu.
 - `96_operator_auth` (M9): relace operátora (AAL1 a AAL2, nečinnost, absolutní doba, odvolání, zakázaný operátor), zápis druhého faktoru (rozepsaný klíč se nepřepíše, potvrzení, záložní kódy), ochrana proti přehrání kódu TOTP, jednorázové záložní kódy, účel výzvy `operator_login`, práva funkcí.
 - `97_operator_ops` (M9): `op_*` (seznam s filtry a hledáním bez údajů hostů, detail, poznámky, změna adresy a registr slugů, prodloužení lhůt, smazání a obnova, přihlašovací odkaz, přehled, analytika, retence, audit), matice rolí podpora versus majitel, správa operátorů, audit v téže transakci (atomicita), izolace od údajů hostů.
+- `88_admin_guests` (M7b): oprávnění funkcí (návštěvník, host, náhled, `anon`, service role), izolace mezi svatbami, domácnosti a hosté, import a limity, hromadné pozvání, nastavení RSVP a otázky, správci a strop, záložní e-mail, PIN hostů, souhlas s nahlédnutím a jeho vazba na `op_view_guest_data`, smazání webu, audit bez osobních údajů.
 - `90_lifecycle`: relace a výzvy, limit správců, retenční data a mazání, výmaz hosta, normalizace jmen.
 
 ## Nasazení krok za krokem (pro majitele)
@@ -98,7 +101,7 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
 7. **Ověření po nasazení** (SQL editor, role `postgres`):
 
    ```sql
-   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 22)
+   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 24)
    select count(*) from se_vezmou.schema_migrations;
    -- RLS je zapnuté na každé tabulce schématu (0 řádků = v pořádku)
    select relname from pg_class

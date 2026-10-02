@@ -59,11 +59,9 @@ export function adminRsvpSettingsGet(session: AdminIdentity): Promise<unknown> {
   return tenantRpc<unknown>(identity(session), "admin_rsvp_settings_get");
 }
 
-export async function adminRsvpSettingsSave(
-  session: AdminIdentity,
-  payload: unknown,
-): Promise<void> {
-  await tenantRpc(identity(session), "admin_rsvp_settings_save", { p_payload: payload });
+/** Vrací identifikátory otázek po uložení: `[{ key, id }]`. */
+export function adminRsvpSettingsSave(session: AdminIdentity, payload: unknown): Promise<unknown> {
+  return tenantRpc<unknown>(identity(session), "admin_rsvp_settings_save", { p_payload: payload });
 }
 
 // --- přístup --------------------------------------------------------------------------------

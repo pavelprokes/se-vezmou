@@ -1,0 +1,78 @@
+import { describe, expect, it } from "vitest";
+import { cookieSpec, expiredCookieSpec, isLocalHost } from "./cookie";
+
+describe("cookieSpec (ostrý provoz)", () => {
+  const spec = cookieSpec("admin", "app.se-vezmou.cz", 3600);
+
+  it("má prefix __Host-", () => {
+    expect(spec.name).toBe("__Host-sv_admin");
+  });
+
+  it("splňuje požadavky prefixu __Host-: Secure, Path=/ a žádný Domain", () => {
+    expect(spec.options.secure).toBe(true);
+    expect(spec.options.path).toBe("/");
+    expect(spec.options).not.toHaveProperty("domain");
+  });
+
+  it("je HttpOnly a SameSite=Lax", () => {
+    expect(spec.options.httpOnly).toBe(true);
+    expect(spec.options.sameSite).toBe("lax");
+  });
+
+  it("nese maxAge jen když je zadán", () => {
+    expect(spec.options.maxAge).toBe(3600);
+    expect(cookieSpec("admin", "app.se-vezmou.cz").options).not.toHaveProperty("maxAge");
+  });
+
+  it("rozpracované přihlášení má vlastní název, ale stejné atributy", () => {
+    const pending = cookieSpec("pending", "app.se-vezmou.cz", 600);
+    expect(pending.name).toBe("__Host-sv_login");
+    expect(pending.options).toMatchObject({ httpOnly: true, secure: true, sameSite: "lax" });
+  });
+
+  it("neznámý nebo chybějící hostitel se bere jako ostrý (přísná varianta)", () => {
+    expect(cookieSpec("admin", null).name).toBe("__Host-sv_admin");
+    expect(cookieSpec("admin", undefined).options.secure).toBe(true);
+    expect(cookieSpec("admin", "localhost.se-vezmou.cz").name).toBe("__Host-sv_admin");
+    expect(cookieSpec("admin", "evil-localhost").name).toBe("__Host-sv_admin");
+  });
+});
+
+describe("cookieSpec (localhost)", () => {
+  it.each(["localhost", "localhost:3000", "app.localhost:3100", "APP.LOCALHOST"])(
+    "%s: bez prefixu a bez Secure, ale pořád HttpOnly, Lax a bez Domain",
+    (host) => {
+      const spec = cookieSpec("admin", host);
+      expect(spec.name).toBe("sv_admin");
+      expect(spec.options.secure).toBe(false);
+      expect(spec.options.httpOnly).toBe(true);
+      expect(spec.options.sameSite).toBe("lax");
+      expect(spec.options).not.toHaveProperty("domain");
+    },
+  );
+});
+
+describe("isLocalHost", () => {
+  it("pozná localhost a poddomény, nic jiného", () => {
+    expect(isLocalHost("localhost")).toBe(true);
+    expect(isLocalHost("app.localhost:3000")).toBe(true);
+    expect(isLocalHost("app.se-vezmou.cz")).toBe(false);
+    expect(isLocalHost("localhost.evil.cz")).toBe(false);
+    expect(isLocalHost("")).toBe(false);
+    expect(isLocalHost(null)).toBe(false);
+  });
+});
+
+describe("expiredCookieSpec", () => {
+  it("má stejný název a atributy jako původní cookie a maxAge 0", () => {
+    const expired = expiredCookieSpec("admin", "app.se-vezmou.cz");
+    expect(expired).toMatchObject({ name: "__Host-sv_admin", value: "" });
+    expect(expired.options).toMatchObject({
+      maxAge: 0,
+      secure: true,
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+    });
+  });
+});

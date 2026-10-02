@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "./button";
 import { Card } from "./card";
 import { Checkbox, Radio } from "./choice";
 import { Field, Fieldset } from "./field";
+import { FormAlert } from "./form-alert";
 import { Icon } from "./icon";
 import { LanguageSwitcher } from "./language-switcher";
 import { SkipLink } from "./skip-link";
@@ -194,5 +195,22 @@ describe("LanguageSwitcher", () => {
     render(<LanguageSwitcher {...props} />);
     expect(screen.getByRole("link", { name: "Čeština" })).toHaveAttribute("aria-current", "true");
     expect(screen.getByRole("link", { name: "English" })).not.toHaveAttribute("aria-current");
+  });
+});
+
+describe("FormAlert", () => {
+  it("živá oblast role=alert je v DOM i bez zprávy, aby čtečky novou chybu oznámily", () => {
+    const { rerender } = render(<FormAlert />);
+    const region = screen.getByRole("alert");
+    expect(region).toBeEmptyDOMElement();
+
+    rerender(<FormAlert>Kód nesouhlasí.</FormAlert>);
+    expect(screen.getByRole("alert")).toBe(region);
+    expect(region).toHaveTextContent("Kód nesouhlasí.");
+  });
+
+  it("chyba není jen barva: nese ikonu skrytou před čtečkami a text", () => {
+    render(<FormAlert>Chyba</FormAlert>);
+    expect(screen.getByRole("alert").querySelector("svg")).toHaveAttribute("aria-hidden", "true");
   });
 });

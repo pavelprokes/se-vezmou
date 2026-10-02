@@ -25,6 +25,10 @@ const schema = z.object({
   /** Pepper pro PINy: PIN se před argon2id zpracuje HMAC, docs/security-privacy.md kap. 1.2. */
   PIN_PEPPER: secret.optional(),
 
+  // Provozní administrace (M9, docs/adr/0012)
+  /** Klíč pro šifrování tajných klíčů TOTP operátorů v databázi a pro HMAC záložních kódů (min. 32 znaků). */
+  OPERATOR_MFA_KEY: secret.optional(),
+
   // AWS SES. Bez těchto hodnot se e-maily jen vypíšou do konzole a neodesílají.
   AWS_REGION: z.string().min(1).optional(),
   AWS_ACCESS_KEY_ID: z.string().min(1).optional(),

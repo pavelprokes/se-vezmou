@@ -19,7 +19,9 @@
     "test:e2e:all": "bash scripts/e2e-db.sh run -- playwright test",
     "prepare": "husky",
     "db:migrate": "node scripts/db-migrate.mjs",
-    "db:migrate:test": "bash scripts/db-migrate-test.sh"
+    "db:migrate:test": "bash scripts/db-migrate-test.sh",
+    "ops:create-owner": "node scripts/ops-bootstrap.mjs create-owner",
+    "ops:reset-mfa": "node scripts/ops-bootstrap.mjs reset-mfa"
   },
   "dependencies": {
     "@aws-sdk/client-sesv2": "^3.1145.0",

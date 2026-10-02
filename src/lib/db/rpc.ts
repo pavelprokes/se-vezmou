@@ -205,7 +205,7 @@ export function authRevokeSessions(weddingId: string, subjectId?: string): Promi
 // --- výzvy (kód z e-mailu) ---------------------------------------------------------------
 
 export type ChallengePurpose =
-  "admin_login" | "admin_add_confirm" | "operator_recovery" | "wizard_create";
+  "admin_login" | "admin_add_confirm" | "operator_recovery" | "wizard_create" | "operator_login";
 
 export function authCreateChallenge(input: {
   emailHash: Bytes;
@@ -346,7 +346,12 @@ export async function authSessionContext(weddingId: string): Promise<SessionCont
 // --- záznam e-mailů (bez osobních údajů) -------------------------------------------------
 
 export type EmailLogType =
-  "login_code" | "rsvp_confirmation" | "admin_changed" | "backup_login_notice" | "expiry_notice";
+  | "login_code"
+  | "rsvp_confirmation"
+  | "admin_changed"
+  | "backup_login_notice"
+  | "expiry_notice"
+  | "operator_notice";
 
 export type EmailLogStatus = "queued" | "sent" | "delivered" | "bounced" | "complained" | "failed";
 

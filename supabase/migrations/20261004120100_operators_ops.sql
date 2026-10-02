@@ -168,7 +168,8 @@ begin
       'purge_at', w.purge_at, 'health_purge_at', w.health_purge_at, 'guest_purge_at', w.guest_purge_at,
       'created_at', w.created_at, 'last_activity_at', w.last_activity_at,
       'published_version_no', (select v.version_no from se_vezmou.site_versions v where v.id = w.published_version_id),
-      'has_preview', w.preview_token_hash is not null),
+      'has_preview', w.preview_token_hash is not null,
+      'restorable', w.status = 'deleted' and (w.purge_at is null or w.purge_at > pg_catalog.now())),
     'order', (select jsonb_build_object('plan_code', o.plan_code, 'status', o.status,
                                         'service_ends_at', o.service_ends_at)
                 from se_vezmou.orders o where o.wedding_id = w.id),
@@ -501,7 +502,7 @@ $$;
 create function se_vezmou.op_list_retention(p_operator_id uuid, p_within_days integer default 60)
   returns table (
     wedding_id uuid, slug text, status text, partner_a_name text, partner_b_name text,
-    kind text, due_at timestamptz
+    kind text, due_at timestamptz, overdue boolean
   )
   language plpgsql stable security definer set search_path = ''
   as $$
@@ -512,7 +513,8 @@ declare
 begin
   perform se_vezmou.assert_operator(p_operator_id, array['owner', 'support']);
   return query
-    select d.wedding_id, d.slug, d.status, d.partner_a_name, d.partner_b_name, d.kind, d.due_at
+    select d.wedding_id, d.slug, d.status, d.partner_a_name, d.partner_b_name, d.kind, d.due_at,
+           d.due_at < pg_catalog.now()
       from (
         select w.id as wedding_id, w.slug, w.status, w.partner_a_name, w.partner_b_name, 'service'::text as kind,
                o.service_ends_at as due_at

@@ -62,6 +62,7 @@ jobs:
       - run: npm run db:migrate:test
 
   e2e:
+    name: e2e (${{ matrix.shard }}/4)
     # E2E a přístupnost (Playwright + axe) proti produkčnímu sestavení, ADR 0004. Testy přihlášení (M4)
     # běží proti skutečnému PostgreSQL 16 (service container) s aplikovanými migracemi; e-maily se v testech
     # zapisují do souborů místo odeslání. Aplikace mluví s Postgresem přímo přes pg jako role se_vezmou_app
@@ -69,6 +70,12 @@ jobs:
     # a migrace aplikované vlastníkem) a spustí příkaz.
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Čtyři paralelní části (shardy): každá má vlastní service container s databází a vlastní sestavení,
+    # takže se testy sdílející ukázkovou svatbu v jedné databázi mezi částmi nepřetahují.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     services:
       postgres:
         image: postgres:16
@@ -92,13 +99,24 @@ jobs:
           cache: npm
       - run: npm ci
       - run: command -v psql >/dev/null || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+      # Cache stažených prohlížečů a sestavení Next (zrychlí opakované běhy).
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - uses: actions/cache@v4
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'next.config.ts') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
       - run: npx playwright install --with-deps chromium
       # Skript připraví databázi, konfigurace Playwrightu sestaví aplikaci (`npm run build`), spustí `next start`
-      # a spustí oba projekty (e2e, a11y).
-      - run: bash scripts/e2e-db.sh run -- npx playwright test
+      # a spustí všechny projekty (e2e, a11y) jen pro tuto část testů.
+      - run: bash scripts/e2e-db.sh run -- npx playwright test --shard=${{ matrix.shard }}/4
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: playwright-test-results
+          name: playwright-test-results-${{ matrix.shard }}
           path: test-results/
           retention-days: 7

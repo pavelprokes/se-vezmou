@@ -14,6 +14,7 @@
   "unlisted.intro": "Novomanželé povolili odpovědět i hostům mimo seznam. Napište jména všech, kdo přijdou, a vyberte události.",
   "unlisted.noEdit": "Tuto odpověď už na webu nepůjde změnit. Pokud budete potřebovat změnu, napište prosím novomanželům.",
   "unlisted.you": "Vaše jméno",
+  "unlisted.personName": "Jméno osoby",
   "unlisted.person": "Osoba {n}",
   "unlisted.addPerson": "Přidat další osobu",
   "unlisted.removePerson": "Odebrat osobu {n}",

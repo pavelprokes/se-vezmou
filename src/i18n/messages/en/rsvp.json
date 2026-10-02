@@ -14,6 +14,7 @@
   "unlisted.intro": "The couple allows replies from guests who are not on the list. Type the names of everyone who is coming and choose the events.",
   "unlisted.noEdit": "This reply can no longer be changed on the website. If you need a change, please write to the couple.",
   "unlisted.you": "Your name",
+  "unlisted.personName": "Person’s name",
   "unlisted.person": "Person {n}",
   "unlisted.addPerson": "Add another person",
   "unlisted.removePerson": "Remove person {n}",

@@ -86,6 +86,7 @@ export function RsvpForm({ labels, locale, initial, allowUnlisted, closes }: Rsv
   const summaryRef = useRef<HTMLDivElement>(null);
   const doneRef = useRef<HTMLDivElement>(null);
   const [focusSummary, setFocusSummary] = useState(0);
+  const [nameAnswers, setNameAnswers] = useState(0);
 
   function apply(next: RsvpState) {
     setStage(next.stage);
@@ -98,6 +99,7 @@ export function RsvpForm({ labels, locale, initial, allowUnlisted, closes }: Rsv
       setValues(next.model.values);
     }
     if (next.errors && Object.keys(next.errors).length > 0) setFocusSummary((n) => n + 1);
+    if (next.stage === "name" && next.error) setNameAnswers((n) => n + 1);
   }
 
   function run(action: (formData: FormData) => Promise<RsvpState>, formData: FormData) {
@@ -160,6 +162,7 @@ export function RsvpForm({ labels, locale, initial, allowUnlisted, closes }: Rsv
           setName={setName}
           pending={pending}
           flow={flow}
+          focusKey={nameAnswers}
           allowUnlisted={allowUnlisted}
           onSubmit={(formData) => run(matchAction, formData)}
           onUnlisted={() => run(unlistedAction, new FormData())}
@@ -220,6 +223,7 @@ function NameStep({
   setName,
   pending,
   flow,
+  focusKey,
   allowUnlisted,
   onSubmit,
   onUnlisted,
@@ -229,6 +233,8 @@ function NameStep({
   setName: (value: string) => void;
   pending: boolean;
   flow: RsvpState["error"];
+  /** Roste s každou odpovědí serveru na jméno, aby se pole zaměřilo i při stejné chybě podruhé. */
+  focusKey: number;
   allowUnlisted: boolean;
   onSubmit: (formData: FormData) => void;
   onUnlisted: () => void;
@@ -238,8 +244,8 @@ function NameStep({
   const message = flow ? flowErrorText(flow, labels) : undefined;
 
   useEffect(() => {
-    if (flow) input.current?.focus();
-  }, [flow]);
+    if (focusKey > 0) input.current?.focus();
+  }, [focusKey]);
 
   return (
     <form
@@ -247,7 +253,8 @@ function NameStep({
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit(new FormData(event.currentTarget));
+        // Tlačítko není `disabled` (zaměření by zmizelo), dvojí odeslání hlídá tady.
+        if (!pending) onSubmit(new FormData(event.currentTarget));
       }}
     >
       <div className="site-field">
@@ -285,12 +292,7 @@ function NameStep({
       </div>
       <Honeypot label={labels.honeypot} />
       <div className="site-actions">
-        <button
-          type="submit"
-          className="site-btn"
-          disabled={pending}
-          aria-disabled={pending || undefined}
-        >
+        <button type="submit" className="site-btn" aria-disabled={pending || undefined}>
           {pending ? labels.name.searching : labels.name.submit}
         </button>
       </div>
@@ -355,10 +357,16 @@ function DoneDetails({ labels, done }: { labels: RsvpLabels; done: DoneSummary }
 
 // --- krok 2: formulář ----------------------------------------------------------------------
 
-function errorText(name: string, code: NonNullable<FieldErrors[string]>, labels: RsvpLabels) {
+function errorText(
+  name: string,
+  code: NonNullable<FieldErrors[string]>,
+  labels: RsvpLabels,
+  radio = false,
+) {
   switch (code) {
     case "required":
-      return /\.ev\./.test(name) ? labels.errors.attendance : labels.errors.required;
+      if (/\.ev\./.test(name)) return labels.errors.attendance;
+      return radio ? labels.errors.choice : labels.errors.required;
     case "name":
       return labels.errors.name;
     case "age":
@@ -465,7 +473,7 @@ function GuestForm({
     }
     if (unlisted) {
       const n = values.extras.slice(0, index + 1).filter((e) => e.kind === "adult").length;
-      return n === 1 ? labels.unlisted.you : fill(labels.unlisted.person, { n });
+      return fill(labels.unlisted.person, { n });
     }
     return labels.plus.heading;
   }
@@ -474,7 +482,14 @@ function GuestForm({
 
   /** Text souhrnu chyb: kdo nebo co + co je špatně. */
   function summaryItem(field: string, code: NonNullable<FieldErrors[string]>): string {
-    const message = errorText(field, code, labels);
+    const question = field.startsWith("a.")
+      ? model.questions.find((q) => q.key === field.slice(2))
+      : undefined;
+    const isRadio =
+      (question !== undefined && question.type !== "text") ||
+      field === answerField("lodging") ||
+      field === answerField("transport");
+    const message = errorText(field, code, labels, isRadio);
     let context = "";
     const guestMatch = /^g\.([^.]+)\.(?:ev\.(.+)|diet|allergies)$/.exec(field);
     const extraMatch = /^x\.(\d+)\.(?:ev\.(.+)|name|age|kind|diet|allergies)$/.exec(field);
@@ -519,6 +534,7 @@ function GuestForm({
       noValidate
       onSubmit={(event) => {
         event.preventDefault();
+        if (pending) return;
         const formData = new FormData(event.currentTarget);
         formData.set("mode", model.mode);
         onSubmit(formData);
@@ -676,7 +692,7 @@ function GuestForm({
                   : unlisted
                     ? index === 0
                       ? labels.unlisted.you
-                      : labels.name.label
+                      : labels.unlisted.personName
                     : labels.plus.name
               }
               hint={!isChild && !unlisted ? labels.plus.nameHint : undefined}
@@ -833,7 +849,9 @@ function GuestForm({
       ) : null}
       {visibleQuestions.map((question) => {
         const field = answerField(question.key);
-        const error = errors[field] ? errorText(field, errors[field], labels) : undefined;
+        const error = errors[field]
+          ? errorText(field, errors[field], labels, question.type !== "text")
+          : undefined;
         const legend = question.required
           ? `${question.label} (${labels.questions.required})`
           : question.label;
@@ -887,12 +905,7 @@ function GuestForm({
       <Honeypot label={labels.honeypot} />
 
       <div className="site-actions">
-        <button
-          type="submit"
-          className="site-btn"
-          disabled={pending}
-          aria-disabled={pending || undefined}
-        >
+        <button type="submit" className="site-btn" aria-disabled={pending || undefined}>
           {submitLabel}
         </button>
       </div>

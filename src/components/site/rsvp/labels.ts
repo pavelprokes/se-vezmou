@@ -21,6 +21,7 @@ export interface RsvpLabels {
     intro: string;
     noEdit: string;
     you: string;
+    personName: string;
     person: string;
     addPerson: string;
     removePerson: string;
@@ -112,6 +113,7 @@ export function rsvpLabels(t: Translator): RsvpLabels {
       intro: t("rsvp.unlisted.intro"),
       noEdit: t("rsvp.unlisted.noEdit"),
       you: t("rsvp.unlisted.you"),
+      personName: t("rsvp.unlisted.personName"),
       person: t("rsvp.unlisted.person", { n: "{n}" }),
       addPerson: t("rsvp.unlisted.addPerson"),
       removePerson: t("rsvp.unlisted.removePerson", { n: "{n}" }),

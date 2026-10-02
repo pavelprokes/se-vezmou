@@ -15,7 +15,7 @@ import { publicContentSchema, type PublicContent } from "./types";
  * - `getPreviewContent(slug, token)`: koncept podle neuhádnutelného odkazu (role `preview`).
  *   Každá neshoda je `null`.
  *
- * Citlivý obsah za PINem (`SensitiveContent`) se sem záměrně nedostává, přijde s M8-7.
+ * Citlivý obsah za PINem (`SensitiveContent`) se sem záměrně nedostává: načítá ho jen `loadGuestContext` (`./guest-context.ts`, M8) pro hosta s relací po PINu.
  */
 
 const SLUG_PATTERN = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/;

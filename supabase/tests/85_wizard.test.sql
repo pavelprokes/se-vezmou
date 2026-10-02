@@ -96,9 +96,9 @@ do $$
 begin
   set local role service_role;
   perform public.analytics_record('wizard_started', 'cs', null, null);
-  perform public.analytics_record('wizard_step_completed', 'en', 'chateau', 3);
+  perform public.analytics_record('wizard_step_completed', 'en', 'chateau', 3::smallint);
   perform public.analytics_record('site_published', 'cs', 'editorial', null);
-  perform tap.throws('select public.analytics_record(''page_view'', ''cs'', null, null)', '22023', 'událost mimo uzavřený seznam se odmítne');
+  perform tap.throws('select public.analytics_record(''page_view'', ''cs'', null, null)', '23514', 'událost mimo uzavřený seznam se odmítne');
   perform tap.throws('select public.analytics_record(''wizard_started'', ''de'', null, null)', '23514', 'neznámý jazyk události se odmítne');
   perform tap.reset();
   perform tap.eq((select count(*) from public.analytics_event where event = 'wizard_step_completed' and step = 3 and template = 'chateau'), 1,

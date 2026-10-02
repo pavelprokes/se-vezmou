@@ -4,7 +4,7 @@ import type { CheckSlugReason } from "./types";
 
 /**
  * Typovaný obal funkcí databáze pro průvodce (M5), čekací listinu a analytiku
- * (`supabase/migrations/20261002140000_wizard.sql`). Stejná pravidla jako `rpc.ts`: jedna funkce
+ * (`supabase/migrations/20261002150000_wizard.sql`). Stejná pravidla jako `rpc.ts`: jedna funkce
  * SQL = jedna metoda, jen server, jen service role (kromě `getPublicSite`, které jde s claimy svatby).
  */
 

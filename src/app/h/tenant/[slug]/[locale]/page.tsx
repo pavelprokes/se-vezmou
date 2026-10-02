@@ -7,6 +7,7 @@ import { isLocale, type Locale } from "@/i18n/config";
 import { localizedPath } from "@/i18n/pathnames";
 import { createTranslator } from "@/i18n/translator";
 import { getPublicContent } from "@/site/content";
+import { loadGuestContext } from "@/site/guest-context";
 import { languageAlternates, originFromHeaders } from "@/site/origin";
 
 type Props = PageProps<"/h/tenant/[slug]/[locale]">;
@@ -40,6 +41,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /**
  * Web páru ze zveřejněného snímku v databázi (`getPublicContent(slug)`). Čte aktuální čas
  * (odpočet) a živou fázi, proto se vykresluje za běhu.
+ *
+ * Nad snímkem se za běhu načítá živý stav hosta (`loadGuestContext`, M8): fáze RSVP spočítaná
+ * databází teď, stav formuláře RSVP z cookie lístku a citlivé bloky jen pro hosta s relací po PINu.
+ * Bez PINu se citlivý obsah nenačítá vůbec, takže se nedostane do HTML ani do RSC payloadu.
  */
 export default async function TenantSite({ params }: Props) {
   await connection();
@@ -50,12 +55,16 @@ export default async function TenantSite({ params }: Props) {
   const localeHrefs = Object.fromEntries(
     loaded.content.locales.map((l: Locale) => [l, localizedPath("home", l)]),
   );
+  const guest = await loadGuestContext(slug, loaded.locale);
   return (
     <SiteRenderer
-      content={loaded.content}
+      content={guest ? { ...loaded.content, phase: guest.phase } : loaded.content}
       locale={loaded.locale}
       localeHrefs={localeHrefs}
       now={new Date()}
+      rsvp={guest?.rsvp ?? null}
+      sensitiveUnlocked={guest?.sensitiveUnlocked ?? false}
+      sensitive={guest?.sensitive ?? null}
     />
   );
 }

@@ -55,6 +55,12 @@ export const RATE_RULES = {
   wizardSaveWedding: { limit: 600, windowSeconds: HOUR },
   /** Měřicí události průvodce podle IP (bez osobních údajů, zahazují se tiše). */
   wizardEventIp: { limit: 200, windowSeconds: HOUR },
+  /** RSVP, slepé porovnání jména podle svatby a IP (při překročení stejná odpověď jako neshoda). */
+  rsvpMatch: { limit: 15, windowSeconds: HOUR },
+  /** RSVP, odeslání podle svatby a IP (hosté na jedné Wi-Fi: limit IP je volnější než u přihlášení). */
+  rsvpSubmitIp: { limit: 10, windowSeconds: HOUR },
+  /** RSVP, odeslání za celou svatbu (součet všech IP). */
+  rsvpSubmitWedding: { limit: 200, windowSeconds: HOUR },
 } as const satisfies Record<string, RateRule>;
 
 /**
@@ -72,6 +78,22 @@ export function pauseSeconds(level: number, lockout = PIN_LOCKOUT): number {
   if (!Number.isInteger(level) || level < 1) return 0;
   return Math.min(lockout.maxSeconds, lockout.baseSeconds * 2 ** Math.min(level - 1, 30));
 }
+
+/**
+ * Relace hosta po PINu (docs/adr/0002, docs/security-privacy.md kap. 1.3): kratší než u správce,
+ * protože PIN je na tištěném oznámení a jde zadat znovu. Nečinnost 6 hodin, absolutně 2 dny
+ * (`[OTÁZKA]`, OQ-37). Odemyká jen citlivé bloky webu, nikdy správu.
+ */
+export const GUEST_SESSION = {
+  idleSeconds: 6 * HOUR,
+  absoluteSeconds: 2 * DAY,
+} as const;
+
+/**
+ * Lístek RSVP v cookie hosta: stejně dlouhý jako lístek v databázi (`rsvp_match`, 30 minut), pak se
+ * host znovu ověří jménem. Neprodlužuje se, takže cookie nikdy nedrží přístup k odpovědi déle.
+ */
+export const RSVP_TICKET_SECONDS = 30 * MINUTE;
 
 /** PIN: nejméně šest číslic (docs/security-privacy.md kap. 1.2). */
 export const PIN_LENGTH = { min: 6, max: 12 } as const;

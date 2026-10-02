@@ -193,7 +193,7 @@ Tabulka je pracovní kopie pro editor. Hosté ji nikdy nečtou, čtou zveřejně
 
 **`invitations`**: `wedding_id`, `guest_id`, `event_id`, pk `(guest_id, event_id)`. Hosté vidí jen otázky a události, na které mají řádek.
 
-Normalizaci jmen zajišťuje jedna implementace v SQL (nemění se mezi aplikací a databází). TypeScript `src/domain/names` slouží k náhledu a deduplikaci při importu; obě implementace ověřuje společný soubor zlatých vektorů (Vitest i pgTAP).
+Normalizaci jmen zajišťuje jedna implementace v SQL (nemění se mezi aplikací a databází). TypeScript `src/lib/rsvp/names.ts` (M8) slouží k náhledu a deduplikaci při importu; obě implementace ověřuje společný soubor zlatých vektorů (Vitest `names.test.ts` i SQL test `90_lifecycle`).
 
 ### 3.5 RSVP
 
@@ -497,7 +497,7 @@ Testy v `supabase/tests` (čisté SQL skripty se spouštěčem `npm run db:test`
 4. Tabulka, kde je `wedding_id`, ale RLS není zapnuté, test shodí (kontrola přes `pg_class`).
 5. `rsvp_match` nevrací seznam ani rozdíl mezi „žádná shoda“ a „více shod“ ve tvaru odpovědi; `rsvp_submit` odmítne uzavřené RSVP a událost, na kterou host není pozván.
 6. `audit_log` nejde změnit ani smazat.
-7. Zlaté vektory normalizace jmen shodné s TypeScriptem (soubor `supabase/tests/golden/name-vectors.tsv`, strana TypeScriptu přibude s `src/domain/names`).
+7. Zlaté vektory normalizace jmen shodné s TypeScriptem (soubor `supabase/tests/golden/name-vectors.tsv`, strana TypeScriptu je `src/lib/rsvp/names.ts`, test `src/lib/rsvp/names.test.ts`).
 
 Test je podmínkou brány B (izolace dat).
 
@@ -550,9 +550,57 @@ Zapsáno při implementaci přihlášení (migrace `20261002130000_auth_pins_loc
 - **`email_log`**: aplikace zapisuje jen přes funkce `email_log_insert` a `email_log_set_status` (service role má na tabulku sice přímá práva, kapitola 13, ale tenká vrstva `src/lib/db/rpc.ts` je nepoužívá). `recipient_hash` je HMAC adresy, `recipient_domain` doména; předmět ani tělo se nikdy neukládají.
 - **Funkce `auth_session_context`** vrací pro zástupný přehled jen adresu, stav a jména svatby po ověření relace na serveru.
 
-## 15. Odchylky a rozhodnutí implementace (M5, průvodce)
+## 15. Odchylky implementace (M8)
 
-Migrace `20261002140000_wizard.sql`. Všechny nové funkce jsou `security definer`, mají `set search_path = ''` a právo spuštění jen pro `service_role`.
+Zapsáno při implementaci RSVP hostů, PINu hostů a správcovské strany RSVP (migrace `20261002140000_rsvp.sql`, kód v `src/lib/rsvp`, `src/auth/guest-*`, `src/components/site`). Kde zde není uvedeno jinak, platí kapitoly 1 až 14.
+
+**Slepé porovnání jména (`rsvp_match`)**
+
+- Trigramová podobnost (`pg_trgm`) se k porovnání **nepoužívá**: u krátkých jmen pouští jiného člověka (Jana ~ Jan, podobnost 0,82). Po přesné shodě seřazených slov (`name_key`) se toleruje překlep **po slovech** (`app.names_close`): stejný počet slov, ve stejném pořadí nejvýš jedna úprava na slovo (dvě u slov od devíti znaků; úprava je vložení, smazání, záměna nebo prohození sousedních znaků, `app.osa_distance`), celkem nejvýš dvě; slovo kratší než čtyři znaky se musí shodovat přesně. Jednoznačnost se posuzuje podle domácností: dvě shody v různých domácnostech dávají stejnou odpověď jako neshoda. Vstup delší než 200 znaků je neshoda. Klíč `app_settings.rsvp_match_threshold` zůstává v nastavení jako nepoužitá rezerva.
+- Odpověď má vždy stejný tvar (jeden řádek, `ticket = null`) pro neshodu, více shod, zavřené RSVP i chybnou roli (kap. 12 bod 5). Aplikace navíc vrací stejný stav `not_found` při překročení limitu a při vyplněné skryté pasti.
+
+**Zápis odpovědi (`app.rsvp_apply`)**
+
+- `rsvp_submit`, `rsvp_submit_unlisted` a `admin_rsvp_enter` sdílejí jeden zápis `app.rsvp_apply(wedding, household, payload, entered_by)`. Pořadí kontrol u `rsvp_submit`: lístek, otevření RSVP, teprve potom obsah (chyby `invalid_ticket`, `rsvp_closed`, pak `invalid_payload`, `invalid_guest`, `event_not_invited`, `plus_one_not_allowed`, `children_not_allowed`, `too_many_plus_one`, `answer_required`).
+- `enabled_questions.plus_one` znamená **nejvýš jednoho** doprovodu (dospělá osoba bez `guest_id`, `is_plus_one = true`). `enabled_questions.children` povoluje děti **doplněné hostem** (osoba bez `guest_id`, `is_child`, věk 0 až 17 povinný); děti ze seznamu hostů se řídí seznamem a příznak nepotřebují. Osoby odpovědi si drží pořadí z payloadu (`created_at` z `clock_timestamp()`).
+- Vestavěné odpovědi v `answers`: `lodging` (`need`, `own`, `unsure`), `transport` (`need`, `own`, `offer`), `song` (text do 200 znaků); při vypnuté otázce se klíč zahodí. Vlastní otázky: `text` (do 1000 znaků), `bool` (boolean), `choice` (hodnota musí být `options[].value`; **tvar `options` je pole `{ "value": text, "label": i18n_text }`**). Povinná otázka bez odpovědi je chyba (`answer_required`), kromě ručního zápisu správcem. Otázka vázaná na událost se týká jen toho, kdo na ni v téže odpovědi přijde; jinak se odpověď zahodí a povinnost odpadne. Neznámé klíče v `answers` se nemažou (zpětná shoda s M3).
+- Databáze nevynucuje úplnost odpovědí (že host odpověděl na každou pozvanou událost); vynucuje ji formulář a `parseSubmission`. Chybějící řádek v `rsvp_attendance` znamená „neodpověděl“ a přehled správce ho tak počítá.
+- Zdravotní údaje: `diet` a `allergies` do 1000 znaků, jen při `enabled_questions.diet`, prázdné se neukládají.
+
+**Host mimo seznam (FR-RSVP-7)**
+
+- `rsvp_unlisted_form()` (události s `rsvp_enabled`, otázky, nastavení; jinak `null`) a `rsvp_submit_unlisted(payload)` jen při `allow_unlisted` a otevřeném RSVP, jinak `unlisted_not_allowed` nebo `rsvp_closed`. Odpověď má `household_id = null`, osoby bez `guest_id` a bez `is_plus_one`, nejvýš šest osob. **Každé odeslání je samostatná odpověď a nejde později upravit** (host nemá domácnost ani lístek); rozhraní to říká před odesláním i v potvrzení. Dospělých může být víc, děti jen při `children`.
+- `rsvp_info()` vrací host-friendly stav bez údajů o hostech: `phase`, `open`, `allow_unlisted` (jen za otevřeného RSVP), `email_confirmation`, `closes_at`. Stránka webu páru podle něj za běhu přepisuje fázi snapshotu (`loadGuestContext`), takže uzavření RSVP platí hned, ne až s novým zveřejněním.
+- `rsvp_get` (a `admin_rsvp_household`) vrací navíc `wedding.timezone` a `wedding.default_locale` (čas událostí a náhradní jazyk textů), `household_id` a `response.entered_by`.
+
+**Správcovská strana (UI přijde v M7)**
+
+- `admin_guest_list()` (domácnosti, hosté, pozvání, odpovědi po hostech, stav domácnosti, odpovědi hostů mimo seznam), `admin_rsvp_overview()` (domácnosti odpověděly a čekají; po událostech pozvaní, přijdou po hlavách včetně doprovodu a hostů mimo seznam, nepřijdou, `pending` = pozvaní bez odpovědi), `admin_rsvp_household(id)` (pohled pro předvyplnění, jediná funkce správcovské strany se zdravotními údaji) a `admin_rsvp_enter(household_id, payload)` (ruční zápis telefonické odpovědi). Každá vyžaduje `app.is_wedding_admin()` (jinak `forbidden`) a filtruje podle `app.wedding_id()`.
+- Ruční zápis nezávisí na otevření RSVP (pozdní telefonát po uzavření), nevynucuje povinné otázky, neukládá e-mail, nastaví `entered_by = 'admin'`, nahradí případnou odpověď hosta a zapíše do `audit_log` akci `rsvp.manual_entry` s prázdným `meta` (jen identifikátor domácnosti).
+- Typované API: `src/lib/rsvp/admin.ts` (`listGuests`, `getRsvpOverview`, `getHouseholdForEntry`, `enterResponseManually`, zod schémata v `types.ts`).
+
+**Analytika**
+
+- `analytics_record(event, locale, template, step)` (jen service role) zapisuje do `analytics_event`; tabulka nemá sloupec pro svatbu, osobu, IP ani odpověď (test `85_rsvp_m8`). `rsvp_completed` se zapisuje jen s jazykem, a to při první odpovědi domácnosti a při každé odpovědi hosta mimo seznam, ne při úpravě.
+
+**Relace a cookie hosta (ADR 0002, `docs/security-privacy.md` kap. 1.3)**
+
+- Relace hosta po PINu (`sessions.kind = 'guest_pin'`, `subject_id` null, JWT `sub` = id relace): nečinnost **6 hodin**, absolutně **2 dny** (`GUEST_SESSION` v `src/auth/config.ts`, `[OTÁZKA]` OQ-41). Cookie `__Host-sv_guest` (lokálně `sv_guest`), `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, bez `Domain`, `Max-Age` = 2 dny.
+- Lístek RSVP: cookie `__Host-sv_rsvp` s týmž hostitelem a atributy, `Max-Age` 30 minut (stejně jako `rsvp_tickets.expires_at`, neprodlužuje se). Zvoleno: **lístek v cookie** pro úpravu bez opětovného zadání jména (WCAG 3.3.7), host-only a `HttpOnly`, a **zároveň** úprava slepým ověřením jména kdykoli (lístek není jediná cesta). Tlačítko „Zadat jiné jméno“ cookie smaže (sdílené zařízení). Odpověď domácnosti tedy po odeslání zůstane na zařízení čitelná nejvýš 30 minut (`[OTÁZKA]` OQ-42).
+- PIN hostů: pauza podle svatby a IP (5 chyb, 15 minut, dvojnásobek každou sérii, strop 24 hodin, `lockouts` s HMAC klíčem), navíc pauza celé svatby po 50 chybách ze všech adres (úspěch kteréhokoli hosta čítače nuluje), hrubý strop 60 pokusů za hodinu na svatbu a IP. Svatba bez PINu hostů, neexistující svatba a chybný PIN stojí stejný výpočet (argon2id) a dávají totéž včetně pauzy. Selhání čítačů selže zavřeně. E-mail páru o pauze celé svatby zatím není (`[OTÁZKA]` OQ-43).
+- Citlivý obsah: `SensitiveContent` má navíc `venues` (adresa, mapa a popis cesty soukromých míst podle `venue.id`). Veřejný snímek soukromého místa (`venue.isPrivate`) nesmí mít `address`, `mapUrl` ani `directions` (kontrola v `publicContentSchema`). Bez relace hosta se citlivá část z databáze vůbec nenačítá a komponenty ji nedostávají, takže není v HTML ani v RSC payloadu (e2e `guest-pin.e2e.ts`).
+
+**Omezení počtu požadavků (ADR 0010, `RATE_RULES`)**
+
+- `rsvpMatch` 15/hod podle svatby a IP (překročení = stejná odpověď jako neshoda), `rsvpSubmitIp` 10/hod podle svatby a IP, `rsvpSubmitWedding` 200/hod za svatbu (překročení = obecná zpráva). Selhání čítačů RSVP selže **otevřeně** (výpadek čítačů nesmí zablokovat hosty), zbývá skrytá past a omezení v databázi. Klíče jsou HMAC `RATE_LIMIT_SECRET`.
+
+**Potvrzení e-mailem (FR-RSVP-6)**
+
+- Odesílá se jen při `email_confirmation` a zadané adrese, po odpovědi (`after()`), šablona `rsvp-confirmation` cs/en bez zdravotních údajů; `email_log` nese jen typ `rsvp_confirmation`, jazyk, HMAC adresy a doménu. Adresa se ukládá do `rsvp_responses.contact_email` jen při zapnutém potvrzení (vynucuje databáze).
+
+## 16. Odchylky a rozhodnutí implementace (M5, průvodce)
+
+Migrace `20261002150000_wizard.sql`. Všechny nové funkce jsou `security definer`, mají `set search_path = ''` a právo spuštění jen pro `service_role`.
 
 - **`weddings.wizard_draft`** (jsonb): koncept průvodce bez PINu. Pracovní tabulky (události, místa, stránky a bloky) z něj projektuje `app.wizard_apply`; průvodce je tedy jediný zapisovatel těchto řádků, dokud web nepřevezme editor (M7).
 - **`wizard_create_draft`** vytvoří v jedné transakci svatbu, správce, rezervaci slugu (30 dní) a pracovní data. Při kolizi slugu nevytvoří nic a vrátí varianty (`variants`). Slug je rezervován až při prvním uložení, tedy po ověření e-mailu kódem (`login_challenges.purpose = 'wizard_create'`).
@@ -560,4 +608,4 @@ Migrace `20261002140000_wizard.sql`. Všechny nové funkce jsou `security define
 - **`check_slug`** (informativní kontrola dostupnosti) má databázové omezení počtu dotazů a stejnou odpověď „nedostupné“ pro obsazený, rezervovaný i blokovaný slug. Seznam vulgarismů je v `slug_registry` (blokované tokeny od 4 znaků), `app.slug_available` je rozšířena o kontrolu tokenů.
 - **`set_preview_token`** ukládá jen hash tokenu; odkaz na náhled je nehádatelný a stránka je `noindex` a `no-store`.
 - **`publish_site`** přijme snapshot z `toPublicContent` (zvalidovaný `publicContentSchema`, `validateDraft` a `validatePalette` v aplikaci), vytvoří novou verzi webu a nastaví stav `published`. Zveřejněný slug se nikdy nepřidělí jinému webu. `getPublicContent` a `resolve_slug` čtou z databáze; fixtury slouží jen pro vývojový katalog a testy. Neznámý, blokovaný i nezveřejněný slug dává stejné 404.
-- **`waitlist_add`** a **`analytics_record`**: čekací listina a události `wizard_started`, `wizard_step_completed`, `site_published` (bez osobních údajů).
+- **`waitlist_add`** (čekací listina); události analytiky zapisuje `analytics_record` z migrace M8, průvodce zapisuje `wizard_started`, `wizard_step_completed`, `site_published` (bez osobních údajů).

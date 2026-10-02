@@ -89,6 +89,8 @@ function resolvePlaces(draft: WizardDraft, date: string): Resolved {
       id,
       name: inDefault(name, defaultLocale),
       address,
+      // Průvodce zakládá jen veřejná místa; soukromá místa za PINem přijdou s editorem (M7).
+      isPrivate: false,
       directions: text(part.directions),
       mapUrl: null,
     });
@@ -357,7 +359,8 @@ export function toWorkingSet(draft: WizardDraft, now: Date = new Date()): Workin
     venues: content.venues.map((venue) => ({
       id: venue.id,
       name: venue.name,
-      address: venue.address,
+      // Průvodce zakládá jen veřejná místa, tedy s adresou.
+      address: venue.address ?? "",
       directions: venue.directions,
     })),
     events: content.events.map((event) => ({

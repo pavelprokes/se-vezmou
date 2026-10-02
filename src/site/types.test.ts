@@ -86,4 +86,39 @@ describe("původ webu a hreflang", () => {
       "x-default": "https://a.se-vezmou.cz/en",
     });
   });
+
+  it("soukromé místo nemá adresu, mapu ani popis cesty ve veřejném snímku (FR-PRIV-2)", () => {
+    const venue = eukalyptusFixture.venues.find((v) => v.isPrivate)!;
+    expect(venue).toMatchObject({ address: null, mapUrl: null, directions: null });
+    expect(JSON.stringify(eukalyptusFixture)).not.toContain(sensitiveFixture.venues.v3.address);
+
+    for (const leak of [
+      { address: "Altánová 7" },
+      { mapUrl: "https://example.com/mapa" },
+      { directions: { cs: "Za vrátky" } },
+    ]) {
+      const bad = structuredClone(eukalyptusFixture);
+      bad.venues = bad.venues.map((v) => (v.isPrivate ? { ...v, ...leak } : v));
+      expect(publicContentSchema.safeParse(bad).success, JSON.stringify(leak)).toBe(false);
+    }
+  });
+
+  it("veřejné místo musí mít textovou adresu", () => {
+    const bad = structuredClone(eukalyptusFixture);
+    bad.venues[0].address = null;
+    expect(publicContentSchema.safeParse(bad).success).toBe(false);
+  });
+
+  it("citlivý obsah nese adresy soukromých míst podle id místa a bez nich má prázdný seznam", () => {
+    expect(sensitiveFixture.venues.v3.address).toMatch(/Dobřichovice/);
+    expect(sensitiveContentSchema.parse({}).venues).toEqual({});
+    expect(sensitiveContentSchema.safeParse({ venues: { v3: { address: "" } } }).success).toBe(
+      false,
+    );
+    expect(
+      sensitiveContentSchema.safeParse({
+        venues: { v3: { address: "Altánová 7", mapUrl: "javascript:alert(1)" } },
+      }).success,
+    ).toBe(false);
+  });
 });

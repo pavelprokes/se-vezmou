@@ -40,7 +40,9 @@ export type Block =
   | { kind: "paragraph"; text: string }
   | { kind: "code"; text: string }
   | { kind: "link"; text: string; href: string }
-  | { kind: "small"; text: string };
+  | { kind: "small"; text: string }
+  /** Nadpis seznamu a položky pod ním (potvrzení účasti: kdo přijde na kterou událost). */
+  | { kind: "list"; text: string; items: string[] };
 
 const FONT = "Arial, Helvetica, sans-serif";
 
@@ -57,6 +59,9 @@ function htmlBlock(block: Block): string {
       return `<p style="margin:0 0 16px;font-size:16px;line-height:1.5"><a href="${escapeHtml(block.href)}" style="display:inline-block;padding:12px 20px;background:${COLORS.pine};color:${COLORS.background};text-decoration:underline;border-radius:10px">${escapeHtml(block.text)}</a></p>`;
     case "small":
       return `<p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:${COLORS.muted}">${escapeHtml(block.text)}</p>`;
+    case "list":
+      return `<p style="margin:0 0 4px;font-size:16px;line-height:1.5;color:${COLORS.ink};font-weight:bold">${escapeHtml(block.text)}</p>
+<ul style="margin:0 0 16px;padding-left:20px;font-size:16px;line-height:1.5;color:${COLORS.ink}">${block.items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`;
   }
 }
 
@@ -66,6 +71,8 @@ function textBlock(block: Block): string {
       return block.text.toUpperCase();
     case "link":
       return `${block.text}:\n${block.href}`;
+    case "list":
+      return [block.text, ...block.items.map((item) => `- ${item}`)].join("\n");
     default:
       return block.text;
   }
@@ -79,7 +86,15 @@ export function composeEmail(
   brand: string,
 ): RenderedEmail {
   // Typografie jen na texty; adresa odkazu se nikdy neupravuje.
-  const typed = blocks.map((block): Block => ({ ...block, text: typo(block.text, locale) }));
+  const typed = blocks.map((block): Block =>
+    block.kind === "list"
+      ? {
+          ...block,
+          text: typo(block.text, locale),
+          items: block.items.map((item) => typo(item, locale)),
+        }
+      : { ...block, text: typo(block.text, locale) },
+  );
   const typedSubject = typo(subject, locale);
   const typedBrand = typo(brand, locale);
 

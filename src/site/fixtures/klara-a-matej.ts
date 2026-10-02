@@ -54,6 +54,15 @@ const venues = [
     directions: null,
     mapUrl: null,
   },
+  {
+    // Soukromé místo: adresa je jen za PINem hostů (`sensitiveRaw.venues`), ne ve snímku.
+    id: "v3",
+    name: { cs: "Soukromý altán", en: "Private gazebo" },
+    address: null,
+    isPrivate: true,
+    directions: null,
+    mapUrl: null,
+  },
 ];
 
 const events = [
@@ -162,7 +171,7 @@ const eukalyptusRaw = {
       enabled: true,
       position: 4,
       sensitive: false,
-      data: { venueIds: ["v1", "v2"], intro: null },
+      data: { venueIds: ["v1", "v2", "v3"], intro: null },
     },
     {
       id: "b5",
@@ -406,6 +415,15 @@ const editorialRaw = {
 };
 
 const sensitiveRaw = {
+  venues: {
+    v3: {
+      address: "Altánová 7, 252 01 Dobřichovice",
+      directions: {
+        cs: "Od zámku po zelené značce, zhruba dvacet minut.",
+        en: "From the chateau along the green trail, about twenty minutes.",
+      },
+    },
+  },
   gifts: {
     // Číslo účtu a IBAN z ukázky standardu, nepatří žádné osobě.
     account: "19-2000145399/0800",

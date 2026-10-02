@@ -105,26 +105,8 @@ begin
 end
 $$;
 
--- ---------------------------------------------------------------------------
--- Analytické události (ADR 0007): uzavřený seznam, žádné osobní údaje ani identifikátor svatby.
--- ---------------------------------------------------------------------------
-create function public.analytics_record(
-  p_event text,
-  p_locale text default null,
-  p_template text default null,
-  p_step integer default null
-) returns void
-  language plpgsql volatile security definer set search_path = ''
-  as $$
-begin
-  -- uzavřený seznam hlídá i check na tabulce; tady se vrátí srozumitelná chyba
-  if p_event not in ('wizard_started', 'wizard_step_completed', 'site_published', 'rsvp_completed') then
-    raise exception 'invalid_event' using errcode = '22023';
-  end if;
-  insert into public.analytics_event (event, locale, template, step)
-  values (p_event, p_locale, p_template, p_step);
-end
-$$;
+-- Analytické události zapisuje `public.analytics_record` z migrace 20261002140000_rsvp.sql
+-- (uzavřený seznam událostí hlídá check na tabulce); průvodce ji jen volá jako service role.
 
 -- ---------------------------------------------------------------------------
 -- Průvodce: zápis pracovních tabulek z payloadu `p_work` (pořizuje ho server, tvar viz
@@ -506,7 +488,6 @@ $$;
 
 revoke all on function
   public.waitlist_add(text, text, text),
-  public.analytics_record(text, text, text, integer),
   public.wizard_create_draft(text, text, text, jsonb, jsonb),
   public.wizard_save(uuid, text, jsonb, jsonb),
   public.wizard_load(uuid),
@@ -515,7 +496,6 @@ revoke all on function
   from public, anon;
 grant execute on function
   public.waitlist_add(text, text, text),
-  public.analytics_record(text, text, text, integer),
   public.wizard_create_draft(text, text, text, jsonb, jsonb),
   public.wizard_save(uuid, text, jsonb, jsonb),
   public.wizard_load(uuid),

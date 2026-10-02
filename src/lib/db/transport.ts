@@ -18,21 +18,37 @@ import { buildTenantClaims, type MintTenantJwtInput } from "./jwt";
 export type RpcKind = "table" | "scalar";
 
 /**
- * Volání jménem návštěvníka, náhledu nebo správce jedné svatby (role `authenticated` + claimy
- * svatby, docs/data-model.md kap. 5.1). Bez něj se volá jako `service_role`.
+ * Totožnost volajícího pro funkce, které čtou claimy JWT (`app.wedding_id()`, `app.wedding_role()`):
+ * návštěvník, host po PINu nebo správce jedné svatby. Bez ní se funkce volá jako service role.
  */
-export type RpcCaller = MintTenantJwtInput;
+export type TenantIdentity = MintTenantJwtInput;
+/** Zpětně kompatibilní název pro průvodce. */
+export type RpcCaller = TenantIdentity;
 
 export interface RpcTransport {
   /**
    * `table`: pole řádků; `scalar`: jedna hodnota (nebo `null` u `void`). S `as` se funkce volá
-   * s claimy jedné svatby (např. `get_public_site` jako `visitor`), jinak jako service role.
+   * s rolí `authenticated` a claimy té svatby (stejně jako v produkci přes krátkodobé JWT).
    */
-  call(fn: string, args: Record<string, unknown>, kind: RpcKind, as?: RpcCaller): Promise<unknown>;
+  call(
+    fn: string,
+    args: Record<string, unknown>,
+    kind: RpcKind,
+    as?: TenantIdentity,
+  ): Promise<unknown>;
 }
 
-/** Chyba databáze bez argumentů volání (mohou nést osobní údaje): jen funkce, kód a krátká zpráva. */
+/** Hlášení, které je jen identifikátor (`rsvp_closed`): u takových zpráv nic osobního být nemůže. */
+const REASON_PATTERN = /^[a-z][a-z_]{2,39}$/;
+
+/**
+ * Chyba databáze bez argumentů volání (mohou nést osobní údaje): jen funkce, kód a krátká zpráva.
+ * `reason` je identifikátor chyby z naší funkce (`invalid_ticket`, `rsvp_closed`), když ho databáze
+ * vrátila; jiné texty (typicky systémové hlášení o hodnotě, která chybu způsobila) se zahazují.
+ */
 export class DbError extends Error {
+  readonly reason: string | undefined;
+
   constructor(
     readonly fn: string,
     readonly code: string | undefined,
@@ -40,6 +56,7 @@ export class DbError extends Error {
   ) {
     super(`Databáze: ${fn} selhala (${code ?? "bez kódu"}): ${message}`);
     this.name = "DbError";
+    this.reason = REASON_PATTERN.test(message) ? message : undefined;
   }
 }
 
@@ -104,11 +121,11 @@ const pgTransport: RpcTransport = {
     try {
       await client.query("begin");
       if (as) {
-        // Jako PostgREST: role `authenticated` a claimy JWT v nastavení transakce.
-        await client.query("set local role authenticated");
+        // Jako PostgREST: claimy JWT v nastavení transakce a role `authenticated`.
         await client.query("select set_config('request.jwt.claims', $1, true)", [
           JSON.stringify(buildTenantClaims(as)),
         ]);
+        await client.query("set local role authenticated");
       } else {
         await client.query("set local role service_role");
       }
@@ -121,7 +138,12 @@ const pgTransport: RpcTransport = {
     } catch (error) {
       await client.query("rollback").catch(() => undefined);
       const code = (error as { code?: string }).code;
-      throw new DbError(fn, code, code ? "chyba SQL" : "chyba spojení");
+      const message = (error as { message?: string }).message ?? "";
+      throw new DbError(
+        fn,
+        code,
+        REASON_PATTERN.test(message) ? message : code ? "chyba SQL" : "chyba spojení",
+      );
     } finally {
       client.release();
     }

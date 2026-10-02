@@ -20,7 +20,7 @@ export const RESERVED_SLUGS: readonly string[] = [
  * Blokované výrazy (vulgarismy, urážky, podobnost s cizími značkami a bankami; OQ-37): adresa je
  * nedostupná, pokud některý její díl mezi pomlčkami (alespoň čtyři znaky) je v seznamu.
  * Autoritativní je databáze (`app.slug_has_reserved_token`); tento seznam slouží jen k okamžité
- * nápovědě v průvodci a test hlídá, že je shodný s migrací `20261002140000_wizard.sql`.
+ * nápovědě v průvodci a test hlídá, že je shodný s migrací `20261002150000_wizard.sql`.
  */
 // prettier-ignore
 export const BLOCKED_SLUG_WORDS: readonly string[] = [

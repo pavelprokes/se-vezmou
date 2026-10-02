@@ -162,8 +162,8 @@ describe("seznamy rezervovaných slov jsou shodné s databází", () => {
     return [...rest.slice(0, end).matchAll(/'([a-z0-9-]+)'/g)].map((m) => m[1]);
   }
 
-  it("blokované výrazy z migrace 20261002140000_wizard.sql", () => {
-    const fromSql = words(sql("20261002140000_wizard.sql"), /unnest\(array\[/);
+  it("blokované výrazy z migrace 20261002150000_wizard.sql", () => {
+    const fromSql = words(sql("20261002150000_wizard.sql"), /unnest\(array\[/);
     expect([...fromSql].sort()).toEqual([...BLOCKED_SLUG_WORDS].sort());
   });
 

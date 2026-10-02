@@ -57,7 +57,6 @@
   "rsvp.stickyLabel": "Rychlý odkaz na potvrzení účasti",
   "rsvp.closed": "Potvrzení účasti je již uzavřeno.",
   "rsvp.notYet": "Potvrzení účasti se otevře později.",
-  "rsvp.placeholder": "Formulář pro potvrzení účasti se připravuje.",
   "footer.names": "{a} a {b}",
   "phase.save_the_date": "Save the date",
   "phase.rsvp_open": "Potvrzení účasti otevřeno",
@@ -73,5 +72,15 @@
   "preview.phase": "Fáze",
   "preview.unlocked": "Za PINem",
   "preview.unlocked.on": "Odemčeno",
-  "preview.unlocked.off": "Zamčeno"
+  "preview.unlocked.off": "Zamčeno",
+  "pin.hint": "PIN najdete na pozvánce. Číslice můžete oddělit mezerami.",
+  "pin.sending": "Ověřuji…",
+  "pin.unlocked": "Odemčeno PINem.",
+  "pin.error.format": "PIN má aspoň šest číslic.",
+  "pin.error.invalid": "PIN nesouhlasí. Zkontrolujte ho na pozvánce a zkuste to znovu.",
+  "pin.error.locked": "Zadávání PINu je dočasně pozastaveno. Zkuste to znovu za {pause}.",
+  "pin.error.limited": "Zkuste to prosím znovu později.",
+  "pin.error.generic": "Něco se nepovedlo. Zkuste to prosím znovu.",
+  "venue.private.title": "Adresa je chráněna PINem",
+  "venue.private.body": "Přesnou adresu uvidíte po zadání PINu z pozvánky."
 }

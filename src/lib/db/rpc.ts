@@ -1,5 +1,5 @@
 import "server-only";
-import { getTransport, type RpcCaller, type RpcKind, type RpcTransport } from "./transport";
+import { getTransport, type RpcKind, type RpcTransport, type TenantIdentity } from "./transport";
 import type { SessionKind } from "./types";
 
 /**
@@ -21,9 +21,31 @@ export function call<T>(
   fn: string,
   args: Record<string, unknown>,
   kind: RpcKind,
-  as?: RpcCaller,
+  as?: TenantIdentity,
 ): Promise<T> {
   return (override ?? getTransport()).call(fn, args, kind, as) as Promise<T>;
+}
+
+/** Volání libovolné funkce jako service role (pro tenké moduly mimo tento soubor, např. analytiku). */
+export function serviceRpc<T>(
+  fn: string,
+  args: Record<string, unknown> = {},
+  kind: RpcKind = "scalar",
+): Promise<T> {
+  return call<T>(fn, args, kind);
+}
+
+/**
+ * Funkce, které čtou claimy JWT (visitor, guest_pin, admin): volají se s totožností jedné svatby
+ * (role `authenticated`), ne jako service role. Typované obaly jsou v `src/lib/rsvp`.
+ */
+export function tenantRpc<T>(
+  as: TenantIdentity,
+  fn: string,
+  args: Record<string, unknown> = {},
+  kind: RpcKind = "scalar",
+): Promise<T> {
+  return call<T>(fn, args, kind, as);
 }
 
 export async function firstRow<T>(fn: string, args: Record<string, unknown>): Promise<T | null> {

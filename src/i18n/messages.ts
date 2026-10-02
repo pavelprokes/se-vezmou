@@ -1,12 +1,14 @@
 import type { Locale } from "./config";
 import type { MessageValue } from "./format";
 
+import csAuth from "./messages/cs/auth.json";
 import csCatalog from "./messages/cs/catalog.json";
 import csCommon from "./messages/cs/common.json";
 import csLanding from "./messages/cs/landing.json";
 import csLegal from "./messages/cs/legal.json";
 import csMarketing from "./messages/cs/marketing.json";
 import csPlaceholder from "./messages/cs/placeholder.json";
+import enAuth from "./messages/en/auth.json";
 import csSite from "./messages/cs/site.json";
 import enCatalog from "./messages/en/catalog.json";
 import enCommon from "./messages/en/common.json";
@@ -18,6 +20,7 @@ import enSite from "./messages/en/site.json";
 
 /** Zdrojem pravdy o klíčích je česká verze; angličtina musí mít stejné klíče (kontrola při sestavení). */
 const cs = {
+  auth: csAuth,
   catalog: csCatalog,
   common: csCommon,
   landing: csLanding,
@@ -28,6 +31,7 @@ const cs = {
 } as const;
 
 const en: Record<keyof typeof cs, Record<string, MessageValue>> = {
+  auth: enAuth,
   catalog: enCatalog,
   common: enCommon,
   landing: enLanding,

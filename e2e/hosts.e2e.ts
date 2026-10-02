@@ -11,7 +11,8 @@ const hostNames = Object.keys(HOSTS) as HostName[];
 test.describe("hlavičky podle hostitele", () => {
   for (const name of hostNames) {
     test(`${name}: X-Robots-Tag a bezpečnostní hlavičky`, async ({ request }) => {
-      const response = await get(request, HOSTS[name]);
+      // Přehled správy (`/`) vyžaduje relaci a přesměruje; veřejná je až přihlašovací stránka.
+      const response = await get(request, HOSTS[name], name === "app" ? "/prihlaseni" : "/");
       expect(response.status()).toBe(200);
       const headers = response.headers();
 

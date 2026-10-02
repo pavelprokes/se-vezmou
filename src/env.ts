@@ -1,23 +1,40 @@
 import { z } from "zod";
 
+/** Tajné hodnoty musí mít dost entropie (HMAC, AES, JWT); kratší hodnotu aplikace odmítne při startu. */
+const secret = z.string().min(32);
+
 const schema = z.object({
   NEXT_PUBLIC_SITE_URL: z.url().default("https://se-vezmou.cz"),
   // Adresa průvodce a správy (`app.`). Úvodní stránka na ni odkazuje a předává jména párů.
   NEXT_PUBLIC_APP_URL: z.url().default("https://app.se-vezmou.cz"),
 
-  // Supabase (volitelné, dokud není projekt založen)
+  // Supabase: jen server. Prohlížeč s databází nemluví vůbec (žádný anon klíč, docs/adr/0001).
   NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1).optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+  /** Podpisové tajemství JWT projektu (HS256) pro krátkodobé tokeny správců, src/lib/db/jwt.ts. */
+  SUPABASE_JWT_SECRET: secret.optional(),
 
-  // AWS SES
+  // Přihlášení (M4)
+  /** Klíč pro HMAC e-mailů a kódů v databázi a pro šifrování odkazů a rozpracovaného přihlášení. */
+  AUTH_SECRET: secret.optional(),
+  /** Klíč pro HMAC klíčů omezení počtu požadavků (IP, e-mail, slug), docs/adr/0010. */
+  RATE_LIMIT_SECRET: secret.optional(),
+  /** Pepper pro PINy: PIN se před argon2id zpracuje HMAC, docs/security-privacy.md kap. 1.2. */
+  PIN_PEPPER: secret.optional(),
+
+  // AWS SES. Bez těchto hodnot se e-maily jen vypíšou do konzole a neodesílají.
   AWS_REGION: z.string().min(1).optional(),
   AWS_ACCESS_KEY_ID: z.string().min(1).optional(),
   AWS_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(1).optional(),
 
-  // Administrace: e-maily oddělené čárkou, kterým je povolen přístup po Google loginu
-  ADMIN_EMAILS: z.string().optional(),
+  // Jen pro automatické testy (nikdy v produkci, viz src/lib/db/transport.ts a src/lib/email/transport.ts)
+  /** `pg`: databázové volání přímo přes PostgreSQL místo PostgREST. */
+  DB_TRANSPORT: z.enum(["supabase", "pg"]).optional(),
+  DATABASE_URL: z.string().min(1).optional(),
+  /** `outbox`: e-maily se zapisují jako soubory JSON do EMAIL_OUTBOX_DIR. */
+  EMAIL_TRANSPORT: z.enum(["ses", "console", "outbox"]).optional(),
+  EMAIL_OUTBOX_DIR: z.string().min(1).optional(),
 });
 
 // Prázdné řetězce (např. z .env) bereme jako nenastavené.
@@ -26,3 +43,14 @@ const raw = Object.fromEntries(
 );
 
 export const env = schema.parse(raw);
+
+export type Env = typeof env;
+
+/** Hodnota, bez které funkce nemůže běžet; chybějící hodnota je chyba nasazení, ne uživatele. */
+export function requireEnv<K extends keyof Env>(key: K): NonNullable<Env[K]> {
+  const value = env[key];
+  if (value === undefined || value === null || value === "") {
+    throw new Error(`Chybí proměnná prostředí ${String(key)}`);
+  }
+  return value as NonNullable<Env[K]>;
+}

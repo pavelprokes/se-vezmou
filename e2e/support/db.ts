@@ -83,6 +83,96 @@ export async function seedWedding(
   return seeded;
 }
 
+export interface SeededSite {
+  weddingId: string;
+  slug: string;
+}
+
+/**
+ * Založí zveřejněný web přímo v databázi (jako vlastník, mimo RLS): svatba, správce, rezervace
+ * adresy, verze webu a přepnutí na `published`. Slouží testům webu páru a hostitelů, které
+ * potřebují hotový web bez průchodu průvodcem. `phase_override` drží fázi stálou (nezávislou na
+ * dnešním datu), `quick_notice` je „rychlá změna“ z ukázkového obsahu.
+ */
+export async function seedPublishedSite(options: {
+  slug: string;
+  content: {
+    slug: string;
+    partners: { a: string; b: string };
+    startsOn: string;
+    endsOn: string | null;
+    locales: string[];
+    defaultLocale: string;
+    template: string;
+    palette: string;
+    phase: string;
+    quickNotice: unknown;
+  };
+  status?: "published" | "blocked";
+}): Promise<SeededSite> {
+  const { slug, content } = options;
+  const weddingId = randomUUID();
+  const adminId = randomUUID();
+  const versionId = randomUUID();
+  await withDb(async (db) => {
+    await db.query("begin");
+    await db.query("set constraints all deferred");
+    await db.query(
+      `insert into public.weddings (id, partner_a_name, partner_b_name, starts_on, ends_on, default_locale, locales, template, palette)
+       values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        weddingId,
+        content.partners.a,
+        content.partners.b,
+        content.startsOn,
+        content.endsOn,
+        content.defaultLocale,
+        content.locales,
+        content.template,
+        content.palette,
+      ],
+    );
+    await db.query(
+      "insert into public.slug_registry (slug, state, wedding_id, reserved_until) values ($1, 'reserved', $2, now() + interval '30 days')",
+      [slug, weddingId],
+    );
+    await db.query("update public.weddings set slug = $1 where id = $2", [slug, weddingId]);
+    await db.query("insert into public.orders (wedding_id) values ($1)", [weddingId]);
+    await db.query(
+      "insert into public.wedding_admins (id, wedding_id, email) values ($1, $2, $3)",
+      [adminId, weddingId, `spravce-${slug}@example.test`],
+    );
+    await db.query("insert into public.wedding_auth (wedding_id, backup_email) values ($1, $2)", [
+      weddingId,
+      `zaloha-${slug}@example.test`,
+    ]);
+    await db.query(
+      "insert into public.site_versions (id, wedding_id, version_no, kind, public_content, created_by) values ($1, $2, 1, 'publish', $3, $4)",
+      [versionId, weddingId, JSON.stringify(content), adminId],
+    );
+    await db.query(
+      "insert into public.site_version_sensitive (version_id, wedding_id, sensitive_content) values ($1, $2, '{}')",
+      [versionId, weddingId],
+    );
+    await db.query(
+      `update public.weddings set status = 'published', published_version_id = $2, phase_override = $3,
+         quick_notice = $4, quick_notice_enabled = $5 where id = $1`,
+      [
+        weddingId,
+        versionId,
+        content.phase,
+        content.quickNotice ? JSON.stringify(content.quickNotice) : null,
+        Boolean(content.quickNotice),
+      ],
+    );
+    if (options.status === "blocked") {
+      await db.query("update public.weddings set status = 'blocked' where id = $1", [weddingId]);
+    }
+    await db.query("commit");
+  });
+  return { weddingId, slug };
+}
+
 export async function sessionsOf(weddingId: string) {
   return withDb(async (db) => {
     const result = await db.query<{
@@ -153,11 +243,20 @@ export async function endLockout(slug: string): Promise<void> {
 }
 
 /** Nasype čítač omezení IP až k limitu (aby test nemusel posílat desítky požadavků). */
-export async function exhaustRateLimit(scope: string, value: string, hits: number): Promise<void> {
+export async function exhaustRateLimit(
+  scope: string,
+  value: string,
+  hits: number,
+  windowSeconds = 3600,
+): Promise<void> {
   const key = rateKey(E2E_SECRETS.RATE_LIMIT_SECRET, scope, value);
   await withDb(async (db) => {
     for (let i = 0; i < hits; i++) {
-      await db.query("select * from public.rate_limit_hit($1, 1000000, interval '1 hour')", [key]);
+      // Okno musí mít stejnou délku jako v aplikaci, jinak je to jiný čítač.
+      await db.query(
+        "select * from public.rate_limit_hit($1, 1000000, make_interval(secs => $2))",
+        [key, windowSeconds],
+      );
     }
   });
 }

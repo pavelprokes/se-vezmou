@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { hostConfigFromEnv, type HostKind } from "@/host/resolve";
 import { routeRequest } from "@/host/route";
+import { UI_LOCALE_HEADER } from "@/host/ui-locale";
 
 /**
  * Směrování podle hostitele (ADR 0002): `Host` -> interní segment `/h/...`.
@@ -15,7 +16,7 @@ const hostConfig = hostConfigFromEnv(process.env, {
 });
 
 /** Hlavičky podle druhu hostitele (FR-PRIV-1). Úvodní stránka je jediná indexovatelná. */
-function applyHeaders(response: NextResponse, kind: HostKind | null): NextResponse {
+function applyHeaders(response: NextResponse, kind: HostKind | null, pathname = ""): NextResponse {
   if (kind !== "marketing") {
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
@@ -25,6 +26,10 @@ function applyHeaders(response: NextResponse, kind: HostKind | null): NextRespon
   if (kind === "tenant") {
     // Adresa webu páru se nesmí prozradit odkazovaným stránkám.
     response.headers.set("Referrer-Policy", "no-referrer");
+    // Náhled konceptu podle odkazu s tokenem se nikdy neukládá do mezipaměti.
+    if (/^(\/en)?\/nahled(\/|$)/.test(pathname)) {
+      response.headers.set("Cache-Control", "private, no-store");
+    }
   }
   return response;
 }
@@ -47,12 +52,20 @@ export function proxy(request: NextRequest) {
     }
 
     case "passThrough":
-      return applyHeaders(NextResponse.next(), decision.kind);
+      return applyHeaders(NextResponse.next(), decision.kind, url.pathname);
 
     case "rewrite": {
       const target = url.clone();
       target.pathname = decision.pathname;
-      return applyHeaders(NextResponse.rewrite(target), decision.kind);
+      // Jazyk rozhraní nese jen tato hlavička; klientem poslanou hodnotu vždy přepíšeme.
+      const requestHeaders = new Headers(request.headers);
+      requestHeaders.delete(UI_LOCALE_HEADER);
+      if (decision.uiLocale) requestHeaders.set(UI_LOCALE_HEADER, decision.uiLocale);
+      return applyHeaders(
+        NextResponse.rewrite(target, { request: { headers: requestHeaders } }),
+        decision.kind,
+        url.pathname,
+      );
     }
   }
 }

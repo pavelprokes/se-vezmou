@@ -17,7 +17,7 @@ export function setTransport(transport: RpcTransport | null): void {
   override = transport ?? undefined;
 }
 
-function call<T>(
+export function call<T>(
   fn: string,
   args: Record<string, unknown>,
   kind: RpcKind,
@@ -48,7 +48,7 @@ export function tenantRpc<T>(
   return call<T>(fn, args, kind, as);
 }
 
-async function firstRow<T>(fn: string, args: Record<string, unknown>): Promise<T | null> {
+export async function firstRow<T>(fn: string, args: Record<string, unknown>): Promise<T | null> {
   const rows = await call<T[]>(fn, args, "table");
   return rows[0] ?? null;
 }
@@ -204,7 +204,8 @@ export function authRevokeSessions(weddingId: string, subjectId?: string): Promi
 
 // --- výzvy (kód z e-mailu) ---------------------------------------------------------------
 
-export type ChallengePurpose = "admin_login" | "admin_add_confirm" | "operator_recovery";
+export type ChallengePurpose =
+  "admin_login" | "admin_add_confirm" | "operator_recovery" | "wizard_create";
 
 export function authCreateChallenge(input: {
   emailHash: Bytes;

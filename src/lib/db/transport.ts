@@ -22,6 +22,8 @@ export type RpcKind = "table" | "scalar";
  * návštěvník, host po PINu nebo správce jedné svatby. Bez ní se funkce volá jako service role.
  */
 export type TenantIdentity = MintTenantJwtInput;
+/** Zpětně kompatibilní název pro průvodce. */
+export type RpcCaller = TenantIdentity;
 
 export interface RpcTransport {
   /**

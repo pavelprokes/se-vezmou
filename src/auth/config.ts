@@ -40,6 +40,21 @@ export const RATE_RULES = {
   pinGuestIp: { limit: 60, windowSeconds: HOUR },
   /** PIN hostů: součet chyb za všechny IP jedné svatby. */
   pinGuestWeddingFailures: { limit: 50, windowSeconds: HOUR },
+  /** Čekací listina (úvodní stránka) podle IP; stejná odpověď i po překročení kvůli opakovanému e-mailu. */
+  waitlistIp: { limit: 10, windowSeconds: HOUR },
+  /** Živá kontrola adresy v průvodci podle IP (informativní, přísná, bez prozrazení; FR-WZ-4). */
+  slugCheckIp: { limit: 60, windowSeconds: 10 * MINUTE },
+  /** Vyžádání kódu při prvním uložení v průvodci podle IP a podle e-mailu. */
+  wizardCodeIp: { limit: 10, windowSeconds: HOUR },
+  wizardCodeEmail: { limit: 5, windowSeconds: HOUR },
+  /** Ověření kódu při prvním uložení podle IP. */
+  wizardVerifyIp: { limit: 30, windowSeconds: HOUR },
+  /** Vytvoření konceptu (první uložení) podle IP; chrání před hromaděním rezervací adres. */
+  wizardCreateIp: { limit: 10, windowSeconds: DAY },
+  /** Průběžné ukládání a zveřejnění podle svatby (autosave je častý, ale ne neomezený). */
+  wizardSaveWedding: { limit: 600, windowSeconds: HOUR },
+  /** Měřicí události průvodce podle IP (bez osobních údajů, zahazují se tiše). */
+  wizardEventIp: { limit: 200, windowSeconds: HOUR },
   /** RSVP, slepé porovnání jména podle svatby a IP (při překročení stejná odpověď jako neshoda). */
   rsvpMatch: { limit: 15, windowSeconds: HOUR },
   /** RSVP, odeslání podle svatby a IP (hosté na jedné Wi-Fi: limit IP je volnější než u přihlášení). */

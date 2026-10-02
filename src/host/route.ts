@@ -9,7 +9,16 @@ export type RouteDecision =
   | { action: "notFound"; kind: HostKind | null }
   | { action: "redirectWww" }
   | { action: "passThrough"; kind: HostKind }
-  | { action: "rewrite"; kind: HostKind; pathname: string };
+  | {
+      action: "rewrite";
+      kind: HostKind;
+      pathname: string;
+      /**
+       * Jazyk rozhraní na hostiteli `app.`: předpona `/en` (cesta se přepíše bez ní) nebo čeština
+       * u průvodce (`/vytvorit`), jehož jazyk určuje cesta, ne prohlížeč.
+       */
+      uiLocale?: "cs" | "en";
+    };
 
 /** Veřejné soubory (`/favicon.ico`, `/logo.svg`) se nepřepisují. `robots.txt` a `sitemap.xml` ano. */
 function isStaticAsset(pathname: string): boolean {
@@ -81,8 +90,23 @@ export function routeRequest(
         pathname: join(`/h/tenant/${resolution.slug}/${split.locale}`, split.rest),
       };
     }
-    case "app":
+    case "app": {
+      // Rozhraní správy je česky, anglická varianta stejných stránek je pod `/en` (jazyk rozhraní
+      // se pak předá hlavičkou, cesty zůstávají jedny). `/cs/...` je duplicita.
+      const split = splitLocale(pathname);
+      if (!split) return { action: "notFound", kind };
+      return {
+        action: "rewrite",
+        kind,
+        pathname: join("/h/app", split.rest),
+        ...(split.locale === "en"
+          ? { uiLocale: "en" as const }
+          : /^\/vytvorit(\/|$)/.test(split.rest)
+            ? { uiLocale: "cs" as const }
+            : {}),
+      };
+    }
     case "admin":
-      return { action: "rewrite", kind, pathname: join(`/h/${resolution.kind}`, pathname) };
+      return { action: "rewrite", kind, pathname: join("/h/admin", pathname) };
   }
 }

@@ -24,6 +24,8 @@ process.env.E2E_OUTBOX_DIR ??= mkdtempSync(join(tmpdir(), "sevezmou-e2e-outbox-"
 
 export default defineConfig({
   testDir: "./e2e",
+  // Zveřejněný ukázkový web `klara-a-matej` pro testy hostitelů, webu páru a přístupnosti.
+  globalSetup: "./e2e/support/global-setup.ts",
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [["github"], ["list"]] : "list",
@@ -48,23 +50,24 @@ export default defineConfig({
       testMatch: /.*\.a11y\.ts$/,
       use: { ...devices["Desktop Chrome"] },
     },
-    // Úvodní stránka i v mobilním viewportu (Chromium s rozlišením telefonu, dotykový vstup).
+    // Úvodní stránka a průvodce i v mobilním viewportu (Chromium s rozlišením telefonu, dotykový vstup).
     {
       name: "e2e-mobile",
-      testMatch: /landing\.e2e\.ts$/,
+      testMatch: /(landing|wizard)\.e2e\.ts$/,
       use: { ...devices["Pixel 7"] },
     },
     {
       name: "a11y-mobile",
-      testMatch: /landing\.a11y\.ts$/,
+      testMatch: /(landing|wizard)\.a11y\.ts$/,
       use: { ...devices["Pixel 7"] },
     },
   ],
   webServer: {
     command: `npm run build && npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}/robots.txt`,
-    // Server vždy nový: míří na databázi tohoto běhu (E2E_DATABASE_URL).
-    reuseExistingServer: false,
+    // Server vždy nový: míří na databázi tohoto běhu (E2E_DATABASE_URL). Jen pro ladění lze použít
+    // už běžící server (`E2E_REUSE_SERVER=1`), který míří na tutéž databázi.
+    reuseExistingServer: Boolean(process.env.E2E_REUSE_SERVER),
     timeout: 300_000,
     env: {
       // Kořenová doména pro lokální hostitele a zapnutý vizuální katalog (mimo produkci).

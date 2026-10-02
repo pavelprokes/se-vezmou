@@ -124,8 +124,20 @@ test.describe("neexistující a neplatní hostitelé", () => {
     expect(b.status()).toBe(404);
     expect(a.headers()["x-robots-tag"]).toBe("noindex, nofollow");
     // Stejné tělo (jediný rozdíl je slug, který si dotazující sám zadal), žádný výpis jiných webů.
-    const normalize = (html: string, slug: string) => html.replaceAll(slug, "SLUG");
-    expect(normalize(await a.text(), "neexistuje")).toBe(
+    // Next streamuje data stránky do více <script> bloků a jejich dělení i pořadí řádků závisí na
+    // časování (u prvního dotazu na studenou aplikaci se metadata mohou poslat zvlášť). Proto se
+    // obsah těchto bloků složí a seřadí po řádcích; zbytek HTML i všechny řádky musí být shodné.
+    const normalize = (html: string, slug: string) => {
+      const payload: string[] = [];
+      const rest = html
+        .replaceAll(slug, "SLUG")
+        .replace(/<script>self\.__next_f\.push\(\[1,"((?:[^"\\]|\\.)*)"\]\)<\/script>/g, (_, p) => {
+          payload.push(p);
+          return "";
+        });
+      return { rest, rows: payload.join("").split("\\n").filter(Boolean).sort() };
+    };
+    expect(normalize(await a.text(), "neexistuje")).toEqual(
       normalize(await b.text(), "uplne-jiny-par"),
     );
   });

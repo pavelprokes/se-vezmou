@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   HONEYPOT_FIELD,
-  logOnlyWaitlistStore,
+  WAITLIST_CONSENT_VERSION,
   submitWaitlist,
   waitlistSchema,
   type RateLimiter,
@@ -74,7 +74,12 @@ describe("submitWaitlist", () => {
     const { value, added } = deps();
     expect(await submitWaitlist(valid, value)).toEqual({ status: "success" });
     expect(added).toEqual([
-      { email: "klara@example.com", locale: "cs", consentAt: new Date("2026-10-02T10:00:00Z") },
+      {
+        email: "klara@example.com",
+        locale: "cs",
+        consentAt: new Date("2026-10-02T10:00:00Z"),
+        consentTextVersion: WAITLIST_CONSENT_VERSION,
+      },
     ]);
   });
 
@@ -136,19 +141,36 @@ describe("submitWaitlist", () => {
   });
 });
 
-describe("logOnlyWaitlistStore (zástupný adaptér do M3)", () => {
-  it("jen zaloguje záznam bez e-mailu a hlásí úspěch", async () => {
-    const info = vi.spyOn(console, "info").mockImplementation(() => {});
-    const result = await logOnlyWaitlistStore.add({
-      email: "klara@example.com",
-      locale: "en",
-      consentAt: new Date(),
-    });
-    expect(result).toEqual({ created: true });
-    expect(info).toHaveBeenCalledTimes(1);
-    const logged = JSON.stringify(info.mock.calls);
-    expect(logged).not.toContain("klara");
-    expect(logged).not.toContain("@");
-    expect(logged).toContain("en");
+describe("selhání omezení počtu požadavků", () => {
+  it("zavře se (chyba), nic se neuloží a IP se nelogují", async () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const limiter: RateLimiter = {
+      check: vi.fn(async () => {
+        throw new Error("spojení selhalo pro 203.0.113.7");
+      }),
+    };
+    const { value, added } = deps({ rateLimiter: limiter });
+    const result = await submitWaitlist({ ...valid, clientKey: "203.0.113.7" }, value);
+    expect(result).toEqual({ status: "error" });
+    expect(added).toEqual([]);
+    expect(JSON.stringify(error.mock.calls)).not.toContain("203.0.113.7");
+  });
+});
+
+describe("opakovaný e-mail", () => {
+  it("stejný e-mail podruhé dá stejnou odpověď (žádné prozrazení)", async () => {
+    let created = true;
+    const store: WaitlistStore = {
+      async add() {
+        const result = { created };
+        created = false;
+        return result;
+      },
+    };
+    const value = deps({ store }).value;
+    const first = await submitWaitlist(valid, value);
+    const second = await submitWaitlist({ ...valid, email: "KLARA@example.com" }, value);
+    expect(second).toEqual(first);
+    expect(second).toEqual({ status: "success" });
   });
 });

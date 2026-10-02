@@ -160,6 +160,9 @@ begin
          (tap.u(p_tag || ':block2'), w, v_page, 'gifts', 2, 'darky', true, '{"account": "123456/0100"}');
   insert into se_vezmou.media (id, wedding_id, storage_path, mime, width, height, bytes, alt)
   values (tap.u(p_tag || ':media'), w, w::text || '/foto/1.webp', 'image/webp', 640, 480, 1000, '{"cs": "Pár"}');
+  insert into se_vezmou.media_variants (wedding_id, media_id, width, height, format, bytes, storage_key)
+  values (w, tap.u(p_tag || ':media'), 640, 480, 'webp', 1000,
+          w::text || '/' || tap.u(p_tag || ':media')::text || '/640.webp');
 
   insert into se_vezmou.site_versions (id, wedding_id, version_no, kind, public_content, created_by)
   values (v_version, w, 1, 'publish', ('{"hero": {"title": "Zveřejněno ' || p_tag || '"}}')::jsonb, v_admin);

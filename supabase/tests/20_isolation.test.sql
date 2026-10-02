@@ -12,7 +12,7 @@ create temp table matrix (tbl text primary key, mode text not null, col text not
 insert into matrix values
   ('weddings', 'special', 'id'),
   ('pages', 'rw', 'wedding_id'), ('content_blocks', 'rw', 'wedding_id'), ('events', 'rw', 'wedding_id'),
-  ('venues', 'rw', 'wedding_id'), ('media', 'rw', 'wedding_id'), ('households', 'rw', 'wedding_id'),
+  ('venues', 'rw', 'wedding_id'), ('media', 'rw', 'wedding_id'), ('media_variants', 'ro', 'wedding_id'), ('households', 'rw', 'wedding_id'),
   ('guests', 'rw', 'wedding_id'), ('invitations', 'rw', 'wedding_id'), ('rsvp_settings', 'rw', 'wedding_id'),
   ('rsvp_questions', 'rw', 'wedding_id'), ('rsvp_responses', 'rw', 'wedding_id'), ('rsvp_people', 'rw', 'wedding_id'),
   ('rsvp_attendance', 'rw', 'wedding_id'), ('rsvp_health', 'rw', 'wedding_id'),

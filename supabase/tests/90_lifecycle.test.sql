@@ -362,8 +362,11 @@ begin
   insert into se_vezmou.pages (wedding_id, path, title) values (tap.wa(), 'ubytovani', '{"cs": "Ubytování", "en": "Lodging"}');
   perform tap.ok(true, 'i18n_text přijme cs a en');
 
-  perform tap.throws(format('insert into se_vezmou.media (wedding_id, storage_path, mime) values (%L, ''a/b.webp'', ''image/webp'')', tap.wa()), '23514', 'nedekorativní médium bez alt se odmítne');
-  perform tap.throws(format('insert into se_vezmou.media (wedding_id, storage_path, mime, alt) values (%L, ''a/c.webp'', ''image/webp'', ''{}'')', tap.wa()), '23514', 'nedekorativní médium s prázdným alt se odmítne');
+  -- M7c: médium bez popisku a bez příznaku dekorativní lze uložit (po nahrání čeká na popisek), na web se nedostane
+  -- (kontrola při sestavení snímku); u karty externí galerie je dekorativní povinné
+  insert into se_vezmou.media (wedding_id, storage_path, mime) values (tap.wa(), 'a/b.webp', 'image/webp');
+  perform tap.ok(true, 'médium bez popisku se uloží (zveřejnění ho vynechá)');
+  perform tap.throws(format('insert into se_vezmou.media (wedding_id, storage_path, mime, kind, decorative) values (%L, ''a/k.webp'', ''image/webp'', ''card'', false)', tap.wa()), '23514', 'obrázek karty je vždy dekorativní');
   insert into se_vezmou.media (wedding_id, storage_path, mime, decorative) values (tap.wa(), 'a/d.webp', 'image/webp', true);
   perform tap.ok(true, 'dekorativní médium alt nepotřebuje');
   perform tap.throws(format('insert into se_vezmou.media (wedding_id, storage_path, mime, decorative) values (%L, ''a/e.svg'', ''image/svg+xml'', true)', tap.wa()), '23514', 'SVG od uživatele se odmítne');

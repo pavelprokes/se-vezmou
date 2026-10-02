@@ -536,3 +536,16 @@ Zapsáno při implementaci schématu v `supabase/migrations` (milník M3). Kde z
 **Testy**
 
 - Místo pgTAP a `supabase test db` (ADR 0004, D1) jsou testy čisté SQL skripty (`supabase/tests/*.test.sql`) se spouštěčem `scripts/db-test.sh` (`npm run db:test`). Důvod: běží na samotném PostgreSQL 16 bez Dockeru, Supabase CLI a rozšíření pgTAP, lokálně i v CI přes `DATABASE_URL`. Platformu Supabase (role, `auth`) nahrazuje jen testovací shim `supabase/tests/setup/00_shim.sql`, který se nenasazuje. ADR 0004 tím není upraven; pokud se později přejde na pgTAP, zůstanou scénáře stejné.
+
+## 14. Odchylky implementace (M4)
+
+Zapsáno při implementaci přihlášení (migrace `20261002130000_auth_pins_lockouts.sql` a `20261002130100_email_log_functions.sql`, kód v `src/auth`, `src/lib/db`, `src/lib/email`). Kde zde není uvedeno jinak, platí kapitoly 1 až 13.
+
+- **Pauzy po chybách** jsou v tabulce `lockouts` (klíč je HMAC `scope + hodnota`, tedy bez slugů a IP v databázi), ne ve sloupcích `wedding_auth.*_pin_failures`, `*_pin_locked_until` a `pin_lock_level`. Důvod: stejný mechanismus platí pro svatbu, IP i neexistující adresu (pauza se chová stejně, ať web existuje, nebo ne). Sloupce v `wedding_auth` zůstávají nepoužité (rezerva, případně odstranit v pozdější migraci). `lockouts` má navíc sloupec `failures` (počet chyb v právě běžící sérii).
+- **Pravidlo pauzy** (`auth_lockout_failure`): 5 chyb v sérii spustí pauzu `15 minut × 2^(úroveň − 1)`, nejvýše 24 hodin; v době pauzy se chyby nepočítají; úroveň se sama vrátí na nulu, když od konce poslední pauzy uplyne 24 hodin; úspěch (`auth_lockout_reset`) řádek smaže. Hodnoty předává aplikace (`src/auth/config.ts`), databáze je jen vykonává.
+- **PIN správy je jeden na svatbu**, relace po přihlášení PINem se vede na nejstaršího aktivního správce (`auth_pin_get.admin_id`), protože `sessions.subject_id` je u správce povinné. Oznámení o přihlášení jde na záložní e-mail svatby.
+- **Společný PIN pro obě role** kontroluje aplikace (`setPin`): hash je solený, takže `auth_pin_other_hash` vrací hash druhé role a nový PIN se s ním porovná přes argon2. Databáze brání jen nevalidnímu hashi (musí být `$argon2id$`) a chybějícímu záložnímu e-mailu (bez řádku `wedding_auth` se PIN nenastaví). Změna PINu odvolá relace dotčené role kromě aktuální a zapíše audit `pin.change` bez hodnoty.
+- **Přihlášení kódem**: `login_challenges.email_hash` je HMAC (klíč `AUTH_SECRET`) a `code_hash` je HMAC kódu svázaný s e-mailem. Výzva vzniká i pro neznámý e-mail (stejná práce v databázi, e-mail se neposílá), takže odpověď ani čas neprozradí existenci účtu. Odkaz z e-mailu nese zapečetěný (AES-256-GCM) e-mail, kód a platnost; otevře potvrzovací stránku a přihlásí až odeslání formuláře.
+- **Správce více svateb**: po ověření kódu se otevře nejstarší svatba (`auth_list_admin_weddings`); výběr svatby přijde se správou (M7).
+- **`email_log`**: aplikace zapisuje jen přes funkce `email_log_insert` a `email_log_set_status` (service role má na tabulku sice přímá práva, kapitola 13, ale tenká vrstva `src/lib/db/rpc.ts` je nepoužívá). `recipient_hash` je HMAC adresy, `recipient_domain` doména; předmět ani tělo se nikdy neukládají.
+- **Funkce `auth_session_context`** vrací pro zástupný přehled jen adresu, stav a jména svatby po ověření relace na serveru.

@@ -97,7 +97,8 @@ begin
    where p.pronamespace = 'public'::regnamespace
      and (p.proname like 'auth\_%' or p.proname like 'op\_%' or p.proname like 'purge\_%'
           or p.proname in ('rate_limit_hit', 'check_slug', 'reserve_slug', 'resolve_slug',
-                           'resolve_preview', 'housekeeping', 'get_app_settings'))
+                           'resolve_preview', 'housekeeping', 'get_app_settings',
+                           'email_log_insert', 'email_log_set_status'))
      and has_function_privilege('authenticated', p.oid, 'execute');
   perform tap.ok(v_bad is null, 'authenticated nemá execute na funkce service role (porušuje: ' || coalesce(v_bad, '-') || ')');
 

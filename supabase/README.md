@@ -20,8 +20,10 @@ Migrace:
 4. `triggers`: retenční data, `last_activity_at`, pravidla slugů, limit správců, verze webu, append-only audit, `updated_at`.
 5. `rls`: RLS na každé tabulce, politiky správce, oprávnění rolí.
 6. `functions_core`, `functions_public`, `functions_ops`: `rate_limit_hit`, slugy, `auth_*`, `get_public_site`, slepé RSVP, `op_*`, retence.
+7. `auth_pins_lockouts` (M4): pauzy po chybách (`auth_lockout_*`, sloupec `lockouts.failures`), PIN správy a hostů (`auth_pin_get`, `auth_pin_other_hash`, `auth_pin_set`), `auth_session_context`.
+8. `email_log_functions` (M4): `email_log_insert` a `email_log_set_status` (záznam e-mailu bez osobních údajů).
 
-Co je záměrně odložené (označeno `TODO` v `functions_core.sql`): PINy a pauzy (M4), založení konceptu a publikace (M5), správa správců a souhlas s nahlédnutím (M7), RSVP hosta mimo seznam (M8), zbytek `op_*` a relace operátorů (M9), e-maily a export při retenci (M10).
+Co je záměrně odložené (označeno `TODO` v `functions_core.sql`; PINy a pauzy dodala M4): založení konceptu a publikace (M5), správa správců a souhlas s nahlédnutím (M7), RSVP hosta mimo seznam (M8), zbytek `op_*` a relace operátorů (M9), e-maily a export při retenci (M10).
 
 ## Spuštění testů
 
@@ -52,6 +54,7 @@ V CI běží test jako samostatný job `db` (`.github/workflows/ci.yml`).
 - `60_slugs`: tvar a rezervovaná slova, rezervace konceptu a její vypršení, zveřejněný slug se znovu nepřidělí, `last_activity_at`.
 - `70_rate_limit` a souběžný test ve skriptu: atomicita a okna `rate_limit_hit`.
 - `80_rsvp_site`: slepé RSVP (stejný tvar odpovědi), uzavřené RSVP, pozvání na události, `get_public_site`, odvozená fáze.
+- `95_auth_pin` (M4): pauzy po chybách (série, zdvojnásobování, strop 24 h, samovolný návrat úrovně, nulování), `auth_pin_get` (skrývá svatbu bez PINu, smazanou, bez správce), nastavení PINu (formát hashe, odvolání relací, audit bez hodnoty), `auth_session_context`, `email_log_*` a že správce tyto funkce nespustí.
 - `90_lifecycle`: relace a výzvy, limit správců, retenční data a mazání, výmaz hosta, normalizace jmen.
 
 ## Aplikace migrací

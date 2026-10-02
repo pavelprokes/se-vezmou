@@ -47,6 +47,8 @@ const ALL: RsvpSetup = {
 };
 
 async function violations(page: Page) {
+  // Počkat na titulek: po překreslení stránky (např. po akci serveru) může být na okamžik prázdný a axe by hlásil document-title.
+  await expect(page).toHaveTitle(/.+/);
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   return results.violations.map((v) => ({
     id: v.id,

@@ -111,8 +111,10 @@ describe("routeRequest: blokace a 404", () => {
     expect(route("se-vezmou.cz", "/hostina").action).toBe("rewrite");
   });
 
-  it("www přesměruje", () => {
-    expect(route("www.se-vezmou.cz", "/")).toEqual({ action: "redirectWww" });
+  it("www se obslouží jako úvodní stránka, bez přesměrování (jinak smyčka s přesměrováním ve Vercelu)", () => {
+    expect(route("www.se-vezmou.cz", "/")).toEqual(route("se-vezmou.cz", "/"));
+    expect(route("www.se-vezmou.cz", "/en")).toEqual(route("se-vezmou.cz", "/en"));
+    expect(route("www.se-vezmou.cz", "/").action).toBe("rewrite");
   });
 });
 

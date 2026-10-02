@@ -2,6 +2,8 @@ import { z } from "zod";
 
 const schema = z.object({
   NEXT_PUBLIC_SITE_URL: z.url().default("https://se-vezmou.cz"),
+  // Adresa průvodce a správy (`app.`). Úvodní stránka na ni odkazuje a předává jména párů.
+  NEXT_PUBLIC_APP_URL: z.url().default("https://app.se-vezmou.cz"),
 
   // Supabase (volitelné, dokud není projekt založen)
   NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),

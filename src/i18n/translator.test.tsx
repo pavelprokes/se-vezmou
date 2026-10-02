@@ -74,7 +74,7 @@ describe("překladové soubory", () => {
 describe("t()", () => {
   it("vrací text v jazyce a aplikuje typografii", () => {
     const cs = createTranslator("cs");
-    expect(cs("marketing.home.lead")).toContain(`v${NBSP}klidu na jednom`);
+    expect(cs("landing.hero.lead")).toContain(`i${NBSP}praktické`);
     expect(createTranslator("en")("common.skipToContent")).toBe("Skip to content");
   });
 

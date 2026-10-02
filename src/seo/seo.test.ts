@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ALLOWED_BOTS, TRAINING_BOTS } from "@/config/robots";
 import { closedRobots, marketingRobots } from "./robots";
-import { buildSitemap } from "./sitemap";
+import { buildSitemap, indexableRoutes } from "./sitemap";
 
 describe("robots.txt", () => {
   it("úvodní stránka povolí vyhledávací a odpovědní roboty a odkáže na mapu webu", () => {
@@ -40,6 +40,17 @@ describe("sitemap.xml", () => {
   it("je platný XML dokument s deklarací jmenného prostoru xhtml", () => {
     expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
     expect(xml).toContain('xmlns:xhtml="http://www.w3.org/1999/xhtml"');
+  });
+
+  it("neobsahuje zástupné právní podstránky (noindex)", () => {
+    expect(xml).not.toMatch(/soukromi|privacy|podminky|terms|dostupnost|accessibility/);
+    expect(indexableRoutes).toEqual(["home"]);
+  });
+
+  it("šlo by do mapy přidat další stránku po doplnění textu", () => {
+    const withPrivacy = buildSitemap("https://se-vezmou.cz", ["home", "privacy"]);
+    expect(withPrivacy).toContain("<loc>https://se-vezmou.cz/soukromi</loc>");
+    expect(withPrivacy).toContain("<loc>https://se-vezmou.cz/en/privacy</loc>");
   });
 
   it("neobsahuje app, admin ani weby párů", () => {

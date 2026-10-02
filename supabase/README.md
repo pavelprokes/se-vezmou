@@ -36,6 +36,12 @@ Migrace:
 15. `admin_access` (M7b): přístup ke správě: `admin_access_load`, `admin_admin_add`, `admin_admin_remove`, `admin_backup_email_set`, `admin_guest_pin_enabled_set`, `grant_operator_access`, `revoke_operator_access`, `admin_wedding_delete` a pro oznámení o nahlédnutí provozovatele `guest_data_notice_recipients` (service role).
 16. `media` (M7c, ADR 0006): fotografie na Cloudflare R2. `media` dostala druh (`photo`, `card`), stav zpracování (`pending`, `processing`, `ready`, `failed`), kód chyby; kontrola `media_alt_required` odpadla (fotografie bez popisku se uloží, ale nezveřejní). Nová tabulka `media_variants` (složený cizí klíč `(wedding_id, media_id)`, klíč objektu `{wedding_id}/{media_id}/{šířka}.{formát}` hlídá kontrola tvaru) a funkce správce `admin_media_list`, `admin_media_get`, `admin_media_request` (kvóta 12 fotografií a 40 MB z `app_settings`), `admin_media_begin`, `admin_media_complete`, `admin_media_fail`, `admin_media_update`, `admin_media_delete`, `admin_media_export`, `admin_media_variant`; doručení `get_public_media` (návštěvník nebo host po PINu) a `public_media_ids`.
 
+17. `settings_bounds_and_retention_dates` (oprava po revizi): meze `app_settings` (`app_setting_bounds`, `app_setting_valid`, spouštěč `app_settings_validate`, nové `op_set_app_setting`), `setting_int` mimo rozsah `integer` vrací výchozí hodnotu, příznaky `health_purge_extended` a `guest_purge_extended` (prodloužení lhůty operátorem přežije změnu data nebo pásma svatby), sloupce `purge_attempts`, `purge_last_attempt_at`, `purge_claimed_at`.
+18. `blocked_auth_mail_wizard`: zablokovaný web (`admin_wedding_delete`, `auth_create_session` a `auth_validate_session` ho odmítnou, operátorské relace beze změny), zámek v `op_set_operator_disabled`, monotónní `email_log_set_status`, `wizard_create_draft` rozliší kolizi adresy podle názvu omezení.
+19. `clock_guard`: `se_vezmou.clock_guard` a tenké obaly (`purge_*`, `lifecycle_archive_due`, `lifecycle_enqueue_notices`, `lifecycle_notices_claim`) nad přejmenovanými `*_impl`; čas z budoucnosti bez testovací hodiny je chyba `clock_in_future`.
+20. `retention_gaps`: nová nastavení `abandoned_draft_days`, `archived_delete_days_after_guest_purge`, `waitlist_retention_months`; `housekeeping` (úklid `lockouts`, opuštěné koncepty, čekací listina), `lifecycle_delete_archived`, `op_erase_waitlist`, `retention_claim`, `retention_release`, záloha v `retention_due_weddings`, `op_restore_wedding` odmítne web převzatý k mazání.
+21. `indexes`: zrušené nepoužívané trigramové indexy `weddings`, nový `rsvp_people_guest_idx`.
+
 Matice rolí operátorů (každá `op_*` si roli ověřuje sama, `assert_operator`): čtení, poznámky, poslání přihlašovacího odkazu, nahlédnutí do údajů hostů se souhlasem páru a zablokování webu smí `owner` i `support`; ostatní změny stavu, změnu adresy, prodloužení lhůt, obnovu, audit a správu operátorů jen `owner`. Žádná z nich nevrací jména ani údaje hostů; k nim vede jediná cesta `op_view_guest_data` s aktivním `data_access_grants`, důvodem a auditem.
 
 Co je záměrně odložené (označeno `TODO` v `functions_core.sql`; PINy a pauzy dodala M4, koncept a publikaci M5, správu webu M7a, operátory M9, hosty a přístup M7b): e-maily a export při retenci (M10).
@@ -78,24 +84,68 @@ V CI běží test jako samostatný job `db` (`.github/workflows/ci.yml`), spolu 
 - `96_operator_auth` (M9): relace operátora (AAL1 a AAL2, nečinnost, absolutní doba, odvolání, zakázaný operátor), zápis druhého faktoru (rozepsaný klíč se nepřepíše, potvrzení, záložní kódy), ochrana proti přehrání kódu TOTP, jednorázové záložní kódy, účel výzvy `operator_login`, práva funkcí.
 - `97_operator_ops` (M9): `op_*` (seznam s filtry a hledáním bez údajů hostů, detail, poznámky, změna adresy a registr slugů, prodloužení lhůt, smazání a obnova, přihlašovací odkaz, přehled, analytika, retence, audit), matice rolí podpora versus majitel, správa operátorů, audit v téže transakci (atomicita), izolace od údajů hostů.
 - `88_admin_guests` (M7b): oprávnění funkcí (návštěvník, host, náhled, `anon`, service role), izolace mezi svatbami, domácnosti a hosté, import a limity, hromadné pozvání, nastavení RSVP a otázky, správci a strop, záložní e-mail, PIN hostů, souhlas s nahlédnutím a jeho vazba na `op_view_guest_data`, smazání webu, audit bez osobních údajů.
+- `98_db_hardening` (oprava po revizi): meze nastavení a `setting_int`, prodloužení lhůty přežije změnu data a pásma, zablokovaný web (smazání, relace, operátor), úklid `lockouts`, `clock_guard` (čas z budoucnosti, tolerance, testovací hodina, `*_impl` nespustí nikdo), monotónní `email_log_set_status`, kolize adresy ve `wizard_create_draft`, indexy, opuštěné koncepty, archivované weby, čekací listina a výmaz na žádost, převzetí a záloha při trvalém smazání webu. Souběh dvou zakázání posledních majitelů ověřuje `scripts/db-test.sh` dvěma paralelními spojeními.
+- `10_structure` navíc: každá funkce schématu (nejen `security definer`) má prázdný `search_path` a nikdo z `PUBLIC` ani `anon` ji nespustí; seznam podle názvu (`lifecycle_*`, `job_run_*`, `retention_*`, `purge_*`, `*_impl`, `op_*`, pomocné funkce) nesmí spustit `authenticated`.
 - `90_lifecycle`: relace a výzvy, limit správců, retenční data a mazání, výmaz hosta, normalizace jmen.
 
 ## Nasazení krok za krokem (pro majitele)
 
 Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes pooler (`docs/adr/0011`). Kroky 1 a 2 majitel už provedl; jsou tu pro úplnost a pro obnovu.
 
-1. **Init schématu.** V Supabase SQL editoru (role `postgres`) spusťte `supabase/init/00_init_se_vezmou.sql` (idempotentní). Vytvoří schéma `se_vezmou`, rozšíření `citext`, `pg_trgm`, `pgcrypto` ve schématu `extensions`, `usage` pro `authenticated` a `service_role`, `revoke` pro `anon` a `public` a výchozí oprávnění jen `in schema se_vezmou`. Poslední krok (zveřejnění schématu pro PostgREST) je pro aplikaci **nepovinný**, protože PostgREST nepoužívá.
+1. **Init schématu.** V Supabase SQL editoru (role `postgres`) spusťte `supabase/init/00_init_se_vezmou.sql` (idempotentní). Vytvoří schéma `se_vezmou`, rozšíření `citext`, `pg_trgm`, `pgcrypto` ve schématu `extensions`, `usage` pro `authenticated` a `service_role`, `revoke` pro `anon` a `public` a výchozí oprávnění jen `in schema se_vezmou`. Skript **nemění žádné globální nastavení** (zejména nepřepisuje `pgrst.db_schemas`; PostgREST aplikace nepoužívá, ADR 0011, OQ-46). Starší verze skriptu měla poslední krok, který `se_vezmou` přidával do seznamu vystavených schémat; jestli ho majitel spustil, viz volitelný úklid níže.
+   **Volitelný úklid po starší verzi init skriptu.** Starší verze `00_init_se_vezmou.sql` měla krok, který do globálního nastavení role `authenticator` (`pgrst.db_schemas`, seznam schémat vystavených přes PostgREST) přidával `se_vezmou`. Aktuální skript to nedělá a PostgREST aplikace nepoužívá (ADR 0011, OQ-46). Pokud jste starší verzi spustili, můžete `se_vezmou` ze seznamu odebrat. Nejdřív si seznam **přečtěte**; příkaz je záměrně zakomentovaný a spouští se ručně v SQL editoru (role `postgres`):
+
+   ```sql
+   -- 1) co je dnes nastaveno (nic neměňte, jen čtěte):
+   select r.rolname, s as nastaveni
+     from pg_db_role_setting d
+     join pg_roles r on r.oid = d.setrole, unnest(d.setconfig) as s
+    where r.rolname = 'authenticator' and s like 'pgrst.db_schemas=%';
+
+   -- 2) VOLITELNÉ: odebrání se_vezmou ze seznamu, ostatní schémata zůstanou BEZ ZMĚNY.
+   --    Nikdy nenastavujte pgrst.db_schemas na pevně napsaný seznam a nikdy nepřepisujte schémata jiných projektů.
+   -- do $$
+   -- declare
+   --   v_list text;
+   --   v_new  text;
+   -- begin
+   --   select substring(s from '^pgrst\.db_schemas=(.*)$') into v_list
+   --     from pg_db_role_setting d
+   --     join pg_roles r on r.oid = d.setrole, unnest(d.setconfig) as s
+   --    where r.rolname = 'authenticator' and s like 'pgrst.db_schemas=%';
+   --   if v_list is null then
+   --     raise notice 'pgrst.db_schemas není nastaveno, není co odebírat';
+   --     return;
+   --   end if;
+   --   select string_agg(btrim(x), ',' order by ord) into v_new
+   --     from unnest(string_to_array(v_list, ',')) with ordinality as t(x, ord)
+   --    where btrim(x) <> 'se_vezmou';
+   --   if v_new is distinct from v_list then
+   --     execute format('alter role authenticator set pgrst.db_schemas = %L', v_new);
+   --     notify pgrst, 'reload config';
+   --     notify pgrst, 'reload schema';
+   --   end if;
+   -- end
+   -- $$;
+   ```
+
+   Stejně v Dashboardu: Settings, API, _Exposed schemas_ (odeberte jen `se_vezmou`).
+
 2. **Aplikační role.** Spusťte `supabase/init/01_app_role.sql`, ale **nejdřív v něm nahraďte zástupné heslo** silným náhodným heslem (min. 32 znaků, jen písmena a číslice). Skutečné heslo nikdy neukládejte do repozitáře; po spuštění ho z historie dotazů editoru smažte.
 3. **`MIGRATE_DATABASE_URL`** (jen na vašem počítači, v shellu; ne do souboru v repozitáři a ne na Vercel): spojení **vlastníka** (role `postgres`), přímé (`db.<ref>.supabase.co:5432`) nebo přes session pooler (`...pooler.supabase.com:5432`, uživatel `postgres.<ref>`). Ne transaction pooler (6543) a ne role `se_vezmou_app`; nástroj obojí odmítne.
 
    ```bash
    export MIGRATE_DATABASE_URL='postgresql://postgres:<heslo>@db.<ref>.supabase.co:5432/postgres'
+   export MIGRATE_CA_CERT="$(cat supabase-root-ca.pem)"   # PEM kořenové CA Supabase (Dashboard, Database, SSL)
    ```
+
+   **TLS:** u vzdálené databáze nástroj vždy ověřuje certifikát serveru a `MIGRATE_CA_CERT` (obsah PEM kořenové CA z Dashboardu, ne cesta k souboru) je povinná. Bez ní nástroj skončí s jasnou zprávou a nic nespustí. Jen pokud výslovně a vědomě nechcete ověřovat řetězec, nastavte `MIGRATE_TLS_INSECURE=1` (TLS zůstane, ale bez ověření řetězu, takže nechrání před aktivním útočníkem v síti; nedoporučeno, jen přechodně). Lokální databáze (loopback, unixový socket) je bez TLS a nic z toho nepotřebuje.
 
 4. **Plán:** `npm run db:migrate -- --dry-run`. Vypíše čekající migrace (soubor a sha256), nic nezapíše. Zkontrolujte, že čekají všechny a že nevypíše žádný `PROBLÉM`.
 5. **Aplikace:** `npm run db:migrate`. Každá migrace běží v jedné transakci a zapíše se do `se_vezmou.schema_migrations` (verze, název, sha256, čas). Opakované spuštění nic nezmění. Změněnou už aplikovanou migraci nástroj odmítne a nikdy nic nemaže (migrace s `drop table`, `truncate`, `delete from` na nejvyšší úrovni odmítne). Stav: `npm run db:migrate -- --status`.
 6. **Proměnné na Vercelu** (Project Settings, Environment Variables, jen serverové, žádné `NEXT_PUBLIC_*` pro databázi):
-   - `DATABASE_URL`: `postgresql://se_vezmou_app.<ref>:<heslo>@aws-0-<region>.pooler.supabase.com:6543/postgres` (transaction pooler, role `se_vezmou_app`; za tečkou je ref projektu). Doporučena je i `DATABASE_CA_CERT` (PEM kořenové CA Supabase, viz `docs/open-questions.md`), jinak je TLS bez ověření řetězu.
+   - `DATABASE_URL`: `postgresql://se_vezmou_app.<ref>:<heslo>@aws-0-<region>.pooler.supabase.com:6543/postgres` (transaction pooler, role `se_vezmou_app`; za tečkou je ref projektu). `DATABASE_CA_CERT` viz níže (povinná).
+   - `DATABASE_CA_CERT`: PEM kořenové CA Supabase (stejný certifikát jako `MIGRATE_CA_CERT`), **povinná** pro vzdálenou databázi: bez ní aplikace databázi nepoužije (chyba nasazení s jasnou zprávou). Dočasné vědomé opt-out: `DATABASE_TLS_INSECURE=1` (TLS bez ověření řetězu, nedoporučeno).
    - `AUTH_SECRET`, `RATE_LIMIT_SECRET`, `PIN_PEPPER`: tři různé náhodné hodnoty, každá min. 32 znaků (`openssl rand -base64 48`).
    - E-maily přes AWS SES: `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `EMAIL_FROM` (odesílatel ověřený v SES). Bez nich se e-maily jen vypisují do logu a neodesílají.
    - Dále podle `.env.example` (`NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL`, `ROOT_DOMAIN`, Sentry).
@@ -103,7 +153,7 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
 7. **Ověření po nasazení** (SQL editor, role `postgres`):
 
    ```sql
-   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 25)
+   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 30)
    select count(*) from se_vezmou.schema_migrations;
    -- RLS je zapnuté na každé tabulce schématu (0 řádků = v pořádku)
    select relname from pg_class
@@ -170,11 +220,37 @@ Skript založí majitele jen když ještě žádný aktivní není (další maji
 
 ### Nástroj `npm run db:migrate`
 
-`scripts/db-migrate.mjs` (node + `pg`, bez Supabase CLI). Evidence je v `se_vezmou.schema_migrations`, **ne** v globální `supabase_migrations` (sdílený projekt). Nástroj odmítne běžet bez `MIGRATE_DATABASE_URL`, s aplikační rolí, s portem 6543, když chybí role platformy Supabase, když spojení není vlastník schématu `se_vezmou`, když je schéma plné tabulek bez evidence, když se změnila už aplikovaná migrace, když aplikovaná migrace v repozitáři chybí a když čekající migrace je starší než poslední aplikovaná.
+`scripts/db-migrate.mjs` (node + `pg`, bez Supabase CLI). Evidence je v `se_vezmou.schema_migrations`, **ne** v globální `supabase_migrations` (sdílený projekt). Nástroj odmítne běžet bez `MIGRATE_DATABASE_URL`, u vzdálené databáze bez `MIGRATE_CA_CERT` (bez výslovného `MIGRATE_TLS_INSECURE=1`), s aplikační rolí, s portem 6543, když chybí role platformy Supabase, když spojení není vlastník schématu `se_vezmou`, když je schéma plné tabulek bez evidence, když se změnila už aplikovaná migrace, když aplikovaná migrace v repozitáři chybí a když čekající migrace je starší než poslední aplikovaná.
 
 Test (`npm run db:migrate:test`, v CI job `db`) běží na čistém clusteru: dry-run, ostrý běh, idempotence, změněný checksum, chybějící a starší migrace, selhání s návratem zpět, destruktivní příkazy, strukturální testy nad databází vytvořenou nástrojem.
 
 Ruční alternativa (jen vývoj): `for f in supabase/migrations/*.sql; do psql "$URL" -v ON_ERROR_STOP=1 -1 -f "$f"; done`. Na sdíleném projektu ji nepoužívejte, nezapisuje evidenci.
+
+## Pasti při verzích migrací
+
+- **Verze `20261005…` až `20261009…` leží v budoucnosti** (dnešní datum je dřívější než jejich časová značka). Je to záměr (M10, M9, M7 a opravy po revizi mají nad sebou pevné pořadí), ale znamená to, že **nová migrace musí mít verzi větší než poslední aplikovaná** (dnes `20261009120400`), ne dnešní datum. Zkontrolujte `npm run db:migrate -- --status` nebo `select max(version) from se_vezmou.schema_migrations`.
+- `npm run db:migrate` **odmítne čekající migraci, která je starší než poslední aplikovaná** (zpráva o pořadí): aplikovat ji mimo pořadí by na ostrých datech mohlo dopadnout jinak než v testech. Kdo omylem pojmenuje migraci dnešním datem (např. `20261003…`), dostane tuto chybu po aplikaci novějších; řešením je soubor přejmenovat na novější verzi dřív, než se aplikuje.
+- Soubory pojmenujte `RRRRMMDDHHMMSS_popis.sql` (14 číslic, malá písmena a podtržítka). Při souběžné práci dvou větví zvolte různé verze; po sloučení musí pořadí zůstat takové, v jakém se bude aplikovat. Hotovou, už aplikovanou migraci nikdy neměňte (změní se její checksum).
+- Po přidání migrace aktualizujte seznam výše a počet v ověření po nasazení.
+
+## Testovací hodina a ochrana času
+
+Funkce `purge_*`, `lifecycle_archive_due`, `lifecycle_delete_archived`, `lifecycle_enqueue_notices`, `lifecycle_notices_claim`, `retention_claim` a `housekeeping` berou parametr `p_now` (simulovaný čas v testech). Aby ho chyba v aplikaci nebo ruční volání nemohly použít k předčasnému smazání, odmítnou `p_now` dál než 5 minut v budoucnosti (`clock_in_future`), pokud transakce nemá `se_vezmou.test_clock = 'on'`. Aplikace to zapíná jen při `CRON_TEST_CLOCK=1` mimo `VERCEL_ENV=production` (e2e, `src/lib/db/transport.ts`); SQL testy volají `select set_config('se_vezmou.test_clock', 'on', true)` na začátku souboru. V produkci se nenastavuje nic. Je to pojistka proti chybě, ne ochrana proti držiteli přihlašovacích údajů aplikace (ten si hodinu zapne sám); `p_wedding_id` a `p_dry_run` práci jen zužují nebo vracejí zpět.
+
+## Výmaz čekací listiny na žádost
+
+Čekací listina se maže sama po `waitlist_retention_months` (výchozí 12, čeká na schválení právníkem) od souhlasu. Na žádost o výmaz dřív to udělá majitel (operátor s rolí `owner`) v SQL editoru (role `postgres`) nebo přes `MIGRATE_DATABASE_URL`; `<id operátora>` je jeho `id` v `se_vezmou.operators`:
+
+```sql
+select se_vezmou.op_erase_waitlist('<id operátora>', 'zadatel@example.cz', 'žádost o výmaz ze dne …');
+-- vrací počet smazaných řádků (0 = adresa v čekací listině není); do auditu jde jen počet, ne adresa
+```
+
+Postup si poznamenejte do evidence žádostí (odpověď žadateli do jednoho měsíce).
+
+## Přijaté riziko: přímá oprávnění `authenticated`
+
+Role `authenticated` má k tabulkám tenantů obecná přímá oprávnění (RLS je omezuje na svatbu správce). Prohlížeč s databází nemluví a aplikace volá jen funkce `security definer`, takže je to hloubková obrana, ne cesta použitá kódem. Zúžení nebo odebrání je následný úkol (`docs/open-questions.md`, OQ-60) a v této větvi se nemění.
 
 ## Pravidla pro další migrace
 

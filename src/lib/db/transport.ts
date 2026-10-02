@@ -62,6 +62,15 @@ export class DbError extends Error {
 
 const IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
 
+/**
+ * Testovací hodina databáze (`se_vezmou.clock_guard`): mazací a plánovací funkce service role odmítnou čas
+ * (`p_now`) z budoucnosti, pokud transakce nemá zapnuté `se_vezmou.test_clock`. Zapíná se jen při `CRON_TEST_CLOCK=1`
+ * mimo ostrou produkci (stejná podmínka jako simulovaný čas v `src/lib/cron/params.ts`).
+ */
+function testClockOn(): boolean {
+  return process.env.CRON_TEST_CLOCK === "1" && process.env.VERCEL_ENV !== "production";
+}
+
 const pgTransport: RpcTransport = {
   async call(fn, args, kind, as) {
     if (!IDENTIFIER.test(fn)) throw new Error("Neplatný název funkce");
@@ -82,7 +91,10 @@ const pgTransport: RpcTransport = {
     try {
       // Role se mění uvnitř transakce (`set local`), takže přežije jen do commitu a spojení vrácené
       // poolerem nemůže nést cizí totožnost. Dva příkazy v jednom jednoduchém dotazu šetří cestu sítí.
-      await client.query(`begin; set local role ${as ? "authenticated" : "service_role"}`);
+      const testClock = !as && testClockOn() ? "; set local se_vezmou.test_clock = 'on'" : "";
+      await client.query(
+        `begin; set local role ${as ? "authenticated" : "service_role"}${testClock}`,
+      );
       if (claims) {
         await client.query("select set_config('request.jwt.claims', $1, true)", [claims]);
       }

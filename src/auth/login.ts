@@ -72,7 +72,8 @@ export async function requestLoginCode(input: {
     RATE_RULES.loginRequestEmail.windowSeconds,
   );
 
-  const weddings = await authListAdminWeddings(input.email);
+  // zablokovaný web (FR-OPS-2) relaci nevydá: kód se kvůli němu neposílá a neotevře se
+  const weddings = (await authListAdminWeddings(input.email)).filter((w) => w.status !== "blocked");
 
   if (byEmail.allowed) {
     // Výzva vzniká i pro neznámý e-mail (stejná práce); ověřit ji nikdo nemůže, kód nikam nešel.
@@ -137,7 +138,7 @@ export async function verifyLoginCode(input: {
   if (!valid) return { status: "invalid" };
 
   // Správce více svateb: zatím se otevře nejstarší (výběr svatby přijde se správou, M7).
-  const [first] = await authListAdminWeddings(input.email);
+  const [first] = (await authListAdminWeddings(input.email)).filter((w) => w.status !== "blocked");
   if (!first) return { status: "invalid" };
   return { status: "ok", weddingId: first.weddingId, adminId: first.adminId };
 }

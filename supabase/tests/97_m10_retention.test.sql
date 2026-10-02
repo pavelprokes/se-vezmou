@@ -2,6 +2,8 @@
 -- audit bez osobních údajů, adresa zveřejněného webu se znovu nepřidělí, izolace svatby, idempotence,
 -- dry_run a simulovaný čas (p_now).
 begin;
+-- testovací hodina (se_vezmou.clock_guard): bez ní by funkce odmítly p_now z budoucnosti; hlídá ji 98_db_hardening
+select set_config('se_vezmou.test_clock', 'on', true);
 select tap.seed();
 
 -- svatba A: 2027-06-12 (zdraví 2027-07-12, hosté 2028-06-12), svatba B: 2027-08-01 (zdraví 2027-08-31, hosté 2028-08-01)

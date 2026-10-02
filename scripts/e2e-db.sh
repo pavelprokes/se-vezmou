@@ -3,18 +3,21 @@
 #
 #   bash scripts/e2e-db.sh run -- npx playwright test
 #
-# Databáze obsahuje jen shim platformy Supabase a migrace (žádné testovací funkce, žádná data):
-# e2e testy si potřebná data zakládají samy. Aplikace v testech mluví s Postgresem přímo
-# (`DB_TRANSPORT=pg`, bez PostgREST), viz src/lib/db/transport.ts.
+# Databáze obsahuje jen shim platformy Supabase, init skripty (supabase/init) a migrace (žádné
+# testovací funkce, žádná data): e2e testy si potřebná data zakládají samy. Aplikace v testech mluví
+# s Postgresem přímo přes `pg` (bez PostgREST), a to jako role `se_vezmou_app` (NE jako
+# superuživatel), takže e2e ověřují skutečný model oprávnění (docs/adr/0011). Migrace a testovací
+# pomocníci (zakládání dat) používají vlastníka (postgres).
 #
 # Dvě varianty (stejně jako scripts/db-test.sh):
 #  1. Bez E2E_DATABASE_URL: dočasný cluster PostgreSQL v $TMPDIR přes unixový socket (žádný TCP port),
 #     po doběhu příkazu se zastaví a smaže. Pod rootem běží jako uživatel postgres (runuser).
 #  2. S E2E_DATABASE_URL (např. service container postgres:16 v CI): použije zadanou databázi.
-#     Skript v ní SMAŽE schémata public, app, auth, extensions a tap, proto vyžaduje
+#     Skript v ní SMAŽE schémata public, se_vezmou, auth, extensions a tap, proto vyžaduje
 #     E2E_DB_ALLOW_RESET=1. Nikdy ho nesměřujte na databázi s daty.
 #
-# Příkaz dostane proměnnou E2E_DATABASE_URL s adresou připravené databáze.
+# Příkaz dostane proměnné E2E_DATABASE_URL (vlastník, jen pro testovací pomocníky) a
+# E2E_APP_DATABASE_URL (role se_vezmou_app, tou se připojuje aplikace).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -61,7 +64,7 @@ trap cleanup EXIT
 
 if [[ -n "${E2E_DATABASE_URL:-}" ]]; then
   [[ "${E2E_DB_ALLOW_RESET:-}" == "1" ]] \
-    || die "E2E_DATABASE_URL je zadáno: skript v ní smaže schémata public, app, auth, extensions a tap. Potvrďte E2E_DB_ALLOW_RESET=1."
+    || die "E2E_DATABASE_URL je zadáno: skript v ní smaže schémata public, se_vezmou, auth, extensions a tap. Potvrďte E2E_DB_ALLOW_RESET=1."
   URL="$E2E_DATABASE_URL"
 else
   BIN="$(find_pg_bin)" || die "Nenašel jsem binárky PostgreSQL (initdb). Nastavte PG_BIN nebo E2E_DATABASE_URL."
@@ -97,14 +100,20 @@ fi
 sql() { "$PSQL" "$URL" -X -q -v ON_ERROR_STOP=1 "$@"; }
 
 log "e2e databáze: PostgreSQL $(sql -Atc 'show server_version')"
-sql -c "set client_min_messages = warning; drop schema if exists public cascade; drop schema if exists app cascade; drop schema if exists auth cascade; drop schema if exists extensions cascade; drop schema if exists tap cascade; create schema public;" >/dev/null
-for f in supabase/tests/setup/[0-9][0-9]_*.sql supabase/migrations/*.sql; do
-  sql -f "$f" >/dev/null 2>"${DB_DIR:-${TMPDIR:-/tmp}}/e2e-db-migrate.$$.log" \
+sql -c "set client_min_messages = warning; drop schema if exists public cascade; drop schema if exists se_vezmou cascade; drop schema if exists app cascade; drop schema if exists auth cascade; drop schema if exists extensions cascade; drop schema if exists tap cascade; create schema public;" >/dev/null
+for f in supabase/tests/setup/[0-9][0-9]_*.sql supabase/init/[0-9][0-9]_*.sql supabase/migrations/*.sql; do
+  PGOPTIONS="-c client_min_messages=warning" sql -f "$f" >/dev/null 2>"${DB_DIR:-${TMPDIR:-/tmp}}/e2e-db-migrate.$$.log" \
     || { cat "${DB_DIR:-${TMPDIR:-/tmp}}/e2e-db-migrate.$$.log" >&2; die "soubor $f selhal."; }
 done
 rm -f "${DB_DIR:-${TMPDIR:-/tmp}}/e2e-db-migrate.$$.log"
-log "e2e databáze: shim a migrace aplikovány"
+log "e2e databáze: shim, init a migrace aplikovány (vlastníkem)"
 
 export E2E_DATABASE_URL="$URL"
+# Adresa pro aplikaci: stejná databáze, ale role se_vezmou_app (heslo je jen z testovacího shimu).
+if [[ -n "$DB_DIR" ]]; then
+  export E2E_APP_DATABASE_URL="postgresql://se_vezmou_app@/postgres?host=$DB_DIR"
+else
+  export E2E_APP_DATABASE_URL="$(printf '%s' "$URL" | sed -E 's#^(postgres(ql)?://)([^@/]*@)?#\1se_vezmou_app:se_vezmou_app_test_only@#')"
+fi
 # Příkaz běží pod trap: chyba příkazu se předá jako návratový kód, úklid proběhne vždy.
 "$@"

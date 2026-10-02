@@ -249,7 +249,7 @@ Rozhodující je kapacita, kterou zadání neuvádí `[OTÁZKA OQ-32]`. Tabulka 
 
 Závěr: cíl „ostrý provoz začátkem 2027“ je splnitelný jen s kapacitou kolem 8 plných úvazků, nebo po zmenšení rozsahu. Beta a brána C přidávají další týdny po M11. Při menší kapacitě ho splnit nelze. Majitel má zvolit: (a) navýšit kapacitu, (b) zmenšit rozsah, (c) posunout cíl. Plán nic z toho nepředjímá. Kandidáti na zmenšení (rozhoduje majitel, kroky nemění požadavky zadání):
 
-- tři šablony místo čtyř (zadání: minimum jsou tři; úspora z M6-4 nebo M6-5 je v řádu 5 až 6 čd J + P);
+- tři šablony místo čtyř (zadání: minimum jsou tři; úspora z M6-4 nebo M6-5 je kolem 5 čd J + P);
 - odložit automatický překlad (`FR-WEB-2` ho označuje jako volitelný, v plánu není);
 - obnova smazaného webu (M10-5) ručně přes podporu místo obrazovky.
 

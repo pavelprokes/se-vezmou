@@ -19,7 +19,7 @@ Zvolit **A: čítače v Postgresu přes RPC**. Při prokázané zátěži (měř
 
 ### Návrh mechanismu
 
-- Tabulka `rate_limit` (viz `docs/data-model.md`): klíč (hash), pravidlo, okno (začátek), počet, čas pauzy do. Klíč je **HMAC** (tajná hodnota) z identifikátoru: IP, e-mailu, slugu nebo identifikátoru hosta. V databázi tedy nejsou surové IP ani e-maily.
+- Tabulka `rate_limits` (viz `docs/data-model.md`): klíč (hash), pravidlo, okno (začátek), počet, čas pauzy do. Klíč je **HMAC** (tajná hodnota) z identifikátoru: IP, e-mailu, slugu nebo identifikátoru hosta. V databázi tedy nejsou surové IP ani e-maily.
 - Funkce `rate_limit_hit(key, rule, limit, window)` (RPC `SECURITY DEFINER`, volaná jen ze serveru) atomicky zvýší čítač a vrátí povoleno/zakázáno a dobu do dalšího pokusu. Pevné nebo klouzavé okno (doporučení: pevné okno pro jednoduchost, ověřit v testu).
 - Úklid starých řádků pravidelnou úlohou (retence čítačů krátká, řádově dny `[LHŮTY]`).
 - **IP:** brát z důvěryhodné hlavičky Vercelu (ověřit aktuální dokumentaci), nikdy z hlavičky, kterou může klient podvrhnout. Za sdílenou IP (mobilní síť, kancelář) limity IP volit tak, aby nepostihly poctivé hosty na jedné svatbě (hosté sedí v jednom sále na stejné Wi-Fi), proto u RSVP kombinovat IP a slug a limit IP volit volněji.

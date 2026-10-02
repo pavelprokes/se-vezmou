@@ -549,3 +549,15 @@ Zapsáno při implementaci přihlášení (migrace `20261002130000_auth_pins_loc
 - **Správce více svateb**: po ověření kódu se otevře nejstarší svatba (`auth_list_admin_weddings`); výběr svatby přijde se správou (M7).
 - **`email_log`**: aplikace zapisuje jen přes funkce `email_log_insert` a `email_log_set_status` (service role má na tabulku sice přímá práva, kapitola 13, ale tenká vrstva `src/lib/db/rpc.ts` je nepoužívá). `recipient_hash` je HMAC adresy, `recipient_domain` doména; předmět ani tělo se nikdy neukládají.
 - **Funkce `auth_session_context`** vrací pro zástupný přehled jen adresu, stav a jména svatby po ověření relace na serveru.
+
+## 15. Odchylky a rozhodnutí implementace (M5, průvodce)
+
+Migrace `20261002140000_wizard.sql`. Všechny nové funkce jsou `security definer`, mají `set search_path = ''` a právo spuštění jen pro `service_role`.
+
+- **`weddings.wizard_draft`** (jsonb): koncept průvodce bez PINu. Pracovní tabulky (události, místa, stránky a bloky) z něj projektuje `app.wizard_apply`; průvodce je tedy jediný zapisovatel těchto řádků, dokud web nepřevezme editor (M7).
+- **`wizard_create_draft`** vytvoří v jedné transakci svatbu, správce, rezervaci slugu (30 dní) a pracovní data. Při kolizi slugu nevytvoří nic a vrátí varianty (`variants`). Slug je rezervován až při prvním uložení, tedy po ověření e-mailu kódem (`login_challenges.purpose = 'wizard_create'`).
+- **`wizard_save`** ukládá koncept i další změny slugu u rezervace; **`wizard_load`** koncept vrací.
+- **`check_slug`** (informativní kontrola dostupnosti) má databázové omezení počtu dotazů a stejnou odpověď „nedostupné“ pro obsazený, rezervovaný i blokovaný slug. Seznam vulgarismů je v `slug_registry` (blokované tokeny od 4 znaků), `app.slug_available` je rozšířena o kontrolu tokenů.
+- **`set_preview_token`** ukládá jen hash tokenu; odkaz na náhled je nehádatelný a stránka je `noindex` a `no-store`.
+- **`publish_site`** přijme snapshot z `toPublicContent` (zvalidovaný `publicContentSchema`, `validateDraft` a `validatePalette` v aplikaci), vytvoří novou verzi webu a nastaví stav `published`. Zveřejněný slug se nikdy nepřidělí jinému webu. `getPublicContent` a `resolve_slug` čtou z databáze; fixtury slouží jen pro vývojový katalog a testy. Neznámý, blokovaný i nezveřejněný slug dává stejné 404.
+- **`waitlist_add`** a **`analytics_record`**: čekací listina a události `wizard_started`, `wizard_step_completed`, `site_published` (bez osobních údajů).

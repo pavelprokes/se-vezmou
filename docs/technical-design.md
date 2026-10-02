@@ -282,6 +282,7 @@ Ceny a tarify Vercelu, Supabase a e-mailové služby jsem do dokumentu nezapsal,
 
 ## 9. Otevřené body tohoto dokumentu
 
-- `[OTÁZKA]` Knihovna pro PDF oznámení a knihovna pro Excel (kapitola 5); doporučení: prototypy před milníkem průvodce.
+- `[ROZHODNUTO M5]` PDF oznámení vzniká na serveru knihovnou `pdf-lib` s `@pdf-lib/fontkit` (písma Newsreader a DM Sans, licence OFL, vkládaná jako podmnožiny; vektorový QR z `qrcode-generator`). Soubory písem jsou v `outputFileTracingIncludes`. Cesta `/vytvorit/oznameni` je POST (cesta končící `.pdf` by proxy považovala za statický soubor). PDF není tagované (PDF/UA), má však titulek, autora a jazyk; značkování zůstává otevřené.
+- `[OTÁZKA]` Knihovna pro Excel (kapitola 5); doporučení: prototyp před milníkem exportů.
 - `[OTÁZKA]` Název prefixu interních segmentů (`/h`) je jen technický detail, nemá dopad na majitele.
 - `[OVĚŘIT]` Limity cronu a regionu na zvoleném tarifu, chování cookie `__Host-` na `localhost`, cache API Next.js 16 (ADR 0001, 0002).

@@ -17,6 +17,8 @@ export const COOKIE_KINDS = {
   admin: "sv_admin",
   /** Rozpracované přihlášení kódem (zapečetěný e-mail) na `app.`. */
   pending: "sv_login",
+  /** Ověřování e-mailu při prvním uložení v průvodci (zapečetěné e-maily, `src/wizard/server/flow.ts`). */
+  wizard: "sv_wizard",
   /** Relace hosta po PINu (odemčené citlivé bloky) na webu páru. */
   guest: "sv_guest",
   /** Lístek RSVP po ověření jména (úprava odpovědi bez opětovného zadání) na webu páru. */

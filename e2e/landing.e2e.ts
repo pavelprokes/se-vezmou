@@ -1,6 +1,9 @@
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import type { APIRequestContext, Page } from "@playwright/test";
 import { NBSP } from "../src/i18n/typo";
 import { HOSTS, PORT, apiRequest, pageUrl } from "./hosts";
+// `test` z podpory přihlášení dává každému testu vlastní IP (čítače omezení se nesdílejí).
+import { uniqueTag, withDb } from "./support/db";
+import { expect, test } from "./support/fixtures";
 
 /**
  * Úvodní stránka (M2) v češtině i angličtině. Běží v desktopovém i mobilním viewportu
@@ -234,7 +237,8 @@ for (const locale of locales) {
       await page.waitForURL(/\/vytvorit\?/);
       const url = new URL(page.url());
       expect(url.origin).toBe(`http://app.localhost:${PORT}`);
-      expect(url.pathname).toBe("/vytvorit");
+      // Anglická varianta průvodce je pod /en (české adresy s `jazyk=en` se přesměrují).
+      expect(url.pathname).toBe(locale.code === "cs" ? "/vytvorit" : "/en/vytvorit");
       expect(url.searchParams.get("jmeno1")).toBe("Anna");
       expect(url.searchParams.get("jmeno2")).toBe("Jiří Novák");
       expect(url.searchParams.get("jazyk")).toBe(locale.code);
@@ -348,6 +352,51 @@ for (const locale of locales) {
       const status = form.getByRole("status");
       await expect(status).toContainText(labels.success);
       await expect(status).toHaveAttribute("aria-live", "polite");
+    });
+
+    test("e-mail se uloží do databáze a stejný e-mail podruhé dá stejnou odpověď", async ({
+      page,
+    }) => {
+      const tag = uniqueTag();
+      const address = `Cekani-${tag}@Example.Test`;
+      const submit = async () => {
+        await page.goto(pageUrl(HOSTS.marketing, locale.path));
+        const form = page.locator("#waitlist form");
+        await form.getByLabel(labels.email, { exact: true }).fill(address);
+        await form.getByLabel(labels.consent).check();
+        await form.getByRole("button", { name: labels.submit }).click();
+        await expect(form.getByRole("status")).toContainText(labels.success);
+        return form.getByRole("status").innerText();
+      };
+      const first = await submit();
+      const rows = async () =>
+        withDb(
+          async (db) =>
+            (
+              await db.query<{
+                email: string;
+                locale: string;
+                consent_text_version: string;
+                consent_at: Date;
+              }>(
+                "select email::text, locale, consent_text_version, consent_at from se_vezmou.waitlist where email = $1",
+                [address.toLowerCase()],
+              )
+            ).rows,
+        );
+      const [stored] = await rows();
+      expect(stored).toMatchObject({
+        email: address.toLowerCase(),
+        locale: locale.code,
+        consent_text_version: "2026-10-v1",
+      });
+
+      // Opakování: žádné prozrazení, odpověď i záznam zůstávají stejné.
+      const second = await submit();
+      expect(second).toBe(first);
+      const after = await rows();
+      expect(after).toHaveLength(1);
+      expect(after[0].consent_at).toEqual(stored.consent_at);
     });
 
     test("chybný e-mail a chybějící souhlas: chyby u polí s aria-invalid", async ({ page }) => {

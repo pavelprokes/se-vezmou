@@ -15,6 +15,8 @@ import { getPool } from "./pool";
  */
 
 export type { TenantIdentity };
+/** Zpětně kompatibilní název pro průvodce. */
+export type RpcCaller = TenantIdentity;
 
 export type RpcKind = "table" | "scalar";
 

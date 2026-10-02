@@ -3,11 +3,18 @@ import { defaultLocale, locales, type Locale } from "@/i18n/config";
 import { EMAIL_MAX_LENGTH, HONEYPOT_FIELD } from "./waitlist-fields";
 
 /**
- * Čekací listina (MVP). Logika je za rozhraními, takže napojení na databázi (M3) a omezení
- * počtu požadavků (`rate_limits`, technical-design 4) jen vymění adaptér, ne formulář ani akci.
+ * Čekací listina (MVP). Logika je za rozhraními; skutečné adaptéry nad tabulkou `waitlist` a nad
+ * omezením počtu požadavků (`rate_limits`) jsou v `waitlist-db.ts` (jen server). Zápis je
+ * idempotentní (stejný e-mail podruhé = stejná odpověď) a nic neprozrazuje.
  */
 
 export { EMAIL_MAX_LENGTH, HONEYPOT_FIELD };
+
+/**
+ * Verze textu souhlasu, který se uživateli u formuláře zobrazil (`waitlist.consent_text_version`).
+ * Při každé změně textu souhlasu v `landing.json` ji zvyšte, aby šlo doložit, s čím pár souhlasil.
+ */
+export const WAITLIST_CONSENT_VERSION = "2026-10-v1";
 
 export type WaitlistFieldError = "required" | "invalid";
 
@@ -35,6 +42,8 @@ export interface WaitlistEntry {
   email: string;
   locale: Locale;
   consentAt: Date;
+  /** Verze textu souhlasu (`WAITLIST_CONSENT_VERSION`). */
+  consentTextVersion: string;
 }
 
 /** Nezpracovaný vstup z formuláře (hodnoty z `FormData` jsou `unknown`). */
@@ -54,48 +63,22 @@ export type WaitlistResult =
   | { status: "rateLimited" }
   | { status: "error" };
 
-/** Úložiště čekací listiny. M3 doplní adaptér nad tabulkou `waitlist` (`email citext unique`). */
+/** Úložiště čekací listiny (adaptér nad tabulkou `waitlist`, `email citext unique`). */
 export interface WaitlistStore {
   /** `created: false` při opakovaném e-mailu; volající to uživateli nesděluje (žádné vyzrazení). */
   add(entry: WaitlistEntry): Promise<{ created: boolean }>;
 }
 
-/** Hák pro omezení počtu požadavků; skutečná implementace (tabulka `rate_limits`) přijde v M3. */
+/** Omezení počtu požadavků (tabulka `rate_limits`); klíč nese hodnotu, kterou adaptér zahashuje. */
 export interface RateLimiter {
   check(key: string): Promise<{ allowed: boolean }>;
 }
-
-export const unlimitedRateLimiter: RateLimiter = {
-  async check() {
-    return { allowed: true };
-  },
-};
-
-/**
- * Dočasný adaptér: záznam jen zaloguje, BEZ e-mailu a dalších osobních údajů, a hlásí úspěch.
- *
- * TODO(M3): nahradit adaptérem nad tabulkou `waitlist` (docs/data-model.md 3.7: `email citext
- * unique`, `locale`, `consent_at`, `consent_text_version`), volání přes `security definer`
- * funkci. Do té doby se e-maily NEUKLÁDAJÍ, proto stránku s čekací listinou nezveřejňovat
- * před dokončením M3.
- */
-export const logOnlyWaitlistStore: WaitlistStore = {
-  async add(entry) {
-    console.info("[waitlist] záznam přijat (zatím neuložen)", { locale: entry.locale });
-    return { created: true };
-  },
-};
 
 export interface WaitlistDeps {
   store: WaitlistStore;
   rateLimiter: RateLimiter;
   now?: () => Date;
 }
-
-export const defaultWaitlistDeps: WaitlistDeps = {
-  store: logOnlyWaitlistStore,
-  rateLimiter: unlimitedRateLimiter,
-};
 
 /** Převede chyby zodu na kódy chyb podle polí (texty doplňuje formulář z překladů). */
 export function toFieldErrors(error: z.ZodError): WaitlistErrors {
@@ -112,7 +95,7 @@ export function toFieldErrors(error: z.ZodError): WaitlistErrors {
 
 export async function submitWaitlist(
   input: WaitlistInput,
-  deps: WaitlistDeps = defaultWaitlistDeps,
+  deps: WaitlistDeps,
 ): Promise<WaitlistResult> {
   // Vyplněná past: tváříme se, že vše dopadlo dobře, a nic neukládáme.
   if (typeof input.honeypot === "string" && input.honeypot.trim() !== "") {
@@ -120,8 +103,14 @@ export async function submitWaitlist(
   }
 
   if (input.clientKey) {
-    const { allowed } = await deps.rateLimiter.check(`waitlist:${input.clientKey}`);
-    if (!allowed) return { status: "rateLimited" };
+    try {
+      const { allowed } = await deps.rateLimiter.check(`waitlist:${input.clientKey}`);
+      if (!allowed) return { status: "rateLimited" };
+    } catch {
+      // Selhání úložiště omezení = zavřeně (ADR 0010); bez podrobností, klíč nese IP adresu.
+      console.error("[waitlist] omezení počtu požadavků selhalo");
+      return { status: "error" };
+    }
   }
 
   const parsed = waitlistSchema.safeParse({
@@ -136,9 +125,10 @@ export async function submitWaitlist(
       email: parsed.data.email,
       locale: parsed.data.locale,
       consentAt: (deps.now ?? (() => new Date()))(),
+      consentTextVersion: WAITLIST_CONSENT_VERSION,
     });
   } catch {
-    // Bez podrobností: chyba může nést e-mail. Skutečné logování s Sentry doplní M3.
+    // Bez podrobností: chyba může nést e-mail.
     console.error("[waitlist] uložení selhalo");
     return { status: "error" };
   }

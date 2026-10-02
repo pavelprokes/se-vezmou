@@ -1,14 +1,15 @@
 import { Client } from "pg";
 import { hashPin } from "../../src/auth/pin";
+import { eukalyptusFixture } from "../../src/site/fixtures/klara-a-matej";
 import { rateKey } from "../../src/auth/rate-limit";
 import { databaseUrl, E2E_SECRETS } from "./env";
 import { withDb } from "./db";
 
 /**
- * Svatba pro e2e testy RSVP a PINu hostů (M8). Web páru zatím čte obsah z ukázkové fixtury
- * (`getPublicContent` patří M5), která zná jen adresu `klara-a-matej`; RSVP a PIN ale běží proti
- * skutečné databázi, takže testy zakládají jednu zveřejněnou svatbu s touto adresou přímo přes SQL
- * a před každým testem ji uvedou do výchozího stavu (`prepareWedding`).
+ * Svatba pro e2e testy RSVP a PINu hostů (M8) a zároveň ukázkový web `klara-a-matej` pro ostatní
+ * testy. Web páru se čte ze zveřejněného snímku v databázi (M5), takže se jedna zveřejněná svatba
+ * s touto adresou zakládá přímo přes SQL (`ensureWedding`, ve společném nastavení před testy)
+ * a před každým testem RSVP se uvede do výchozího stavu (`prepareWedding`).
  *
  * Jedna sdílená svatba vyžaduje, aby se testy nepřetahovaly o její stav: každý test drží výhradní
  * zámek (`pg_advisory_lock`) po celou dobu běhu, ať běží v kterémkoli projektu a procesu Playwrightu.
@@ -124,7 +125,11 @@ export async function lockWedding(): Promise<() => Promise<void>> {
   };
 }
 
-async function ensureWedding(db: Client): Promise<void> {
+/**
+ * Založí sdílenou svatbu `klara-a-matej` (jednou na databázi). Je zároveň ukázkovým webem pro ostatní
+ * testy: zveřejněný snímek je fixtura `eukalyptusFixture`, protože web páru se čte z databáze (M5).
+ */
+export async function ensureWedding(db: Client): Promise<void> {
   const exists = await db.query("select 1 from se_vezmou.weddings where id = $1", [WEDDING_ID]);
   if (exists.rowCount) return;
 
@@ -166,8 +171,8 @@ async function ensureWedding(db: Client): Promise<void> {
     ],
   );
   await db.query(
-    "insert into se_vezmou.site_versions (id, wedding_id, version_no, kind, public_content, created_by) values ($1, $2, 1, 'publish', '{\"version\": 1}', $3)",
-    [versionId, WEDDING_ID, adminId],
+    "insert into se_vezmou.site_versions (id, wedding_id, version_no, kind, public_content, created_by) values ($1, $2, 1, 'publish', $4, $3)",
+    [versionId, WEDDING_ID, adminId, JSON.stringify(eukalyptusFixture)],
   );
   await db.query(
     "insert into se_vezmou.site_version_sensitive (version_id, wedding_id, sensitive_content) values ($1, $2, $3)",

@@ -1,5 +1,6 @@
 import "server-only";
 import { headers } from "next/headers";
+import { UI_LOCALE_HEADER } from "@/host/ui-locale";
 import type { Locale } from "@/i18n/config";
 import { clientIp, isSameOrigin, pickLocale } from "./request-info";
 
@@ -15,9 +16,15 @@ export async function getHost(): Promise<string | null> {
   return h.get("x-forwarded-host")?.split(",")[0]?.trim() ?? h.get("host");
 }
 
-/** Jazyk rozhraní správy (cs výchozí, en podle `Accept-Language`). */
+/**
+ * Jazyk rozhraní správy: `/en/...` na hostiteli `app.` (hlavičku nastavuje proxy a klientem
+ * poslanou hodnotu přepisuje), jinak čeština, angličtina podle `Accept-Language`.
+ */
 export async function getUiLocale(): Promise<Locale> {
-  return pickLocale((await headers()).get("accept-language"));
+  const h = await headers();
+  const fromRoute = h.get(UI_LOCALE_HEADER);
+  if (fromRoute === "en" || fromRoute === "cs") return fromRoute;
+  return pickLocale(h.get("accept-language"));
 }
 
 export class OriginError extends Error {

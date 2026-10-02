@@ -89,7 +89,7 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
 7. **Ověření po nasazení** (SQL editor, role `postgres`):
 
    ```sql
-   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 14)
+   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 15)
    select count(*) from se_vezmou.schema_migrations;
    -- RLS je zapnuté na každé tabulce schématu (0 řádků = v pořádku)
    select relname from pg_class

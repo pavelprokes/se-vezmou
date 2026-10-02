@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import { HOSTS, pageUrl } from "./hosts";
+// Vlastní IP každého testu: čekací listina omezuje počet požadavků podle IP.
+import { expect, test } from "./support/fixtures";
 
 /**
  * Přístupnost úvodní stránky (WCAG 2.2 AA) v desktopovém i mobilním viewportu

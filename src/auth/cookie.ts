@@ -17,6 +17,10 @@ export const COOKIE_KINDS = {
   admin: "sv_admin",
   /** Rozpracované přihlášení kódem (zapečetěný e-mail) na `app.`. */
   pending: "sv_login",
+  /** Relace hosta po PINu (odemčené citlivé bloky) na webu páru. */
+  guest: "sv_guest",
+  /** Lístek RSVP po ověření jména (úprava odpovědi bez opětovného zadání) na webu páru. */
+  rsvp: "sv_rsvp",
 } as const;
 
 export type CookieKind = keyof typeof COOKIE_KINDS;

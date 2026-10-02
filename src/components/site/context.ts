@@ -2,6 +2,7 @@ import { htmlLang, type Locale } from "@/i18n/config";
 import type { MessageKey } from "@/i18n/messages";
 import { createTranslator, type Translator } from "@/i18n/translator";
 import { typo } from "@/i18n/typo";
+import type { RsvpSiteState } from "@/lib/rsvp/form";
 import { pick, resolvedLocale, type I18nText } from "@/site/i18n-text";
 import type {
   Block,
@@ -21,6 +22,8 @@ export interface SiteCtx {
   now: Date;
   sensitiveUnlocked: boolean;
   sensitive: SensitiveContent | null;
+  /** Živý stav RSVP z databáze (počáteční stav formuláře, volby páru); bez něj formulář začíná jménem. */
+  rsvp: RsvpSiteState | null;
   /** Text po jazycích s náhradním jazykem a typografií; bez textu prázdný řetězec. */
   text(value: I18nText | null | undefined): string;
   /** Odstavce oddělené prázdným řádkem. */
@@ -35,6 +38,7 @@ export interface SiteCtxOptions {
   now?: Date;
   sensitiveUnlocked?: boolean;
   sensitive?: SensitiveContent | null;
+  rsvp?: RsvpSiteState | null;
 }
 
 export function createSiteCtx(
@@ -52,6 +56,7 @@ export function createSiteCtx(
     now: options.now ?? new Date(),
     sensitiveUnlocked: options.sensitiveUnlocked ?? false,
     sensitive: options.sensitive ?? null,
+    rsvp: options.rsvp ?? null,
     text,
     paragraphs: (value) =>
       text(value)

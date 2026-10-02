@@ -55,7 +55,6 @@
   "rsvp.stickyLabel": "Quick link to RSVP",
   "rsvp.closed": "RSVP is now closed.",
   "rsvp.notYet": "RSVP will open later.",
-  "rsvp.placeholder": "The RSVP form is being prepared.",
   "footer.names": "{a} and {b}",
   "phase.save_the_date": "Save the date",
   "phase.rsvp_open": "RSVP open",
@@ -71,5 +70,15 @@
   "preview.phase": "Phase",
   "preview.unlocked": "Behind PIN",
   "preview.unlocked.on": "Unlocked",
-  "preview.unlocked.off": "Locked"
+  "preview.unlocked.off": "Locked",
+  "pin.hint": "You will find the PIN on the invitation. You may separate the digits with spaces.",
+  "pin.sending": "Checking…",
+  "pin.unlocked": "Unlocked with the PIN.",
+  "pin.error.format": "The PIN has at least six digits.",
+  "pin.error.invalid": "The PIN is not correct. Check it on the invitation and try again.",
+  "pin.error.locked": "Entering the PIN is paused for now. Please try again in {pause}.",
+  "pin.error.limited": "Please try again later.",
+  "pin.error.generic": "Something went wrong. Please try again.",
+  "venue.private.title": "The address is protected by a PIN",
+  "venue.private.body": "You will see the exact address after entering the PIN from the invitation."
 }

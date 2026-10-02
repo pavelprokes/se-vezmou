@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { locales, type Locale } from "@/i18n/config";
 import { NBSP, findTypoViolations, typo } from "@/i18n/typo";
-import { renderBackupLoginNotice, renderLoginCode, type RenderedEmail } from "./index";
+import {
+  renderBackupLoginNotice,
+  renderLoginCode,
+  renderRsvpConfirmation,
+  type RenderedEmail,
+} from "./index";
 
 const LINK = "https://app.se-vezmou.cz/prihlaseni/odkaz?t=abc_DEF-123";
 const AT = new Date("2026-10-02T12:05:00Z"); // 14:05 pražského času
@@ -24,6 +29,29 @@ function allEmails(locale: Locale): Record<string, RenderedEmail> {
       site: "klara-a-matej.se-vezmou.cz",
       pauseSeconds: 1800,
       loginUrl: LINK,
+    }),
+    rsvpConfirmation: renderRsvpConfirmation({
+      locale,
+      partners: { a: "Klára", b: "Matěj" },
+      people: [
+        {
+          name: "Jan Novák",
+          rows: [
+            { event: locale === "cs" ? "Svatební obřad" : "Wedding ceremony", attending: true },
+            { event: locale === "cs" ? "Svatební hostina" : "Wedding dinner", attending: false },
+          ],
+        },
+        { name: "Marie Nováková", rows: [] },
+      ],
+      editUrl: LINK,
+      unlisted: false,
+    }),
+    rsvpConfirmationUnlisted: renderRsvpConfirmation({
+      locale,
+      partners: { a: "Klára", b: "Matěj" },
+      people: [{ name: "Karel Cizí", rows: [] }],
+      editUrl: LINK,
+      unlisted: true,
     }),
     pinChanged: renderBackupLoginNotice({
       locale,
@@ -67,6 +95,30 @@ describe.each(locales)("e-mailové šablony (%s)", (locale) => {
     },
   );
 
+  it("potvrzení RSVP: kdo přijde na kterou událost, bez zdravotních údajů a bez pixelů", () => {
+    const { text, html, subject } = emails.rsvpConfirmation;
+    expect(subject).toContain("Klára");
+    expect(text).toContain("Jan Novák");
+    expect(text).toMatch(
+      locale === "cs" ? /Svatební obřad: přijdu/ : /Wedding ceremony: attending/,
+    );
+    expect(text).toMatch(
+      locale === "cs" ? /Svatební hostina: nepřijdu/ : /Wedding dinner: not attending/,
+    );
+    expect(html).toContain("<ul");
+    expect(text).toContain(LINK);
+    // šablona zdravotní údaje vůbec nepřijímá; zpráva je jen výslovně slibuje nezařazovat
+    expect(`${text}${html}`).not.toMatch(/bezlepk|ořech|vegan/i);
+    expect(text).toMatch(locale === "cs" ? /nikdy nezařazujeme/ : /never included/);
+  });
+
+  it("potvrzení hosta mimo seznam neslibuje úpravu a nemá odkaz na web", () => {
+    const { text, html } = emails.rsvpConfirmationUnlisted;
+    expect(html).not.toMatch(/<a /);
+    expect(text).not.toContain(LINK);
+    expect(text).toMatch(locale === "cs" ? /nejde na webu změnit/ : /can no longer be changed/);
+  });
+
   it("přihlašovací kód je na vlastním řádku v textu (jde vložit ze schránky) a v HTML", () => {
     const { text, html } = emails.loginCode;
     expect(text.split("\n")).toContain("048213");
@@ -105,7 +157,7 @@ describe.each(locales)("e-mailové šablony (%s)", (locale) => {
 
   it("předměty se mezi typy oznámení liší", () => {
     const subjects = Object.values(emails).map((email) => email.subject);
-    expect(new Set(subjects).size).toBe(4); // pinLogin a pinLoginNoSite sdílejí předmět
+    expect(new Set(subjects).size).toBe(5); // sdílejí předmět pinLogin a pinLoginNoSite, rsvpConfirmation a rsvpConfirmationUnlisted
   });
 });
 

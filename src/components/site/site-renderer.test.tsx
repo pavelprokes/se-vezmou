@@ -1,7 +1,18 @@
 // @vitest-environment jsdom
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// Server Actions (databáze, cookie) se v komponentových testech nahrazují; chování ověřují testy služeb a e2e.
+const actions = vi.hoisted(() => ({
+  unlockAction: vi.fn(),
+  matchAction: vi.fn(),
+  unlistedAction: vi.fn(),
+  submitAction: vi.fn(),
+  resetAction: vi.fn(),
+}));
+vi.mock("./actions", () => actions);
+
 import {
   editorialFixture,
   eukalyptusFixture,
@@ -327,7 +338,8 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
 
   it("příznak bez citlivých údajů nic neodemkne", () => {
     renderSite(eukalyptusFixture, "cs", { sensitiveUnlocked: true, sensitive: null });
-    expect(screen.getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+    const gifts = screen.getByRole("region", { name: "Dary" });
+    expect(within(gifts).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
   });
 
   it("s příznakem vykreslí číslo účtu a QR platbu s popiskem", () => {
@@ -348,12 +360,64 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
     ).toBeInTheDocument();
   });
 
-  it("zástupný formulář PINu nic neodesílá", async () => {
+  it("chybný PIN: chyba slovy v živé oblasti, pole označené a zaměřené, nic se neodemkne", async () => {
+    actions.unlockAction.mockResolvedValue({ error: "invalid" });
     const user = userEvent.setup();
     renderSite(eukalyptusFixture);
-    await user.type(screen.getByLabelText("PIN z pozvánky"), "1234");
-    await user.click(screen.getByRole("button", { name: "Odemknout" }));
-    expect(screen.getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+    const gifts = screen.getByRole("region", { name: "Dary" });
+    const input = within(gifts).getByLabelText("PIN z pozvánky");
+    await user.type(input, "123 456");
+    await user.click(within(gifts).getByRole("button", { name: "Odemknout" }));
+    expect(await within(gifts).findByText(/PIN nesouhlasí/)).toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveFocus();
+    expect(within(gifts).getByRole("alert")).toHaveTextContent("PIN nesouhlasí");
+    // formulář odeslal zadaný PIN i jazyk; hodnotu PINu čte server, ne klient
+    const formData = actions.unlockAction.mock.calls[0][1] as FormData;
+    expect(formData.get("pin")).toBe("123 456");
+    expect(formData.get("locale")).toBe("cs");
+  });
+
+  it("pauza po chybách se ukáže slovy s délkou pauzy", async () => {
+    actions.unlockAction.mockResolvedValue({ error: "locked", pause: "15 minut" });
+    const user = userEvent.setup();
+    renderSite(eukalyptusFixture);
+    const gifts = screen.getByRole("region", { name: "Dary" });
+    await user.type(within(gifts).getByLabelText("PIN z pozvánky"), "999999");
+    await user.click(within(gifts).getByRole("button", { name: "Odemknout" }));
+    expect(
+      await within(gifts).findByText(/pozastaveno\. Zkuste to znovu za 15 minut/),
+    ).toBeInTheDocument();
+  });
+
+  it("pole PINu je heslové, číselné a bez automatického doplnění", () => {
+    renderSite(eukalyptusFixture);
+    const gifts = screen.getByRole("region", { name: "Dary" });
+    const input = within(gifts).getByLabelText("PIN z pozvánky");
+    expect(input).toHaveAttribute("type", "password");
+    expect(input).toHaveAttribute("inputmode", "numeric");
+    expect(input).toHaveAttribute("autocomplete", "off");
+    expect(document.getElementById(input.getAttribute("aria-describedby")!)).toHaveTextContent(
+      "PIN najdete na pozvánce",
+    );
+  });
+});
+
+describe("SiteRenderer: soukromé místo za PINem (FR-PRIV-2)", () => {
+  it("bez PINu je vidět název a formulář, adresa ani popis cesty nejsou nikde", () => {
+    const { container } = renderSite(eukalyptusFixture, "cs", { sensitive: sensitiveFixture });
+    const card = screen.getByRole("article", { name: "Soukromý altán" });
+    expect(within(card).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+    expect(container.textContent).not.toContain("Altánová 7");
+    expect(container.textContent).not.toContain("zelené značce");
+  });
+
+  it("s PINem ukáže adresu a popis cesty soukromého místa", () => {
+    renderSite(eukalyptusFixture, "cs", { sensitiveUnlocked: true, sensitive: sensitiveFixture });
+    const card = screen.getByRole("article", { name: "Soukromý altán" });
+    expect(within(card).getByText("Altánová 7, 252 01 Dobřichovice")).toBeInTheDocument();
+    expect(within(card).getByText(/zelené značce/)).toBeInTheDocument();
+    expect(within(card).queryByLabelText("PIN z pozvánky")).toBeNull();
   });
 });
 

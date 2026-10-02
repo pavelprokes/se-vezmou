@@ -31,7 +31,8 @@ Stav: návrh k schválení. Právní části ověří skutečný právník (role
 | Operátor     | 30 minut  | 8 hodin   |
 
 - Obnova tokenu při přihlášení (zabránění fixaci relace). Odhlášení smaže záznam na serveru. Změna PINu nebo odebrání správce zruší jeho relace. U operátora zrušení všech relací po obnově druhého faktoru.
-- **Relace hosta** pro PIN hostů: krátká cookie `__Host-` jen na hostiteli webu páru, jen pro odemčení citlivých bloků, platnost řádově hodiny až dny `[OTÁZKA]` (doporučení: nečinnost několik hodin, absolutně pár dní).
+- **Relace hosta** pro PIN hostů: cookie `__Host-sv_guest` jen na hostiteli webu páru, jen pro odemčení citlivých bloků (číslo účtu, QR platba, adresa soukromého místa), nikdy správy. Nečinnost 6 hodin, absolutně 2 dny (`[OTÁZKA]` OQ-41). Odvolá ji změna PINu hostů.
+- **Lístek RSVP** (slepé ověření jména): cookie `__Host-sv_rsvp`, host-only, `HttpOnly`, 30 minut jako lístek v databázi, neprodlužuje se; host se kdykoli může ověřit jménem znovu a tlačítko „Zadat jiné jméno“ cookie smaže (sdílené zařízení). Lístek nikdy není v adrese ani ve formuláři.
 - Vázání na IP se **nepoužívá** (mobilní sítě mění IP), jen hrubé upozornění na změnu zařízení u správce.
 
 ## 2. CSRF
@@ -65,6 +66,14 @@ Hlavičky nastavuje proxy vrstva nebo konfigurace Next.js podle hostitele (mecha
 ## 4. Omezení požadavků
 
 Mechanismus a tabulka limitů jsou v ADR 0010 (čítače v Postgresu, klíče jako HMAC, podle IP i podle e-mailu nebo slugu, stejné odpovědi bez prozrazení existence). Pokrývá přihlášení, PIN správy a hostů, RSVP, slepé porovnání jména, kontrolu slugu, operátorská přihlášení. Ochrana RSVP před boty používá omezení a skrytou past, žádné hádanky (WCAG 3.3.8).
+
+Implementace (M8, `docs/data-model.md` kap. 15):
+
+- **Slepé ověření jména** nikdy neprozradí seznam hostů: žádná shoda, více shod, překročený limit, vyplněná skrytá past i zavřené RSVP dávají stejný stav a stejný text. Limity: 15 porovnání za hodinu na svatbu a IP, 10 odeslání za hodinu na svatbu a IP, 200 odeslání za hodinu na svatbu. Selhání čítačů RSVP selže otevřeně (nemá zablokovat hosty), PINu zavřeně.
+- **Skrytá past**: pole `website` mimo obrazovku, `aria-hidden`, `tabindex="-1"`. Robot dostane stejnou odpověď jako host mimo seznam (při porovnání), nebo odpověď vypadající přijatá (při odeslání), nic se nezapíše.
+- **PIN hostů**: pauza po 5 chybách podle svatby a IP (15 minut, dvojnásobek každou sérii, strop 24 hodin), pauza celé svatby po 50 chybách ze všech adres, stejná odpověď pro svatbu bez PINu a neexistující svatbu. PIN s chybným tvarem se do chyb nepočítá.
+- **Potvrzení e-mailem** jde jen na adresu, kterou host sám zadal, a jen když pár potvrzení zapnul. Riziko rozesílání potvrzení cizím adresám je omezeno týmiž limity odeslání a tím, že odeslat jde jen s platným lístkem (nebo u hosta mimo seznam, který je pár výslovně povolil); zpráva obsahuje jen shrnutí účasti, nikdy zdravotní údaje.
+- **Citlivá data za PINem** se bez relace hosta nenačítají z databáze, takže nejsou ani v HTML, ani v RSC payloadu (test `e2e/guest-pin.e2e.ts`).
 
 ## 5. Osobní údaje
 

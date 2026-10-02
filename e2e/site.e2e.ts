@@ -217,22 +217,29 @@ test.describe("režim poděkování po svatbě (FR-WEB-4)", () => {
   });
 });
 
-test.describe("dary za PINem (FR-PRIV-2)", () => {
-  test("zamčené: jen formulář PINu, číslo účtu není v HTML", async ({ page }) => {
+test.describe("dary a soukromé místo za PINem (FR-PRIV-2)", () => {
+  test("zamčené: jen formuláře PINu, číslo účtu ani adresa soukromého místa nejsou v HTML", async ({
+    page,
+  }) => {
     await page.goto(previewUrl("cs"));
-    await expect(page.getByLabel("PIN z pozvánky")).toBeVisible();
+    await expect(page.locator("#dary").getByLabel("PIN z pozvánky")).toBeVisible();
+    await expect(page.locator("#misto").getByLabel("PIN z pozvánky")).toBeVisible();
     const html = await page.content();
     expect(html).not.toContain("19-2000145399");
     expect(html).not.toContain("CZ6508000000192000145399");
+    expect(html).not.toContain("Altánová 7");
     await expect(page.locator("svg.site-qr")).toHaveCount(0);
   });
 
-  test("odemčené: číslo účtu a QR platba s popiskem", async ({ page }) => {
+  test("odemčené: číslo účtu a QR platba s popiskem a adresa soukromého místa", async ({
+    page,
+  }) => {
     await page.goto(previewUrl("cs", { unlocked: true }));
     await expect(page.getByText("19-2000145399/0800")).toBeVisible();
     await expect(
       page.getByRole("img", { name: /QR kód pro platbu na účet 19-2000145399\/0800/ }),
     ).toBeVisible();
+    await expect(page.getByText("Altánová 7, 252 01 Dobřichovice")).toBeVisible();
     await expect(page.getByLabel("PIN z pozvánky")).toHaveCount(0);
   });
 });

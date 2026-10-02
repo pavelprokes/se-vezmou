@@ -1,0 +1,21 @@
+bez data svatby	published	Europe/Prague	\N	\N	t	\N	\N	2027-01-01T10:00:00Z	\N	save_the_date
+data, ale bez nastavení RSVP	published	Europe/Prague	2027-06-12	\N	f	\N	\N	2027-01-01T10:00:00Z	\N	save_the_date
+RSVP bez omezení je otevřené	published	Europe/Prague	2027-06-12	\N	t	\N	\N	2027-01-01T10:00:00Z	\N	rsvp_open
+RSVP se teprve otevře	published	Europe/Prague	2027-06-12	\N	t	2027-03-01T00:00:00Z	\N	2027-02-28T23:59:59Z	\N	save_the_date
+RSVP se otevřelo přesně teď	published	Europe/Prague	2027-06-12	\N	t	2027-03-01T00:00:00Z	\N	2027-03-01T00:00:00Z	\N	rsvp_open
+RSVP otevřené před uzavřením	published	Europe/Prague	2027-06-12	\N	t	2027-03-01T00:00:00Z	2027-05-01T00:00:00Z	2027-04-30T23:59:59Z	\N	rsvp_open
+RSVP uzavřeno přesně teď	published	Europe/Prague	2027-06-12	\N	t	2027-03-01T00:00:00Z	2027-05-01T00:00:00Z	2027-05-01T00:00:00Z	\N	rsvp_closed
+poslední sekunda před svatbou (Praha, letní čas)	published	Europe/Prague	2027-06-12	\N	t	2027-03-01T00:00:00Z	2027-05-01T00:00:00Z	2027-06-11T21:59:59Z	\N	rsvp_closed
+půlnoc svatebního dne (Praha, letní čas)	published	Europe/Prague	2027-06-12	\N	t	2027-03-01T00:00:00Z	2027-05-01T00:00:00Z	2027-06-11T22:00:00Z	\N	wedding_day
+poslední sekunda svatebního dne	published	Europe/Prague	2027-06-12	\N	t	\N	\N	2027-06-12T21:59:59Z	\N	wedding_day
+první sekunda po svatbě	published	Europe/Prague	2027-06-12	\N	t	\N	\N	2027-06-12T22:00:00Z	\N	thanks
+vícedenní svatba, druhý den	published	Europe/Prague	2027-06-12	2027-06-14	t	\N	\N	2027-06-13T12:00:00Z	\N	wedding_day
+vícedenní svatba, po posledním dni	published	Europe/Prague	2027-06-12	2027-06-14	t	\N	\N	2027-06-14T22:00:00Z	\N	thanks
+zimní čas: poslední sekunda před svatbou	published	Europe/Prague	2027-12-24	\N	t	\N	\N	2027-12-23T22:59:59Z	\N	rsvp_open
+zimní čas: půlnoc svatebního dne	published	Europe/Prague	2027-12-24	\N	t	\N	\N	2027-12-23T23:00:00Z	\N	wedding_day
+jiné časové pásmo: den ještě nezačal	published	America/New_York	2027-06-12	\N	t	\N	\N	2027-06-12T03:59:59Z	\N	rsvp_open
+jiné časové pásmo: den začal	published	America/New_York	2027-06-12	\N	t	\N	\N	2027-06-12T04:00:00Z	\N	wedding_day
+ruční přepsání má přednost před daty	published	Europe/Prague	2027-06-12	\N	t	\N	\N	2027-01-01T10:00:00Z	thanks	thanks
+ruční přepsání na uzavřené RSVP	published	Europe/Prague	2027-06-12	\N	t	\N	\N	2027-06-12T10:00:00Z	rsvp_closed	rsvp_closed
+archivovaný web nemá fázi	archived	Europe/Prague	2027-06-12	\N	t	\N	\N	2027-09-20T10:00:00Z	\N	\N
+koncept nemá fázi	draft	Europe/Prague	2027-06-12	\N	t	\N	\N	2027-01-01T10:00:00Z	\N	\N

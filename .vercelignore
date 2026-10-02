@@ -1,0 +1,11 @@
+.github
+.husky
+.vscode
+.claude
+AGENTS.md
+CLAUDE.md
+README.md
+coverage
+playwright-report
+test-results
+*.md

@@ -34,3 +34,22 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# IDE / OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+Thumbs.db
+
+# test / reporty
+/playwright-report/
+/test-results/
+/blob-report/
+
+# lokální pracovní soubory
+*.log
+.claude/settings.local.json
+
+# Sentry
+.sentryclirc

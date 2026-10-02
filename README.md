@@ -15,7 +15,7 @@ npm run build
 
 1. Na https://vercel.com/new naimportuj tento GitHub repozitář.
 2. Vercel automaticky detekuje Next.js (build `next build`, žádná další konfigurace není potřeba).
-3. Proměnné prostředí nastav v *Project Settings → Environment Variables*
+3. Proměnné prostředí nastav v _Project Settings → Environment Variables_
    (vzor viz `.env.example`).
 4. Každý push do `main` = produkční deploy, každá větev / PR = preview deploy.
 

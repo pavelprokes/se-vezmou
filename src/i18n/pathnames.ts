@@ -7,6 +7,9 @@ import { defaultLocale, locales, type Locale } from "./config";
  */
 export const pathnames = {
   home: { cs: "/", en: "/en" },
+  privacy: { cs: "/soukromi", en: "/en/privacy" },
+  terms: { cs: "/podminky", en: "/en/terms" },
+  accessibility: { cs: "/dostupnost", en: "/en/accessibility" },
 } as const satisfies Record<string, Record<Locale, string>>;
 
 export type RouteName = keyof typeof pathnames;

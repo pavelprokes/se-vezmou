@@ -13,8 +13,8 @@
     "i18n:check": "tsx scripts/check-i18n.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test --project=e2e",
-    "test:a11y": "playwright test --project=a11y",
+    "test:e2e": "playwright test --project=e2e --project=e2e-mobile",
+    "test:a11y": "playwright test --project=a11y --project=a11y-mobile",
     "prepare": "husky"
   },
   "dependencies": {

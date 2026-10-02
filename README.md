@@ -28,6 +28,17 @@ Běžné prohlížeče překládají `*.localhost` na loopback, takže stačí o
 vrací 404. Na náhledech `*.vercel.app` (bez subdomén) zvol druh hostitele proměnnými
 `HOST_PRESET` a `PREVIEW_TENANT_SLUG` (viz `.env.example`; produkce je nikdy nečte).
 
+### Úvodní stránka (M2)
+
+- Komponenty sekcí jsou v `src/components/landing/`, stránka v `src/app/h/marketing/[locale]/page.tsx`.
+- Ceny a podmínky zaváděcího provozu jsou na jednom místě v `src/config/pricing.ts`, údaje
+  provozovatele a kontakt (zatím zástupné) v `src/config/operator.ts`.
+- Tlačítka „Vytvořit web“ a pole jmen vedou na průvodce: adresu určuje `NEXT_PUBLIC_APP_URL`,
+  cestu a query parametry (`jmeno1`, `jmeno2`, `jazyk`) `src/lib/wizard-link.ts`.
+- Čekací listina běží přes Server Action za rozhraním `src/lib/waitlist.ts`. Dokud není hotová
+  databáze (M3), adaptér záznam jen zaloguje bez osobních údajů a **e-mail se neukládá**.
+- Obrázky pro sdílení (`public/og/`) vznikají skriptem `node scripts/generate-og.mjs`.
+
 ### Kontroly a testy
 
 ```bash

@@ -9,6 +9,11 @@ export interface LanguageSwitcherProps {
   label: string;
   /** Názvy jazyků každý ve svém jazyce (`Čeština`, `English`). */
   names: Record<Locale, string>;
+  /**
+   * Zkratky pro těsná místa (`CS`, `EN`). Přístupný název pak je „CS, Čeština“,
+   * aby viditelný text byl součástí názvu (WCAG 2.5.3).
+   */
+  shortNames?: Record<Locale, string>;
   className?: string;
 }
 
@@ -21,6 +26,7 @@ export function LanguageSwitcher({
   hrefs,
   label,
   names,
+  shortNames,
   className,
 }: LanguageSwitcherProps) {
   return (
@@ -34,6 +40,7 @@ export function LanguageSwitcher({
                 href={hrefs[locale]}
                 lang={locale}
                 hrefLang={locale}
+                aria-label={shortNames ? `${shortNames[locale]}, ${names[locale]}` : undefined}
                 aria-current={active ? "true" : undefined}
                 className={cn(
                   "min-h-target min-w-target rounded-button inline-flex items-center justify-center px-3 text-base",
@@ -42,7 +49,7 @@ export function LanguageSwitcher({
                     : "text-pine hover:bg-linen",
                 )}
               >
-                {names[locale]}
+                {shortNames ? shortNames[locale] : names[locale]}
               </a>
             </li>
           );

@@ -1,11 +1,12 @@
 import { expect, test } from "@playwright/test";
+import { NBSP } from "../src/i18n/typo";
 import { HOSTS, PORT, pageUrl } from "./hosts";
 
 test.describe("úvodní stránka a jazyky", () => {
   test("čeština na /: lang, nadpis, hreflang a canonical", async ({ page }) => {
     await page.goto(pageUrl(HOSTS.marketing, "/"));
     await expect(page.locator("html")).toHaveAttribute("lang", "cs");
-    await expect(page.getByRole("heading", { level: 1, name: "Se vezmou" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /^Vaše svatba/ })).toBeVisible();
 
     const alternates = await page
       .locator('link[rel="alternate"][hreflang]')
@@ -28,7 +29,7 @@ test.describe("úvodní stránka a jazyky", () => {
   test("angličtina pod /en: lang en-GB a canonical na sebe", async ({ page }) => {
     await page.goto(pageUrl(HOSTS.marketing, "/en"));
     await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Se vezmou");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(/^Your wedding/);
     await expect(page.locator('link[rel="canonical"]')).toHaveAttribute(
       "href",
       "https://se-vezmou.cz/en",
@@ -50,7 +51,7 @@ test.describe("úvodní stránka a jazyky", () => {
 
   test("přepínač jazyka je navigace s odkazy a funguje oběma směry", async ({ page }) => {
     await page.goto(pageUrl(HOSTS.marketing, "/"));
-    const nav = page.getByRole("navigation", { name: "Jazyk" });
+    const nav = page.getByRole("navigation", { name: "Jazyk", exact: true });
     await expect(nav.getByRole("link", { name: "Čeština" })).toHaveAttribute(
       "aria-current",
       "true",
@@ -60,7 +61,7 @@ test.describe("úvodní stránka a jazyky", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
 
     await page
-      .getByRole("navigation", { name: "Language" })
+      .getByRole("navigation", { name: "Language", exact: true })
       .getByRole("link", { name: "Čeština" })
       .click();
     await expect(page).toHaveURL(pageUrl(HOSTS.marketing, "/"));
@@ -82,8 +83,8 @@ test.describe("úvodní stránka a jazyky", () => {
     page,
   }) => {
     await page.goto(pageUrl(HOSTS.marketing, "/"));
-    const lead = await page.locator("#obsah p").innerText();
-    expect(lead).toContain("v klidu");
+    const lead = await page.locator("#obsah p", { hasText: "praktické" }).first().innerText();
+    expect(lead).toContain(`i${NBSP}praktické`);
   });
 });
 

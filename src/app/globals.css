@@ -46,11 +46,14 @@ body {
   line-height: 1.6;
 }
 
-h1,
-h2,
-h3 {
-  font-family: var(--font-serif);
-  line-height: 1.15;
+/* V základní vrstvě, aby šla písmo nadpisů přepsat třídou (např. `font-sans` u nadpisů sekcí). */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-serif);
+    line-height: 1.15;
+  }
 }
 
 /* Viditelný focus pro všechny ovladatelné prvky (WCAG 2.4.7, 2.4.13). */
@@ -79,5 +82,50 @@ h3 {
 @media (prefers-reduced-motion: no-preference) {
   html {
     scroll-behavior: smooth;
+  }
+}
+
+/*
+ * Zvýraznění části nadpisu skořicovou barvou. Skořicová (#b66d55) má na pergamenu poměr jen kolem 3,7 : 1,
+ * proto smí barvit jen velký text (nadpisy od 24 px, WCAG 1.4.3); pro běžný text je `cinnamon-deep`.
+ */
+@utility heading-accent {
+  color: var(--color-cinnamon);
+}
+
+/*
+ * Jemná animace ilustrace v heru. Běží jen bez `prefers-reduced-motion: reduce`
+ * (WCAG 2.3.3); při omezeném pohybu zůstane ilustrace nehybná.
+ */
+.art-check {
+  stroke-dasharray: 26;
+  stroke-dashoffset: 0;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .art-check {
+    animation: art-draw 900ms ease-out 500ms both;
+  }
+
+  .art-card {
+    animation: art-float 7s ease-in-out infinite alternate;
+  }
+
+  @keyframes art-draw {
+    from {
+      stroke-dashoffset: 26;
+    }
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  @keyframes art-float {
+    from {
+      transform: translateY(0);
+    }
+    to {
+      transform: translateY(-6px);
+    }
   }
 }

@@ -286,6 +286,8 @@ begin
   v_form := public.rsvp_unlisted_form();
   perform tap.ok(jsonb_array_length(v_form -> 'events') = 2, 'formulář hosta mimo seznam nabízí jen události s rsvp_enabled');
   perform tap.ok(not (v_form::text like '%Soukromá%') and not (v_form::text like '%Novák%'), 'formulář neobsahuje skrytou událost ani hosty');
+  perform tap.ok(v_form #>> '{wedding,timezone}' = 'Europe/Prague' and v_form #>> '{wedding,default_locale}' = 'cs',
+    'formulář nese časové pásmo a výchozí jazyk svatby pro zobrazení času a náhradního jazyka');
 
   v_result := public.rsvp_submit_unlisted(jsonb_build_object(
     'contact_email', 'karel@example.test', 'answers', jsonb_build_object('song', 'Cizí píseň'),
@@ -431,6 +433,8 @@ begin
   perform tap.become('authenticated', tap.wa(), 'admin');
   v_view := public.admin_rsvp_household(v_h);
   perform tap.ok(jsonb_array_length(v_view -> 'guests') = 2 and v_view -> 'response' = 'null'::jsonb, 'admin_rsvp_household: domácnost bez odpovědi');
+  perform tap.ok(v_view ->> 'household_id' = v_h::text and v_view #>> '{wedding,timezone}' = 'Europe/Prague',
+    'admin_rsvp_household nese domácnost a časové pásmo svatby');
   perform tap.ok(public.admin_rsvp_household(tap.u('B:household')) is null, 'admin_rsvp_household: cizí domácnost je null');
   perform tap.ok((public.admin_rsvp_enter(v_h, jsonb_build_object(
       'contact_email', 'nema@example.test', 'answers', '{}'::jsonb,

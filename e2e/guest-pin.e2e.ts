@@ -29,6 +29,14 @@ async function enterPin(page: Page, region: string, pin: string): Promise<void> 
   const response = page.waitForResponse((r) => r.request().method() === "POST");
   await scope.getByRole("button", { name: "Odemknout" }).click();
   await response;
+  // React po dokončení akce vyprázdní formulář; další psaní smí začít až potom (jinak by ho smazal)
+  await expect(async () => {
+    // evaluateAll nečeká na prvek, který se právě odstraňuje (odemčení formulář nahradí obsahem)
+    const values = await scope
+      .getByLabel("PIN z pozvánky")
+      .evaluateAll((fields) => fields.map((field) => (field as HTMLInputElement).value));
+    expect(values.every((value) => value === "")).toBe(true);
+  }).toPass();
 }
 
 /**

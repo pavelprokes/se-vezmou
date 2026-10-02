@@ -8,14 +8,16 @@ export { expect };
  * `wedding(setup)` uvede svatbu do stavu podle `setup`; zámek se uvolní po testu.
  */
 export const test = base.extend<{ wedding: (setup?: RsvpSetup) => Promise<TenantWedding> }>({
-  wedding: async ({ ip }, provide, testInfo) => {
-    // Čekání na zámek patří do času testu: testy sdílené svatby běží po jednom.
-    testInfo.setTimeout(Math.max(testInfo.timeout, 120_000));
-    const unlock = await lockWedding();
-    try {
-      await provide((setup) => prepareWedding(ip, setup));
-    } finally {
-      await unlock();
-    }
-  },
+  wedding: [
+    async ({ ip }, provide) => {
+      const unlock = await lockWedding();
+      try {
+        await provide((setup) => prepareWedding(ip, setup));
+      } finally {
+        await unlock();
+      }
+    },
+    // Čekání na zámek (testy sdílené svatby běží po jednom) nesmí ukrajovat z času testu.
+    { timeout: 900_000 },
+  ],
 });

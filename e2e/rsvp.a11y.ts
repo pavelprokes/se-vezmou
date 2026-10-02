@@ -127,6 +127,10 @@ for (const [viewportName, viewport] of Object.entries(VIEWPORTS)) {
             name: t ? "Odpovědět jako host mimo seznam" : "Reply as a guest not on the list",
           })
           .click();
+        // formulář nahradí první krok až po odpovědi serveru; psát do něj dřív by se ztratilo
+        await expect(
+          section.getByText(t ? /Novomanželé\spovolili/ : /The couple allows/),
+        ).toBeVisible();
         await section.getByLabel(t ? "Vaše jméno" : "Your name").fill("Karel Cizí");
         await section
           .getByRole("button", { name: t ? "Přidat další osobu" : "Add another person" })

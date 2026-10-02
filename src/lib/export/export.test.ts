@@ -316,18 +316,83 @@ describe("služba exportu", () => {
   });
 });
 
-describe("export fotografií (rozhraní, TODO M7c)", () => {
-  it("zatím jen vypíše soubory svatby z úložiště a archiv nesestavuje", async () => {
+describe("export fotografií (M7c, největší varianty z úložiště)", () => {
+  const wedding = "0b6a1c1e-3b5e-4d0c-9a1f-0d3c7e9a1b11";
+  const other = "7c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5";
+  const m1 = "9d2f1a40-5b6c-4d7e-8f90-a1b2c3d4e5f6";
+  const m2 = "1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d";
+
+  async function setup() {
     const { createMemoryStorage } = await import("@/lib/storage/memory");
     const { setStorage } = await import("@/lib/storage");
-    const { planPhotoExport } = await import("./photos");
-    const wedding = "0b6a1c1e-3b5e-4d0c-9a1f-0d3c7e9a1b11";
     const storage = createMemoryStorage();
-    storage.put(`${wedding}/foto/1.webp`);
-    storage.put("7c1d2e3f-4a5b-4c6d-8e7f-90a1b2c3d4e5/foto/1.webp");
     setStorage(storage);
+    return storage;
+  }
+
+  it("vybere největší variantu každé fotografie, při stejné šířce WebP před AVIF", async () => {
+    const storage = await setup();
+    const { setStorage } = await import("@/lib/storage");
+    const { planPhotoExport } = await import("./photos");
+    for (const [key, bytes] of [
+      [`${wedding}/${m1}/640.webp`, 10],
+      [`${wedding}/${m1}/1920.avif`, 20],
+      [`${wedding}/${m1}/1920.webp`, 30],
+      [`${wedding}/${m1}/1280.webp`, 25],
+      [`${wedding}/${m2}/640.avif`, 5],
+      [`${wedding}/${m2}/640.webp`, 7],
+      // cizí svatba, karanténa a soubory, které aplikace nezapisuje, se nikdy nevydají
+      [`${other}/${m1}/1920.webp`, 99],
+      [`incoming/${wedding}/${m2}`, 99],
+      [`${wedding}/foto/1.webp`, 99],
+    ] as const) {
+      storage.put(key, bytes);
+    }
     try {
-      expect(await planPhotoExport(wedding)).toEqual({ status: "not_available", files: 1 });
+      const plan = await planPhotoExport(wedding);
+      expect(plan.status).toBe("ready");
+      if (plan.status !== "ready") return;
+      expect(plan.files.map((f) => [f.mediaId, f.width, f.format, f.bytes])).toEqual(
+        [
+          [m2, 640, "webp", 7],
+          [m1, 1920, "webp", 30],
+        ].sort((a, b) => `${wedding}/${a[0]}`.localeCompare(`${wedding}/${b[0]}`)),
+      );
+    } finally {
+      setStorage(null);
+    }
+  });
+
+  it("bez fotografií je výsledek prázdný, bez nastaveného úložiště nedostupný", async () => {
+    await setup();
+    const { setStorage, createUnconfiguredStorage } = await import("@/lib/storage");
+    const { planPhotoExport } = await import("./photos");
+    try {
+      expect(await planPhotoExport(wedding)).toEqual({ status: "empty" });
+      setStorage(createUnconfiguredStorage());
+      expect(await planPhotoExport(wedding)).toEqual({ status: "not_available" });
+    } finally {
+      setStorage(null);
+    }
+  });
+
+  it("odkaz ke stažení je podepsaný, nese název souboru a platí krátce", async () => {
+    const storage = await setup();
+    const { setStorage } = await import("@/lib/storage");
+    const { planPhotoExport, presignPhotoDownload } = await import("./photos");
+    storage.put(`${wedding}/${m1}/1280.webp`, 1234);
+    try {
+      const plan = await planPhotoExport(wedding);
+      if (plan.status !== "ready") throw new Error("čekal se plán");
+      const link = await presignPhotoDownload(plan.files[0], "foto-01.webp");
+      expect(link).toMatchObject({ name: "foto-01.webp", bytes: 1234, width: 1280 });
+      const url = new URL(link.url, "http://x");
+      expect(url.pathname).toBe("/api/dev-storage");
+      expect(url.searchParams.get("name")).toBe("foto-01.webp");
+      expect(url.searchParams.get("key")).toBe(`${wedding}/${m1}/1280.webp`);
+      expect(Number(url.searchParams.get("expires")) * 1000 - Date.now()).toBeLessThan(
+        31 * 60 * 1000,
+      );
     } finally {
       setStorage(null);
     }

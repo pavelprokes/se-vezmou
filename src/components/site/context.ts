@@ -67,7 +67,10 @@ export function createSiteCtx(
       const shown = resolvedLocale(value, locale, fallback);
       return shown && shown !== locale ? htmlLang[shown] : undefined;
     },
-    media: (id) => content.media.find((m) => m.id === id),
+    // Fotografie chráněné PINem hostů jsou jen v citlivé části snímku a jen po odemčení.
+    media: (id) =>
+      content.media.find((m) => m.id === id) ??
+      (options.sensitiveUnlocked ? options.sensitive?.photos.find((m) => m.id === id) : undefined),
     venue: (id) => content.venues.find((v) => v.id === id),
   };
 }
@@ -126,6 +129,8 @@ function hasContent(block: Block, ctx: SiteCtx): boolean {
     case "gallery":
       return (
         block.data.link !== null ||
+        // Fotografie chráněné PINem: blok se zobrazí i zamčený (s výzvou k zadání PINu)
+        block.data.photosProtected ||
         block.data.mediaIds.some((id) => {
           const media = ctx.media(id);
           return media && (media.decorative || ctx.text(media.alt) !== "");

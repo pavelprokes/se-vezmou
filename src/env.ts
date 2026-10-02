@@ -36,6 +36,19 @@ const schema = z.object({
   /** Jen automatické testy: `1` povolí parametr `now` (simulovaný čas) a `wedding_id`; v produkci odmítnuto. */
   CRON_TEST_CLOCK: z.string().min(1).optional(),
 
+  // Fotografie páru (M7c, docs/adr/0006-photo-storage.md): Cloudflare R2, jen serverové proměnné. Bez nich se mimo
+  // produkci používá úložiště v paměti; v produkci bez nich selže teprve použití fotografií (src/lib/storage).
+  R2_ACCOUNT_ID: z.string().min(1).optional(),
+  R2_ACCESS_KEY_ID: z.string().min(1).optional(),
+  R2_SECRET_ACCESS_KEY: z.string().min(1).optional(),
+  R2_BUCKET: z.string().min(1).optional(),
+  /** `https://<account-id>.eu.r2.cloudflarestorage.com`; bez zadání se odvodí z R2_ACCOUNT_ID. */
+  R2_ENDPOINT: z.string().min(1).optional(),
+  /** Oblast podpisu S3, u R2 vždy `auto`. */
+  S3_REGION: z.string().min(1).optional(),
+  /** Jen automatické testy (e2e proti produkčnímu sestavení): `memory` zapne úložiště v paměti. Nikdy v produkci. */
+  STORAGE_DRIVER: z.string().min(1).optional(),
+
   // AWS SES. Bez těchto hodnot se e-maily jen vypíšou do konzole a neodesílají.
   AWS_REGION: z.string().min(1).optional(),
   AWS_ACCESS_KEY_ID: z.string().min(1).optional(),

@@ -1,10 +1,12 @@
 import "server-only";
 import { getGuestSession, guestIdentity } from "@/auth/guest-session";
 import type { Locale } from "@/i18n/config";
+import { publicMediaIds } from "@/lib/db/media";
 import { resolveSlug, tenantRpc } from "@/lib/db/rpc";
 import { fetchRsvpInfo } from "@/lib/rsvp/db";
 import type { RsvpSiteState } from "@/lib/rsvp/form";
 import { initialState } from "@/lib/rsvp/service";
+import { liveMedia } from "./live-media";
 import { readTicket } from "./tenant-request";
 import { sensitiveContentSchema, type Phase, type SensitiveContent } from "./types";
 
@@ -47,6 +49,17 @@ export async function loadGuestContext(slug: string, locale: Locale): Promise<Gu
       );
       const parsed = sensitiveContentSchema.safeParse(site?.sensitive ?? {});
       sensitive = parsed.success ? parsed.data : sensitiveContentSchema.parse({});
+      // Smazaná fotografie zmizí i z chráněné části hned (viz `getPublicContent`)
+      if (sensitive.photos.length > 0) {
+        try {
+          const alive = new Set(
+            (await publicMediaIds(guestIdentity(access))).map((id) => id.toLowerCase()),
+          );
+          sensitive = { ...sensitive, photos: liveMedia(sensitive.photos, alive) };
+        } catch {
+          // beze změny: doručení smazanou fotografii stejně nepodá
+        }
+      }
     }
 
     return {

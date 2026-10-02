@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ADMIN_PATHS, appHref } from "@/admin/paths";
 import { liveSite } from "@/admin/site-href";
+import { reconcileGalleryMedia } from "@/admin/site/doc";
 import { checkpointDue, isManaged, loadSite } from "@/admin/site/server";
 import { getUiLocale } from "@/auth/request";
 import { requireSession } from "@/auth/session";
@@ -12,14 +13,28 @@ import { SiteEditor } from "@/components/admin/site-editor";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createTranslator } from "@/i18n/translator";
+import { listMedia, storageAvailable } from "@/lib/media/service";
 import {
   checkpointAction,
+  deletePhotoAction,
+  exportPhotosAction,
+  finishPhotoUploadAction,
+  renewPhotoUploadAction,
+  requestPhotoUploadAction,
+  updatePhotoAction,
   publishSiteAction,
   quickNoticeAction,
   refreshGalleryCardAction,
   saveSiteAction,
   unpublishSiteAction,
 } from "./actions";
+
+/**
+ * Zpracování fotografií na serveru (`finishPhotoUploadAction`: sharp, varianty ve WebP a AVIF) je nejdelší
+ * operace aplikace: `maxDuration` stránky platí pro všechny Server Actions, které se z ní volají (docs Next.js,
+ * Route Segment Config: maxDuration). Nahrání samotné jde přímo do úložiště a funkci nezatěžuje.
+ */
+export const maxDuration = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: createTranslator(await getUiLocale())("admin.nav.site") };
@@ -37,7 +52,10 @@ export default async function EditSitePage() {
 
   const loaded = await loadSite(session);
   if (!loaded) notFound();
-  const { doc, meta } = loaded;
+  const { meta } = loaded;
+  const media = isManaged(meta) ? await listMedia(session) : [];
+  // Galerie obsahuje všechny hotové fotografie; pořadí z konceptu se sjednotí s tabulkou médií
+  const doc = reconcileGalleryMedia(loaded.doc, media);
   const site = await liveSite(meta.slug, doc.wedding.defaultLocale);
 
   if (!isManaged(meta)) {
@@ -97,6 +115,16 @@ export default async function EditSitePage() {
             quickNotice: quickNoticeAction,
             refreshGalleryCard: refreshGalleryCardAction,
           }}
+          initialMedia={media}
+          mediaActions={{
+            requestUpload: requestPhotoUploadAction,
+            renewUpload: renewPhotoUploadAction,
+            finishUpload: finishPhotoUploadAction,
+            update: updatePhotoAction,
+            remove: deletePhotoAction,
+            exportPhotos: exportPhotosAction,
+          }}
+          photosAvailable={storageAvailable()}
           siteHref={site?.url ?? null}
           historyHref={appHref(ADMIN_PATHS.history, locale)}
           needsCheckpoint={checkpointDue(loaded)}

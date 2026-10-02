@@ -130,6 +130,7 @@ describe("parseOgCard", () => {
       description: "Fotky & videa z obřadu",
       imageUrl: "https://fotky.example/img/cover.jpg",
       fetchedAt: "2026-10-02T10:00:00.000Z",
+      imageMediaId: null,
       status: "ok",
     });
   });

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NBSP } from "@/i18n/typo";
 import { DbError } from "@/lib/db/transport";
 import { createMemoryStorage, type MemoryStorage } from "@/lib/storage/memory";
-import { setStorage } from "@/lib/storage";
+import { createUnconfiguredStorage, setStorage } from "@/lib/storage";
 import type { NoticeContext } from "@/lib/lifecycle/notices";
 import type { ClaimedNotice, DueWedding } from "@/lib/lifecycle/rpc";
 import type { JobContext } from "../run";
@@ -344,6 +344,45 @@ describe("úloha retence", () => {
     expect(rpc.purgeWedding).not.toHaveBeenCalledWith(A, expect.anything());
     expect(storage.keys()).toContain(`${A}/foto/1.webp`);
     expect(sendTemplatedEmail).not.toHaveBeenCalled();
+  });
+
+  it("smaže i karanténu s nedokončenými originály (incoming/{wedding_id}/) a cizí soubory nechá", async () => {
+    storage.put(`incoming/${A}/9d2f1a40-5b6c-4d7e-8f90-a1b2c3d4e5f6`);
+    storage.put(`incoming/${B}/9d2f1a40-5b6c-4d7e-8f90-a1b2c3d4e5f6`);
+    rpc.dueWeddings.mockResolvedValue([due(A)]);
+    rpc.noticeRecipients.mockResolvedValue([]);
+    rpc.purgeWedding.mockResolvedValue({
+      kind: "wedding",
+      guests: 0,
+      blocks: 0,
+      media: 2,
+      storage_paths: [],
+    });
+    const result = await retentionJob.run(context());
+    expect(result.counts).toMatchObject({ weddings_purged: 1, files_deleted: 3 });
+    expect(storage.keys()).toEqual([
+      `${B}/foto/1.webp`,
+      `incoming/${B}/9d2f1a40-5b6c-4d7e-8f90-a1b2c3d4e5f6`,
+    ]);
+  });
+
+  it("bez nastaveného úložiště se web s fotografiemi nesmaže, web bez fotografií ano", async () => {
+    setStorage(createUnconfiguredStorage(["R2_BUCKET"]));
+    rpc.dueWeddings.mockResolvedValue([due(A, { media_count: 2 }), due(B, { media_count: 0 })]);
+    rpc.noticeRecipients.mockResolvedValue([]);
+    rpc.purgeWedding.mockResolvedValue({
+      kind: "wedding",
+      guests: 0,
+      blocks: 0,
+      media: 0,
+      storage_paths: [],
+    });
+    const result = await retentionJob.run(context());
+    expect(result.status).toBe("partial");
+    expect(result.errorCode).toBe("storage_delete_failed");
+    expect(result.counts).toMatchObject({ weddings_purged: 1, storage_failed: 1 });
+    expect(rpc.purgeWedding).toHaveBeenCalledTimes(1);
+    expect(rpc.purgeWedding).toHaveBeenCalledWith(B, NOW);
   });
 
   it("další běh po opravě úložiště web dokončí (idempotentní opakování)", async () => {

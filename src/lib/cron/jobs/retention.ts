@@ -91,7 +91,13 @@ async function purgeOne(
 
   let filesDeleted = 0;
   try {
-    filesDeleted = (await getStorage().deletePrefix(wedding.wedding_id)).deleted;
+    const storage = getStorage();
+    // Web s fotografiemi se bez úložiště nesmí označit za vymazaný (soubory by v R2 zůstaly bez záznamu):
+    // selhání se bere jako selhání mazání souborů a další běh to zopakuje, až bude úložiště nastavené.
+    if (storage.kind === "unconfigured" && wedding.media_count > 0) {
+      throw new Error("Úložiště fotografií není nastavené a web má fotografie");
+    }
+    filesDeleted = (await storage.deletePrefix(wedding.wedding_id)).deleted;
   } catch (error) {
     // soubory se nepodařilo smazat: řádky zůstanou, web se nemaže, další běh to zopakuje
     counts.storage_failed += 1;

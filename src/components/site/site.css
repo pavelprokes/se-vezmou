@@ -483,6 +483,157 @@ html:has(.site-root[data-sticky="true"]) {
   padding: 0;
   list-style: none;
 }
+/* Fotografie v mřížce jsou tlačítka (otevřou prohlížeč); cíl alespoň 44 px je splněn velikostí fotografie */
+.site-photo {
+  display: block;
+  width: 100%;
+  cursor: zoom-in;
+  border: 0;
+  border-radius: var(--s-radius);
+  background: none;
+  padding: 0;
+  line-height: 0;
+}
+.site-photo:focus-visible {
+  outline: 3px solid var(--s-accent);
+  outline-offset: 3px;
+}
+.site-photo picture,
+.site-photo img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* Přístupný prohlížeč fotografií: nativní modální <dialog> přes celou obrazovku */
+html:has(dialog.site-lightbox[open]) {
+  overflow: hidden;
+}
+.site-lightbox {
+  width: 100%;
+  max-width: none;
+  height: 100%;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  background: rgb(10 10 10 / 0.94);
+  padding: 0;
+  color: #fff;
+}
+.site-lightbox::backdrop {
+  background: rgb(0 0 0 / 0.8);
+}
+.site-lightbox-body {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  padding: 4rem 4.5rem 1rem;
+}
+.site-lightbox-figure {
+  display: flex;
+  max-width: 100%;
+  max-height: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+  min-height: 0;
+}
+.site-lightbox-figure picture {
+  display: contents;
+}
+.site-lightbox-img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: calc(100dvh - 9rem);
+  object-fit: contain;
+}
+.site-lightbox-caption {
+  display: flex;
+  max-width: 40rem;
+  flex-direction: column;
+  gap: 0.25rem;
+  text-align: center;
+}
+.site-lightbox-alt {
+  font-size: 1.05rem;
+}
+.site-lightbox-count {
+  color: #d4d4d4;
+  font-size: 0.9rem;
+}
+.site-lightbox-btn {
+  position: absolute;
+  display: inline-flex;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+  border-radius: 9999px;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+}
+.site-lightbox-btn:hover {
+  background: #fff;
+  color: #000;
+}
+.site-lightbox-btn:focus-visible {
+  outline: 3px solid #ffd54a;
+  outline-offset: 3px;
+}
+.site-lightbox-close {
+  top: 0.75rem;
+  right: 0.75rem;
+}
+.site-lightbox-prev {
+  top: 50%;
+  left: 0.75rem;
+  translate: 0 -50%;
+}
+.site-lightbox-next {
+  top: 50%;
+  right: 0.75rem;
+  translate: 0 -50%;
+}
+@media (max-width: 40rem) {
+  .site-lightbox-body {
+    padding: 4rem 0.5rem 5rem;
+  }
+  .site-lightbox-prev,
+  .site-lightbox-next {
+    top: auto;
+    bottom: 0.75rem;
+    translate: none;
+  }
+  .site-lightbox-prev {
+    left: 0.75rem;
+  }
+  .site-lightbox-next {
+    right: 0.75rem;
+  }
+}
+
+/* Kopie obrázku karty externí galerie */
+.site-linkcard-image {
+  display: block;
+  margin: -1rem -1.25rem 0.5rem;
+  overflow: hidden;
+  border-radius: min(var(--s-radius), 0.75rem) min(var(--s-radius), 0.75rem) 0 0;
+  line-height: 0;
+}
+.site-linkcard-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 14rem;
+  object-fit: cover;
+}
 
 /* Karta odkazu na externí galerii: jeden odkaz, titulek, popis a doména (bez cizího obrázku) */
 .site-linkcard {

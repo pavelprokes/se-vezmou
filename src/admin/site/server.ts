@@ -24,10 +24,12 @@ import {
   editorDocSchema,
   parseLoaded,
   publicToDoc,
+  reconcileGalleryMedia,
   validateDoc,
 } from "./doc";
 import type { EditorDoc, Issue, LoadedSite, SiteMeta } from "./doc";
-import { fetchOgCard, type OgFailure } from "./og";
+import { fetchOgCard, fetchOgImage, type OgFailure } from "./og";
+import { listMedia, pruneCardImages, storeCardImage } from "@/lib/media/service";
 import { normalizeHttpsUrl } from "./normalize";
 import { hasPalette } from "@/site/themes/palettes";
 import { publicContentSchema, sensitiveContentSchema, type GalleryCard } from "@/site/types";
@@ -201,13 +203,17 @@ export async function publishSiteVersion(
 
   const loaded = await loadSite(session);
   if (!loaded || !loaded.meta.slug) return { status: "not_publishable" };
-  const issues = validateDoc(loaded.doc, { guestPinReady: guestPinReady(loaded.meta) });
+  // Fotografie: do snímku jdou jen hotové a popsané (nebo dekorativní), ostatní se vynechají a nahlásí jako upozornění
+  const media = await listMedia(session);
+  const doc = reconcileGalleryMedia(loaded.doc, media);
+  const issues = validateDoc(doc, { guestPinReady: guestPinReady(loaded.meta), media });
   const errors = issues.filter((issue) => issue.severity === "error");
   if (errors.length > 0) return { status: "invalid", issues };
 
-  const built = docToPublic(loaded.doc, {
+  const built = docToPublic(doc, {
     slug: loaded.meta.slug,
     quickNotice: loaded.meta.quickNoticeEnabled ? loaded.meta.quickNotice : null,
+    media,
   });
   if (!built)
     return { status: "invalid", issues: [{ code: "build", severity: "error", area: "wedding" }] };
@@ -285,9 +291,11 @@ export async function createCheckpoint(
   if (retry !== null) return { status: "limited", retryAfter: retry };
   const loaded = loadedSite ?? (await loadSite(session));
   if (!loaded || !loaded.meta.slug) return { status: "invalid" };
-  const built = docToPublic(loaded.doc, {
+  const media = await listMedia(session);
+  const built = docToPublic(reconcileGalleryMedia(loaded.doc, media), {
     slug: loaded.meta.slug,
     quickNotice: loaded.meta.quickNoticeEnabled ? loaded.meta.quickNotice : null,
+    media,
   });
   if (!built) return { status: "invalid" };
   try {
@@ -405,9 +413,25 @@ export async function refreshGalleryCard(
   );
   if (retry !== null) return { status: "limited", retryAfter: retry };
   const result = await fetchOgCard(url);
-  return result.ok
-    ? { status: "ok", card: result.card }
-    : { status: "failed", reason: result.reason, card: result.card };
+  if (!result.ok) return { status: "failed", reason: result.reason, card: result.card };
+  return { status: "ok", card: await withCardImage(session, result.card) };
+}
+
+/**
+ * Obrázek karty zkopírujeme do vlastního úložiště (M7c): server ho stáhne se stejnými zárukami proti SSRF jako
+ * kartu, jen typ obrázku se stropem velikosti, a překóduje ho přes `sharp` jako každou fotografii. Host pak nikdy
+ * nenačítá cizí obrázek. Bez nastaveného úložiště, při chybě stahování nebo zpracování zůstane karta bez obrázku
+ * (dnešní chování); nic z toho uložení odkazu neblokuje.
+ */
+async function withCardImage(session: AdminIdentity, card: GalleryCard): Promise<GalleryCard> {
+  const withoutImage = { ...card, imageMediaId: null };
+  if (!card.imageUrl) return withoutImage;
+  const image = await fetchOgImage(card.imageUrl);
+  if (!image.ok) return withoutImage;
+  const imageMediaId = await storeCardImage(session, image);
+  if (!imageMediaId) return withoutImage;
+  await pruneCardImages(session);
+  return { ...card, imageMediaId };
 }
 
 // --- výběr svatby ----------------------------------------------------------------------------------

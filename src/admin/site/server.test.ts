@@ -4,7 +4,7 @@ vi.hoisted(() => {
   process.env.RATE_LIMIT_SECRET = "rate-secret-rate-secret-rate-secret-1";
 });
 
-const og = vi.hoisted(() => ({ fetchOgCard: vi.fn() }));
+const og = vi.hoisted(() => ({ fetchOgCard: vi.fn(), fetchOgImage: vi.fn() }));
 vi.mock("./og", () => og);
 
 import { setTransport } from "@/lib/db/rpc";
@@ -170,6 +170,7 @@ function fakeDb(
     save?: { ok: boolean; conflict: boolean; rev: number };
     fail?: Record<string, DbError>;
     versionGet?: unknown;
+    media?: unknown;
   } = {},
 ) {
   const calls: Call[] = [];
@@ -197,6 +198,8 @@ function fakeDb(
           return null;
         case "admin_site_version_get":
           return options.versionGet ?? null;
+        case "admin_media_list":
+          return options.media ?? [];
         default:
           throw new Error(`Neočekávané volání ${fn}`);
       }
@@ -208,6 +211,7 @@ function fakeDb(
 afterEach(() => {
   setTransport(null);
   og.fetchOgCard.mockReset();
+  og.fetchOgImage.mockReset();
 });
 
 describe("saveSite", () => {
@@ -558,6 +562,7 @@ describe("refreshGalleryCard", () => {
       description: null,
       imageUrl: null,
       fetchedAt: "2026-10-02T10:00:00.000Z",
+      imageMediaId: null,
       status: "ok",
     };
     og.fetchOgCard.mockResolvedValueOnce({ ok: true, card });

@@ -544,7 +544,7 @@ Zapsáno při implementaci schématu v `supabase/migrations` (milník M3). Kde z
 - `check_slug(slug, rate_key, rate_limit, rate_window)` volitelně sám zavolá `rate_limit_hit`; při překročení vrátí `reason = 'rate_limited'` a `available = null`. Důvod `unavailable` je stejný pro zabranou, rezervovanou i zakázanou adresu.
 - `resolve_slug` vrací jen svatby ve stavu `published` (stav `archived` zůstává `[OTÁZKA]`, viz OQ-23). Přibyla funkce `resolve_preview(slug, token_hash)` pro náhled konceptu.
 - `rsvp_match` vrací vždy přesně jeden řádek se sloupcem `ticket`; žádná shoda, více shod, zavřené RSVP i chybná role dávají `ticket = null` (kapitola 12 bod 5 má přednost před "žádá o upřesnění" v kapitole 5.5; výzvu k upřesnění zobrazí rozhraní při každém `null`).
-- `erase_guest(guest_id)` má jediný argument; svatba je vždy `se_vezmou.wedding_id()` (kapitola 5.5). Volá ji správce, ne server s service role.
+- `erase_guest(guest_id)` má jediný argument; svatba je vždy `se_vezmou.wedding_id()` (kapitola 5.5). Volá ji správce, ne server s service role. **Stav:** aplikace ji zatím nevolá (žádné rozhraní); zdokumentovaným způsobem výmazu je smazání domácnosti (`admin_household_delete`, OQ-62).
 - `op_view_guest_data` bez aktivního grantu nevrací řádky a zapíše `guest_data.view_denied` do auditu; akce `guest_data.*` bez důvodu odmítne i kontrola na tabulce `audit_log`.
 - `audit_log`: navíc spouštěč odmítne `meta` s klíči, které vypadají jako osobní údaje (`email`, `name`, `diet`, `allergies`, `phone`, `address`, `ip`, `user_agent`), a to i vnořené. Je to obrana do hloubky vedle allowlistu v aplikaci.
 - Retenční a úklidové funkce: `purge_health_data`, `purge_guest_data`, `purge_wedding`, `purge_deleted_weddings`, `purge_expired_slug_reservations`, `housekeeping`. Berou dávky a drží `pg_try_advisory_xact_lock`. Odesílání upozornění, export před smazáním a mazání souborů z úložiště (`purge_wedding` vrací cesty) zůstávaly na M10 (hotovo, kap. 17).
@@ -693,7 +693,7 @@ Migrace `20261006120000_operators_auth.sql` a `20261006120100_operators_ops.sql`
 - **Poslání přihlašovacího odkazu** (`op_send_login_link`): HMAC e-mailu a kódu počítá aplikace, databáze v téže transakci vytvoří výzvu `admin_login` a zapíše audit, e-mail jde po odpovědi. Odkaz správce nepřihlásí sám (potvrzovací stránka z M4).
 - **Audit** (`op_list_audit`) čte jen majitel; `meta` zůstává jen s identifikátory, počty a stavy (hlídá spouštěč).
 - **Správa operátorů**: zakázání odvolá relace, majitel nezakáže ani neobnoví faktor sám sobě, obnova faktoru zneplatní klíč, záložní kódy a relace. První majitel vzniká skriptem `npm run ops:create-owner` (vlastník databáze).
-- **Neimplementováno**: oznámení správcům o nahlédnutí operátora do údajů hostů (M7, OQ-53); `op_view_guest_data` zapisuje audit s důvodem a počtem hostů.
+- **Oznámení správcům o nahlédnutí operátora** do údajů hostů (OQ-53) je od M7b implementováno (kapitola 20, část Přístup): `op_view_guest_data` zapisuje audit s důvodem a počtem hostů a aplikace po úspěšném nahlédnutí pošle e-mail jen nejlepším úsilím a až po nahlédnutí (OQ-63). **Zastaralý komentář:** v migraci `20261002121000_functions_ops.sql` (řádek 71, `TODO M9: oznámení správcům o nahlédnutí`) zůstal komentář, který už neplatí. Migrace se neupravuje (změna komentáře by změnila kontrolní součet a `npm run db:migrate` by ji odmítl); platí tento popis.
 
 ## 19. Odchylky a rozhodnutí implementace (M7a, správa webu)
 

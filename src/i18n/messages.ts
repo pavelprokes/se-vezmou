@@ -1,6 +1,7 @@
 import type { Locale } from "./config";
 import type { MessageValue } from "./format";
 
+import csAdmin from "./messages/cs/admin.json";
 import csAuth from "./messages/cs/auth.json";
 import csCatalog from "./messages/cs/catalog.json";
 import csCommon from "./messages/cs/common.json";
@@ -10,6 +11,7 @@ import csMarketing from "./messages/cs/marketing.json";
 import csOps from "./messages/cs/ops.json";
 import csPlaceholder from "./messages/cs/placeholder.json";
 import csRsvp from "./messages/cs/rsvp.json";
+import enAdmin from "./messages/en/admin.json";
 import enAuth from "./messages/en/auth.json";
 import csSite from "./messages/cs/site.json";
 import csWizard from "./messages/cs/wizard.json";
@@ -26,6 +28,7 @@ import enWizard from "./messages/en/wizard.json";
 
 /** Zdrojem pravdy o klíčích je česká verze; angličtina musí mít stejné klíče (kontrola při sestavení). */
 const cs = {
+  admin: csAdmin,
   auth: csAuth,
   catalog: csCatalog,
   common: csCommon,
@@ -40,6 +43,7 @@ const cs = {
 } as const;
 
 const en: Record<keyof typeof cs, Record<string, MessageValue>> = {
+  admin: enAdmin,
   auth: enAuth,
   catalog: enCatalog,
   common: enCommon,

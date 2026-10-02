@@ -35,3 +35,39 @@ export function buildSpayd({ iban, message }: { iban: string; message?: string |
   if (msg) parts.push(`MSG:${msg}`);
   return parts.join("*");
 }
+
+const CZ_WEIGHTS = [6, 3, 7, 9, 10, 5, 8, 4, 2, 1] as const;
+
+/** Kontrolní součet části tuzemského čísla účtu (předčíslí nebo číslo): vážený součet dělitelný 11. */
+function czPartValid(part: string): boolean {
+  if (!/^\d{1,10}$/.test(part)) return false;
+  const digits = part.padStart(10, "0");
+  let sum = 0;
+  for (let i = 0; i < 10; i++) sum += Number(digits[i]) * CZ_WEIGHTS[i];
+  return sum % 11 === 0;
+}
+
+/** `[předčíslí-]číslo/kód banky` s kontrolou součtů (předčíslí i číslo); `null` při neplatném tvaru. */
+export function parseCzAccount(
+  value: string,
+): { prefix: string; number: string; bank: string } | null {
+  const match = /^(?:(\d{1,6})-)?(\d{2,10})\/(\d{4})$/.exec(value.replace(/\s+/g, ""));
+  if (!match) return null;
+  const [, prefix = "", number, bank] = match;
+  if ((prefix !== "" && !czPartValid(prefix)) || !czPartValid(number)) return null;
+  return { prefix, number, bank };
+}
+
+export function isValidCzAccount(value: string): boolean {
+  return parseCzAccount(value) !== null;
+}
+
+/** IBAN českého účtu (CZkk BBBB PPPP PPAA AAAA AAAA); kontrolní číslice podle ISO 13616. */
+export function czAccountToIban(value: string): string | null {
+  const parsed = parseCzAccount(value);
+  if (!parsed) return null;
+  const bban = `${parsed.bank}${parsed.prefix.padStart(6, "0")}${parsed.number.padStart(10, "0")}`;
+  let remainder = 0;
+  for (const digit of `${bban}123500`) remainder = (remainder * 10 + Number(digit)) % 97;
+  return `CZ${String(98 - remainder).padStart(2, "0")}${bban}`;
+}

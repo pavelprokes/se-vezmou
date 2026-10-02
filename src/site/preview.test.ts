@@ -59,4 +59,24 @@ describe("previewToPublicContent", () => {
     ]);
     expect(content.media).toEqual([]);
   });
+
+  it("odkaz na mapu veřejného místa se přenese, starší odpověď bez něj dá null", () => {
+    const withMap = raw({
+      venues: [
+        {
+          id: "v1",
+          name: { cs: "Zámek" },
+          directions: null,
+          address: "Zámecká 1, Praha",
+          map_url: "https://mapy.example/zamek",
+        },
+      ],
+    });
+    expect(previewToPublicContent(withMap, "a-b", new Date("2027-01-01"))?.venues[0].mapUrl).toBe(
+      "https://mapy.example/zamek",
+    );
+    expect(
+      previewToPublicContent(raw(), "a-b", new Date("2027-01-01"))?.venues[0].mapUrl,
+    ).toBeNull();
+  });
 });

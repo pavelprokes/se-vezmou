@@ -62,8 +62,8 @@ Každý scénář běží na viewportu telefonu i počítače, pokud není uvede
 | E2E-15 | Odeslání, úprava odpovědi, potvrzení na obrazovce a e-mailem, ohlášení čtečce                                                                                                       | FR-RSVP-6                      |
 | E2E-16 | RSVP před otevřením a po uzavření; host mimo seznam podle volby páru; ochrana před spamem                                                                                           | FR-RSVP-5, FR-RSVP-7           |
 | E2E-17 | PIN hostů: citlivé bloky (číslo účtu, soukromé místo) skryté do zadání, omezení pokusů                                                                                              | FR-PRIV-2                      |
-| E2E-18 | Správa: zapnutí bloků, řazení myší a tlačítky, koncept a zveřejněná verze, historie a vrácení                                                                                       | FR-ADM-1, FR-ADM-2             |
-| E2E-19 | „Rychlá změna“ se okamžitě zobrazí a skryje                                                                                                                                         | FR-ADM-3                       |
+| E2E-18 | Správa: zapnutí bloků, řazení myší a tlačítky, koncept a zveřejněná verze, historie a vrácení (`e2e/admin-site.e2e.ts`)                                                             | FR-ADM-1, FR-ADM-2             |
+| E2E-19 | „Rychlá změna“ se okamžitě zobrazí a skryje (`e2e/admin-site.e2e.ts`)                                                                                                               | FR-ADM-3                       |
 | E2E-20 | Import hostů z Excelu, ruční zápis, export CSV a Excel, ruční zápis odpovědi po telefonu                                                                                            | FR-ADM-4, FR-ADM-5             |
 | E2E-21 | Přepnutí do režimu poděkování: odpočet, RSVP a dary zmizí, galerie zůstane                                                                                                          | FR-WEB-4                       |
 | E2E-22 | Životní cyklus podle dat se zrychleným časem; upozornění před vypršením, export, smazání                                                                                            | FR-LC-1, FR-LC-2               |
@@ -72,6 +72,7 @@ Každý scénář běží na viewportu telefonu i počítače, pokud není uvede
 | E2E-25 | Operátor: kód plus druhý faktor, záložní postup; nahlédnutí do údajů hostů jen po souhlasu s důvodem (`e2e/ops-auth.e2e.ts`, `e2e/ops-admin.e2e.ts`, přístupnost `e2e/ops.a11y.ts`) | zadání: operátor               |
 | E2E-26 | Čekací listina na úvodní stránce, souhlas, potvrzení                                                                                                                                | MVP                            |
 | E2E-27 | Pole jmen ve výzvě úvodní stránky předvyplní průvodce                                                                                                                               | FR-LP-5                        |
+| E2E-28 | Odkaz na externí galerii: karta z Open Graph načtená serverem, před i po svatbě, bez volání cizího webu, jen po PINu, SSRF                                                          | FR-WEB-4, FR-PRIV-2            |
 
 ### 2.4 Izolace dat mezi svatbami
 

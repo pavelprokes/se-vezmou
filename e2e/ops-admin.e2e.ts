@@ -574,7 +574,7 @@ test.describe("přihlašovací odkaz správci", () => {
       page.getByRole("heading", { level: 1, name: "Potvrďte přihlášení" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "Přihlásit se" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Správa svatby" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Můj web" })).toBeVisible();
     await expect(page).toHaveURL(pageUrl(HOSTS.app, "/"));
   });
 

@@ -94,6 +94,12 @@ test.describe("slepé ověření jména (E2E-12, FR-RSVP-1)", () => {
       await section.getByRole("button", { name: "Pokračovat" }).click();
       await response;
       await expect(section.getByText(/Nenašli jsme vás/)).toBeVisible();
+      // formulář musí dokončit odeslání (tlačítko už není "Hledám…"), jinak by snímek zachytil průběh
+      await expect(section.getByRole("button", { name: "Pokračovat" })).toBeEnabled();
+      await expect(section.getByRole("button", { name: "Pokračovat" })).not.toHaveAttribute(
+        "aria-disabled",
+        "true",
+      );
       // vše, co server po pokusu prohlížeči poslal (stav formuláře), bez zadaného jména
       views.push((await section.innerHTML()).replaceAll(typed, "<jméno>"));
       messages.push((await section.getByText(/Nenašli jsme vás/).innerText()).trim());

@@ -5,8 +5,8 @@ import { publicContentSchema, type PublicContent } from "./types";
 
 /**
  * Koncept z pracovních tabulek (odpověď `get_public_site` pro roli `preview`) na obsah webu.
- * Pracovní tabulky nemají vše, co veřejný snímek (odkaz na mapu, média), proto jsou tyto
- * položky prázdné; ostatní se přenáší beze změny. Čistý modul.
+ * Pracovní tabulky nemají vše, co veřejný snímek (média), proto je tato položka prázdná;
+ * ostatní se přenáší beze změny. Čistý modul.
  */
 
 const iso = z.string();
@@ -56,6 +56,8 @@ const previewSchema = z.object({
       name: i18nTextSchema,
       directions: nullableText,
       address: z.string().nullable(),
+      /** Odkaz na mapu veřejného místa (M7a); starší odpověď ho nemá. */
+      map_url: z.string().nullable().optional(),
     }),
   ),
 });
@@ -94,7 +96,7 @@ export function previewToPublicContent(
         name: venue.name,
         address: venue.address,
         directions: venue.directions ?? null,
-        mapUrl: null,
+        mapUrl: venue.map_url ?? null,
       })),
     events: events.map((event) => ({
       id: event.id,

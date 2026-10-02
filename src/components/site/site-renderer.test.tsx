@@ -165,7 +165,7 @@ describe("SiteRenderer: bloky a struktura", () => {
         b.type === "faq"
           ? { ...b, enabled: false }
           : b.type === "gallery"
-            ? { ...b, data: { mediaIds: [] } }
+            ? { ...b, data: { mediaIds: [], link: null } }
             : b,
       ),
     };
@@ -320,6 +320,166 @@ describe("SiteRenderer: režim poděkování po svatbě (FR-WEB-4)", () => {
     });
     expect(screen.getByText("Díky všem za nezapomenutelný den.")).toBeInTheDocument();
     expect(screen.queryByText(/Váš čas a radost/)).toBeNull();
+  });
+});
+
+describe("SiteRenderer: odkaz na externí fotogalerii", () => {
+  type GalleryLink = Extract<PublicContent["blocks"][number], { type: "gallery" }>["data"]["link"];
+
+  function withLink(link: GalleryLink, content = eukalyptusFixture): PublicContent {
+    return {
+      ...content,
+      blocks: content.blocks.map((b) =>
+        b.type === "gallery" ? { ...b, data: { ...b.data, link } } : b,
+      ),
+    };
+  }
+
+  const publicLink: GalleryLink = {
+    url: "https://fotky.example/svatba",
+    label: { cs: "Fotky od Anny", en: "Photos by Anna" },
+    protected: false,
+    card: {
+      title: "Svatba Kláry a Matěje",
+      description: "Fotky z obřadu a hostiny",
+      imageUrl: "https://fotky.example/og.jpg",
+      fetchedAt: "2026-10-02T08:00:00.000Z",
+      status: "ok",
+    },
+  };
+
+  it("karta je jediný odkaz s názvem, popisem, doménou a upozorněním, že se otevře jinde", () => {
+    const { container } = renderSite(withLink(publicLink));
+    const link = screen.getByRole("link", { name: /Fotky od Anny/ });
+    expect(link).toHaveAttribute("href", "https://fotky.example/svatba");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(link).toHaveTextContent("Fotky z obřadu a hostiny");
+    expect(link).toHaveTextContent("fotky.example");
+    expect(link).toHaveTextContent("Odkaz se otevře na jiném webu");
+    // Název od páru přepisuje název z cílové stránky.
+    expect(container.textContent).not.toContain("Svatba Kláry a Matěje");
+  });
+
+  it("bez názvu od páru se použije název z cílové stránky, bez karty výchozí text a doména", () => {
+    renderSite(withLink({ ...publicLink, label: null }));
+    expect(screen.getByRole("link", { name: /Svatba Kláry a Matěje/ })).toBeInTheDocument();
+    document.body.innerHTML = "";
+    renderSite(withLink({ ...publicLink, label: null, card: null }));
+    const link = screen.getByRole("link", { name: /Zobrazit všechny fotografie/ });
+    expect(link).toHaveTextContent("fotky.example");
+    document.body.innerHTML = "";
+    renderSite(
+      withLink({
+        ...publicLink,
+        label: null,
+        card: { title: null, description: null, imageUrl: null, fetchedAt: null, status: "failed" },
+      }),
+    );
+    expect(screen.getByRole("link", { name: /Zobrazit všechny fotografie/ })).toBeInTheDocument();
+  });
+
+  it("obrázek z cílové stránky se nevykreslí a web nenačítá nic z cizího původu", () => {
+    const { container } = renderSite(withLink(publicLink));
+    expect(container.innerHTML).not.toContain("og.jpg");
+    const sources = [...container.querySelectorAll("[src], link[href], script[src], iframe")]
+      .map((el) => el.getAttribute("src") ?? el.getAttribute("href") ?? "")
+      .filter((value) => /^https?:\/\//.test(value));
+    expect(sources).toEqual([]);
+  });
+
+  it("titulek a popis jsou jen text: značky se nevykreslí", () => {
+    const { container } = renderSite(
+      withLink({
+        ...publicLink,
+        label: null,
+        card: {
+          ...publicLink.card!,
+          title: "<img src=x onerror=alert(1)>",
+          description: "<script>alert(1)</script>",
+        },
+      }),
+    );
+    expect(container.querySelector("#galerie script")).toBeNull();
+    expect(container.querySelector("#galerie img[onerror]")).toBeNull();
+    expect(container.querySelector("#galerie")?.textContent).toContain(
+      "<img src=x onerror=alert(1)>",
+    );
+  });
+
+  it("anglická verze má anglický text odkazu a upozornění", () => {
+    renderSite(withLink(publicLink), "en");
+    const link = screen.getByRole("link", { name: /Photos by Anna/ });
+    expect(link).toHaveTextContent("Link opens on another website");
+  });
+
+  it("zůstává i v režimu poděkování po svatbě", () => {
+    const content = withLink(publicLink, { ...eukalyptusFixture, phase: "thanks" as const });
+    renderSite(content);
+    expect(screen.getByRole("link", { name: /Fotky od Anny/ })).toBeInTheDocument();
+  });
+
+  it("galerie jen s odkazem (bez fotek) se vykreslí a je v navigaci", () => {
+    const content: PublicContent = {
+      ...eukalyptusFixture,
+      media: [],
+      blocks: eukalyptusFixture.blocks.map((b) =>
+        b.type === "gallery" ? { ...b, data: { mediaIds: [], link: publicLink } } : b,
+      ),
+    };
+    const { container } = renderSite(content);
+    expect(container.querySelector("#galerie")).not.toBeNull();
+    expect(screen.getByRole("link", { name: /Fotky od Anny/ })).toBeInTheDocument();
+  });
+
+  describe("chráněný odkaz (jen po PINu hostů)", () => {
+    const protectedLink: GalleryLink = {
+      url: null,
+      label: { cs: "Tajná galerie" },
+      protected: true,
+      card: null,
+    };
+    const secret = {
+      ...sensitiveFixture,
+      gallery: {
+        url: "https://fotky.example/tajne-abc123",
+        card: {
+          title: "Soukromé fotky",
+          description: "Jen pro hosty",
+          imageUrl: null,
+          fetchedAt: null,
+          status: "ok" as const,
+        },
+      },
+    };
+
+    it("zamčeno: v HTML není adresa, titulek ani popis, jen formulář PINu", () => {
+      const { container } = renderSite(withLink(protectedLink), "cs", { sensitive: secret });
+      const gallery = screen.getByRole("region", { name: "Fotografie" });
+      expect(within(gallery).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+      expect(container.innerHTML).not.toContain("tajne-abc123");
+      expect(container.innerHTML).not.toContain("Soukromé fotky");
+      expect(container.innerHTML).not.toContain("Jen pro hosty");
+      expect(within(gallery).queryByRole("link", { name: /Tajná galerie/ })).toBeNull();
+    });
+
+    it("příznak bez citlivých údajů nic neodemkne", () => {
+      const { container } = renderSite(withLink(protectedLink), "cs", {
+        sensitiveUnlocked: true,
+        sensitive: null,
+      });
+      expect(container.innerHTML).not.toContain("tajne-abc123");
+      const gallery = screen.getByRole("region", { name: "Fotografie" });
+      expect(within(gallery).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+    });
+
+    it("odemčeno: odkaz s kartou je vidět, formulář PINu zmizí", () => {
+      renderSite(withLink(protectedLink), "cs", { sensitiveUnlocked: true, sensitive: secret });
+      const link = screen.getByRole("link", { name: /Tajná galerie/ });
+      expect(link).toHaveAttribute("href", "https://fotky.example/tajne-abc123");
+      expect(link).toHaveTextContent("Jen pro hosty");
+      expect(screen.queryByLabelText("PIN z pozvánky")).toBeNull();
+    });
   });
 });
 

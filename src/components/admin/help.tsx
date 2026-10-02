@@ -12,6 +12,12 @@ export const HELP_TOPICS = [
   "history",
   "privacy",
   "gallery",
+  "guests",
+  "import",
+  "responses",
+  "rsvp",
+  "access",
+  "data",
 ] as const;
 export type HelpTopic = (typeof HELP_TOPICS)[number];
 
@@ -22,6 +28,15 @@ export const HELP_KEYS: Record<HelpTopic, { title: MessageKey; body: MessageKey 
   history: { title: "admin.help.history.title", body: "admin.help.history.body" },
   privacy: { title: "admin.help.privacy.title", body: "admin.help.privacy.body" },
   gallery: { title: "admin.help.gallery.title", body: "admin.help.gallery.body" },
+  guests: { title: "admin.guests.help.guests.title", body: "admin.guests.help.guests.body" },
+  import: { title: "admin.guests.help.import.title", body: "admin.guests.help.import.body" },
+  responses: {
+    title: "admin.guests.help.responses.title",
+    body: "admin.guests.help.responses.body",
+  },
+  rsvp: { title: "admin.guests.help.rsvp.title", body: "admin.guests.help.rsvp.body" },
+  access: { title: "admin.guests.help.access.title", body: "admin.guests.help.access.body" },
+  data: { title: "admin.guests.help.data.title", body: "admin.guests.help.data.body" },
 };
 
 /**

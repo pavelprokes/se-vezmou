@@ -165,13 +165,12 @@ test.describe("neexistující a neplatní hostitelé", () => {
     });
   }
 
-  test("www se přesměruje na holou doménu", async ({ request }) => {
+  test("www se obslouží jako úvodní stránka a nepřesměrovává (jinak smyčka s přesměrováním ve Vercelu)", async ({
+    request,
+  }) => {
     const response = await get(request, "www.localhost", "/en");
-    expect(response.status()).toBe(308);
-    // Next.js při samostatném provozu zkracuje odkaz na stejný původ, na kterém naslouchá server,
-    // na relativní; absolutní tvar (holá doména) i relativní tvar proto oba končí cestou /en.
-    // Absolutní adresu holé domény ověřuje jednotkový test směrování; na Vercelu ověřit ručně.
-    expect(response.headers().location).toMatch(/(^|^http:\/\/localhost:\d+)\/en$/);
+    expect(response.status()).toBe(200);
+    expect(response.headers().location).toBeUndefined();
   });
 });
 

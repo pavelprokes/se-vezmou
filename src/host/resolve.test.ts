@@ -69,8 +69,8 @@ describe("resolveHost: produkce", () => {
     expect(resolveHost("neznamy.example.com", prod)).toEqual({ kind: "invalid" });
   });
 
-  it("www se přesměruje na holou doménu", () => {
-    expect(resolveHost("www.se-vezmou.cz", prod)).toEqual({ kind: "redirect-www" });
+  it("www je úvodní stránka a nepřesměrovává (o hlavním jménu rozhoduje Vercel, jinak smyčka)", () => {
+    expect(resolveHost("www.se-vezmou.cz", prod)).toEqual({ kind: "marketing" });
   });
 
   it("víceúrovňové subdomény, rezervovaná slova a neplatné štítky jsou neplatné", () => {

@@ -7,7 +7,6 @@ import { resolveHost, type HostConfig, type HostKind } from "./resolve";
 
 export type RouteDecision =
   | { action: "notFound"; kind: HostKind | null }
-  | { action: "redirectWww" }
   | { action: "passThrough"; kind: HostKind }
   | {
       action: "rewrite";
@@ -49,15 +48,11 @@ export function routeRequest(
   if (pathname === "/h" || pathname.startsWith("/h/")) {
     return {
       action: "notFound",
-      kind:
-        resolution.kind === "invalid" || resolution.kind === "redirect-www"
-          ? null
-          : resolution.kind,
+      kind: resolution.kind === "invalid" ? null : resolution.kind,
     };
   }
 
   if (resolution.kind === "invalid") return { action: "notFound", kind: null };
-  if (resolution.kind === "redirect-www") return { action: "redirectWww" };
 
   const kind = resolution.kind;
   if (isStaticAsset(pathname)) return { action: "passThrough", kind };

@@ -693,7 +693,7 @@ test.describe("otevření a uzavření, host mimo seznam, ochrana před spamem (
     // lístek v databázi vyprší
     const { withDb } = await import("./support/db");
     await withDb((db) =>
-      db.query("update public.rsvp_tickets set expires_at = now() - interval '1 second'"),
+      db.query("update se_vezmou.rsvp_tickets set expires_at = now() - interval '1 second'"),
     );
     await send(page);
     await expect(

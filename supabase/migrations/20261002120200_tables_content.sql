@@ -1,11 +1,11 @@
 -- M3 / 3: obsah webu (stránky, bloky, místa, události, média). Zdroj: docs/data-model.md kap. 3.3.
 
-create table public.pages (
+create table se_vezmou.pages (
   id uuid primary key default gen_random_uuid(),
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   -- prázdný řetězec = domovská stránka; cesty se nepřekládají (kap. 8)
   path text not null default '' check (path = '' or path ~ '^[a-z0-9]([a-z0-9/-]*[a-z0-9])?$'),
-  title public.i18n_text,
+  title se_vezmou.i18n_text,
   position integer not null default 0,
   enabled boolean not null default true,
   created_at timestamptz not null default now(),
@@ -13,15 +13,15 @@ create table public.pages (
   unique (wedding_id, id),
   unique (wedding_id, path)
 );
-create index pages_wedding_idx on public.pages (wedding_id);
+create index pages_wedding_idx on se_vezmou.pages (wedding_id);
 
-create table public.venues (
+create table se_vezmou.venues (
   id uuid primary key default gen_random_uuid(),
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
-  name public.i18n_text not null,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
+  name se_vezmou.i18n_text not null,
   -- textová adresa vždy (FR-WEB-1), mapa je jen doplněk
   address text not null default '',
-  directions public.i18n_text,
+  directions se_vezmou.i18n_text,
   lat double precision check (lat between -90 and 90),
   lng double precision check (lng between -180 and 180),
   -- adresa soukromého místa jde do site_version_sensitive
@@ -30,15 +30,15 @@ create table public.venues (
   updated_at timestamptz not null default now(),
   unique (wedding_id, id)
 );
-create index venues_wedding_idx on public.venues (wedding_id);
+create index venues_wedding_idx on se_vezmou.venues (wedding_id);
 
-create table public.events (
+create table se_vezmou.events (
   id uuid primary key default gen_random_uuid(),
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   page_id uuid,
   kind text not null default 'other' check (kind in ('ceremony', 'reception', 'other')),
-  title public.i18n_text not null,
-  description public.i18n_text,
+  title se_vezmou.i18n_text not null,
+  description se_vezmou.i18n_text,
   starts_at timestamptz not null,
   ends_at timestamptz,
   venue_id uuid,
@@ -49,16 +49,16 @@ create table public.events (
   updated_at timestamptz not null default now(),
   unique (wedding_id, id),
   check (ends_at is null or ends_at >= starts_at),
-  foreign key (wedding_id, page_id) references public.pages (wedding_id, id)
+  foreign key (wedding_id, page_id) references se_vezmou.pages (wedding_id, id)
     on delete set null (page_id),
-  foreign key (wedding_id, venue_id) references public.venues (wedding_id, id)
+  foreign key (wedding_id, venue_id) references se_vezmou.venues (wedding_id, id)
     on delete set null (venue_id)
 );
-create index events_wedding_idx on public.events (wedding_id, starts_at);
+create index events_wedding_idx on se_vezmou.events (wedding_id, starts_at);
 
-create table public.content_blocks (
+create table se_vezmou.content_blocks (
   id uuid primary key default gen_random_uuid(),
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   page_id uuid not null,
   type text not null check (type in (
     'hero', 'program', 'venue', 'lodging', 'dresscode', 'faq', 'contact', 'story', 'gifts',
@@ -79,15 +79,15 @@ create table public.content_blocks (
   constraint content_blocks_page_position_key unique (page_id, position)
     deferrable initially deferred,
   unique (page_id, anchor),
-  foreign key (wedding_id, page_id) references public.pages (wedding_id, id) on delete cascade,
-  foreign key (wedding_id, updated_by) references public.wedding_admins (wedding_id, id)
+  foreign key (wedding_id, page_id) references se_vezmou.pages (wedding_id, id) on delete cascade,
+  foreign key (wedding_id, updated_by) references se_vezmou.wedding_admins (wedding_id, id)
     on delete set null (updated_by)
 );
-create index content_blocks_wedding_idx on public.content_blocks (wedding_id);
+create index content_blocks_wedding_idx on se_vezmou.content_blocks (wedding_id);
 
-create table public.media (
+create table se_vezmou.media (
   id uuid primary key default gen_random_uuid(),
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   -- model drží jen metadata; zpracování a umístění souborů určuje ADR 0006
   storage_path text not null check (char_length(storage_path) > 0),
   -- SVG od uživatelů se nepřijímá (riziko skriptů, ADR 0006)
@@ -95,7 +95,7 @@ create table public.media (
   width integer check (width > 0),
   height integer check (height > 0),
   bytes bigint check (bytes > 0),
-  alt public.i18n_text,
+  alt se_vezmou.i18n_text,
   decorative boolean not null default false,
   deleted_at timestamptz,
   created_at timestamptz not null default now(),
@@ -104,4 +104,4 @@ create table public.media (
   -- nedekorativní médium musí mít neprázdné alt (kontrolu všech jazyků webu dělá aplikace)
   constraint media_alt_required check (decorative or (alt is not null and alt <> '{}'::jsonb))
 );
-create index media_wedding_idx on public.media (wedding_id, created_at);
+create index media_wedding_idx on se_vezmou.media (wedding_id, created_at);

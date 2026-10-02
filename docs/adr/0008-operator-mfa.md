@@ -1,6 +1,6 @@
 # ADR 0008: Přihlášení operátorů a druhý faktor
 
-Stav: navrženo (čeká na schválení majitele)
+Stav: navrženo (čeká na schválení majitele) Poznámka (ADR 0011): varianta A (Supabase Auth) se bez `supabase-js` a `NEXT_PUBLIC_SUPABASE_*` musí přehodnotit (OQ-47).
 
 ## Kontext
 

@@ -65,12 +65,12 @@ test.describe("E2E-01: průvodce od jmen po zveřejnění", () => {
     await completeRequiredSteps(page, { slug });
 
     // Do kroku 3 nevznikl ani účet, ani rezervace adresy: koncept je jen v prohlížeči.
-    expect(await rows("select 1 from public.weddings where slug = $1", [slug])).toHaveLength(0);
-    expect(await rows("select 1 from public.slug_registry where slug = $1", [slug])).toHaveLength(
-      0,
-    );
+    expect(await rows("select 1 from se_vezmou.weddings where slug = $1", [slug])).toHaveLength(0);
     expect(
-      await rows("select 1 from public.wedding_admins where email = $1", [mail.email]),
+      await rows("select 1 from se_vezmou.slug_registry where slug = $1", [slug]),
+    ).toHaveLength(0);
+    expect(
+      await rows("select 1 from se_vezmou.wedding_admins where email = $1", [mail.email]),
     ).toHaveLength(0);
 
     const { pin } = await fillOptionalSteps(page);
@@ -110,11 +110,11 @@ test.describe("E2E-01: průvodce od jmen po zveřejnění", () => {
     }>(
       `select w.status, w.guest_pin_enabled, wa.guest_pin_hash as pin_hash,
               w.wizard_draft -> 'guestPin' ->> 'pin' as draft_pin,
-              (select max(version_no) from public.site_versions v where v.wedding_id = w.id) as version_no,
+              (select max(version_no) from se_vezmou.site_versions v where v.wedding_id = w.id) as version_no,
               sr.state as slug_state, sr.first_published_at
-         from public.weddings w
-         join public.wedding_auth wa on wa.wedding_id = w.id
-         join public.slug_registry sr on sr.slug = w.slug
+         from se_vezmou.weddings w
+         join se_vezmou.wedding_auth wa on wa.wedding_id = w.id
+         join se_vezmou.slug_registry sr on sr.slug = w.slug
         where w.slug = $1`,
       [slug],
     );
@@ -158,7 +158,7 @@ test.describe("E2E-01: průvodce od jmen po zveřejnění", () => {
 
     // Měření: události bez osobních údajů.
     const events = await rows<{ event: string }>(
-      "select distinct event from public.analytics_event where event in ('wizard_started', 'wizard_step_completed', 'site_published')",
+      "select distinct event from se_vezmou.analytics_event where event in ('wizard_started', 'wizard_step_completed', 'site_published')",
     );
     expect(events.map((e) => e.event).sort()).toEqual([
       "site_published",
@@ -283,7 +283,7 @@ test.describe("E2E-04: kolize adresy", () => {
     // Rezervace adresy proběhne až po ověření e-mailu (kód z e-mailu).
     expect(
       await rows(
-        "select 1 from public.slug_registry where wedding_id is not null and slug like $1",
+        "select 1 from se_vezmou.slug_registry where wedding_id is not null and slug like $1",
         [`${taken}-%`],
       ),
     ).toHaveLength(0);
@@ -300,7 +300,7 @@ test.describe("E2E-04: kolize adresy", () => {
     await expect(conflict.getByText(`${taken}-obec.localhost:${PORT}`)).toBeVisible();
     await expect(conflict.getByText(/náhodnými znaky/)).toBeVisible();
     expect(
-      await rows("select 1 from public.wedding_admins where email = $1", [mail.email]),
+      await rows("select 1 from se_vezmou.wedding_admins where email = $1", [mail.email]),
     ).toHaveLength(0);
 
     // Rok v adrese prozradí rok svatby: pár na to upozorníme.
@@ -318,9 +318,9 @@ test.describe("E2E-04: kolize adresy", () => {
     await expect(page.getByTestId("preview-link")).toBeVisible({ timeout: 20_000 });
 
     const saved = await rows<{ status: string; slug: string; state: string }>(
-      `select w.status, w.slug, sr.state from public.weddings w
-         join public.slug_registry sr on sr.wedding_id = w.id
-         join public.wedding_admins a on a.wedding_id = w.id
+      `select w.status, w.slug, sr.state from se_vezmou.weddings w
+         join se_vezmou.slug_registry sr on sr.wedding_id = w.id
+         join se_vezmou.wedding_admins a on a.wedding_id = w.id
         where a.email = $1`,
       [mail.email],
     );
@@ -349,14 +349,14 @@ test.describe("E2E-05: vypršení rezervace konceptu", () => {
     // Rezervace vyprší (30 dní bez aktivity) a denní úklid adresu uvolní.
     await withDb(async (db) => {
       await db.query(
-        "update public.slug_registry set reserved_until = now() - interval '1 day' where slug = $1",
+        "update se_vezmou.slug_registry set reserved_until = now() - interval '1 day' where slug = $1",
         [slug],
       );
       await db.query("set role service_role");
-      await db.query("select public.purge_expired_slug_reservations()");
+      await db.query("select se_vezmou.purge_expired_slug_reservations()");
     });
     const released = await rows<{ slug: string | null }>(
-      "select slug from public.weddings w join public.wedding_admins a on a.wedding_id = w.id where a.email = $1",
+      "select slug from se_vezmou.weddings w join se_vezmou.wedding_admins a on a.wedding_id = w.id where a.email = $1",
       [mail.email],
     );
     expect(released).toEqual([{ slug: null }]);
@@ -383,7 +383,7 @@ test.describe("E2E-05: vypršení rezervace konceptu", () => {
     await expect(back.getByTestId("slug-conflict")).toBeVisible({ timeout: 20_000 });
     await expect(back.getByTestId("slug-conflict").getByRole("radio")).toHaveCount(4);
     const original = await rows<{ partner_a_name: string; starts_on: string }>(
-      "select w.partner_a_name, w.starts_on::text from public.weddings w join public.wedding_admins a on a.wedding_id = w.id where a.email = $1",
+      "select w.partner_a_name, w.starts_on::text from se_vezmou.weddings w join se_vezmou.wedding_admins a on a.wedding_id = w.id where a.email = $1",
       [mail.email],
     );
     expect(original[0].partner_a_name).toBe("Klára");
@@ -438,7 +438,7 @@ test.describe("E2E-06: koncept a odkaz na náhled", () => {
 
     // Databáze drží jen hash tokenu.
     const stored = await rows<{ preview_token_hash: Buffer }>(
-      "select preview_token_hash from public.weddings where slug = $1",
+      "select preview_token_hash from se_vezmou.weddings where slug = $1",
       [slug],
     );
     const token = link.split("/").pop() ?? "";
@@ -523,14 +523,14 @@ test.describe("web páru: neexistující, nezveřejněná a blokovaná adresa", 
       await db.query("set constraints all deferred");
       const id = crypto.randomUUID();
       await db.query(
-        "insert into public.weddings (id, partner_a_name, partner_b_name) values ($1, 'A', 'B')",
+        "insert into se_vezmou.weddings (id, partner_a_name, partner_b_name) values ($1, 'A', 'B')",
         [id],
       );
       await db.query(
-        "insert into public.slug_registry (slug, state, wedding_id, reserved_until) values ($1, 'reserved', $2, now() + interval '30 days')",
+        "insert into se_vezmou.slug_registry (slug, state, wedding_id, reserved_until) values ($1, 'reserved', $2, now() + interval '30 days')",
         [draft, id],
       );
-      await db.query("update public.weddings set slug = $1 where id = $2", [draft, id]);
+      await db.query("update se_vezmou.weddings set slug = $1 where id = $2", [draft, id]);
       await db.query("commit");
     });
 

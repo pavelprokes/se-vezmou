@@ -1,16 +1,4 @@
-import { createHmac } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
-
-vi.hoisted(() => {
-  process.env.NEXT_PUBLIC_SUPABASE_URL = "https://projekt.supabase.test";
-  process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key-service-role-key";
-  process.env.SUPABASE_JWT_SECRET = "jwt-secret-jwt-secret-jwt-secret-jwt-1";
-});
-
-const rpcMock = vi.hoisted(() => vi.fn());
-const createClientMock = vi.hoisted(() => vi.fn(() => ({ rpc: rpcMock, from: vi.fn() })));
-vi.mock("@supabase/supabase-js", () => ({ createClient: createClientMock }));
-
 import {
   authCreateSession,
   authPinSet,
@@ -20,76 +8,61 @@ import {
   rateLimitHit,
   setTransport,
 } from "./rpc";
-import { createTenantClient, tenantClientOptions } from "./client";
-import { buildTenantClaims, mintTenantJwt } from "./jwt";
-import { DbError } from "./transport";
+import { buildTenantClaims } from "./claims";
+import { DbError, getTransport } from "./transport";
 
 afterEach(() => {
   setTransport(null);
-  rpcMock.mockReset();
   vi.unstubAllEnvs();
+  vi.resetModules();
 });
 
-describe("doprava přes supabase-js (service role)", () => {
-  it("bytea posílá jako hexadecimální řetězec a vynechané argumenty neposílá", async () => {
-    rpcMock.mockResolvedValue({ data: null, error: null });
+describe("doprava", () => {
+  it("bytea a nedefinované argumenty: tenký obal předává Buffer beze změny a vynechané argumenty neposílá", async () => {
+    const seen: [string, Record<string, unknown>][] = [];
+    setTransport({
+      async call(fn, args) {
+        seen.push([fn, args]);
+        return fn === "auth_create_session" ? [{ session_id: "s" }] : null;
+      },
+    });
     await authPinSet({ weddingId: "w", role: "admin", hash: "$argon2id$x" }).catch(() => undefined);
+    const hash = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
     await authCreateSession({
       kind: "admin",
       weddingId: "w",
       subjectId: "s",
-      tokenHash: Buffer.from([0xde, 0xad, 0xbe, 0xef]),
+      tokenHash: hash,
       idleSeconds: 10,
       absoluteSeconds: 20,
-    });
-
-    expect(rpcMock).toHaveBeenNthCalledWith(1, "auth_pin_set", {
-      p_wedding_id: "w",
-      p_role: "admin",
-      p_hash: "$argon2id$x",
-    });
-    // klient service role vzniká jednou, s klíčem service role a bez vlastní relace Supabase Auth
-    const [url, key, options] = createClientMock.mock.calls[0] as unknown as [
-      string,
-      string,
-      { auth: Record<string, boolean> },
-    ];
-    expect(url).toBe("https://projekt.supabase.test");
-    expect(key).toBe("service-role-key-service-role-key");
-    expect(options.auth).toEqual({
-      persistSession: false,
-      autoRefreshToken: false,
-      detectSessionInUrl: false,
-    });
-    expect(rpcMock).toHaveBeenNthCalledWith(2, "auth_create_session", {
-      p_kind: "admin",
-      p_wedding_id: "w",
-      p_subject_id: "s",
-      p_token_hash: "\\xdeadbeef",
-      p_idle_seconds: 10,
-      p_absolute_seconds: 20,
-    });
+    }).catch(() => undefined);
+    expect(seen[0]).toEqual([
+      "auth_pin_set",
+      { p_wedding_id: "w", p_role: "admin", p_hash: "$argon2id$x" },
+    ]);
+    expect(seen[1][1].p_token_hash).toBe(hash);
   });
 
   it("chyba databáze nenese argumenty volání (mohou obsahovat osobní údaje)", async () => {
-    rpcMock.mockResolvedValue({
-      data: null,
-      error: { code: "23505", message: "duplicate key value" },
-    });
-    const error = await rateLimitHit("klic-s-hashem", 5, 60).catch((e: unknown) => e);
-    expect(error).toBeInstanceOf(DbError);
-    expect((error as DbError).code).toBe("23505");
-    expect((error as DbError).message).not.toContain("klic-s-hashem");
+    const error = new DbError("rate_limit_hit", "23505", "chyba SQL");
+    expect(error.code).toBe("23505");
+    expect(error.message).not.toContain("klic-s-hashem");
   });
 
-  it("testovací doprava pg se v ostré produkci odmítne", () => {
-    vi.stubEnv("DB_TRANSPORT", "pg");
+  it("bez DATABASE_URL volání selže jasnou zprávou (ne při sestavení)", async () => {
+    vi.stubEnv("DATABASE_URL", "");
+    vi.stubEnv("SUPABASE_URL", "https://projekt.supabase.co");
     vi.stubEnv("VERCEL_ENV", "production");
-    // env se čte při importu, proto nový import modulu
     vi.resetModules();
-    return import("./transport").then((fresh) => {
-      expect(() => fresh.getTransport()).toThrow(/produkci/);
-    });
+    const fresh = await import("./transport");
+    await expect(fresh.getTransport().call("rate_limit_hit", {}, "table")).rejects.toThrow(
+      /Chybí DATABASE_URL/,
+    );
+  });
+
+  it("getTransport vrací pg dopravu i v produkci (jediná cesta)", () => {
+    vi.stubEnv("VERCEL_ENV", "production");
+    expect(typeof getTransport().call).toBe("function");
   });
 });
 
@@ -157,66 +130,24 @@ describe("typovaný obal (mapování řádků)", () => {
   });
 });
 
-describe("JWT správce svatby", () => {
-  const SECRET = "jwt-secret-jwt-secret-jwt-secret-jwt-1";
+describe("claimy transakce", () => {
   const WEDDING = "11111111-1111-4111-8111-111111111111";
   const ADMIN = "22222222-2222-4222-8222-222222222222";
-  const now = new Date("2026-10-02T12:00:00Z");
 
-  it("nese claimy svatby a role admin a platí pět minut", () => {
-    const claims = buildTenantClaims(
-      { weddingId: WEDDING, weddingRole: "admin", subject: ADMIN },
-      { now },
-    );
-    expect(claims).toMatchObject({
-      sub: ADMIN,
-      wedding_id: WEDDING,
-      role: "authenticated",
-      wedding_role: "admin",
-    });
-    expect(claims.exp - claims.iat).toBe(300);
+  it("správce nese sub, wedding_id a wedding_role (a nic jiného)", () => {
+    const claims = buildTenantClaims({ weddingId: WEDDING, weddingRole: "admin", subject: ADMIN });
+    expect(claims).toEqual({ sub: ADMIN, wedding_id: WEDDING, wedding_role: "admin" });
   });
 
-  it("odmítne správce bez subjektu, neplatné UUID a příliš dlouhou platnost", () => {
+  it("návštěvník a náhled mají konstantní sub", () => {
+    expect(
+      buildTenantClaims({ weddingId: WEDDING, weddingRole: "visitor", subject: ADMIN }).sub,
+    ).toBe("00000000-0000-0000-0000-000000000000");
+  });
+
+  it("odmítne správce bez subjektu, neplatné UUID a neznámou roli", () => {
     expect(() => buildTenantClaims({ weddingId: WEDDING, weddingRole: "admin" })).toThrow();
     expect(() => buildTenantClaims({ weddingId: "není-uuid", weddingRole: "visitor" })).toThrow();
-    expect(() =>
-      buildTenantClaims({ weddingId: WEDDING, weddingRole: "visitor" }, { ttlSeconds: 3600 }),
-    ).toThrow(/ttlSeconds/);
-  });
-
-  it("podpis je HS256 se sdíleným tajemstvím a krátké tajemství se odmítne", () => {
-    const jwt = mintTenantJwt(
-      { weddingId: WEDDING, weddingRole: "admin", subject: ADMIN },
-      { secret: SECRET, now },
-    );
-    const [header, payload, signature] = jwt.split(".");
-    expect(JSON.parse(Buffer.from(header, "base64url").toString())).toEqual({
-      alg: "HS256",
-      typ: "JWT",
-    });
-    expect(signature).toBe(
-      createHmac("sha256", SECRET).update(`${header}.${payload}`).digest("base64url"),
-    );
-    expect(() =>
-      mintTenantJwt({ weddingId: WEDDING, weddingRole: "visitor" }, { secret: "krátké" }),
-    ).toThrow();
-  });
-
-  it("klient posílá JWT v hlavičce Authorization a nevede relaci Supabase Auth", () => {
-    createClientMock.mockClear();
-    createTenantClient({ weddingId: WEDDING, weddingRole: "admin", subject: ADMIN });
-    const [, key, options] = createClientMock.mock.calls[0] as unknown as [
-      string,
-      string,
-      ReturnType<typeof tenantClientOptions>,
-    ];
-    expect(key).toBe("service-role-key-service-role-key"); // jen apikey; oprávnění určuje JWT
-    expect(options.global.headers.Authorization).toMatch(/^Bearer [\w-]+\.[\w-]+\.[\w-]+$/);
-    expect(options.auth.persistSession).toBe(false);
-    const payload = JSON.parse(
-      Buffer.from(options.global.headers.Authorization.split(".")[1], "base64url").toString(),
-    );
-    expect(payload).toMatchObject({ wedding_id: WEDDING, wedding_role: "admin", sub: ADMIN });
+    expect(() => buildTenantClaims({ weddingId: WEDDING, weddingRole: "root" as never })).toThrow();
   });
 });

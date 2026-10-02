@@ -195,7 +195,7 @@ test.describe("zadání PINu hostů (E2E-17, FR-PRIV-2)", () => {
     // relace prošla (nečinnost): citlivé bloky se zamknou
     await withDb((db) =>
       db.query(
-        "update public.sessions set idle_expires_at = now() - interval '1 second' where wedding_id = $1 and kind = 'guest_pin'",
+        "update se_vezmou.sessions set idle_expires_at = now() - interval '1 second' where wedding_id = $1 and kind = 'guest_pin'",
         [WEDDING_ID],
       ),
     );
@@ -208,7 +208,7 @@ test.describe("zadání PINu hostů (E2E-17, FR-PRIV-2)", () => {
     await expect(page.locator("#dary").getByText(SENSITIVE.account)).toBeVisible();
     await withDb((db) =>
       db.query(
-        "update public.sessions set revoked_at = now() where wedding_id = $1 and kind = 'guest_pin'",
+        "update se_vezmou.sessions set revoked_at = now() where wedding_id = $1 and kind = 'guest_pin'",
         [WEDDING_ID],
       ),
     );

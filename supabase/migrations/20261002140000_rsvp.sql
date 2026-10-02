@@ -7,14 +7,14 @@
 -- Hotové migrace se po sloučení neupravují, proto jsou funkce z M3 (`rsvp_match`, `rsvp_get`,
 -- `rsvp_submit`) tady nahrazeny (`create or replace`) se stejným podpisem a stejnými oprávněními.
 -- Zásady jako vždy: security definer, prázdný search_path, plně kvalifikované názvy, žádné
--- `execute` pro public a anon, filtr podle app.wedding_id().
+-- `execute` pro public a anon, filtr podle se_vezmou.wedding_id().
 
 -- ---------------------------------------------------------------------------
 -- Pomocné funkce: bezpečné přetypování na uuid a tolerance překlepů ve jménech
 -- ---------------------------------------------------------------------------
 
 -- Neplatný text není výjimka, ale null (payload z prohlížeče je nedůvěryhodný).
-create function app.try_uuid(p_text text) returns uuid
+create function se_vezmou.try_uuid(p_text text) returns uuid
   language plpgsql immutable set search_path = ''
   as $$
 begin
@@ -26,7 +26,7 @@ $$;
 
 -- Vzdálenost dvou slov (optimal string alignment): vložení, smazání, záměna znaku a prohození
 -- sousedních znaků se počítají jako jedna úprava. Slova jsou krátká (jména), nic dalšího se neřeší.
-create function app.osa_distance(p_a text, p_b text) returns integer
+create function se_vezmou.osa_distance(p_a text, p_b text) returns integer
   language plpgsql immutable strict parallel safe set search_path = ''
   as $$
 declare
@@ -62,11 +62,11 @@ begin
 end
 $$;
 
--- Jsou dva klíče jmen (`app.name_key`) "skoro stejné"? Stejný počet slov, ve stejném pořadí
+-- Jsou dva klíče jmen (`se_vezmou.name_key`) "skoro stejné"? Stejný počet slov, ve stejném pořadí
 -- seřazených slov nejvýš jedna úprava na slovo (dvě u slov od devíti znaků), celkem nejvýš dvě.
 -- Slovo kratší než čtyři znaky se musí shodovat přesně (Jan není Jana ani Jon). Slouží jako doplněk
 -- trigramů: krátká jména s jedním překlepem trigramy nezachytí ("jan novk" má podobnost 0,58).
-create function app.names_close(p_a text, p_b text) returns boolean
+create function se_vezmou.names_close(p_a text, p_b text) returns boolean
   language plpgsql immutable strict parallel safe set search_path = ''
   as $$
 declare
@@ -86,7 +86,7 @@ begin
     if abs(pg_catalog.char_length(ta[i]) - pg_catalog.char_length(tb[i])) > 2 then
       return false;
     end if;
-    v_d := app.osa_distance(ta[i], tb[i]);
+    v_d := se_vezmou.osa_distance(ta[i], tb[i]);
     if v_d > 0 and least(pg_catalog.char_length(ta[i]), pg_catalog.char_length(tb[i])) < 4 then
       return false;
     end if;
@@ -100,9 +100,9 @@ begin
 end
 $$;
 
-revoke all on function app.try_uuid(text), app.osa_distance(text, text), app.names_close(text, text)
+revoke all on function se_vezmou.try_uuid(text), se_vezmou.osa_distance(text, text), se_vezmou.names_close(text, text)
   from public, anon;
-grant execute on function app.try_uuid(text), app.osa_distance(text, text), app.names_close(text, text)
+grant execute on function se_vezmou.try_uuid(text), se_vezmou.osa_distance(text, text), se_vezmou.names_close(text, text)
   to authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
@@ -110,22 +110,22 @@ grant execute on function app.try_uuid(text), app.osa_distance(text, text), app.
 -- Odpověď má vždy stejný tvar (jeden řádek, ticket = null při neshodě, více shodách,
 -- zavřeném RSVP i chybné roli).
 -- ---------------------------------------------------------------------------
-create or replace function public.rsvp_match(p_name text) returns table (ticket text)
+create or replace function se_vezmou.rsvp_match(p_name text) returns table (ticket text)
   language plpgsql volatile security definer set search_path = ''
   as $$
 declare
-  v_wedding_id uuid := app.wedding_id();
-  w public.weddings;
+  v_wedding_id uuid := se_vezmou.wedding_id();
+  w se_vezmou.weddings;
   v_key text;
   v_households uuid[];
   v_token text;
 begin
-  if v_wedding_id is null or app.wedding_role() not in ('visitor', 'guest_pin') then
+  if v_wedding_id is null or se_vezmou.wedding_role() not in ('visitor', 'guest_pin') then
     return query select null::text;
     return;
   end if;
-  select * into w from public.weddings x where x.id = v_wedding_id and x.deleted_at is null;
-  if not found or app.phase(w) is distinct from 'rsvp_open' then
+  select * into w from se_vezmou.weddings x where x.id = v_wedding_id and x.deleted_at is null;
+  if not found or se_vezmou.phase(w) is distinct from 'rsvp_open' then
     return query select null::text;
     return;
   end if;
@@ -134,7 +134,7 @@ begin
     return query select null::text;
     return;
   end if;
-  v_key := app.name_key(p_name);
+  v_key := se_vezmou.name_key(p_name);
   if pg_catalog.char_length(v_key) < 2 then
     return query select null::text;
     return;
@@ -142,15 +142,15 @@ begin
 
   -- 1. přesná shoda seřazených slov (Novák Matěj = Matěj Novák)
   select pg_catalog.array_agg(distinct g.household_id) into v_households
-    from public.guests g where g.wedding_id = v_wedding_id and g.name_key = v_key;
+    from se_vezmou.guests g where g.wedding_id = v_wedding_id and g.name_key = v_key;
 
-  -- 2. tolerance překlepů po slovech (app.names_close). Trigramová podobnost se nepoužívá:
+  -- 2. tolerance překlepů po slovech (se_vezmou.names_close). Trigramová podobnost se nepoužívá:
   --    u krátkých jmen pouští jiného člověka (Jana ~ Jan, podobnost 0,82). Práh
   --    app_settings.rsvp_match_threshold zůstává v nastavení jako rezerva, rsvp_match ho nečte.
   if v_households is null then
     select pg_catalog.array_agg(distinct g.household_id) into v_households
-      from public.guests g
-     where g.wedding_id = v_wedding_id and app.names_close(g.name_key, v_key);
+      from se_vezmou.guests g
+     where g.wedding_id = v_wedding_id and se_vezmou.names_close(g.name_key, v_key);
   end if;
 
   -- jen jednoznačná shoda (jedna domácnost) vydá lístek; nejednoznačnost = stejná odpověď jako neshoda
@@ -161,7 +161,7 @@ begin
 
   v_token := pg_catalog.replace(gen_random_uuid()::text, '-', '')
           || pg_catalog.replace(gen_random_uuid()::text, '-', '');
-  insert into public.rsvp_tickets (token_hash, wedding_id, household_id, expires_at, purpose)
+  insert into se_vezmou.rsvp_tickets (token_hash, wedding_id, household_id, expires_at, purpose)
   values (sha256(convert_to(v_token, 'UTF8')), v_wedding_id, v_households[1],
           pg_catalog.now() + interval '30 minutes', 'edit');
   return query select v_token;
@@ -172,50 +172,50 @@ $$;
 -- Pohled na domácnost: co host (nebo správce při ručním zápisu) vidí při vyplňování.
 -- Jen události, na které má někdo z domácnosti pozvání; dřívější odpověď včetně diety.
 -- ---------------------------------------------------------------------------
-create function app.rsvp_household_view(p_household uuid) returns jsonb
+create function se_vezmou.rsvp_household_view(p_household uuid) returns jsonb
   language plpgsql stable security definer set search_path = ''
   as $$
 declare
-  v_wedding_id uuid := app.wedding_id();
-  v_response public.rsvp_responses;
+  v_wedding_id uuid := se_vezmou.wedding_id();
+  v_response se_vezmou.rsvp_responses;
 begin
-  select * into v_response from public.rsvp_responses r
+  select * into v_response from se_vezmou.rsvp_responses r
    where r.wedding_id = v_wedding_id and r.household_id = p_household;
 
   return jsonb_build_object(
     'household_id', p_household,
     'wedding', (
       select jsonb_build_object('timezone', w.timezone, 'default_locale', w.default_locale)
-        from public.weddings w where w.id = v_wedding_id),
+        from se_vezmou.weddings w where w.id = v_wedding_id),
     'guests', (
       select coalesce(jsonb_agg(jsonb_build_object(
         'id', g.id, 'display_name', g.display_name, 'is_child', g.is_child, 'age', g.age)
         order by g.created_at, g.id), '[]'::jsonb)
-        from public.guests g where g.wedding_id = v_wedding_id and g.household_id = p_household),
+        from se_vezmou.guests g where g.wedding_id = v_wedding_id and g.household_id = p_household),
     'events', (
       select coalesce(jsonb_agg(jsonb_build_object(
         'id', e.id, 'kind', e.kind, 'title', e.title, 'description', e.description,
         'starts_at', e.starts_at, 'ends_at', e.ends_at) order by e.position, e.starts_at), '[]'::jsonb)
-        from public.events e
+        from se_vezmou.events e
        where e.wedding_id = v_wedding_id and e.rsvp_enabled
          and exists (
-           select 1 from public.invitations i
-             join public.guests g on g.id = i.guest_id and g.wedding_id = i.wedding_id
+           select 1 from se_vezmou.invitations i
+             join se_vezmou.guests g on g.id = i.guest_id and g.wedding_id = i.wedding_id
             where i.event_id = e.id and i.wedding_id = v_wedding_id and g.household_id = p_household)),
     'invitations', (
       select coalesce(jsonb_agg(jsonb_build_object('guest_id', i.guest_id, 'event_id', i.event_id)), '[]'::jsonb)
-        from public.invitations i
-        join public.guests g on g.id = i.guest_id and g.wedding_id = i.wedding_id
+        from se_vezmou.invitations i
+        join se_vezmou.guests g on g.id = i.guest_id and g.wedding_id = i.wedding_id
        where i.wedding_id = v_wedding_id and g.household_id = p_household),
     'settings', (
       select jsonb_build_object('enabled_questions', s.enabled_questions,
         'email_confirmation', s.email_confirmation, 'opens_at', s.opens_at, 'closes_at', s.closes_at)
-        from public.rsvp_settings s where s.wedding_id = v_wedding_id),
+        from se_vezmou.rsvp_settings s where s.wedding_id = v_wedding_id),
     'questions', (
       select coalesce(jsonb_agg(jsonb_build_object(
         'id', q.id, 'key', q.key, 'type', q.type, 'label', q.label, 'options', q.options,
         'required', q.required, 'event_id', q.event_id) order by q.position, q.key), '[]'::jsonb)
-        from public.rsvp_questions q where q.wedding_id = v_wedding_id and q.enabled),
+        from se_vezmou.rsvp_questions q where q.wedding_id = v_wedding_id and q.enabled),
     'response', case when v_response.id is null then null else jsonb_build_object(
       'answers', v_response.answers,
       'contact_email', v_response.contact_email,
@@ -226,33 +226,33 @@ begin
           'is_child', p.is_child, 'age', p.age,
           'attendance', (
             select coalesce(jsonb_agg(jsonb_build_object('event_id', a.event_id, 'attending', a.attending)), '[]'::jsonb)
-              from public.rsvp_attendance a where a.person_id = p.id and a.wedding_id = p.wedding_id),
+              from se_vezmou.rsvp_attendance a where a.person_id = p.id and a.wedding_id = p.wedding_id),
           'diet', h.diet, 'allergies', h.allergies) order by p.created_at, p.id), '[]'::jsonb)
-          from public.rsvp_people p
-          left join public.rsvp_health h on h.person_id = p.id and h.wedding_id = p.wedding_id
+          from se_vezmou.rsvp_people p
+          left join se_vezmou.rsvp_health h on h.person_id = p.id and h.wedding_id = p.wedding_id
          where p.wedding_id = v_wedding_id and p.response_id = v_response.id)
     ) end
   );
 end
 $$;
 
-revoke all on function app.rsvp_household_view(uuid) from public, anon;
+revoke all on function se_vezmou.rsvp_household_view(uuid) from public, anon;
 
-create or replace function public.rsvp_get(p_ticket text) returns jsonb
+create or replace function se_vezmou.rsvp_get(p_ticket text) returns jsonb
   language plpgsql stable security definer set search_path = ''
   as $$
 declare
-  v_household uuid := app.ticket_household(p_ticket);
+  v_household uuid := se_vezmou.ticket_household(p_ticket);
 begin
   if v_household is null then
     return null;
   end if;
-  return app.rsvp_household_view(v_household);
+  return se_vezmou.rsvp_household_view(v_household);
 end
 $$;
 
 -- ---------------------------------------------------------------------------
--- app.rsvp_apply: společný zápis odpovědi (host se lístkem, host mimo seznam, ruční zápis správce).
+-- se_vezmou.rsvp_apply: společný zápis odpovědi (host se lístkem, host mimo seznam, ruční zápis správce).
 -- Volající už ověřili oprávnění a otevření RSVP; tady se validuje obsah a zapisuje v jedné transakci.
 --   p_household: domácnost, nebo null u hosta mimo seznam
 --   p_entered_by: 'guest' nebo 'admin' (správce: bez povinných otázek a bez e-mailu)
@@ -264,7 +264,7 @@ $$;
 -- Zná vestavěné odpovědi lodging (need|own|unsure), transport (need|own|offer), song (text)
 -- a vlastní otázky páru (text, choice podle options[].value, bool). Neznámé klíče zůstávají.
 -- ---------------------------------------------------------------------------
-create function app.rsvp_apply(
+create function se_vezmou.rsvp_apply(
   p_wedding_id uuid,
   p_household uuid,
   p_payload jsonb,
@@ -275,12 +275,12 @@ create function app.rsvp_apply(
 declare
   c_max_people constant integer := 20;
   c_max_unlisted constant integer := 6;
-  v_settings public.rsvp_settings;
+  v_settings se_vezmou.rsvp_settings;
   v_flags jsonb;
   v_person jsonb;
   v_att jsonb;
   v_guest_id uuid;
-  v_guest public.guests;
+  v_guest se_vezmou.guests;
   v_event_id uuid;
   v_name text;
   v_email text;
@@ -296,12 +296,12 @@ declare
   v_unlisted boolean := p_household is null;
   v_max_people integer;
   v_attending uuid[] := '{}';
-  v_question public.rsvp_questions;
+  v_question se_vezmou.rsvp_questions;
   v_value jsonb;
   v_text text;
 begin
   v_max_people := case when v_unlisted then c_max_unlisted else c_max_people end;
-  select * into v_settings from public.rsvp_settings s where s.wedding_id = p_wedding_id;
+  select * into v_settings from se_vezmou.rsvp_settings s where s.wedding_id = p_wedding_id;
   v_flags := coalesce(v_settings.enabled_questions, '{}'::jsonb);
 
   if p_payload is null or jsonb_typeof(p_payload) <> 'object'
@@ -333,7 +333,7 @@ begin
     if jsonb_typeof(v_person) <> 'object' then
       raise exception 'invalid_payload' using errcode = '22023';
     end if;
-    v_guest_id := app.try_uuid(v_person ->> 'guest_id');
+    v_guest_id := se_vezmou.try_uuid(v_person ->> 'guest_id');
     if nullif(v_person ->> 'guest_id', '') is not null and v_guest_id is null then
       raise exception 'invalid_payload' using errcode = '22023';
     end if;
@@ -341,7 +341,7 @@ begin
 
     if v_guest_id is not null then
       if v_unlisted or not exists (
-           select 1 from public.guests g
+           select 1 from se_vezmou.guests g
             where g.id = v_guest_id and g.wedding_id = p_wedding_id and g.household_id = p_household) then
         raise exception 'invalid_guest' using errcode = '42501';
       end if;
@@ -376,20 +376,20 @@ begin
     end if;
 
     for v_att in select * from jsonb_array_elements(coalesce(v_person -> 'attendance', '[]'::jsonb)) loop
-      v_event_id := app.try_uuid(v_att ->> 'event_id');
+      v_event_id := se_vezmou.try_uuid(v_att ->> 'event_id');
       if v_event_id is null or jsonb_typeof(v_att -> 'attending') is distinct from 'boolean' then
         raise exception 'invalid_payload' using errcode = '22023';
       end if;
       if v_unlisted then
-        if not exists (select 1 from public.events e
+        if not exists (select 1 from se_vezmou.events e
                         where e.id = v_event_id and e.wedding_id = p_wedding_id and e.rsvp_enabled) then
           raise exception 'event_not_invited' using errcode = '42501';
         end if;
       elsif not exists (
         select 1
-          from public.invitations i
-          join public.guests g on g.id = i.guest_id and g.wedding_id = i.wedding_id
-          join public.events e on e.id = i.event_id and e.wedding_id = i.wedding_id
+          from se_vezmou.invitations i
+          join se_vezmou.guests g on g.id = i.guest_id and g.wedding_id = i.wedding_id
+          join se_vezmou.events e on e.id = i.event_id and e.wedding_id = i.wedding_id
          where i.event_id = v_event_id and i.wedding_id = p_wedding_id and e.rsvp_enabled
            and g.household_id = p_household
            and (v_guest_id is null or g.id = v_guest_id)) then
@@ -433,7 +433,7 @@ begin
   end if;
 
   for v_question in
-    select * from public.rsvp_questions q where q.wedding_id = p_wedding_id and q.enabled
+    select * from se_vezmou.rsvp_questions q where q.wedding_id = p_wedding_id and q.enabled
   loop
     v_value := v_answers -> v_question.key;
     -- otázka vázaná na událost se týká jen toho, kdo na ni přijde
@@ -477,25 +477,25 @@ begin
 
   -- 3. zápis: jedna odpověď na domácnost, osoby a účast se nahrazují
   if v_unlisted then
-    insert into public.rsvp_responses (wedding_id, household_id, answers, contact_email, entered_by)
+    insert into se_vezmou.rsvp_responses (wedding_id, household_id, answers, contact_email, entered_by)
     values (p_wedding_id, null, v_answers, v_email::extensions.citext, p_entered_by)
     returning id into v_response_id;
   else
-    insert into public.rsvp_responses as r (wedding_id, household_id, answers, contact_email, entered_by)
+    insert into se_vezmou.rsvp_responses as r (wedding_id, household_id, answers, contact_email, entered_by)
     values (p_wedding_id, p_household, v_answers, v_email::extensions.citext, p_entered_by)
     on conflict (wedding_id, household_id) where household_id is not null
     do update set answers = excluded.answers, contact_email = excluded.contact_email,
                   entered_by = excluded.entered_by, last_edited_at = pg_catalog.now()
     returning r.id into v_response_id;
 
-    delete from public.rsvp_people p where p.wedding_id = p_wedding_id and p.response_id = v_response_id;
+    delete from se_vezmou.rsvp_people p where p.wedding_id = p_wedding_id and p.response_id = v_response_id;
   end if;
 
   for v_person in select * from jsonb_array_elements(p_payload -> 'people') loop
-    v_guest_id := app.try_uuid(v_person ->> 'guest_id');
+    v_guest_id := se_vezmou.try_uuid(v_person ->> 'guest_id');
     v_is_child := coalesce(v_person -> 'is_child' = 'true'::jsonb, false);
     if v_guest_id is not null then
-      select * into v_guest from public.guests g where g.id = v_guest_id and g.wedding_id = p_wedding_id;
+      select * into v_guest from se_vezmou.guests g where g.id = v_guest_id and g.wedding_id = p_wedding_id;
       v_name := v_guest.display_name;
       v_is_child := v_guest.is_child;
       v_age := v_guest.age;
@@ -505,14 +505,14 @@ begin
     end if;
 
     -- clock_timestamp: osoby jedné odpovědi si drží pořadí z payloadu (now() je v transakci stejné)
-    insert into public.rsvp_people (wedding_id, response_id, guest_id, person_name, is_plus_one, is_child, age, created_at)
+    insert into se_vezmou.rsvp_people (wedding_id, response_id, guest_id, person_name, is_plus_one, is_child, age, created_at)
     values (p_wedding_id, v_response_id, v_guest_id, v_name,
             v_guest_id is null and not v_unlisted and not v_is_child, v_is_child, v_age,
             pg_catalog.clock_timestamp())
     returning id into v_person_id;
 
     for v_att in select * from jsonb_array_elements(coalesce(v_person -> 'attendance', '[]'::jsonb)) loop
-      insert into public.rsvp_attendance (wedding_id, person_id, event_id, attending)
+      insert into se_vezmou.rsvp_attendance (wedding_id, person_id, event_id, attending)
       values (p_wedding_id, v_person_id, (v_att ->> 'event_id')::uuid, (v_att ->> 'attending')::boolean)
       on conflict (person_id, event_id) do update set attending = excluded.attending;
     end loop;
@@ -525,7 +525,7 @@ begin
         raise exception 'invalid_payload' using errcode = '22023';
       end if;
       if v_diet is not null or v_allergies is not null then
-        insert into public.rsvp_health (person_id, wedding_id, diet, allergies)
+        insert into se_vezmou.rsvp_health (person_id, wedding_id, diet, allergies)
         values (v_person_id, p_wedding_id, v_diet, v_allergies);
       end if;
     end if;
@@ -535,31 +535,31 @@ begin
 end
 $$;
 
-revoke all on function app.rsvp_apply(uuid, uuid, jsonb, text) from public, anon;
+revoke all on function se_vezmou.rsvp_apply(uuid, uuid, jsonb, text) from public, anon;
 
 -- ---------------------------------------------------------------------------
 -- rsvp_submit: zápis nebo úprava odpovědi domácnosti podle lístku z rsvp_match.
 -- Pořadí kontrol: lístek, otevření RSVP, teprve potom obsah.
 -- ---------------------------------------------------------------------------
-create or replace function public.rsvp_submit(p_ticket text, p_payload jsonb) returns jsonb
+create or replace function se_vezmou.rsvp_submit(p_ticket text, p_payload jsonb) returns jsonb
   language plpgsql volatile security definer set search_path = ''
   as $$
 declare
-  v_wedding_id uuid := app.wedding_id();
-  v_household uuid := app.ticket_household(p_ticket);
-  w public.weddings;
+  v_wedding_id uuid := se_vezmou.wedding_id();
+  v_household uuid := se_vezmou.ticket_household(p_ticket);
+  w se_vezmou.weddings;
   v_response_id uuid;
 begin
   if v_household is null then
     raise exception 'invalid_ticket' using errcode = '28000';
   end if;
 
-  select * into w from public.weddings x where x.id = v_wedding_id and x.deleted_at is null;
-  if not found or app.phase(w) is distinct from 'rsvp_open' then
+  select * into w from se_vezmou.weddings x where x.id = v_wedding_id and x.deleted_at is null;
+  if not found or se_vezmou.phase(w) is distinct from 'rsvp_open' then
     raise exception 'rsvp_closed' using errcode = '55000';
   end if;
 
-  v_response_id := app.rsvp_apply(v_wedding_id, v_household, p_payload, 'guest');
+  v_response_id := se_vezmou.rsvp_apply(v_wedding_id, v_household, p_payload, 'guest');
   return jsonb_build_object('ok', true, 'response_id', v_response_id);
 end
 $$;
@@ -568,27 +568,27 @@ $$;
 -- rsvp_info: otevřenost RSVP a volby páru, které host potřebuje ještě před ověřením jména.
 -- Neprozrazuje nic o hostech. Vrací null pro neveřejný web a nesprávnou roli.
 -- ---------------------------------------------------------------------------
-create function public.rsvp_info() returns jsonb
+create function se_vezmou.rsvp_info() returns jsonb
   language plpgsql stable security definer set search_path = ''
   as $$
 declare
-  v_wedding_id uuid := app.wedding_id();
-  w public.weddings;
+  v_wedding_id uuid := se_vezmou.wedding_id();
+  w se_vezmou.weddings;
   v_phase text;
-  v_settings public.rsvp_settings;
+  v_settings se_vezmou.rsvp_settings;
 begin
-  if v_wedding_id is null or app.wedding_role() not in ('visitor', 'guest_pin') then
+  if v_wedding_id is null or se_vezmou.wedding_role() not in ('visitor', 'guest_pin') then
     return null;
   end if;
-  select * into w from public.weddings x where x.id = v_wedding_id and x.deleted_at is null;
+  select * into w from se_vezmou.weddings x where x.id = v_wedding_id and x.deleted_at is null;
   if not found then
     return null;
   end if;
-  v_phase := app.phase(w);
+  v_phase := se_vezmou.phase(w);
   if v_phase is null then
     return null;
   end if;
-  select * into v_settings from public.rsvp_settings s where s.wedding_id = v_wedding_id;
+  select * into v_settings from se_vezmou.rsvp_settings s where s.wedding_id = v_wedding_id;
   return jsonb_build_object(
     'phase', v_phase,
     'open', v_phase = 'rsvp_open',
@@ -604,22 +604,22 @@ $$;
 -- Host není v seznamu, proto nemá pozvání: ptá se na všechny události s rsvp_enabled.
 -- Odpověď nejde později upravit (nemá domácnost ani lístek); upozorní na to rozhraní.
 -- ---------------------------------------------------------------------------
-create function public.rsvp_unlisted_form() returns jsonb
+create function se_vezmou.rsvp_unlisted_form() returns jsonb
   language plpgsql stable security definer set search_path = ''
   as $$
 declare
-  v_wedding_id uuid := app.wedding_id();
-  w public.weddings;
-  v_settings public.rsvp_settings;
+  v_wedding_id uuid := se_vezmou.wedding_id();
+  w se_vezmou.weddings;
+  v_settings se_vezmou.rsvp_settings;
 begin
-  if v_wedding_id is null or app.wedding_role() not in ('visitor', 'guest_pin') then
+  if v_wedding_id is null or se_vezmou.wedding_role() not in ('visitor', 'guest_pin') then
     return null;
   end if;
-  select * into w from public.weddings x where x.id = v_wedding_id and x.deleted_at is null;
-  if not found or app.phase(w) is distinct from 'rsvp_open' then
+  select * into w from se_vezmou.weddings x where x.id = v_wedding_id and x.deleted_at is null;
+  if not found or se_vezmou.phase(w) is distinct from 'rsvp_open' then
     return null;
   end if;
-  select * into v_settings from public.rsvp_settings s where s.wedding_id = v_wedding_id;
+  select * into v_settings from se_vezmou.rsvp_settings s where s.wedding_id = v_wedding_id;
   if not coalesce(v_settings.allow_unlisted, false) then
     return null;
   end if;
@@ -630,56 +630,56 @@ begin
       select coalesce(jsonb_agg(jsonb_build_object(
         'id', e.id, 'kind', e.kind, 'title', e.title, 'description', e.description,
         'starts_at', e.starts_at, 'ends_at', e.ends_at) order by e.position, e.starts_at), '[]'::jsonb)
-        from public.events e where e.wedding_id = v_wedding_id and e.rsvp_enabled),
+        from se_vezmou.events e where e.wedding_id = v_wedding_id and e.rsvp_enabled),
     'settings', jsonb_build_object('enabled_questions', v_settings.enabled_questions,
       'email_confirmation', v_settings.email_confirmation),
     'questions', (
       select coalesce(jsonb_agg(jsonb_build_object(
         'id', q.id, 'key', q.key, 'type', q.type, 'label', q.label, 'options', q.options,
         'required', q.required, 'event_id', q.event_id) order by q.position, q.key), '[]'::jsonb)
-        from public.rsvp_questions q where q.wedding_id = v_wedding_id and q.enabled)
+        from se_vezmou.rsvp_questions q where q.wedding_id = v_wedding_id and q.enabled)
   );
 end
 $$;
 
-create function public.rsvp_submit_unlisted(p_payload jsonb) returns jsonb
+create function se_vezmou.rsvp_submit_unlisted(p_payload jsonb) returns jsonb
   language plpgsql volatile security definer set search_path = ''
   as $$
 declare
-  v_wedding_id uuid := app.wedding_id();
-  w public.weddings;
-  v_settings public.rsvp_settings;
+  v_wedding_id uuid := se_vezmou.wedding_id();
+  w se_vezmou.weddings;
+  v_settings se_vezmou.rsvp_settings;
   v_response_id uuid;
 begin
-  if v_wedding_id is null or app.wedding_role() not in ('visitor', 'guest_pin') then
+  if v_wedding_id is null or se_vezmou.wedding_role() not in ('visitor', 'guest_pin') then
     raise exception 'forbidden' using errcode = '42501';
   end if;
-  select * into w from public.weddings x where x.id = v_wedding_id and x.deleted_at is null;
-  if not found or app.phase(w) is distinct from 'rsvp_open' then
+  select * into w from se_vezmou.weddings x where x.id = v_wedding_id and x.deleted_at is null;
+  if not found or se_vezmou.phase(w) is distinct from 'rsvp_open' then
     raise exception 'rsvp_closed' using errcode = '55000';
   end if;
-  select * into v_settings from public.rsvp_settings s where s.wedding_id = v_wedding_id;
+  select * into v_settings from se_vezmou.rsvp_settings s where s.wedding_id = v_wedding_id;
   if not coalesce(v_settings.allow_unlisted, false) then
     raise exception 'unlisted_not_allowed' using errcode = '42501';
   end if;
 
-  v_response_id := app.rsvp_apply(v_wedding_id, null, p_payload, 'guest');
+  v_response_id := se_vezmou.rsvp_apply(v_wedding_id, null, p_payload, 'guest');
   return jsonb_build_object('ok', true, 'response_id', v_response_id);
 end
 $$;
 
 -- ---------------------------------------------------------------------------
 -- Správcovská strana (UI přijde v M7): seznam hostů a domácností, přehled RSVP, ruční zápis.
--- Volá server s JWT role admin; každá funkce vyžaduje app.is_wedding_admin() a filtruje podle
--- app.wedding_id(). Zdravotní údaje vrací jen admin_rsvp_household (pro předvyplnění zápisu).
+-- Volá server s JWT role admin; každá funkce vyžaduje se_vezmou.is_wedding_admin() a filtruje podle
+-- se_vezmou.wedding_id(). Zdravotní údaje vrací jen admin_rsvp_household (pro předvyplnění zápisu).
 -- ---------------------------------------------------------------------------
-create function public.admin_guest_list() returns jsonb
+create function se_vezmou.admin_guest_list() returns jsonb
   language plpgsql stable security definer set search_path = ''
   as $$
 declare
-  v_wedding_id uuid := app.wedding_id();
+  v_wedding_id uuid := se_vezmou.wedding_id();
 begin
-  if not app.is_wedding_admin() then
+  if not se_vezmou.is_wedding_admin() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
@@ -688,7 +688,7 @@ begin
       select coalesce(jsonb_agg(jsonb_build_object(
         'id', e.id, 'kind', e.kind, 'title', e.title, 'starts_at', e.starts_at,
         'rsvp_enabled', e.rsvp_enabled) order by e.position, e.starts_at), '[]'::jsonb)
-        from public.events e where e.wedding_id = v_wedding_id),
+        from se_vezmou.events e where e.wedding_id = v_wedding_id),
     'households', (
       select coalesce(jsonb_agg(x.j order by x.label, x.created_at, x.id), '[]'::jsonb)
         from (
@@ -700,27 +700,27 @@ begin
                 'is_plus_one', g.is_plus_one, 'source', g.source,
                 'invited_event_ids', (
                   select coalesce(jsonb_agg(i.event_id order by i.event_id), '[]'::jsonb)
-                    from public.invitations i where i.guest_id = g.id and i.wedding_id = g.wedding_id),
+                    from se_vezmou.invitations i where i.guest_id = g.id and i.wedding_id = g.wedding_id),
                 'attendance', (
                   select coalesce(jsonb_agg(jsonb_build_object('event_id', a.event_id, 'attending', a.attending)
                                             order by a.event_id), '[]'::jsonb)
-                    from public.rsvp_people p
-                    join public.rsvp_attendance a on a.person_id = p.id and a.wedding_id = p.wedding_id
+                    from se_vezmou.rsvp_people p
+                    join se_vezmou.rsvp_attendance a on a.person_id = p.id and a.wedding_id = p.wedding_id
                    where p.guest_id = g.id and p.wedding_id = g.wedding_id)
               ) order by g.created_at, g.id), '[]'::jsonb)
-                from public.guests g where g.household_id = h.id and g.wedding_id = h.wedding_id),
+                from se_vezmou.guests g where g.household_id = h.id and g.wedding_id = h.wedding_id),
             'response', (
               select jsonb_build_object(
                 'id', r.id, 'submitted_at', r.submitted_at, 'last_edited_at', r.last_edited_at,
                 'entered_by', r.entered_by, 'has_email', r.contact_email is not null,
                 'attending', exists (
-                  select 1 from public.rsvp_people p
-                    join public.rsvp_attendance a on a.person_id = p.id and a.wedding_id = p.wedding_id
+                  select 1 from se_vezmou.rsvp_people p
+                    join se_vezmou.rsvp_attendance a on a.person_id = p.id and a.wedding_id = p.wedding_id
                    where p.response_id = r.id and p.wedding_id = r.wedding_id and a.attending))
-                from public.rsvp_responses r
+                from se_vezmou.rsvp_responses r
                where r.household_id = h.id and r.wedding_id = h.wedding_id)
           ) as j
-          from public.households h where h.wedding_id = v_wedding_id
+          from se_vezmou.households h where h.wedding_id = v_wedding_id
         ) x),
     -- odpovědi hostů mimo seznam (bez domácnosti)
     'unlisted', (
@@ -732,112 +732,112 @@ begin
             'attendance', (
               select coalesce(jsonb_agg(jsonb_build_object('event_id', a.event_id, 'attending', a.attending)
                                         order by a.event_id), '[]'::jsonb)
-                from public.rsvp_attendance a where a.person_id = p.id and a.wedding_id = p.wedding_id))
+                from se_vezmou.rsvp_attendance a where a.person_id = p.id and a.wedding_id = p.wedding_id))
             order by p.created_at, p.id), '[]'::jsonb)
-            from public.rsvp_people p where p.response_id = r.id and p.wedding_id = r.wedding_id))
+            from se_vezmou.rsvp_people p where p.response_id = r.id and p.wedding_id = r.wedding_id))
         order by r.submitted_at, r.id), '[]'::jsonb)
-        from public.rsvp_responses r where r.wedding_id = v_wedding_id and r.household_id is null)
+        from se_vezmou.rsvp_responses r where r.wedding_id = v_wedding_id and r.household_id is null)
   );
 end
 $$;
 
-create function public.admin_rsvp_overview() returns jsonb
+create function se_vezmou.admin_rsvp_overview() returns jsonb
   language plpgsql stable security definer set search_path = ''
   as $$
 declare
-  v_wedding_id uuid := app.wedding_id();
+  v_wedding_id uuid := se_vezmou.wedding_id();
 begin
-  if not app.is_wedding_admin() then
+  if not se_vezmou.is_wedding_admin() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
 
   return jsonb_build_object(
     'households', jsonb_build_object(
-      'total', (select count(*) from public.households h where h.wedding_id = v_wedding_id),
-      'answered', (select count(*) from public.households h where h.wedding_id = v_wedding_id
-                    and exists (select 1 from public.rsvp_responses r
+      'total', (select count(*) from se_vezmou.households h where h.wedding_id = v_wedding_id),
+      'answered', (select count(*) from se_vezmou.households h where h.wedding_id = v_wedding_id
+                    and exists (select 1 from se_vezmou.rsvp_responses r
                                  where r.wedding_id = h.wedding_id and r.household_id = h.id)),
-      'pending', (select count(*) from public.households h where h.wedding_id = v_wedding_id
-                   and not exists (select 1 from public.rsvp_responses r
+      'pending', (select count(*) from se_vezmou.households h where h.wedding_id = v_wedding_id
+                   and not exists (select 1 from se_vezmou.rsvp_responses r
                                     where r.wedding_id = h.wedding_id and r.household_id = h.id))),
     'guests', jsonb_build_object(
-      'total', (select count(*) from public.guests g where g.wedding_id = v_wedding_id),
-      'children', (select count(*) from public.guests g where g.wedding_id = v_wedding_id and g.is_child)),
+      'total', (select count(*) from se_vezmou.guests g where g.wedding_id = v_wedding_id),
+      'children', (select count(*) from se_vezmou.guests g where g.wedding_id = v_wedding_id and g.is_child)),
     'extra_people', jsonb_build_object(
-      'plus_ones', (select count(*) from public.rsvp_people p
+      'plus_ones', (select count(*) from se_vezmou.rsvp_people p
                      where p.wedding_id = v_wedding_id and p.is_plus_one),
-      'unlisted', (select count(*) from public.rsvp_people p
-                     join public.rsvp_responses r on r.id = p.response_id and r.wedding_id = p.wedding_id
+      'unlisted', (select count(*) from se_vezmou.rsvp_people p
+                     join se_vezmou.rsvp_responses r on r.id = p.response_id and r.wedding_id = p.wedding_id
                     where p.wedding_id = v_wedding_id and r.household_id is null),
-      'added_children', (select count(*) from public.rsvp_people p
+      'added_children', (select count(*) from se_vezmou.rsvp_people p
                           where p.wedding_id = v_wedding_id and p.guest_id is null and p.is_child
-                            and exists (select 1 from public.rsvp_responses r
+                            and exists (select 1 from se_vezmou.rsvp_responses r
                                          where r.id = p.response_id and r.wedding_id = p.wedding_id
                                            and r.household_id is not null))),
     'events', (
       select coalesce(jsonb_agg(jsonb_build_object(
         'event_id', e.id, 'kind', e.kind, 'title', e.title, 'starts_at', e.starts_at,
-        'invited', (select count(*) from public.invitations i
+        'invited', (select count(*) from se_vezmou.invitations i
                      where i.event_id = e.id and i.wedding_id = e.wedding_id),
         -- účast se počítá po hlavách: i doprovod, děti doplněné při RSVP a hosté mimo seznam
-        'attending', (select count(*) from public.rsvp_attendance a
+        'attending', (select count(*) from se_vezmou.rsvp_attendance a
                        where a.event_id = e.id and a.wedding_id = e.wedding_id and a.attending),
-        'declined', (select count(*) from public.rsvp_attendance a
+        'declined', (select count(*) from se_vezmou.rsvp_attendance a
                       where a.event_id = e.id and a.wedding_id = e.wedding_id and not a.attending),
-        'attending_extra', (select count(*) from public.rsvp_attendance a
-                             join public.rsvp_people p on p.id = a.person_id and p.wedding_id = a.wedding_id
+        'attending_extra', (select count(*) from se_vezmou.rsvp_attendance a
+                             join se_vezmou.rsvp_people p on p.id = a.person_id and p.wedding_id = a.wedding_id
                             where a.event_id = e.id and a.wedding_id = e.wedding_id
                               and a.attending and p.guest_id is null),
         -- pozvaní, kteří na událost zatím neodpověděli
-        'pending', (select count(*) from public.invitations i
+        'pending', (select count(*) from se_vezmou.invitations i
                      where i.event_id = e.id and i.wedding_id = e.wedding_id
                        and not exists (
-                         select 1 from public.rsvp_people p
-                           join public.rsvp_attendance a on a.person_id = p.id and a.wedding_id = p.wedding_id
+                         select 1 from se_vezmou.rsvp_people p
+                           join se_vezmou.rsvp_attendance a on a.person_id = p.id and a.wedding_id = p.wedding_id
                           where p.guest_id = i.guest_id and p.wedding_id = i.wedding_id
                             and a.event_id = i.event_id))
       ) order by e.position, e.starts_at), '[]'::jsonb)
-        from public.events e where e.wedding_id = v_wedding_id and e.rsvp_enabled)
+        from se_vezmou.events e where e.wedding_id = v_wedding_id and e.rsvp_enabled)
   );
 end
 $$;
 
-create function public.admin_rsvp_household(p_household_id uuid) returns jsonb
+create function se_vezmou.admin_rsvp_household(p_household_id uuid) returns jsonb
   language plpgsql stable security definer set search_path = ''
   as $$
 begin
-  if not app.is_wedding_admin() then
+  if not se_vezmou.is_wedding_admin() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
-  if not exists (select 1 from public.households h
-                  where h.id = p_household_id and h.wedding_id = app.wedding_id()) then
+  if not exists (select 1 from se_vezmou.households h
+                  where h.id = p_household_id and h.wedding_id = se_vezmou.wedding_id()) then
     return null;
   end if;
-  return app.rsvp_household_view(p_household_id);
+  return se_vezmou.rsvp_household_view(p_household_id);
 end
 $$;
 
 -- Ruční zápis odpovědi domácnosti (host odpověděl telefonem, FR-ADM-5). Nezávisí na otevření RSVP
 -- (pozdní telefonát po uzavření je běžný), povinné otázky se nevynucují, e-mail se neukládá.
 -- Zápis se eviduje v audit_log bez osobních údajů (jen identifikátor domácnosti).
-create function public.admin_rsvp_enter(p_household_id uuid, p_payload jsonb) returns jsonb
+create function se_vezmou.admin_rsvp_enter(p_household_id uuid, p_payload jsonb) returns jsonb
   language plpgsql volatile security definer set search_path = ''
   as $$
 declare
-  v_wedding_id uuid := app.wedding_id();
+  v_wedding_id uuid := se_vezmou.wedding_id();
   v_response_id uuid;
 begin
-  if not app.is_wedding_admin() then
+  if not se_vezmou.is_wedding_admin() then
     raise exception 'forbidden' using errcode = '42501';
   end if;
-  if not exists (select 1 from public.weddings w where w.id = v_wedding_id and w.deleted_at is null)
-     or not exists (select 1 from public.households h
+  if not exists (select 1 from se_vezmou.weddings w where w.id = v_wedding_id and w.deleted_at is null)
+     or not exists (select 1 from se_vezmou.households h
                      where h.id = p_household_id and h.wedding_id = v_wedding_id) then
     raise exception 'household_not_found' using errcode = 'P0002';
   end if;
 
-  v_response_id := app.rsvp_apply(v_wedding_id, p_household_id, p_payload, 'admin');
-  perform app.write_audit('admin', auth.uid(), v_wedding_id, 'rsvp.manual_entry', 'household',
+  v_response_id := se_vezmou.rsvp_apply(v_wedding_id, p_household_id, p_payload, 'admin');
+  perform se_vezmou.write_audit('admin', se_vezmou.actor_id(), v_wedding_id, 'rsvp.manual_entry', 'household',
                           p_household_id, null, '{}'::jsonb);
   return jsonb_build_object('ok', true, 'response_id', v_response_id);
 end
@@ -847,7 +847,7 @@ $$;
 -- Analytika bez identifikátorů (ADR 0007): jen server (service role), uzavřený seznam událostí
 -- hlídá kontrolní omezení tabulky. Svatba, jména ani odpovědi se nepředávají.
 -- ---------------------------------------------------------------------------
-create function public.analytics_record(
+create function se_vezmou.analytics_record(
   p_event text,
   p_locale text default null,
   p_template text default null,
@@ -855,23 +855,23 @@ create function public.analytics_record(
 ) returns void
   language sql volatile security definer set search_path = ''
   as $$
-  insert into public.analytics_event (event, locale, template, step)
+  insert into se_vezmou.analytics_event (event, locale, template, step)
   values (p_event, p_locale, p_template, p_step)
 $$;
 
 revoke all on function
-  public.rsvp_info(), public.rsvp_unlisted_form(), public.rsvp_submit_unlisted(jsonb),
-  public.admin_guest_list(), public.admin_rsvp_overview(), public.admin_rsvp_household(uuid),
-  public.admin_rsvp_enter(uuid, jsonb), public.analytics_record(text, text, text, smallint)
+  se_vezmou.rsvp_info(), se_vezmou.rsvp_unlisted_form(), se_vezmou.rsvp_submit_unlisted(jsonb),
+  se_vezmou.admin_guest_list(), se_vezmou.admin_rsvp_overview(), se_vezmou.admin_rsvp_household(uuid),
+  se_vezmou.admin_rsvp_enter(uuid, jsonb), se_vezmou.analytics_record(text, text, text, smallint)
   from public, anon;
-revoke all on function public.rsvp_match(text), public.rsvp_get(text), public.rsvp_submit(text, jsonb)
+revoke all on function se_vezmou.rsvp_match(text), se_vezmou.rsvp_get(text), se_vezmou.rsvp_submit(text, jsonb)
   from public, anon;
 
 grant execute on function
-  public.rsvp_info(), public.rsvp_unlisted_form(), public.rsvp_submit_unlisted(jsonb),
-  public.admin_guest_list(), public.admin_rsvp_overview(), public.admin_rsvp_household(uuid),
-  public.admin_rsvp_enter(uuid, jsonb)
+  se_vezmou.rsvp_info(), se_vezmou.rsvp_unlisted_form(), se_vezmou.rsvp_submit_unlisted(jsonb),
+  se_vezmou.admin_guest_list(), se_vezmou.admin_rsvp_overview(), se_vezmou.admin_rsvp_household(uuid),
+  se_vezmou.admin_rsvp_enter(uuid, jsonb)
   to authenticated;
-grant execute on function public.rsvp_match(text), public.rsvp_get(text), public.rsvp_submit(text, jsonb)
+grant execute on function se_vezmou.rsvp_match(text), se_vezmou.rsvp_get(text), se_vezmou.rsvp_submit(text, jsonb)
   to authenticated;
-grant execute on function public.analytics_record(text, text, text, smallint) to service_role;
+grant execute on function se_vezmou.analytics_record(text, text, text, smallint) to service_role;

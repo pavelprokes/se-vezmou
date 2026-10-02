@@ -1,7 +1,7 @@
 -- M3 / 6: výchozí hodnoty (app_settings) a rezervovaná slova (slug_registry).
 -- Idempotentní: opakované spuštění nepřepíše hodnoty, které majitel mezitím změnil.
 
-insert into public.app_settings (key, value) values
+insert into se_vezmou.app_settings (key, value) values
   -- počet správců na svatbu; tvrdý strop 5 je ve spouštěči (kap. 3.2), ne v konfiguraci
   ('max_admins', '3'),
   -- rezervace adresy konceptu od last_activity_at (OQ-06)
@@ -28,7 +28,7 @@ on conflict (key) do nothing;
 -- jako adresa webu. Řádek se nikdy nemaže (viz spouštěč v migraci spouštěčů).
 -- TODO (M5, majitel): doplnit seznam vulgarismů a podobností s cizími značkami a bankami;
 -- mechanismus je hotový, stačí vložit řádky se state = 'reserved_word'.
-insert into public.slug_registry (slug, state) values
+insert into se_vezmou.slug_registry (slug, state) values
   ('www', 'reserved_word'), ('app', 'reserved_word'), ('admin', 'reserved_word'),
   ('api', 'reserved_word'), ('mail', 'reserved_word'), ('podpora', 'reserved_word'),
   ('status', 'reserved_word'), ('static', 'reserved_word'), ('cdn', 'reserved_word'),

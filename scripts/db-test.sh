@@ -6,8 +6,12 @@
 #     jen přes unixový socket (žádný TCP port), po testech ho zastaví a smaže. Pod rootem
 #     používá uživatele postgres (runuser), jinak běží pod aktuálním uživatelem.
 #  2. S DATABASE_URL (např. service container postgres:16 v CI): použije zadanou databázi.
-#     Skript v ní SMAŽE schémata public, app, auth, extensions a tap, proto je potřeba
-#     výslovný souhlas DB_TEST_ALLOW_RESET=1. Role v clusteru (anon, ...) zůstanou.
+#     Skript v ní SMAŽE schémata public, se_vezmou, auth, extensions a tap, proto je potřeba
+#     výslovný souhlas DB_TEST_ALLOW_RESET=1. Role v clusteru (anon, se_vezmou_app, ...) zůstanou.
+#
+# Průběh: (A) test izolace migrací: snímek katalogu před migracemi a po nich (dvakrát: bez a s
+# provedeným init skriptem), mimo schéma se_vezmou se nesmí změnit nic; (B) čistá databáze, shim,
+# init skripty (supabase/init), migrace, pomocné funkce, testy a souběžný test.
 #
 # Proměnné: DATABASE_URL, DB_TEST_ALLOW_RESET, PG_BIN (adresář s binárkami PostgreSQL),
 #           DB_TEST_VERBOSE=1 (vypíše všechny řádky "ok - ...").
@@ -36,6 +40,7 @@ find_pg_bin() {
 
 cleanup() {
   local code=$?
+  if [[ -n "${TMP_DIR:-}" ]]; then rm -rf "$TMP_DIR"; fi
   if [[ -n "$DB_DIR" && -d "$DB_DIR" ]]; then
     if [[ -f "$DB_DIR/data/postmaster.pid" ]]; then
       "${PG_RUN[@]}" "$BIN/pg_ctl" -D "$DB_DIR/data" -m immediate -w stop >/dev/null 2>&1 || true
@@ -52,7 +57,7 @@ trap cleanup EXIT
 
 if [[ -n "${DATABASE_URL:-}" ]]; then
   [[ "${DB_TEST_ALLOW_RESET:-}" == "1" ]] \
-    || die "DATABASE_URL je zadáno: skript v ní smaže schémata public, app, auth, extensions a tap. Potvrďte DB_TEST_ALLOW_RESET=1."
+    || die "DATABASE_URL je zadáno: skript v ní smaže schémata public, se_vezmou, auth, extensions a tap. Potvrďte DB_TEST_ALLOW_RESET=1."
   URL="$DATABASE_URL"
   BIN=""
 else
@@ -94,22 +99,75 @@ VERSION="$(sql -Atc 'show server_version')"
 log "PostgreSQL $VERSION"
 [[ "${VERSION%%.*}" -ge 15 ]] || die "Migrace vyžadují PostgreSQL 15 nebo novější (složené FK se set null (sloupec))."
 
-# 0. čistý stav (idempotence skriptu i při opakovaném spuštění nad stejnou databází)
-sql -c "drop schema if exists public cascade; drop schema if exists app cascade; drop schema if exists auth cascade; drop schema if exists extensions cascade; drop schema if exists tap cascade; create schema public;" >/dev/null
+reset_db() { # čistý stav (idempotence skriptu i při opakovaném spuštění nad stejnou databází)
+  sql -c "set client_min_messages = warning; drop schema if exists public cascade; drop schema if exists se_vezmou cascade; drop schema if exists app cascade; drop schema if exists auth cascade; drop schema if exists extensions cascade; drop schema if exists tap cascade; create schema public;" >/dev/null
+}
 
 run_file() { # soubor, popisek
   log "  $2"
-  sql -f "$1" >/dev/null
+  PGOPTIONS="-c client_min_messages=warning" sql -f "$1" >/dev/null
 }
 
-log "Shim a migrace"
-for f in supabase/tests/setup/[0-9][0-9]_*.sql; do run_file "$f" "shim: $(basename "$f")"; done
-for f in supabase/migrations/*.sql; do run_file "$f" "migrace: $(basename "$f")"; done
+run_shim() { for f in supabase/tests/setup/[0-9][0-9]_*.sql; do run_file "$f" "shim: $(basename "$f")"; done; }
+run_init() { for f in supabase/init/[0-9][0-9]_*.sql; do run_file "$f" "init: $(basename "$f")"; done; }
+run_migrations() { for f in supabase/migrations/*.sql; do run_file "$f" "migrace: $(basename "$f")"; done; }
+snapshot() { sql -X -At -f supabase/tests/catalog_snapshot.sql; }
+
+# (A) Test izolace: migrace nesmí nic změnit mimo schéma se_vezmou.
+# scenario "bez init": rozšíření a schéma extensions ještě nejsou, smějí přibýt jen objekty rozšíření
+#   citext, pg_trgm a pgcrypto (řádky s ext=...). Cokoli jiného, i změna ACL schémat public, extensions
+#   a auth nebo výchozích oprávnění, test shodí.
+# scenario "po init": jako ostrý projekt, kde majitel spustil supabase/init; nesmí se změnit NIC.
+isolation_check() { # popisek, 0|1 (provést init)
+  log "Test izolace migrací ($1)"
+  reset_db
+  run_shim
+  [[ "$2" == "1" ]] && run_init
+  local before="$TMP_DIR/catalog.before" after="$TMP_DIR/catalog.after"
+  snapshot > "$before"
+  run_migrations
+  snapshot > "$after"
+  [[ -s "$before" ]] || { log "  SELHALO snímek katalogu je prázdný"; FAILED=$((FAILED + 1)); return; }
+  local removed added bad
+  removed="$(diff "$before" "$after" | sed -n 's/^< //p' || true)"
+  added="$(diff "$before" "$after" | sed -n 's/^> //p' || true)"
+  if [[ "$2" == "1" ]]; then
+    bad="$added"
+  else
+    bad="$(printf '%s\n' "$added" | grep -Ev 'ext=(citext|pg_trgm|pgcrypto)(,|$)' | grep -v '^$' || true)"
+  fi
+  if [[ -n "$removed" || -n "$bad" ]]; then
+    log "  SELHALO migrace změnily katalog mimo schéma se_vezmou:"
+    [[ -n "$removed" ]] && printf '%s\n' "$removed" | sed 's/^/    - /' >&2
+    [[ -n "$bad" ]] && printf '%s\n' "$bad" | sed 's/^/    + /' >&2
+    FAILED=$((FAILED + 1))
+    return
+  fi
+  local n_se; n_se="$(sql -Atc "select count(*) from pg_class where relnamespace = 'se_vezmou'::regnamespace")"
+  local n_app; n_app="$(sql -Atc "select count(*) from pg_namespace where nspname = 'app'")"
+  if [[ "$n_se" -lt 20 || "$n_app" -ne 0 ]]; then
+    log "  SELHALO schéma se_vezmou má $n_se objektů (čekáno aspoň 20) nebo existuje schéma app ($n_app)"
+    FAILED=$((FAILED + 1)); return
+  fi
+  log "  OK      mimo schéma se_vezmou se nezměnilo nic ($(wc -l < "$before" | tr -d ' ') řádků katalogu hlídáno)"
+  TOTAL_OK=$((TOTAL_OK + 1))
+}
+
+FAILED=0
+TOTAL_OK=0
+TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/sevezmou-dbtest.XXXXXX")"
+
+isolation_check "bez init, rozšíření se instalují" 0
+isolation_check "po init, jako ostrý projekt" 1
+
+log "Shim, init a migrace"
+reset_db
+run_shim
+run_init
+run_migrations
 run_file supabase/tests/helpers.sql "pomocné funkce testů"
 
 log "Testy"
-FAILED=0
-TOTAL_OK=0
 for f in supabase/tests/*.test.sql; do
   out="$(sql -f "$f" 2>&1)" && rc=0 || rc=$?
   oks="$(printf '%s\n' "$out" | grep -c 'NOTICE:  ok - ' || true)"
@@ -126,6 +184,26 @@ for f in supabase/tests/*.test.sql; do
   fi
 done
 
+# Testy jako skutečně přihlášená aplikační role se_vezmou_app (NE vlastník): model oprávnění tak, jak ho
+# používá aplikace (docs/adr/0011). Heslo je jen z testovacího shimu; lokálně přes socket se nepoužije.
+if [[ -n "$DB_DIR" ]]; then
+  APP_URL="postgresql://se_vezmou_app@/postgres?host=$DB_DIR"
+else
+  APP_URL="$(printf '%s' "$URL" | sed -E 's#^(postgres(ql)?://)([^@/]*@)?#\1se_vezmou_app:se_vezmou_app_test_only@#')"
+fi
+for f in supabase/tests/as_app/*.test.sql; do
+  out="$("$PSQL" "$APP_URL" -X -q -v ON_ERROR_STOP=1 -f "$f" 2>&1)" && rc=0 || rc=$?
+  oks="$(printf '%s\n' "$out" | grep -c 'NOTICE:  ok - ' || true)"
+  TOTAL_OK=$((TOTAL_OK + oks))
+  if [[ $rc -ne 0 ]]; then
+    FAILED=$((FAILED + 1))
+    log "  SELHALO jako se_vezmou_app: $(basename "$f") (úspěšných kontrol před chybou: $oks)"
+    printf '%s\n' "$out" | sed -e 's/^psql:[^ ]* NOTICE:  //' | grep -v '^ok - ' >&2 || true
+  else
+    log "  OK      jako se_vezmou_app: $(basename "$f") ($oks kontrol)"
+  fi
+done
+
 # Souběžný test atomicity rate_limit_hit: skutečné paralelní spojení a potvrzené transakce.
 log "Souběžný test rate_limit_hit"
 CONC_KEY="dbtest:concurrency:$$"
@@ -134,11 +212,11 @@ CONC_WORKERS=8
 CONC_CALLS=10
 conc_ok=0
 for attempt in 1 2 3; do
-  sql -c "delete from public.rate_limits where bucket_key = '$CONC_KEY'" >/dev/null
+  sql -c "delete from se_vezmou.rate_limits where bucket_key = '$CONC_KEY'" >/dev/null
   pids=()
   for w in $(seq 1 "$CONC_WORKERS"); do
     # každé volání je samostatný příkaz s vlastní potvrzenou transakcí (autocommit)
-    (yes "select allowed from public.rate_limit_hit('$CONC_KEY', $CONC_LIMIT, interval '1 day');" \
+    (yes "select allowed from se_vezmou.rate_limit_hit('$CONC_KEY', $CONC_LIMIT, interval '1 day');" \
        | head -n "$CONC_CALLS" | sql -At -f - | grep -c '^t$' > "${DB_DIR:-${TMPDIR:-/tmp}}/conc.$$.$w" || true) &
     pids+=($!)
   done
@@ -148,9 +226,9 @@ for attempt in 1 2 3; do
     allowed=$((allowed + $(cat "${DB_DIR:-${TMPDIR:-/tmp}}/conc.$$.$w")))
     rm -f "${DB_DIR:-${TMPDIR:-/tmp}}/conc.$$.$w"
   done
-  windows="$(sql -Atc "select count(*) from public.rate_limits where bucket_key = '$CONC_KEY'")"
-  total_hits="$(sql -Atc "select coalesce(sum(hits), 0) from public.rate_limits where bucket_key = '$CONC_KEY'")"
-  sql -c "delete from public.rate_limits where bucket_key = '$CONC_KEY'" >/dev/null
+  windows="$(sql -Atc "select count(*) from se_vezmou.rate_limits where bucket_key = '$CONC_KEY'")"
+  total_hits="$(sql -Atc "select coalesce(sum(hits), 0) from se_vezmou.rate_limits where bucket_key = '$CONC_KEY'")"
+  sql -c "delete from se_vezmou.rate_limits where bucket_key = '$CONC_KEY'" >/dev/null
   if [[ "$windows" -gt 1 ]]; then
     log "  okno se během testu překlopilo (půlnoc UTC), opakuji ($attempt/3)"
     continue

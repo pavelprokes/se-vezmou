@@ -48,17 +48,19 @@ npm run typecheck      # next typegen + tsc
 npm run i18n:check     # parita cs/en, zástupné znaky, česká typografie
 npm test               # Vitest (jednotkové a komponentové testy)
 npm run build
-npm run db:test        # SQL testy databáze (dočasný PostgreSQL, viz supabase/README.md)
+npm run db:test        # SQL testy databáze vč. testu izolace migrací (dočasný PostgreSQL, viz supabase/README.md)
+npm run db:migrate:test # test nástroje pro nasazení migrací (db:migrate)
 npm run test:e2e       # Playwright: hlavičky, 404, hreflang, přihlášení (sestaví a spustí aplikaci + databázi)
 npm run test:a11y      # Playwright + axe na zástupných stránkách, v katalogu UI a na obrazovkách přihlášení
 ```
 
 E2E testy (`test:e2e`, `test:a11y`) běží přes `scripts/e2e-db.sh`: ten připraví databázi s migracemi
 (dočasný PostgreSQL přes unixový socket, nebo s `E2E_DATABASE_URL` + `E2E_DB_ALLOW_RESET=1` služba
-z CI; databáze se smaže!) a spustí Playwright. Aplikace v testech mluví s Postgresem přímo
-(`DB_TRANSPORT=pg`, bez PostgREST) a e-maily zapisuje do souborů (`EMAIL_TRANSPORT=outbox`), takže
-test přihlášení přečte kód z "doručeného" e-mailu. Obě testovací dopravy jsou v ostré produkci
-(`VERCEL_ENV=production`) odmítnuty. Potřebný je klient `psql`.
+z CI; databáze se smaže!) a spustí Playwright. Aplikace v testech mluví s Postgresem přímo přes `pg`
+jako role `se_vezmou_app` (ne jako superuživatel), tedy se stejným modelem oprávnění jako v produkci
+(`docs/adr/0011`); migrace a zakládání testovacích dat dělá vlastník. E-maily se zapisují do souborů
+(`EMAIL_TRANSPORT=outbox`, v produkci odmítnuto), takže test přihlášení přečte kód z "doručeného"
+e-mailu. Potřebný je klient `psql`.
 
 Playwright potřebuje Chromium. V CI se instaluje `npx playwright install --with-deps chromium`.
 Lokálně lze použít už nainstalovaný prohlížeč:
@@ -82,14 +84,14 @@ Správci se přihlašují bez hesla na `app.se-vezmou.cz` (`docs/adr/0002`, `doc
 - **Omezení počtu požadavků** podle IP i e-mailu (HMAC klíče); všechny limity a lhůty jsou v
   `src/auth/config.ts`.
 
-Tajné hodnoty (`AUTH_SECRET`, `RATE_LIMIT_SECRET`, `PIN_PEPPER`, `SUPABASE_JWT_SECRET`,
-`SUPABASE_SERVICE_ROLE_KEY`) mají min. 32 znaků a patří jen do prostředí serveru (viz `.env.example`).
-Aplikace nepoužívá žádný anon klíč a prohlížeč s databází nemluví vůbec.
+Tajné hodnoty (`AUTH_SECRET`, `RATE_LIMIT_SECRET`, `PIN_PEPPER`) mají min. 32 znaků a patří jen do
+prostředí serveru (viz `.env.example`), stejně jako `DATABASE_URL`. Aplikace nepoužívá žádný anon klíč,
+PostgREST ani supabase-js a prohlížeč s databází nemluví vůbec (`docs/adr/0011`).
 
-Lokální vývoj bez projektu Supabase: spusťte vlastní PostgreSQL 15+ s nahraným shimem platformy
-a migracemi (`supabase/tests/setup/00_shim.sql` a `supabase/migrations/*.sql`, viz
-`supabase/README.md`) a do `.env.local` přidejte `DB_TRANSPORT=pg`, `DATABASE_URL=…` a tři tajné
-hodnoty. Bez AWS proměnných se e-maily (včetně kódu) vypisují do konzole dev serveru a neodesílají.
+Lokální vývoj bez projektu Supabase: spusťte vlastní PostgreSQL 15+ s nahraným shimem platformy,
+init skripty a migracemi (`supabase/tests/setup/00_shim.sql`, `supabase/init/*.sql`,
+`supabase/migrations/*.sql`, viz `supabase/README.md`) a do `.env.local` přidejte `DATABASE_URL=…`
+(role `se_vezmou_app`) a tři tajné hodnoty. Bez AWS proměnných se e-maily (včetně kódu) vypisují do konzole dev serveru a neodesílají.
 
 ### Překlady a typografie
 
@@ -104,7 +106,9 @@ shodí `npm run i18n:check` (ADR 0003).
 1. Na https://vercel.com/new naimportuj tento GitHub repozitář.
 2. Vercel automaticky detekuje Next.js (build `next build`, žádná další konfigurace není potřeba).
 3. Proměnné prostředí nastav v _Project Settings → Environment Variables_
-   (vzor viz `.env.example`).
+   (vzor viz `.env.example`). Databázi a migrace nejdřív připrav podle `supabase/README.md`
+   (init skripty, role `se_vezmou_app`, `npm run db:migrate`); na Vercel patří jen `DATABASE_URL`
+   (pooler Supabase, transaction mode, role `se_vezmou_app`), nikdy `MIGRATE_DATABASE_URL`.
 4. Na Vercelu se staví **pouze větev `main`** (produkce). Ostatní větve se přeskakují přes
    `ignoreCommand` ve `vercel.json`, takže PR a pushe do `pre-prod` nespouštějí build.
 

@@ -1,0 +1,73 @@
+import { buttonVariants } from "@/components/ui/button";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { locales, type Locale } from "@/i18n/config";
+import { localizedPath, type RouteName } from "@/i18n/pathnames";
+import { createTranslator } from "@/i18n/translator";
+import { appUrl } from "@/lib/site";
+import { buildWizardUrl } from "@/lib/wizard-link";
+import { HeaderMenu } from "./header-menu";
+
+export interface LandingHeaderProps {
+  locale: Locale;
+  /** Stránka, na které hlavička stojí; přepínač odkazuje na její druhou jazykovou verzi. */
+  route: RouteName;
+}
+
+/** Hlavička úvodní stránky a právních podstránek: značka, kotvy sekcí, přepínač jazyka a výzva. */
+export function LandingHeader({ locale, route }: LandingHeaderProps) {
+  const t = createTranslator(locale);
+  const home = localizedPath("home", locale);
+  const links = [
+    { href: `${home}#how`, label: t("landing.nav.how") },
+    { href: `${home}#templates`, label: t("landing.nav.templates") },
+    { href: `${home}#pricing`, label: t("landing.nav.pricing") },
+    { href: `${home}#faq`, label: t("landing.nav.faq") },
+  ];
+  const hrefs = Object.fromEntries(locales.map((l) => [l, localizedPath(route, l)])) as Record<
+    Locale,
+    string
+  >;
+
+  return (
+    <header className="bg-parchment text-ink">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-3 sm:px-8">
+        <a
+          href={home}
+          aria-label={t("landing.nav.home")}
+          className="min-h-target text-ink inline-flex items-center font-sans text-xl font-extrabold tracking-tight"
+        >
+          se-vezmou<span className="text-cinnamon-deep">.cz</span>
+        </a>
+        <HeaderMenu buttonLabel={t("landing.nav.menu")}>
+          <nav aria-label={t("landing.nav.label")} className="md:ml-auto">
+            <ul className="flex flex-col gap-1 md:flex-row md:items-center md:gap-2">
+              {links.map((link) => (
+                <li key={link.href}>
+                  <a
+                    href={link.href}
+                    className="min-h-target hover:bg-linen rounded-button text-ink inline-flex items-center px-3 text-base"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+          <LanguageSwitcher
+            current={locale}
+            hrefs={hrefs}
+            label={t("common.language.label")}
+            names={{ cs: t("common.language.cs"), en: t("common.language.en") }}
+            shortNames={{ cs: t("common.language.csShort"), en: t("common.language.enShort") }}
+          />
+          <a
+            href={buildWizardUrl({ appUrl, locale })}
+            className={buttonVariants({ className: "self-start md:self-auto" })}
+          >
+            {t("landing.nav.cta")}
+          </a>
+        </HeaderMenu>
+      </div>
+    </header>
+  );
+}

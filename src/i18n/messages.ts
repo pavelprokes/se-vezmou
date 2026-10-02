@@ -4,34 +4,46 @@ import type { MessageValue } from "./format";
 import csAuth from "./messages/cs/auth.json";
 import csCatalog from "./messages/cs/catalog.json";
 import csCommon from "./messages/cs/common.json";
+import csLanding from "./messages/cs/landing.json";
+import csLegal from "./messages/cs/legal.json";
 import csMarketing from "./messages/cs/marketing.json";
 import csPlaceholder from "./messages/cs/placeholder.json";
 import enAuth from "./messages/en/auth.json";
+import csSite from "./messages/cs/site.json";
 import enCatalog from "./messages/en/catalog.json";
 import enCommon from "./messages/en/common.json";
+import enLanding from "./messages/en/landing.json";
+import enLegal from "./messages/en/legal.json";
 import enMarketing from "./messages/en/marketing.json";
 import enPlaceholder from "./messages/en/placeholder.json";
+import enSite from "./messages/en/site.json";
 
 /** Zdrojem pravdy o klíčích je česká verze; angličtina musí mít stejné klíče (kontrola při sestavení). */
 const cs = {
   auth: csAuth,
   catalog: csCatalog,
   common: csCommon,
+  landing: csLanding,
+  legal: csLegal,
   marketing: csMarketing,
   placeholder: csPlaceholder,
+  site: csSite,
 } as const;
 
 const en: Record<keyof typeof cs, Record<string, MessageValue>> = {
   auth: enAuth,
   catalog: enCatalog,
   common: enCommon,
+  landing: enLanding,
+  legal: enLegal,
   marketing: enMarketing,
   placeholder: enPlaceholder,
+  site: enSite,
 };
 
 type Namespaces = typeof cs;
 
-/** `common.skipToContent`, `marketing.home.title` ... Neexistující klíč neprojde kontrolou typů. */
+/** `common.skipToContent`, `landing.hero.title` ... Neexistující klíč neprojde kontrolou typů. */
 export type MessageKey = {
   [N in keyof Namespaces & string]: `${N}.${keyof Namespaces[N] & string}`;
 }[keyof Namespaces & string];

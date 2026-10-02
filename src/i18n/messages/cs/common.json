@@ -6,5 +6,7 @@
   "language.en": "English",
   "notFound.title": "Stránka nenalezena",
   "notFound.body": "Tuto adresu neumíme zobrazit. Zkontrolujte ji, prosím, nebo se vraťte na úvod.",
-  "and": "a"
+  "and": "a",
+  "language.csShort": "CS",
+  "language.enShort": "EN"
 }

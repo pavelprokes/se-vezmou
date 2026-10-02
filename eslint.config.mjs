@@ -14,8 +14,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // Pracovní kopie (git worktree) nástroje Claude Code nepatří ke zdrojům projektu.
-    ".claude/**",
+    // Pracovní kopie (git worktree) agentů nejsou součástí projektu.
+    ".claude/worktrees/**",
   ]),
 ]);
 

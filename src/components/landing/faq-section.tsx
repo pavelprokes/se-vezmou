@@ -1,0 +1,37 @@
+import { Accordion } from "@/components/ui/accordion";
+import { operator } from "@/config/operator";
+import type { Locale } from "@/i18n/config";
+import { createTranslator } from "@/i18n/translator";
+import { getFaqItems } from "./faq";
+import { Section } from "./section";
+
+/** FAQ: šest otázek v rozbalovacím seznamu; celý text je v HTML i bez JavaScriptu. */
+export function FaqSection({ locale }: { locale: Locale }) {
+  const t = createTranslator(locale);
+  const items = getFaqItems(locale);
+
+  return (
+    <Section id="faq" headingId="faq-title">
+      <div className="grid gap-10 md:grid-cols-[1fr_1.7fr] md:gap-16">
+        <div>
+          <h2
+            id="faq-title"
+            className="font-sans text-3xl leading-tight font-bold tracking-tight md:text-4xl"
+          >
+            {t("landing.faq.title")}
+          </h2>
+          <p className="text-muted mt-4 text-lg text-pretty">
+            {t("landing.faq.lead", { contact: operator.contact })}
+          </p>
+        </div>
+        <Accordion
+          items={items.map((item) => ({
+            id: item.id,
+            title: item.question,
+            content: item.answer,
+          }))}
+        />
+      </div>
+    </Section>
+  );
+}

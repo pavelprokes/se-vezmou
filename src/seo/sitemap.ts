@@ -1,5 +1,11 @@
 import { locales } from "@/i18n/config";
-import { languageUrls, pathnames, type RouteName } from "@/i18n/pathnames";
+import { languageUrls, type RouteName } from "@/i18n/pathnames";
+
+/**
+ * Stránky v mapě webu. Právní podstránky jsou zatím zástupné (`noindex`), takže v mapě nejsou;
+ * po doplnění textů se přidají sem a ve `generateMetadata` se jim zruší `noindex`.
+ */
+export const indexableRoutes: readonly RouteName[] = ["home"];
 
 function escapeXml(value: string): string {
   return value
@@ -14,7 +20,7 @@ function escapeXml(value: string): string {
  * a nese všechny alternativy (`xhtml:link`). Weby párů, průvodce a správa v mapě nejsou.
  */
 export function buildSitemap(siteUrl: string, routes?: readonly RouteName[]): string {
-  const names = routes ?? (Object.keys(pathnames) as RouteName[]);
+  const names = routes ?? indexableRoutes;
   const entries: string[] = [];
   for (const route of names) {
     const urls = languageUrls(route, siteUrl);

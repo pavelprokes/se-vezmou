@@ -4,6 +4,12 @@ import { withSentryConfig } from "@sentry/nextjs/config";
 const isDev = process.env.NODE_ENV !== "production";
 
 /**
+ * Původ průvodce (`app.`): formuláře s jmény na úvodní stránce se odesílají metodou GET právě sem
+ * (funguje i bez JavaScriptu), proto ho `form-action` musí povolit. Hodnota je stejná jako v `src/env.ts`.
+ */
+const appOrigin = new URL(process.env.NEXT_PUBLIC_APP_URL || "https://app.se-vezmou.cz").origin;
+
+/**
  * Content-Security-Policy. Přiměřená výchozí varianta bez nonce, aby zůstaly stránky statické:
  * skripty Next.js jsou vložené do HTML, proto `'unsafe-inline'` (přísná varianta s nonce
  * a `'strict-dynamic'` vyžaduje dynamické vykreslování všech stránek, viz docs/security-privacy.md).
@@ -21,7 +27,7 @@ const csp = [
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
-  "form-action 'self'",
+  `form-action 'self' ${appOrigin}`,
   "frame-ancestors 'none'",
 ].join("; ");
 

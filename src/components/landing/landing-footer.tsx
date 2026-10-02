@@ -1,0 +1,81 @@
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { operator } from "@/config/operator";
+import { locales, type Locale } from "@/i18n/config";
+import { localizedPath, type RouteName } from "@/i18n/pathnames";
+import { createTranslator } from "@/i18n/translator";
+
+export interface LandingFooterProps {
+  locale: Locale;
+  route: RouteName;
+}
+
+/** Patička: provozovatel a kontakt ze zástupné konfigurace, odkazy na sekce a právní stránky. */
+export function LandingFooter({ locale, route }: LandingFooterProps) {
+  const t = createTranslator(locale);
+  const home = localizedPath("home", locale);
+  const hrefs = Object.fromEntries(locales.map((l) => [l, localizedPath(route, l)])) as Record<
+    Locale,
+    string
+  >;
+  const product = [
+    { href: `${home}#how`, label: t("landing.nav.how") },
+    { href: `${home}#templates`, label: t("landing.nav.templates") },
+    { href: `${home}#pricing`, label: t("landing.nav.pricing") },
+    { href: `${home}#faq`, label: t("landing.nav.faq") },
+  ];
+  const legal = [
+    { href: localizedPath("privacy", locale), label: t("landing.footer.privacy") },
+    { href: localizedPath("terms", locale), label: t("landing.footer.terms") },
+    { href: localizedPath("accessibility", locale), label: t("landing.footer.accessibility") },
+  ];
+  const linkClass =
+    "min-h-target text-ink inline-flex items-center underline underline-offset-4 hover:bg-linen rounded-button px-2 -mx-2";
+
+  return (
+    <footer className="bg-parchment text-ink">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-8 md:grid-cols-[1.2fr_1fr_1fr_auto]">
+        <div>
+          <p className="font-sans text-xl font-extrabold tracking-tight">
+            se-vezmou<span className="text-cinnamon-deep">.cz</span>
+          </p>
+          <p className="text-muted mt-3 max-w-xs">
+            {t("landing.footer.about", { operator: operator.nameAndId })}
+          </p>
+          <p className="text-muted mt-2 max-w-xs">
+            {t("landing.footer.contact", { contact: operator.contact })}
+          </p>
+        </div>
+        <nav aria-label={t("landing.footer.product")}>
+          <ul className="flex flex-col">
+            {product.map((link) => (
+              <li key={link.href}>
+                <a href={link.href} className={linkClass}>
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <nav aria-label={t("landing.footer.legal")}>
+          <ul className="flex flex-col">
+            {legal.map((link) => (
+              <li key={link.href}>
+                <a href={link.href} className={linkClass}>
+                  {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <LanguageSwitcher
+          current={locale}
+          hrefs={hrefs}
+          label={t("landing.footer.language")}
+          names={{ cs: t("common.language.cs"), en: t("common.language.en") }}
+          shortNames={{ cs: t("common.language.csShort"), en: t("common.language.enShort") }}
+          className="md:justify-self-end"
+        />
+      </div>
+    </footer>
+  );
+}

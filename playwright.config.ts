@@ -48,6 +48,17 @@ export default defineConfig({
       testMatch: /.*\.a11y\.ts$/,
       use: { ...devices["Desktop Chrome"] },
     },
+    // Úvodní stránka i v mobilním viewportu (Chromium s rozlišením telefonu, dotykový vstup).
+    {
+      name: "e2e-mobile",
+      testMatch: /landing\.e2e\.ts$/,
+      use: { ...devices["Pixel 7"] },
+    },
+    {
+      name: "a11y-mobile",
+      testMatch: /landing\.a11y\.ts$/,
+      use: { ...devices["Pixel 7"] },
+    },
   ],
   webServer: {
     command: `npm run build && npx next start -p ${PORT}`,
@@ -65,6 +76,8 @@ export default defineConfig({
       EMAIL_TRANSPORT: "outbox",
       EMAIL_OUTBOX_DIR: process.env.E2E_OUTBOX_DIR as string,
       ...E2E_SECRETS,
+      // Adresa průvodce pro tlačítka a pole jmen: lokální hostitel `app.` (zástupná stránka).
+      NEXT_PUBLIC_APP_URL: `http://app.localhost:${PORT}`,
     },
   },
 });

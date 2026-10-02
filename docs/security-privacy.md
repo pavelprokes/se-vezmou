@@ -230,7 +230,14 @@ Správa webu umožňuje uvést odkaz na externí fotogalerii. Server k němu př
 
 Výjimka pro e2e testy: proměnná prostředí `OG_FETCH_TEST_HOST` (`jmeno=127.0.0.1:port`) spojí jedno jméno hostitele bez DNS a bez TLS s loopbackem. Cíl smí být jen `127.0.0.1`, ostatní pravidla (tvar adresy, přesměrování) platí dál. V produkci se proměnná **nenastavuje** (není v `.env.example` ani na Vercelu).
 
-## 13. Fotografie páru (M7c, ADR 0006)
+## 13. Import souboru, správci a souhlas s nahlédnutím (M7b)
+
+- **Nahraný soubor je cizí vstup.** Velikost se kontroluje z hlavičky i ze skutečných bajtů (1 MB), formát se pozná podle obsahu (ne podle přípony), starý binární `.xls` se odmítá, u `.xlsx` se před rozbalením zkontroluje velikost rozbaleného obsahu z adresáře archivu (20 MB, ochrana před zip bombou) a čtečka vrací jen hodnoty buněk (vzorce se nevyhodnocují). Soubor se neukládá a nelogují se jeho údaje. Zápis je až po potvrzení náhledu a server řádky znovu ověří; import podléhá omezení počtu požadavků (30/hod na svatbu). Export neutralizuje buňky začínající `=`, `+`, `-`, `@` (CSV injection).
+- **Správci.** Přidání i odebrání potvrzuje pár v rozhraní a každá změna přístupu posílá e-mail ostatním správcům a na záložní adresu (nejlepší úsilí po odpovědi, nikdy neblokuje změnu; adresy se nelogují a neukládají). Odebraný správce přijde o všechna přihlášení hned. Sám sebe správce odebrat nemůže, počet správců omezuje `max_admins`. Záložní e-mail a PIN se mění jen s přihlášenou relací, změna PINu odvolá ostatní relace dotčené role a posílá oznámení.
+- **Souhlas s nahlédnutím provozovatele (OQ-53).** Provozovatel k údajům hostů nemá přístup, dokud pár souhlas výslovně neudělí (důvod, platnost nejvýš 30 dní, jeden aktivní souhlas, kdykoli odvolatelný). Skutečné nahlédnutí (`op_view_guest_data` vrátí hosty) se auditem zaznamená (provozovatel, důvod, počet) a správcům i záložní adrese jde e-mail s důvodem provozovatele; pár vidí záznam nahlédnutí i odepřených pokusů v části Přístup. Žádný z e-mailů ani auditních záznamů nenese jména hostů.
+- **Smazání webu.** Vyžaduje napsané potvrzovací slovo a existující relaci správce; web zmizí hned, všechny relace se odvolají, údaje se trvale smažou až retenční úlohou po ochranné lhůtě (M10) a do té doby web obnoví jen provozovatel s auditem.
+
+## 14. Fotografie páru (M7c, ADR 0006)
 
 - **Úložiště:** Cloudflare R2, vlastní bucket (jurisdikce EU), privátní, bez veřejné adresy a bez výpisu. Klíč API je omezený na tento bucket. Izolace svatby stojí na předponě klíče `{wedding_id}/` a na tom, že podepisuje jen server po kontrole v databázi: R2 nemá politiky na úrovni řádků. Klíče se nikdy neskládají z volného vstupu (`parseKey` přijme jen dva tvary: originál v karanténě a varianta), identifikátory jsou UUID.
 - **Nahrávání:** server po ověření relace správce, svatby, stavu webu, kvóty (12 fotografií, 40 MB) a omezení počtu požadavků vydá krátkodobě platnou (10 minut) podepsanou adresu pro PUT jen do `incoming/{wedding_id}/{media_id}`; bajty neprocházejí Vercelem. Přímo z prohlížeče lze nahrát jen na tuto adresu (CORS jen pro `app.se-vezmou.cz` a metodu PUT).

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { z } from "zod";
+import { notifyGuestDataViewed } from "@/admin/access/server";
 import { requireEnv } from "@/env";
 import { currentHostConfig } from "@/auth/app-origin";
 import { getHost } from "@/auth/request";
@@ -278,6 +279,7 @@ export type GuestDataResult = { outcome: "denied" | "empty" | "rows"; rows: Gues
 /**
  * Nahlédnutí do údajů hostů: jen s aktivním souhlasem páru (`data_access_grants`), s důvodem, vždy s auditem.
  * Bez souhlasu databáze nevrátí nic a odmítnutí zapíše do auditu. Výsledek je jen v odpovědi této akce.
+ * Při skutečném nahlédnutí dostanou správci svatby a záložní adresa e-mail (OQ-53, `notifyGuestDataViewed`).
  */
 export async function viewGuestDataAction(
   _previous: ActionState<GuestDataResult>,
@@ -305,6 +307,14 @@ export async function viewGuestDataAction(
       weddingId: guarded.weddingId,
       reason: reason.data,
     });
+    // Skutečné nahlédnutí oznámí správcům a záložní adrese (OQ-53); selhání oznámení nahlédnutí neblokuje.
+    if (rows.length > 0) {
+      await notifyGuestDataViewed({
+        weddingId: guarded.weddingId,
+        reason: reason.data,
+        defer,
+      });
+    }
     const outcome = rows.length > 0 ? "rows" : detail.guest_access === null ? "denied" : "empty";
     return { ok: true, data: { outcome, rows } };
   } catch (error) {

@@ -75,6 +75,14 @@ export const RATE_RULES = {
   mediaEditWedding: { limit: 600, windowSeconds: HOUR },
   /** Fotografie: odkazy ke stažení všech fotografií (export) podle svatby. */
   mediaExportWedding: { limit: 20, windowSeconds: HOUR },
+  /** Správa hostů (M7b): zápisy domácností, pozvání a nastavení RSVP podle svatby. */
+  guestsWriteWedding: { limit: 1000, windowSeconds: HOUR },
+  /** Import seznamu hostů (čtení a rozbalování cizího souboru je drahé) podle svatby. */
+  guestsImportWedding: { limit: 30, windowSeconds: HOUR },
+  /** Přístup (M7b): správci, záložní e-mail, PIN, souhlas s nahlédnutím, smazání webu podle svatby. */
+  accessChangeWedding: { limit: 60, windowSeconds: HOUR },
+  /** Export hostů a RSVP podle svatby. */
+  exportWedding: { limit: 30, windowSeconds: HOUR },
 } as const satisfies Record<string, RateRule>;
 
 /**

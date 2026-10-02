@@ -8,7 +8,8 @@ import { createTranslator } from "@/i18n/translator";
 import { cn } from "@/lib/utils";
 import { HelpBox, type HelpTopic } from "./help";
 
-export type NavItem = "overview" | "site" | "history" | "help";
+export type NavItem =
+  "overview" | "site" | "guests" | "responses" | "access" | "data" | "history" | "help";
 
 /**
  * Společný rámec obrazovek správy: hlavní nabídka, přepínač jazyka, odhlášení, nadpis a nápověda.
@@ -44,6 +45,22 @@ export function AdminFrame({
       href: appHref(ADMIN_PATHS.overview, locale),
     },
     { key: "site", label: t("admin.nav.site"), href: appHref(ADMIN_PATHS.site, locale) },
+    {
+      key: "guests",
+      label: t("admin.guests.nav.guests"),
+      href: appHref(ADMIN_PATHS.guests, locale),
+    },
+    {
+      key: "responses",
+      label: t("admin.guests.nav.responses"),
+      href: appHref(ADMIN_PATHS.responses, locale),
+    },
+    {
+      key: "access",
+      label: t("admin.guests.nav.access"),
+      href: appHref(ADMIN_PATHS.access, locale),
+    },
+    { key: "data", label: t("admin.guests.nav.data"), href: appHref(ADMIN_PATHS.data, locale) },
     { key: "history", label: t("admin.nav.history"), href: appHref(ADMIN_PATHS.history, locale) },
     { key: "help", label: t("admin.nav.help"), href: appHref(ADMIN_PATHS.help, locale) },
   ];

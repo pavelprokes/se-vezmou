@@ -60,7 +60,7 @@ export default defineConfig({
     },
     {
       name: "a11y-mobile",
-      testMatch: /(landing|wizard|admin-site|photos|ops)\.a11y\.ts$/,
+      testMatch: /(landing|wizard|admin-site|admin-guests|photos|ops)\.a11y\.ts$/,
       use: { ...devices["Pixel 7"] },
     },
   ],

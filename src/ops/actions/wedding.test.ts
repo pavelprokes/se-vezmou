@@ -469,18 +469,33 @@ describe("nahlédnutí do údajů hostů", () => {
     });
     const result = await viewGuestDataAction(null, form({ weddingId: WEDDING, reason: "Pomoc" }));
     expect(result).toEqual({ ok: true, data: { outcome: "denied", rows: [] } });
+    // odepřený pokus správcům e-mail neposílá (nic se neukázalo), zapíše se jen audit v databázi
+    expect(db.calls.some((c) => c.fn === "guest_data_notice_recipients")).toBe(false);
     expect(db.calls.find((c) => c.fn === "op_view_guest_data")!.args.p_reason).toBe("Pomoc");
   });
 
   it("se souhlasem vrátí hosty; souhlas bez hostů je „prázdné“", async () => {
-    fakeDb({
+    const withNotice = fakeDb({
       auth_operator_validate_session: session("support"),
       op_get_wedding: () => detail({ guest_access: { expires_at: "2026-10-05T10:00:00+00:00" } }),
       op_view_guest_data: () => [row],
       rate_limit_hit: rate,
+      guest_data_notice_recipients: () => [{ email: "eva@example.cz", locale: "cs" }],
+      auth_session_context: () => [
+        { slug: "klara-a-matej", status: "published", partner_a_name: "K", partner_b_name: "M" },
+      ],
+      email_log_insert: () => "44444444-4444-4444-8444-444444444444",
+      email_log_set_status: () => true,
     });
     const withRows = await viewGuestDataAction(null, form({ weddingId: WEDDING, reason: "Pomoc" }));
     expect(withRows?.data?.outcome).toBe("rows");
+    // správci svatby se o skutečném nahlédnutí dozvědí e-mailem (OQ-53)
+    expect(withNotice.calls.some((c) => c.fn === "guest_data_notice_recipients")).toBe(true);
+    for (const task of mocks.after) await task();
+    const notice = vi.mocked(sendEmail).mock.calls.at(-1)![0];
+    expect(notice.to).toBe("eva@example.cz");
+    expect(notice.subject).toMatch(/nahlédl/);
+    expect(notice.text).toContain("Pomoc");
     expect(withRows?.data?.rows[0]).toMatchObject({
       displayName: "Jan Novák",
       diet: "vegetariánská",

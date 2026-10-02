@@ -1,0 +1,36 @@
+import type { Metadata } from "next";
+import { Document } from "@/components/document";
+import { SkipLink } from "@/components/ui/skip-link";
+import { htmlLang, isLocale, locales } from "@/i18n/config";
+import { createTranslator } from "@/i18n/translator";
+import { siteUrl } from "@/lib/site";
+
+export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
+  // Výchozí název pro stránky bez vlastního (např. 404); stránky ho přepisují.
+  title: "Se vezmou",
+};
+
+// Jen `cs` a `en`; jiná hodnota je 404 a stránky se vykreslí při sestavení.
+export const dynamicParams = false;
+
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
+
+/** Kořenový layout úvodní stránky (`se-vezmou.cz`). */
+export default async function MarketingLayout({
+  children,
+  params,
+}: LayoutProps<"/h/marketing/[locale]">) {
+  const { locale } = await params;
+  if (!isLocale(locale)) return null;
+  const t = createTranslator(locale);
+
+  return (
+    <Document lang={htmlLang[locale]}>
+      <SkipLink target="#obsah">{t("common.skipToContent")}</SkipLink>
+      {children}
+    </Document>
+  );
+}

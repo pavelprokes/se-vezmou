@@ -1,0 +1,48 @@
+import { describe, expect, it } from "vitest";
+import { ALLOWED_BOTS, TRAINING_BOTS } from "@/config/robots";
+import { closedRobots, marketingRobots } from "./robots";
+import { buildSitemap } from "./sitemap";
+
+describe("robots.txt", () => {
+  it("úvodní stránka povolí vyhledávací a odpovědní roboty a odkáže na mapu webu", () => {
+    const text = marketingRobots("https://se-vezmou.cz");
+    for (const bot of ALLOWED_BOTS) expect(text).toContain(`User-agent: ${bot}`);
+    expect(text).toContain("Sitemap: https://se-vezmou.cz/sitemap.xml");
+  });
+
+  it("trénovací roboty jsou zakázané a nikdy nejsou mezi povolenými", () => {
+    const text = marketingRobots("https://se-vezmou.cz");
+    const [allowed, blocked] = text.split("\n\n");
+    expect(allowed.endsWith("Allow: /")).toBe(true);
+    expect(blocked.endsWith("Disallow: /")).toBe(true);
+    for (const bot of TRAINING_BOTS) {
+      expect(blocked).toContain(`User-agent: ${bot}`);
+      expect(allowed).not.toContain(`User-agent: ${bot}`);
+    }
+  });
+
+  it("ostatní hostitelé jsou zavřeni", () => {
+    expect(closedRobots()).toBe("User-agent: *\nDisallow: /\n");
+  });
+});
+
+describe("sitemap.xml", () => {
+  const xml = buildSitemap("https://se-vezmou.cz");
+
+  it("obsahuje obě jazykové verze s alternativami", () => {
+    expect(xml).toContain("<loc>https://se-vezmou.cz/</loc>");
+    expect(xml).toContain("<loc>https://se-vezmou.cz/en</loc>");
+    expect(xml.match(/hreflang="cs"/g)).toHaveLength(2);
+    expect(xml.match(/hreflang="en"/g)).toHaveLength(2);
+    expect(xml.match(/hreflang="x-default" href="https:\/\/se-vezmou.cz\/"/g)).toHaveLength(2);
+  });
+
+  it("je platný XML dokument s deklarací jmenného prostoru xhtml", () => {
+    expect(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>')).toBe(true);
+    expect(xml).toContain('xmlns:xhtml="http://www.w3.org/1999/xhtml"');
+  });
+
+  it("neobsahuje app, admin ani weby párů", () => {
+    expect(xml).not.toMatch(/app\.|admin\.|klara/);
+  });
+});

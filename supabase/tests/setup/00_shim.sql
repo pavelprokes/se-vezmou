@@ -5,8 +5,13 @@
 --  * role anon, authenticated, service_role (service_role s bypassrls jako na Supabase),
 --  * schéma auth s tabulkou auth.users a funkcemi auth.jwt() a auth.uid() (čtou claimy z
 --    request.jwt.claims jako PostgREST),
+--  * roli authenticator (PostgREST; init skript na ní nastavuje seznam vystavených schémat),
 --  * schéma extensions a výchozí oprávnění, která Supabase uděluje novým objektům ve schématu
---    public (migrace je mají výslovně zrušit, test to ověřuje).
+--    public. Naše migrace se public nesmí dotknout a nesmí na nich záviset: test izolace
+--    (scripts/db-test.sh, supabase/tests/catalog_snapshot.sql) ověřuje, že se nic mimo schéma
+--    se_vezmou nezměnilo, a testy běží jako vlastník i jako role se_vezmou_app,
+--  * roli se_vezmou_app (aplikační role: login, noinherit, nobypassrls, členství v authenticated a
+--    service_role jen kvůli `set role`) přesně jako supabase/init/01_app_role.sql. Heslo je jen testovací.
 -- Skript je idempotentní (role jsou v clusteru společné pro všechny databáze).
 
 do $$
@@ -20,8 +25,18 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'service_role') then
     create role service_role nologin noinherit bypassrls;
   end if;
+  if not exists (select 1 from pg_roles where rolname = 'authenticator') then
+    create role authenticator login noinherit password 'authenticator-test-only';
+  end if;
+  if not exists (select 1 from pg_roles where rolname = 'se_vezmou_app') then
+    -- testovací heslo pro TCP spojení v CI (service container); lokálně přes socket (trust) se nepoužije
+    create role se_vezmou_app login noinherit nobypassrls password 'se_vezmou_app_test_only';
+  end if;
 end
 $$;
+
+grant anon, authenticated, service_role to authenticator;
+grant authenticated, service_role to se_vezmou_app;
 
 create schema if not exists auth;
 create schema if not exists extensions;

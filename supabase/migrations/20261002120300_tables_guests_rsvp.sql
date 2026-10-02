@@ -1,9 +1,9 @@
 -- M3 / 4: hosté, domácnosti, pozvání, RSVP. Zdroj: docs/data-model.md kap. 3.4 a 3.5.
 -- Osobní údaje hostů: retence a mazání viz kap. 10 (funkce purge_* v migraci funkcí).
 
-create table public.households (
+create table se_vezmou.households (
   id uuid primary key default gen_random_uuid(),
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   -- např. rodina Novákových, jen pro správce
   label text not null default '',
   invited_note text,
@@ -11,16 +11,16 @@ create table public.households (
   updated_at timestamptz not null default now(),
   unique (wedding_id, id)
 );
-create index households_wedding_idx on public.households (wedding_id);
+create index households_wedding_idx on se_vezmou.households (wedding_id);
 
-create table public.guests (
+create table se_vezmou.guests (
   id uuid primary key default gen_random_uuid(),
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   -- každý host patří do domácnosti (jednotlivec = domácnost o jednom)
   household_id uuid not null,
   display_name text not null check (char_length(btrim(display_name)) between 1 and 200),
-  name_norm text generated always as (app.normalize_name(display_name)) stored,
-  name_key text generated always as (app.name_key(display_name)) stored,
+  name_norm text generated always as (se_vezmou.normalize_name(display_name)) stored,
+  name_key text generated always as (se_vezmou.name_key(display_name)) stored,
   is_child boolean not null default false,
   -- jen u dětí, jen pokud pár zadá
   age smallint check (age between 0 and 120),
@@ -32,27 +32,27 @@ create table public.guests (
   updated_at timestamptz not null default now(),
   unique (wedding_id, id),
   check (age is null or is_child),
-  foreign key (wedding_id, household_id) references public.households (wedding_id, id)
+  foreign key (wedding_id, household_id) references se_vezmou.households (wedding_id, id)
     on delete cascade
 );
-create index guests_name_key_idx on public.guests (wedding_id, name_key);
-create index guests_household_idx on public.guests (household_id);
+create index guests_name_key_idx on se_vezmou.guests (wedding_id, name_key);
+create index guests_household_idx on se_vezmou.guests (household_id);
 
-create table public.invitations (
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+create table se_vezmou.invitations (
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   guest_id uuid not null,
   event_id uuid not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key (guest_id, event_id),
-  foreign key (wedding_id, guest_id) references public.guests (wedding_id, id) on delete cascade,
-  foreign key (wedding_id, event_id) references public.events (wedding_id, id) on delete cascade
+  foreign key (wedding_id, guest_id) references se_vezmou.guests (wedding_id, id) on delete cascade,
+  foreign key (wedding_id, event_id) references se_vezmou.events (wedding_id, id) on delete cascade
 );
-create index invitations_wedding_idx on public.invitations (wedding_id);
-create index invitations_event_idx on public.invitations (event_id);
+create index invitations_wedding_idx on se_vezmou.invitations (wedding_id);
+create index invitations_event_idx on se_vezmou.invitations (event_id);
 
-create table public.rsvp_settings (
-  wedding_id uuid primary key references public.weddings (id) on delete cascade,
+create table se_vezmou.rsvp_settings (
+  wedding_id uuid primary key references se_vezmou.weddings (id) on delete cascade,
   opens_at timestamptz,
   -- null = bez omezení
   closes_at timestamptz,
@@ -66,12 +66,12 @@ create table public.rsvp_settings (
   check (opens_at is null or closes_at is null or closes_at > opens_at)
 );
 
-create table public.rsvp_questions (
+create table se_vezmou.rsvp_questions (
   id uuid primary key default gen_random_uuid(),
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   key text not null check (key ~ '^[a-z][a-z0-9_]{0,62}$'),
   type text not null check (type in ('text', 'choice', 'bool')),
-  label public.i18n_text not null,
+  label se_vezmou.i18n_text not null,
   options jsonb,
   required boolean not null default false,
   event_id uuid,
@@ -82,15 +82,15 @@ create table public.rsvp_questions (
   unique (wedding_id, id),
   unique (wedding_id, key),
   check (type <> 'choice' or (options is not null and jsonb_typeof(options) = 'array')),
-  foreign key (wedding_id, event_id) references public.events (wedding_id, id)
+  foreign key (wedding_id, event_id) references se_vezmou.events (wedding_id, id)
     on delete set null (event_id)
 );
-create index rsvp_questions_wedding_idx on public.rsvp_questions (wedding_id);
+create index rsvp_questions_wedding_idx on se_vezmou.rsvp_questions (wedding_id);
 
 -- jedna odpověď za domácnost
-create table public.rsvp_responses (
+create table se_vezmou.rsvp_responses (
   id uuid primary key default gen_random_uuid(),
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   -- null jen u hosta mimo seznam (pokud pár povolí)
   household_id uuid,
   submitted_at timestamptz not null default now(),
@@ -103,16 +103,16 @@ create table public.rsvp_responses (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (wedding_id, id),
-  foreign key (wedding_id, household_id) references public.households (wedding_id, id)
+  foreign key (wedding_id, household_id) references se_vezmou.households (wedding_id, id)
     on delete cascade
 );
 -- jedna odpověď na domácnost
 create unique index rsvp_responses_household_idx
-  on public.rsvp_responses (wedding_id, household_id) where household_id is not null;
+  on se_vezmou.rsvp_responses (wedding_id, household_id) where household_id is not null;
 
-create table public.rsvp_people (
+create table se_vezmou.rsvp_people (
   id uuid primary key default gen_random_uuid(),
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   response_id uuid not null,
   -- plus jedna se zapisuje jako osoba bez guest_id
   guest_id uuid,
@@ -124,52 +124,52 @@ create table public.rsvp_people (
   updated_at timestamptz not null default now(),
   unique (wedding_id, id),
   unique (response_id, guest_id),
-  foreign key (wedding_id, response_id) references public.rsvp_responses (wedding_id, id)
+  foreign key (wedding_id, response_id) references se_vezmou.rsvp_responses (wedding_id, id)
     on delete cascade,
-  foreign key (wedding_id, guest_id) references public.guests (wedding_id, id) on delete cascade
+  foreign key (wedding_id, guest_id) references se_vezmou.guests (wedding_id, id) on delete cascade
 );
-create index rsvp_people_wedding_idx on public.rsvp_people (wedding_id);
+create index rsvp_people_wedding_idx on se_vezmou.rsvp_people (wedding_id);
 
-create table public.rsvp_attendance (
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+create table se_vezmou.rsvp_attendance (
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   person_id uuid not null,
   event_id uuid not null,
   attending boolean not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key (person_id, event_id),
-  foreign key (wedding_id, person_id) references public.rsvp_people (wedding_id, id)
+  foreign key (wedding_id, person_id) references se_vezmou.rsvp_people (wedding_id, id)
     on delete cascade,
-  foreign key (wedding_id, event_id) references public.events (wedding_id, id) on delete cascade
+  foreign key (wedding_id, event_id) references se_vezmou.events (wedding_id, id) on delete cascade
 );
-create index rsvp_attendance_event_idx on public.rsvp_attendance (wedding_id, event_id, attending);
+create index rsvp_attendance_event_idx on se_vezmou.rsvp_attendance (wedding_id, event_id, attending);
 
 -- Zdravotní údaje zvlášť: přísnější politika, samostatné mazání, mimo běžné exporty a pohledy.
-create table public.rsvp_health (
+create table se_vezmou.rsvp_health (
   person_id uuid primary key,
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   diet text check (char_length(diet) <= 1000),
   allergies text check (char_length(allergies) <= 1000),
   exported_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  foreign key (wedding_id, person_id) references public.rsvp_people (wedding_id, id)
+  foreign key (wedding_id, person_id) references se_vezmou.rsvp_people (wedding_id, id)
     on delete cascade
 );
-create index rsvp_health_wedding_idx on public.rsvp_health (wedding_id);
+create index rsvp_health_wedding_idx on se_vezmou.rsvp_health (wedding_id);
 
 -- Krátkodobý lístek, který slepé ověření jména vydá po shodě; neprozrazuje seznam hostů.
 -- Nemá sloupec id (klíčem je hash tokenu), proto bez unique (wedding_id, id).
-create table public.rsvp_tickets (
+create table se_vezmou.rsvp_tickets (
   token_hash bytea primary key,
-  wedding_id uuid not null references public.weddings (id) on delete cascade,
+  wedding_id uuid not null references se_vezmou.weddings (id) on delete cascade,
   household_id uuid not null,
   expires_at timestamptz not null,
   purpose text not null default 'edit' check (purpose in ('edit')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  foreign key (wedding_id, household_id) references public.households (wedding_id, id)
+  foreign key (wedding_id, household_id) references se_vezmou.households (wedding_id, id)
     on delete cascade
 );
-create index rsvp_tickets_wedding_idx on public.rsvp_tickets (wedding_id);
-create index rsvp_tickets_expires_idx on public.rsvp_tickets (expires_at);
+create index rsvp_tickets_wedding_idx on se_vezmou.rsvp_tickets (wedding_id);
+create index rsvp_tickets_expires_idx on se_vezmou.rsvp_tickets (expires_at);

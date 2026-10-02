@@ -176,28 +176,28 @@ cp supabase/migrations/20261002140000_rsvp.sql "$TMP_DIR/mig/"
 
 # 8. nová migrace se aplikuje, selhávající se vrátí zpět, destruktivní se odmítne
 printf 'create table se_vezmou.test_nova (id int primary key);\nrevoke all on se_vezmou.test_nova from public, anon, authenticated, service_role;\nalter table se_vezmou.test_nova enable row level security;\n' \
-  > "$TMP_DIR/mig/29990101170000_nova.sql"
+  > "$TMP_DIR/mig/20261231170000_nova.sql"
 migrate --dir "$TMP_DIR/mig" --dry-run
-check "--dry-run ukáže jedinou čekající migraci" "$([[ $RC -eq 0 ]] && out_has '29990101170000_nova.sql' && [[ "$(grep -c '\.sql  sha256' "$TMP_DIR/out")" -eq 1 ]] && echo 0 || echo 1)"
+check "--dry-run ukáže jedinou čekající migraci" "$([[ $RC -eq 0 ]] && out_has '20261231170000_nova.sql' && [[ "$(grep -c '\.sql  sha256' "$TMP_DIR/out")" -eq 1 ]] && echo 0 || echo 1)"
 migrate --dir "$TMP_DIR/mig"
 check "nová migrace se aplikuje" "$([[ $RC -eq 0 ]] && [[ "$(sqlv "select count(*) from se_vezmou.schema_migrations")" -eq $((N_MIG + 1)) ]] && echo 0 || echo 1)"
 
-printf 'create table se_vezmou.test_pulka (id int);\nselect tohle_neni_sql;\n' > "$TMP_DIR/mig/29990101180000_chyba.sql"
+printf 'create table se_vezmou.test_pulka (id int);\nselect tohle_neni_sql;\n' > "$TMP_DIR/mig/20261231180000_chyba.sql"
 migrate --dir "$TMP_DIR/mig"
 check "selhávající migrace skončí chybou" "$([[ $RC -ne 0 ]] && out_has 'vrácena zpět' && echo 0 || echo 1)"
 check "selhávající migrace se vrátila zpět celá a není v evidenci" \
-  "$([[ "$(sqlv "select to_regclass('se_vezmou.test_pulka') is null")" == "t" && "$(sqlv "select count(*) from se_vezmou.schema_migrations where version = '29990101180000'")" -eq 0 ]] && echo 0 || echo 1)"
+  "$([[ "$(sqlv "select to_regclass('se_vezmou.test_pulka') is null")" == "t" && "$(sqlv "select count(*) from se_vezmou.schema_migrations where version = '20261231180000'")" -eq 0 ]] && echo 0 || echo 1)"
 
-printf 'drop table se_vezmou.test_nova;\n' > "$TMP_DIR/mig/29990101180000_chyba.sql"
+printf 'drop table se_vezmou.test_nova;\n' > "$TMP_DIR/mig/20261231180000_chyba.sql"
 migrate --dir "$TMP_DIR/mig"
 check "migrace s drop table se odmítne a nic nespustí" \
   "$([[ $RC -ne 0 ]] && out_has 'destruktivní' && [[ "$(sqlv "select to_regclass('se_vezmou.test_nova') is not null")" == "t" ]] && echo 0 || echo 1)"
-printf 'delete from se_vezmou.app_settings;\n' > "$TMP_DIR/mig/29990101180000_chyba.sql"
+printf 'delete from se_vezmou.app_settings;\n' > "$TMP_DIR/mig/20261231180000_chyba.sql"
 migrate --dir "$TMP_DIR/mig"
 check "migrace s delete from se odmítne" "$([[ $RC -ne 0 ]] && out_has 'destruktivní' && echo 0 || echo 1)"
 
 # 9. pořadí: nová migrace starší než už aplikované
-rm "$TMP_DIR/mig/29990101180000_chyba.sql"
+rm "$TMP_DIR/mig/20261231180000_chyba.sql"
 printf 'select 1;\n' > "$TMP_DIR/mig/20261002100000_stara.sql"
 migrate --dir "$TMP_DIR/mig"
 check "čekající migrace starší než aplikované se odmítne" "$([[ $RC -ne 0 ]] && out_has 'starší než' && echo 0 || echo 1)"

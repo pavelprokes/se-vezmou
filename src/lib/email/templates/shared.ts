@@ -120,6 +120,14 @@ ${typed.map(htmlBlock).join("\n")}
   return { subject: typedSubject, text, html };
 }
 
+/** Kalendářní den okamžiku v zadaném pásmu ("12. července 2027"), s typografií. */
+export function formatEventDay(value: Date, locale: Locale, timeZone: string): string {
+  return typo(
+    new Intl.DateTimeFormat(intlLocale[locale], { dateStyle: "long", timeZone }).format(value),
+    locale,
+  );
+}
+
 /** Datum a čas v pražském čase ("2. října 2026 v 14:05"), s typografií. */
 export function formatMoment(value: Date, locale: Locale): string {
   return typo(

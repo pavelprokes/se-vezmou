@@ -3,7 +3,7 @@ import { tenantRpc } from "./rpc";
 import type { TenantIdentity } from "./transport";
 
 /**
- * Tenký typovaný obal funkcí správy webu (M7a, `supabase/migrations/20261003100000_admin_site.sql`).
+ * Tenký typovaný obal funkcí správy webu (M7a, `supabase/migrations/20261006100000_admin_site.sql`).
  * Všechny běží s claimy správce jedné svatby (role `authenticated`), svatba se nikdy nepředává jako
  * argument: je jen z relace. Odpovědi se ověřují schématy v `src/admin/site`.
  */

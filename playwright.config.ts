@@ -78,6 +78,8 @@ export default defineConfig({
       // Přihlášení (M4): přímé spojení s Postgresem jako se_vezmou_app, e-maily do souborů, testovací tajné hodnoty.
       DATABASE_URL: appDatabaseUrl(),
       EMAIL_TRANSPORT: "outbox",
+      // Plánované úlohy (M10): simulovaný čas jen v testech (a vždy jen pro jednu svatbu), tajná hodnota v E2E_SECRETS.
+      CRON_TEST_CLOCK: "1",
       EMAIL_OUTBOX_DIR: process.env.E2E_OUTBOX_DIR as string,
       ...E2E_SECRETS,
       // Správa webu (M7a): falešný cílový server pro karty externí galerie. Jediná výjimka z ochrany

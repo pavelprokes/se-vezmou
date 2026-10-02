@@ -544,7 +544,7 @@ Zapsáno při implementaci schématu v `supabase/migrations` (milník M3). Kde z
 - `erase_guest(guest_id)` má jediný argument; svatba je vždy `se_vezmou.wedding_id()` (kapitola 5.5). Volá ji správce, ne server s service role.
 - `op_view_guest_data` bez aktivního grantu nevrací řádky a zapíše `guest_data.view_denied` do auditu; akce `guest_data.*` bez důvodu odmítne i kontrola na tabulce `audit_log`.
 - `audit_log`: navíc spouštěč odmítne `meta` s klíči, které vypadají jako osobní údaje (`email`, `name`, `diet`, `allergies`, `phone`, `address`, `ip`, `user_agent`), a to i vnořené. Je to obrana do hloubky vedle allowlistu v aplikaci.
-- Retenční a úklidové funkce: `purge_health_data`, `purge_guest_data`, `purge_wedding`, `purge_deleted_weddings`, `purge_expired_slug_reservations`, `housekeeping`. Berou dávky a drží `pg_try_advisory_xact_lock`. Odesílání upozornění, export před smazáním a mazání souborů z úložiště (`purge_wedding` vrací cesty) zůstávají na M10.
+- Retenční a úklidové funkce: `purge_health_data`, `purge_guest_data`, `purge_wedding`, `purge_deleted_weddings`, `purge_expired_slug_reservations`, `housekeeping`. Berou dávky a drží `pg_try_advisory_xact_lock`. Odesílání upozornění, export před smazáním a mazání souborů z úložiště (`purge_wedding` vrací cesty) zůstávaly na M10 (hotovo, kap. 17).
 - `last_activity_at` se zapisuje jen při uložení správcem této svatby (úprava svatby, stránky, bloku, události, místa nebo média) a nejvýše jednou za `activity_touch_minutes`; zároveň prodlužuje rezervaci slugu konceptu.
 - Retenční data `health_purge_at` a `guest_purge_at` se přepočítávají při vložení a při změně `starts_on`, `ends_on` nebo `timezone`, ale ne tehdy, když téže změnou sloupec přepisuje operátor (prodloužení lhůty).
 
@@ -625,9 +625,59 @@ Migrace `20261002150000_wizard.sql`. Všechny nové funkce jsou `security define
 - **`publish_site`** přijme snapshot z `toPublicContent` (zvalidovaný `publicContentSchema`, `validateDraft` a `validatePalette` v aplikaci), vytvoří novou verzi webu a nastaví stav `published`. Zveřejněný slug se nikdy nepřidělí jinému webu. `getPublicContent` a `resolve_slug` čtou z databáze; fixtury slouží jen pro vývojový katalog a testy. Neznámý, blokovaný i nezveřejněný slug dává stejné 404.
 - **`waitlist_add`** (čekací listina); události analytiky zapisuje `analytics_record` z migrace M8, průvodce zapisuje `wizard_started`, `wizard_step_completed`, `site_published` (bez osobních údajů).
 
-## 17. Odchylky a rozhodnutí implementace (M7a, správa webu)
+## 17. Odchylky a rozhodnutí implementace (M10, životní cyklus, retence a upozornění)
 
-Migrace `20261003100000_admin_site.sql`, kód v `src/admin/site`, `src/components/admin` a `src/app/h/app/(sprava)`. Všechny funkce jsou `security definer` s prázdným `search_path`, právo spuštění má jen `authenticated`; každá vyžaduje `se_vezmou.is_wedding_admin()` a pracuje jen se svatbou z claimu (žádný argument s identifikátorem svatby).
+Migrace `20261005120000_lifecycle_tables.sql`, `20261005120100_lifecycle_functions.sql`, `20261005120200_retention_functions.sql` a `20261005120300_lifecycle_ops_export.sql`; kód v `src/lib/cron`, `src/lib/lifecycle`, `src/lib/storage`, `src/lib/export`, `src/lib/email/templates` (`retention-notice`, `deletion-notice`) a `src/app/api/cron/*`. Kde zde není uvedeno jinak, platí kapitoly 1 až 16.
+
+**Konec provozu a archivace (FR-LC-1)**
+
+- Uložený stav `published` -> `archived` přepíná úloha `lifecycle` (`se_vezmou.lifecycle_archive_due`), když uplyne **konec provozu** webu: `site_online_days_after_wedding` (výchozí 90, zástupná hodnota `[OTÁZKA]`) dní po posledním dni svatby (`ends_on`, jinak `starts_on`, půlnoc v pásmu svatby, `se_vezmou.lifecycle_expires_at`). Končí-li dřív objednaný provoz (`orders.service_ends_at`), platí dřívější z obou. Svatba bez data a bez konce provozu se automaticky nearchivuje.
+- Fáze (`save_the_date` až `thanks`) se nikdy nezapisují: odvozuje je `se_vezmou.phase` a stejná čistá funkce `src/lib/lifecycle/phase.ts`. Shodu hlídají zlaté vektory `supabase/tests/golden/phase-vectors.tsv` (SQL test `96_m10_lifecycle` i `phase.test.ts`).
+- Ruční přepsání fáze: `op_set_phase_override(operátor, svatba, fáze | null, důvod)` s auditem `wedding.phase_override` (z jaké a na jakou fázi, důvod). Přepisuje jen odvozenou fázi, **neodkládá archivaci ani retenci**: ty řídí data a nastavení.
+- Archivace zapisuje do `wedding_status_history` (aktér `system`, důvod `service_expired`) a do auditu `wedding.status_change`. `resolve_slug` archivovaný web nevrací (404 bez rozdílu), správci se do správy přihlásí dál (export a smazání).
+- **Konzistence se spouštěči M3:** retenční data `health_purge_at` a `guest_purge_at` počítá spouštěč `weddings_before_write` z data svatby při vložení a při změně dat nebo pásma (ne při změně nastavení). Archivace je nepřepisuje; doplní je jen tam, kde zůstala `null` (web zveřejněný bez data svatby), a to od okamžiku archivace. Ruční prodloužení operátorem (změna `*_purge_at`) tím zůstává platné a vytvoří novou událost s novým upozorněním.
+
+**Plánované úlohy (Vercel Cron)**
+
+- Cesty `/api/cron/lifecycle`, `retention`, `housekeeping` a `daily` (všechny tři za sebou v pořadí retence, životní cyklus, úklid, aby se zprávy o smazání odešly týž den). `vercel.json` plánuje jen `/api/cron/daily` (jednou denně, 03:17 UTC): na tarifu Hobby je omezený počet cron úloh a nejvýše denní frekvence s hodinovou přesností, na vyšším tarifu lze naplánovat úlohy zvlášť `[OVĚŘIT]`. Cron běží jen na produkčním nasazení.
+- Autorizace `Authorization: Bearer ${CRON_SECRET}` (porovnání hashů SHA-256 přes `timingSafeEqual`, tedy v konstantním čase); bez nastavené proměnné nebo se špatnou hodnotou 401 a nic se nespustí. Proxy cesty `/api/cron/*` vynechává (`src/proxy.ts`), proto je kontrola v obsluhovači. GET i POST.
+- Parametry: `dry_run=1` (úloha provede práci v podtransakci a vrátí ji zpět: ohlásí přesně to, co by skutečný běh udělal, a nic nezapíše, neodešle ani nesmaže), `batch` (1 až 500), `wedding_id` (omezení na jednu svatbu). **Simulovaný čas** `now` (ISO) je povolen jen s `CRON_TEST_CLOCK=1` a vždy spolu s `wedding_id`, ne u úklidu a denního běhu; zapnutá testovací hodina při `VERCEL_ENV=production` je chyba nasazení (500, úloha neběží), stejně jako `EMAIL_TRANSPORT=outbox`.
+- Zámek proti souběhu: tabulka `job_runs` (zapůjčení na 10 minut, `job_run_start` a `job_run_finish`), protože pooler v transakčním režimu nedrží zámky relace; navíc každá funkce `purge_*` drží `pg_try_advisory_xact_lock`. Výsledek běhu (stav, počty, kód chyby) jde do `job_runs` a do auditu `job.run` bez osobních údajů. Klíče počtů nesmějí vypadat jako osobní údaje (spouštěč `audit_log_guard` odmítne klíč obsahující `email`, `name`, `address` a podobně: proto `messages_sent` a v úklidu `mail_log`).
+- Dávky a časový rozpočet: `maxDuration = 60` s (platí na všech tarifech), rozpočet jednoho požadavku 50 s; co se nestihne, dokončí další běh (výsledek `partial`). Strukturovaný log je jedna řádka JSON; smí nést jen název úlohy, stav, počty a kód chyby (chyby jen názvem, funkcí a kódem).
+- Odpověď je 500, když úloha selže (Vercel i monitoring to uvidí; selhání jde i do Sentry s názvem úlohy a kódem), jinak 200 s počty.
+
+**Retence a mazání (FR-OPS-5)**
+
+- Funkce `purge_health_data`, `purge_guest_data`, `purge_wedding`, `purge_deleted_weddings`, `purge_expired_slug_reservations` a `housekeeping` mají nové parametry `p_now` (simulovaný čas, výchozí `now()`), `p_wedding_id` (omezení na svatbu) a `p_dry_run`; volání bez argumentů funguje jako dřív. Přibyla `retention_due_weddings` (weby k trvalému smazání s počtem souborů).
+- Zdravotní údaje se mažou zvlášť (30 dní po svatbě), ostatní údaje hostů po 12 měsících; mazání hostů smaže i zbylé zdravotní údaje. Lhůty jsou z `app_settings`, nikoli z kódu. Do auditu jde jen `retention.purge` s druhem a počtem řádků.
+- Trvalé smazání webu proběhne **nejdřív po `purge_at`** (`deleted_site_restore_days` od smazání) a jen u stavu `deleted`; obnovení v lhůtě (operátor, M9) `purge_at` zruší, takže web už nikdy nebude v seznamu ke smazání. `purge_wedding` to znovu ověřuje pod zámkem řádku.
+- **Soubory dřív než řádky:** úloha `retention` pro každý web nejdřív zavolá `deletePrefix(weddingId)` (rozhraní `src/lib/storage`, předpona `{wedding_id}/`), teprve potom `purge_wedding`. Selže-li mazání souborů, web zůstane ve stavu `deleted` a další běh to zkusí znovu. `purge_deleted_weddings` je jen databázový nástroj (testy, svatby bez souborů); cron ji nevolá, protože by smazala řádky dřív než soubory. Úzké okno mezi smazáním souborů a řádků (milisekundy) při současném obnovení operátorem se nepodařilo uzavřít bez zásahu do spouštěče stavu; následek je web bez souborů, nikoli bez dat.
+- Adresa zveřejněného webu zůstane v `slug_registry` jako `retired` (nepřidělí se znovu, test `97_m10_retention`); rezervace nezveřejněného konceptu se uvolní.
+- `housekeeping` navíc maže analytické události po `analytics_retention_months`, `email_log` po `email_log_retention_days` (výchozí 180, `[LHŮTY]`) a běhy úloh po `job_runs_retention_days`. `audit_log` se nemaže (append-only, `[LHŮTY]`).
+
+**Upozornění a zprávy o smazání (FR-LC-2, FR-MAIL-1)**
+
+- Druhy událostí: `site_expiry` (konec provozu webu), `health_purge`, `guest_purge`; fáze `first` (`retention_notice_days_before`, výchozí 14, dní předem), `final` (`retention_final_notice_days_before`, výchozí 1, dní předem; je-li jeho okno už otevřené, vznikne jen ono) a `done` (zpráva o provedeném smazání). Smazaný web se před trvalým smazáním neupozorňuje (správce se nepřihlásí); po něm dostanou správci zprávu bez odkazu (adresy se čtou před smazáním, odeslání je nejlepší úsilí, adresy se nikam neukládají).
+- Evidence `lifecycle_notices` (unikátní klíč svatba, druh, fáze, datum události = **jedno upozornění na událost**, i při souběhu a opakování; po prodloužení lhůty vznikne nová událost): `pending` -> `sending` -> `sent` | `skipped` | `failed`. Neúspěch se opakuje po hodině nejvýš třikrát, zaseknuté převzetí po 15 minutách; částečné doručení je `sent` (ostatní nedostanou duplicitu); upozornění před událostí, která už nastala, nebo u smazané či zablokované svatby se přeskočí. Evidence nese jen počty adresátů.
+- Adresáti jsou aktivní správci svatby, jazyk e-mailu je výchozí jazyk webu. Šablony cs/en přes `src/lib/email` s `typo()`; `email_log` nese typ `expiry_notice` nebo `deletion_notice` (nový), jazyk, HMAC adresy a její doménu. Zpráva nese datum (v pásmu svatby), adresu webu a odkaz na přihlášení, nikdy údaje hostů.
+
+**Export (FR-LC-2)**
+
+- `admin_export_guests(p_include_health)` (volá správce, claimy `admin`): jeden řádek na osobu (host, doprovod, dítě, host mimo seznam) se sloupci pro události a otázky; audit `export.guests` s počty. Dieta a alergie jen na výslovnou žádost, jejich vydání se eviduje v `rsvp_health.exported_at`.
+- `src/lib/export`: `exportGuestsAndRsvp(session, { format: "csv" | "xlsx", locale, includeHealth })`. CSV: středník, BOM UTF-8, CRLF, neutralizace vzorců (CSV injection). Excel: knihovna `write-excel-file` (jedna závislost, jen zápis, bez nativního kódu, texty vždy jako textové buňky; `exceljs` je zhruba dvacetkrát větší). Žádný veřejný odkaz na export: funkci volá jen kód s ověřenou relací správce. Rozhraní správy ji zapojí M7.
+- Export fotografií je rozhraní `planPhotoExport` s `TODO(M7c)`; úložiště je za rozhraním `PhotoStorage` (`listPrefix`, `deletePrefix`), výchozí implementace nic neuchovává, pro testy `createMemoryStorage`.
+
+**Dohled pro operátora (data pro M9, bez rozhraní)**
+
+- `op_job_runs_summary(operátor)` (poslední běh každé úlohy, poslední úspěch, selhání za 7 dní, běží), `op_job_runs(operátor, limit, úloha)` a `op_expiring_weddings(operátor, dní, teď)` (události do `dní` a zpožděné, s evidencí upozornění a přepsáním fáze).
+
+**Nastavení (`app_settings`, zástupné hodnoty ke schválení právníkem `[LHŮTY]`):** `site_online_days_after_wedding` 90, `retention_final_notice_days_before` 1, `email_log_retention_days` 180, `job_runs_retention_days` 90.
+
+**Testy:** SQL `96_m10_lifecycle` a `97_m10_retention` (injektovaný čas, hranice lhůt, dry_run, idempotence, izolace svateb, audit bez osobních údajů, slug), Vitest (`src/lib/cron`, `src/lib/email/templates/retention-notice.test.ts`, `src/lib/export`, `src/lib/storage`, `src/lib/lifecycle`) a e2e `e2e/cron.e2e.ts` (autorizace, simulovaný průběh času, upozornění v outboxu, mazání po lhůtách).
+
+## 18. Odchylky a rozhodnutí implementace (M7a, správa webu)
+
+Migrace `20261006100000_admin_site.sql`, kód v `src/admin/site`, `src/components/admin` a `src/app/h/app/(sprava)`. Všechny funkce jsou `security definer` s prázdným `search_path`, právo spuštění má jen `authenticated`; každá vyžaduje `se_vezmou.is_wedding_admin()` a pracuje jen se svatbou z claimu (žádný argument s identifikátorem svatby).
 
 **Pracovní kopie a verze**
 

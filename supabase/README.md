@@ -30,7 +30,12 @@ Migrace:
 9. `rsvp` (M8): tolerance překlepů ve jménech (`se_vezmou.names_close`), společný zápis odpovědi `se_vezmou.rsvp_apply`, nové `rsvp_match`, `rsvp_get`, `rsvp_submit`, dále `rsvp_info`, `rsvp_unlisted_form`, `rsvp_submit_unlisted`, správcovské `admin_guest_list`, `admin_rsvp_overview`, `admin_rsvp_household`, `admin_rsvp_enter` a `analytics_record`.
 10. `lifecycle_tables`, `lifecycle_functions`, `retention_functions`, `lifecycle_ops_export` (M10): evidence běhů úloh (`job_runs`, zapůjčení zámku) a upozornění (`lifecycle_notices`), archivace po konci provozu, ruční přepsání fáze, plánování a odeslání upozornění, retenční funkce s parametry `p_now`, `p_wedding_id`, `p_dry_run`, úklid, data pro operátorský dohled a export hostů a RSVP (`admin_export_guests`). Testy `96_m10_lifecycle`, `97_m10_retention` a zlaté vektory fáze `golden/phase-vectors.tsv`.
 
-Co je záměrně odložené (označeno `TODO` v `functions_core.sql`; PINy a pauzy dodala M4): založení konceptu a publikace (M5), správa správců a souhlas s nahlédnutím (M7), zbytek `op_*` a relace operátorů (M9), e-maily a export při retenci (M10).
+11. `operators_auth` (M9, ADR 0012): sloupce `operators.totp_secret_enc`, `totp_confirmed_at`, `totp_last_step`, `last_login_at`, účel výzvy `operator_login`, typ e-mailu `operator_notice`, funkce `auth_operator_*` (vyhledání operátora, relace AAL1 a AAL2, zápis a ověření druhého faktoru TOTP s ochranou proti přehrání, záložní kódy).
+12. `operators_ops` (M9): provozní administrace `op_list_weddings`, `op_get_wedding`, `op_add_note`, `op_change_slug`, `op_extend_retention`, `op_restore_wedding`, `op_send_login_link`, `op_overview`, `op_analytics_summary`, `op_list_retention`, `op_list_audit`, správa operátorů (`op_list_operators`, `op_create_operator`, `op_set_operator_disabled`, `op_reset_operator_mfa`) a přepracovaná `op_set_wedding_status` (matice rolí, zveřejnění jen s verzí, obnovení jen přes `op_restore_wedding`).
+
+Matice rolí operátorů (každá `op_*` si roli ověřuje sama, `assert_operator`): čtení, poznámky, poslání přihlašovacího odkazu, nahlédnutí do údajů hostů se souhlasem páru a zablokování webu smí `owner` i `support`; ostatní změny stavu, změnu adresy, prodloužení lhůt, obnovu, audit a správu operátorů jen `owner`. Žádná z nich nevrací jména ani údaje hostů; k nim vede jediná cesta `op_view_guest_data` s aktivním `data_access_grants`, důvodem a auditem.
+
+Co je záměrně odložené (označeno `TODO` v `functions_core.sql`; PINy a pauzy dodala M4, operátory M9): založení konceptu a publikace (M5), správa správců a souhlas s nahlédnutím (M7), e-maily a export při retenci (M10).
 
 ## Spuštění testů
 
@@ -65,6 +70,8 @@ V CI běží test jako samostatný job `db` (`.github/workflows/ci.yml`), spolu 
 - `80_rsvp_site`: slepé RSVP (stejný tvar odpovědi), uzavřené RSVP, pozvání na události, `get_public_site`, odvozená fáze.
 - `95_auth_pin` (M4): pauzy po chybách (série, zdvojnásobování, strop 24 h, samovolný návrat úrovně, nulování), `auth_pin_get` (skrývá svatbu bez PINu, smazanou, bez správce), nastavení PINu (formát hashe, odvolání relací, audit bez hodnoty), `auth_session_context`, `email_log_*` a že správce tyto funkce nespustí.
 - `85_rsvp_m8` (M8): tolerance překlepů (`se_vezmou.osa_distance`, `se_vezmou.names_close`) a nejednoznačnost, vlastní a vestavěné otázky (typy, možnosti, povinnost, otázky k události), doprovod a děti, `rsvp_info`, host mimo seznam (vypnuto, zapnuto, zavřeno, role), správcovský seznam, přehled a ruční zápis (oprávnění, izolace svatby, audit bez osobních údajů), `analytics_record` bez identifikátorů.
+- `96_operator_auth` (M9): relace operátora (AAL1 a AAL2, nečinnost, absolutní doba, odvolání, zakázaný operátor), zápis druhého faktoru (rozepsaný klíč se nepřepíše, potvrzení, záložní kódy), ochrana proti přehrání kódu TOTP, jednorázové záložní kódy, účel výzvy `operator_login`, práva funkcí.
+- `97_operator_ops` (M9): `op_*` (seznam s filtry a hledáním bez údajů hostů, detail, poznámky, změna adresy a registr slugů, prodloužení lhůt, smazání a obnova, přihlašovací odkaz, přehled, analytika, retence, audit), matice rolí podpora versus majitel, správa operátorů, audit v téže transakci (atomicita), izolace od údajů hostů.
 - `90_lifecycle`: relace a výzvy, limit správců, retenční data a mazání, výmaz hosta, normalizace jmen.
 
 ## Nasazení krok za krokem (pro majitele)
@@ -90,7 +97,7 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
 7. **Ověření po nasazení** (SQL editor, role `postgres`):
 
    ```sql
-   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 15)
+   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 17)
    select count(*) from se_vezmou.schema_migrations;
    -- RLS je zapnuté na každé tabulce schématu (0 řádků = v pořádku)
    select relname from pg_class
@@ -105,6 +112,17 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
    ```
 
    Zapomenuté `set role` ověříte přihlášením jako `se_vezmou_app` (např. `psql` s `DATABASE_URL`): `select count(*) from se_vezmou.weddings;` musí skončit `permission denied for schema se_vezmou`. V aplikaci se načte `https://se-vezmou.cz` a přihlášení na `app.se-vezmou.cz` pošle kód (bez SES ho vypíše do logu). Ve Vercel logu se nesmí objevit `Chybí DATABASE_URL`.
+
+### První operátor (majitel) a obnova druhého faktoru
+
+Operátoři se nesmějí zaregistrovat sami (ADR 0012). První operátor vznikne mimo aplikaci spojením vlastníka (`MIGRATE_DATABASE_URL`, stejné jako u migrací):
+
+```bash
+npm run db:migrate
+npm run ops:create-owner -- majitel@example.cz
+```
+
+Skript založí majitele jen když ještě žádný aktivní není (další majitele zakládá majitel v administraci, nebo skript s `--allow-additional`), zapíše audit `operator.bootstrap` bez e-mailu a nic nevypisuje z tajných hodnot. Na Vercel patří navíc `OPERATOR_MFA_KEY` (min. 32 náhodných znaků, `openssl rand -base64 48`; ztráta nebo změna klíče znamená nový zápis druhého faktoru u všech operátorů). Majitel pak otevře `https://admin.se-vezmou.cz/prihlaseni`, opíše kód z e-mailu a zapíše druhý faktor (aplikace TOTP), záložní kódy si uloží mimo telefon. Ztracený faktor majitele obnoví jiný majitel, nebo vlastník databáze: `npm run ops:reset-mfa -- majitel@example.cz` (zneplatní klíč, záložní kódy a relace, zapíše audit). Skripty testuje `npm run db:migrate:test`.
 
 ### Nástroj `npm run db:migrate`
 

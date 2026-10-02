@@ -10,6 +10,7 @@ export const E2E_SECRETS = {
   AUTH_SECRET: "e2e-auth-secret-e2e-auth-secret-0000001",
   RATE_LIMIT_SECRET: "e2e-rate-secret-e2e-rate-secret-000002",
   PIN_PEPPER: "e2e-pin-pepper-e2e-pin-pepper-0000003",
+  OPERATOR_MFA_KEY: "e2e-operator-mfa-key-e2e-operator-0000004",
   CRON_SECRET: "e2e-cron-secret-e2e-cron-secret-0000004",
 } as const;
 

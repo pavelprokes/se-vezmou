@@ -25,6 +25,9 @@ const schema = z.object({
   /** Pepper pro PINy: PIN se před argon2id zpracuje HMAC, docs/security-privacy.md kap. 1.2. */
   PIN_PEPPER: secret.optional(),
 
+  // Provozní administrace (M9, docs/adr/0012)
+  /** Klíč pro šifrování tajných klíčů TOTP operátorů v databázi a pro HMAC záložních kódů (min. 32 znaků). */
+  OPERATOR_MFA_KEY: secret.optional(),
   // Plánované úlohy (M10, Vercel Cron): `Authorization: Bearer ${CRON_SECRET}`. Vercel hodnotu posílá sám,
   // je-li proměnná nastavena v projektu. Bez ní všechny cesty `/api/cron/*` vrací 401.
   // Záměrně bez minimální délky v schématu: špatná hodnota nesmí shodit start celé aplikace. Kratší než

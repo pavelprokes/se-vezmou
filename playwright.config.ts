@@ -51,15 +51,15 @@ export default defineConfig({
       testMatch: /.*\.a11y\.ts$/,
       use: { ...devices["Desktop Chrome"] },
     },
-    // Úvodní stránka a průvodce i v mobilním viewportu (Chromium s rozlišením telefonu, dotykový vstup).
+    // Úvodní stránka, průvodce a provozní administrace i v mobilním viewportu (Chromium s rozlišením telefonu, dotykový vstup).
     {
       name: "e2e-mobile",
-      testMatch: /(landing|wizard)\.e2e\.ts$/,
+      testMatch: /(landing|wizard|ops-mobile)\.e2e\.ts$/,
       use: { ...devices["Pixel 7"] },
     },
     {
       name: "a11y-mobile",
-      testMatch: /(landing|wizard)\.a11y\.ts$/,
+      testMatch: /(landing|wizard|ops)\.a11y\.ts$/,
       use: { ...devices["Pixel 7"] },
     },
   ],

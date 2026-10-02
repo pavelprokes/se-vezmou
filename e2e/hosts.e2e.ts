@@ -12,7 +12,11 @@ test.describe("hlavičky podle hostitele", () => {
   for (const name of hostNames) {
     test(`${name}: X-Robots-Tag a bezpečnostní hlavičky`, async ({ request }) => {
       // Přehled správy (`/`) vyžaduje relaci a přesměruje; veřejná je až přihlašovací stránka.
-      const response = await get(request, HOSTS[name], name === "app" ? "/prihlaseni" : "/");
+      const response = await get(
+        request,
+        HOSTS[name],
+        name === "app" || name === "admin" ? "/prihlaseni" : "/",
+      );
       expect(response.status()).toBe(200);
       const headers = response.headers();
 

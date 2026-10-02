@@ -1,6 +1,6 @@
 # ADR 0008: Přihlášení operátorů a druhý faktor
 
-Stav: navrženo (čeká na schválení majitele) Poznámka (ADR 0011): varianta A (Supabase Auth) se bez `supabase-js` a `NEXT_PUBLIC_SUPABASE_*` musí přehodnotit (OQ-47).
+Stav: navrženo (čeká na schválení majitele). **Varianta A (Supabase Auth) je nahrazena ADR 0012**: operátoři se přihlašují vlastním kódem z e-mailu a TOTP přímo v naší databázi (bez `supabase-js`, ADR 0011, OQ-47). Postup přihlášení, záložní kódy, obnova přes majitele, relace, omezení a role z tohoto ADR platí dál; úrovně AAL1 a AAL2 jsou naše (`operator_sessions.aal2_verified_at`), passkey zůstává TODO v ADR 0012.
 
 ## Kontext
 

@@ -7,6 +7,7 @@ import csCommon from "./messages/cs/common.json";
 import csLanding from "./messages/cs/landing.json";
 import csLegal from "./messages/cs/legal.json";
 import csMarketing from "./messages/cs/marketing.json";
+import csOps from "./messages/cs/ops.json";
 import csPlaceholder from "./messages/cs/placeholder.json";
 import csRsvp from "./messages/cs/rsvp.json";
 import enAuth from "./messages/en/auth.json";
@@ -17,6 +18,7 @@ import enCommon from "./messages/en/common.json";
 import enLanding from "./messages/en/landing.json";
 import enLegal from "./messages/en/legal.json";
 import enMarketing from "./messages/en/marketing.json";
+import enOps from "./messages/en/ops.json";
 import enPlaceholder from "./messages/en/placeholder.json";
 import enRsvp from "./messages/en/rsvp.json";
 import enSite from "./messages/en/site.json";
@@ -30,6 +32,7 @@ const cs = {
   landing: csLanding,
   legal: csLegal,
   marketing: csMarketing,
+  ops: csOps,
   placeholder: csPlaceholder,
   rsvp: csRsvp,
   site: csSite,
@@ -43,6 +46,7 @@ const en: Record<keyof typeof cs, Record<string, MessageValue>> = {
   landing: enLanding,
   legal: enLegal,
   marketing: enMarketing,
+  ops: enOps,
   placeholder: enPlaceholder,
   rsvp: enRsvp,
   site: enSite,

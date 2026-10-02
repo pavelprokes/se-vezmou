@@ -95,6 +95,27 @@ init skripty a migracemi (`supabase/tests/setup/00_shim.sql`, `supabase/init/*.s
 `supabase/migrations/*.sql`, viz `supabase/README.md`) a do `.env.local` přidejte `DATABASE_URL=…`
 (role `se_vezmou_app`) a tři tajné hodnoty. Bez AWS proměnných se e-maily (včetně kódu) vypisují do konzole dev serveru a neodesílají.
 
+### Provozní administrace (M9)
+
+Provozní administrace běží na `admin.se-vezmou.cz` (lokálně `admin.localhost:3000`), jen česky, `noindex` a
+`no-store`. Operátoři (majitel a podpora) se přihlašují kódem z e-mailu a povinným druhým faktorem TOTP
+bez Supabase Auth (`docs/adr/0012`); relace má nečinnost 30 minut a absolutně 8 hodin, cookie
+`__Host-sv_operator` je host-only. Obsahuje seznam zakázek s filtry a hledáním, detail se zásahy s auditem
+(stav, adresa, prodloužení lhůt, obnova, přihlašovací odkaz správci, poznámky), nahlédnutí do údajů hostů
+jen se souhlasem páru, přehled, lhůty a retenci, audit a správu operátorů (kód v `src/ops`, stránky v
+`src/app/h/admin`, funkce `op_*` v `supabase/migrations/20261006120100_operators_ops.sql`).
+
+Prvního operátora (majitele) založí vlastník databáze mimo aplikaci (bez hesel v repozitáři):
+
+```bash
+export MIGRATE_DATABASE_URL='postgresql://postgres:…@db.<ref>.supabase.co:5432/postgres'
+npm run ops:create-owner -- majitel@example.cz
+npm run ops:reset-mfa -- majitel@example.cz   # ztracený druhý faktor
+```
+
+Potřebná je navíc tajná hodnota `OPERATOR_MFA_KEY` (min. 32 znaků, viz `.env.example`). Postup a rizika
+jsou v `docs/adr/0012` a `supabase/README.md`.
+
 ### Překlady a typografie
 
 Texty jsou v `src/i18n/messages/{cs,en}/<jmenný prostor>.json` a používají se přes

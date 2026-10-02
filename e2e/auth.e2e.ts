@@ -574,7 +574,7 @@ test.describe("angličtina", () => {
     expect(mail.html).toContain('lang="en-GB"');
     await page.getByLabel("Six-digit code").fill(codeOf(mail));
     await page.getByRole("button", { name: "Sign in" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Wedding management" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "My website" })).toBeVisible();
     await expect(page.getByText(/Klára and\s+Matěj/)).toBeVisible();
     expect((await emailLogFor(wedding.adminEmail))[0]).toMatchObject({ locale: "en" });
     await context.close();

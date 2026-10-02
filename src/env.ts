@@ -8,11 +8,14 @@ const schema = z.object({
   // Adresa průvodce a správy (`app.`). Úvodní stránka na ni odkazuje a předává jména párů.
   NEXT_PUBLIC_APP_URL: z.url().default("https://app.se-vezmou.cz"),
 
-  // Supabase: jen server. Prohlížeč s databází nemluví vůbec (žádný anon klíč, docs/adr/0001).
-  NEXT_PUBLIC_SUPABASE_URL: z.url().optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
-  /** Podpisové tajemství JWT projektu (HS256) pro krátkodobé tokeny správců, src/lib/db/jwt.ts. */
-  SUPABASE_JWT_SECRET: secret.optional(),
+  // Databáze (docs/adr/0011): jen server, přímé spojení `pg`. Prohlížeč s databází nemluví vůbec;
+  // žádné NEXT_PUBLIC_SUPABASE_*, žádný anon klíč, žádný service role klíč, žádný PostgREST.
+  /** Adresa poolu Supabase (transaction mode, port 6543) pro roli se_vezmou_app: postgresql://… */
+  DATABASE_URL: z.string().min(1).optional(),
+  /** Záložně jen pokud začíná postgres:// nebo postgresql:// (jinak se ignoruje), src/lib/db/pool.ts. */
+  SUPABASE_URL: z.string().min(1).optional(),
+  /** Volitelně PEM kořenové CA Supabase: zapne ověřování certifikátu databáze (src/lib/db/pool.ts). */
+  DATABASE_CA_CERT: z.string().min(1).optional(),
 
   // Přihlášení (M4)
   /** Klíč pro HMAC e-mailů a kódů v databázi a pro šifrování odkazů a rozpracovaného přihlášení. */
@@ -28,10 +31,7 @@ const schema = z.object({
   AWS_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(1).optional(),
 
-  // Jen pro automatické testy (nikdy v produkci, viz src/lib/db/transport.ts a src/lib/email/transport.ts)
-  /** `pg`: databázové volání přímo přes PostgreSQL místo PostgREST. */
-  DB_TRANSPORT: z.enum(["supabase", "pg"]).optional(),
-  DATABASE_URL: z.string().min(1).optional(),
+  // Jen pro automatické testy (nikdy v produkci, viz src/lib/email/transport.ts)
   /** `outbox`: e-maily se zapisují jako soubory JSON do EMAIL_OUTBOX_DIR. */
   EMAIL_TRANSPORT: z.enum(["ses", "console", "outbox"]).optional(),
   EMAIL_OUTBOX_DIR: z.string().min(1).optional(),

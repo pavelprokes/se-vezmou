@@ -6,35 +6,35 @@
 -- Čtení nastavení (žádná lhůta není pevně v kódu). Security definer, protože app_settings
 -- nemá politiky; spouštěče běží s právy správce, který zapisuje.
 -- ---------------------------------------------------------------------------
-create function app.setting(p_key text) returns jsonb
+create function se_vezmou.setting(p_key text) returns jsonb
   language sql stable security definer set search_path = ''
-  as $$ select s.value from public.app_settings s where s.key = p_key $$;
+  as $$ select s.value from se_vezmou.app_settings s where s.key = p_key $$;
 
-create function app.setting_int(p_key text, p_default integer) returns integer
+create function se_vezmou.setting_int(p_key text, p_default integer) returns integer
   language sql stable security definer set search_path = ''
   as $$
   select coalesce(
     case when jsonb_typeof(s.value) = 'number' then (s.value #>> '{}')::numeric::integer end,
     p_default)
   from (select 1) as one
-  left join public.app_settings s on s.key = p_key
+  left join se_vezmou.app_settings s on s.key = p_key
 $$;
 
-revoke all on function app.setting(text), app.setting_int(text, integer) from public, anon;
-grant execute on function app.setting(text), app.setting_int(text, integer)
+revoke all on function se_vezmou.setting(text), se_vezmou.setting_int(text, integer) from public, anon;
+grant execute on function se_vezmou.setting(text), se_vezmou.setting_int(text, integer)
   to authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
 -- weddings: časové pásmo, retenční data, last_activity, účinky změny stavu
 -- ---------------------------------------------------------------------------
-create function app.weddings_before_write() returns trigger
+create function se_vezmou.weddings_before_write() returns trigger
   language plpgsql set search_path = ''
   as $$
 declare
-  v_health_days integer := app.setting_int('health_retention_days_after_wedding', 30);
-  v_guest_months integer := app.setting_int('guest_retention_months_after_wedding', 12);
-  v_restore_days integer := app.setting_int('deleted_site_restore_days', 30);
-  v_touch interval := pg_catalog.make_interval(mins => app.setting_int('activity_touch_minutes', 5));
+  v_health_days integer := se_vezmou.setting_int('health_retention_days_after_wedding', 30);
+  v_guest_months integer := se_vezmou.setting_int('guest_retention_months_after_wedding', 12);
+  v_restore_days integer := se_vezmou.setting_int('deleted_site_restore_days', 30);
+  v_touch interval := pg_catalog.make_interval(mins => se_vezmou.setting_int('activity_touch_minutes', 5));
   v_ref date;
   v_dates_changed boolean;
 begin
@@ -75,7 +75,7 @@ begin
 
   if tg_op = 'UPDATE' then
     -- last_activity_at: jen uložení správcem této svatby, nejvýše jednou za activity_touch_minutes
-    if app.is_wedding_admin() and app.wedding_id() = new.id
+    if se_vezmou.is_wedding_admin() and se_vezmou.wedding_id() = new.id
        and new.last_activity_at is not distinct from old.last_activity_at
        and pg_catalog.now() - old.last_activity_at >= v_touch then
       new.last_activity_at := pg_catalog.now();
@@ -106,21 +106,21 @@ begin
 end
 $$;
 
-revoke all on function app.weddings_before_write() from public, anon;
+revoke all on function se_vezmou.weddings_before_write() from public, anon;
 
 create trigger weddings_before_write
-  before insert or update on public.weddings
-  for each row execute function app.weddings_before_write();
+  before insert or update on se_vezmou.weddings
+  for each row execute function se_vezmou.weddings_before_write();
 
 -- Po změně: zveřejnění přepne adresu na active (kap. 6 bod 4), aktivita prodlouží rezervaci.
 -- Security definer: správce nemá právo zapisovat do slug_registry.
-create function app.weddings_after_write() returns trigger
+create function se_vezmou.weddings_after_write() returns trigger
   language plpgsql security definer set search_path = ''
   as $$
 begin
   if tg_op = 'UPDATE' then
     if new.status = 'published' and old.status is distinct from 'published' then
-      update public.slug_registry
+      update se_vezmou.slug_registry
          set state = 'active', reserved_until = null,
              first_published_at = coalesce(first_published_at, pg_catalog.now())
        where slug = new.slug and wedding_id = new.id and state in ('reserved', 'active');
@@ -130,9 +130,9 @@ begin
     end if;
 
     if new.last_activity_at is distinct from old.last_activity_at then
-      update public.slug_registry
+      update se_vezmou.slug_registry
          set reserved_until = new.last_activity_at
-             + pg_catalog.make_interval(days => app.setting_int('slug_reservation_days', 30))
+             + pg_catalog.make_interval(days => se_vezmou.setting_int('slug_reservation_days', 30))
        where wedding_id = new.id and state = 'reserved';
     end if;
   end if;
@@ -140,16 +140,16 @@ begin
 end
 $$;
 
-revoke all on function app.weddings_after_write() from public, anon;
+revoke all on function se_vezmou.weddings_after_write() from public, anon;
 
 create trigger weddings_after_write
-  after insert or update on public.weddings
-  for each row execute function app.weddings_after_write();
+  after insert or update on se_vezmou.weddings
+  for each row execute function se_vezmou.weddings_after_write();
 
 -- ---------------------------------------------------------------------------
 -- last_activity_at z pracovních tabulek (uložení bloku, události, média...)
 -- ---------------------------------------------------------------------------
-create function app.touch_wedding_activity() returns trigger
+create function se_vezmou.touch_wedding_activity() returns trigger
   language plpgsql security definer set search_path = ''
   as $$
 declare
@@ -162,34 +162,34 @@ begin
   end if;
 
   -- jen změny provedené správcem této svatby; cron, operátor a retence aktivitu nezakládají
-  if app.is_wedding_admin() and app.wedding_id() = v_wedding then
-    update public.weddings w
+  if se_vezmou.is_wedding_admin() and se_vezmou.wedding_id() = v_wedding then
+    update se_vezmou.weddings w
        set last_activity_at = pg_catalog.now()
      where w.id = v_wedding
        and w.last_activity_at < pg_catalog.now()
-         - pg_catalog.make_interval(mins => app.setting_int('activity_touch_minutes', 5));
+         - pg_catalog.make_interval(mins => se_vezmou.setting_int('activity_touch_minutes', 5));
   end if;
   return null;
 end
 $$;
 
-revoke all on function app.touch_wedding_activity() from public, anon;
+revoke all on function se_vezmou.touch_wedding_activity() from public, anon;
 
-create trigger pages_touch_activity after insert or update or delete on public.pages
-  for each row execute function app.touch_wedding_activity();
-create trigger content_blocks_touch_activity after insert or update or delete on public.content_blocks
-  for each row execute function app.touch_wedding_activity();
-create trigger events_touch_activity after insert or update or delete on public.events
-  for each row execute function app.touch_wedding_activity();
-create trigger venues_touch_activity after insert or update or delete on public.venues
-  for each row execute function app.touch_wedding_activity();
-create trigger media_touch_activity after insert or update or delete on public.media
-  for each row execute function app.touch_wedding_activity();
+create trigger pages_touch_activity after insert or update or delete on se_vezmou.pages
+  for each row execute function se_vezmou.touch_wedding_activity();
+create trigger content_blocks_touch_activity after insert or update or delete on se_vezmou.content_blocks
+  for each row execute function se_vezmou.touch_wedding_activity();
+create trigger events_touch_activity after insert or update or delete on se_vezmou.events
+  for each row execute function se_vezmou.touch_wedding_activity();
+create trigger venues_touch_activity after insert or update or delete on se_vezmou.venues
+  for each row execute function se_vezmou.touch_wedding_activity();
+create trigger media_touch_activity after insert or update or delete on se_vezmou.media
+  for each row execute function se_vezmou.touch_wedding_activity();
 
 -- ---------------------------------------------------------------------------
 -- slug_registry: pravidla trvalého záznamu adres (FR-WZ-4, FR-PRIV-4)
 -- ---------------------------------------------------------------------------
-create function app.slug_registry_guard() returns trigger
+create function se_vezmou.slug_registry_guard() returns trigger
   language plpgsql set search_path = ''
   as $$
 begin
@@ -220,15 +220,15 @@ begin
 end
 $$;
 
-revoke all on function app.slug_registry_guard() from public, anon;
+revoke all on function se_vezmou.slug_registry_guard() from public, anon;
 
-create trigger slug_registry_guard before update or delete on public.slug_registry
-  for each row execute function app.slug_registry_guard();
+create trigger slug_registry_guard before update or delete on se_vezmou.slug_registry
+  for each row execute function se_vezmou.slug_registry_guard();
 
 -- ---------------------------------------------------------------------------
 -- wedding_admins: limit počtu aktivních správců (max_admins, tvrdý strop 5)
 -- ---------------------------------------------------------------------------
-create function app.wedding_admins_limit() returns trigger
+create function se_vezmou.wedding_admins_limit() returns trigger
   language plpgsql set search_path = ''
   as $$
 declare
@@ -240,10 +240,10 @@ begin
     return new;
   end if;
   -- serializace souběžných přidání pro jednu svatbu
-  perform 1 from public.weddings w where w.id = new.wedding_id for update;
-  v_limit := least(app.setting_int('max_admins', 3), c_hard_cap);
+  perform 1 from se_vezmou.weddings w where w.id = new.wedding_id for update;
+  v_limit := least(se_vezmou.setting_int('max_admins', 3), c_hard_cap);
   select count(*) into v_active
-    from public.wedding_admins a
+    from se_vezmou.wedding_admins a
    where a.wedding_id = new.wedding_id and a.removed_at is null and a.id <> new.id;
   if v_active + 1 > v_limit then
     raise exception 'max_admins_exceeded' using errcode = '23514';
@@ -252,24 +252,24 @@ begin
 end
 $$;
 
-revoke all on function app.wedding_admins_limit() from public, anon;
+revoke all on function se_vezmou.wedding_admins_limit() from public, anon;
 
 create trigger wedding_admins_limit
-  before insert or update of removed_at, wedding_id on public.wedding_admins
-  for each row execute function app.wedding_admins_limit();
+  before insert or update of removed_at, wedding_id on se_vezmou.wedding_admins
+  for each row execute function se_vezmou.wedding_admins_limit();
 
 -- ---------------------------------------------------------------------------
 -- site_versions: číslování a neměnnost (staré verze se nepřepisují, kap. 3.3)
 -- ---------------------------------------------------------------------------
-create function app.site_versions_before_write() returns trigger
+create function se_vezmou.site_versions_before_write() returns trigger
   language plpgsql set search_path = ''
   as $$
 begin
   if tg_op = 'INSERT' then
     if new.version_no is null then
-      perform 1 from public.weddings w where w.id = new.wedding_id for update;
+      perform 1 from se_vezmou.weddings w where w.id = new.wedding_id for update;
       select coalesce(max(v.version_no), 0) + 1 into new.version_no
-        from public.site_versions v where v.wedding_id = new.wedding_id;
+        from se_vezmou.site_versions v where v.wedding_id = new.wedding_id;
     end if;
   elsif new.public_content is distinct from old.public_content
      or new.version_no is distinct from old.version_no
@@ -281,15 +281,15 @@ begin
 end
 $$;
 
-revoke all on function app.site_versions_before_write() from public, anon;
+revoke all on function se_vezmou.site_versions_before_write() from public, anon;
 
-create trigger site_versions_before_write before insert or update on public.site_versions
-  for each row execute function app.site_versions_before_write();
+create trigger site_versions_before_write before insert or update on se_vezmou.site_versions
+  for each row execute function se_vezmou.site_versions_before_write();
 
 -- ---------------------------------------------------------------------------
 -- audit_log: append-only a ochrana meta před osobními údaji (kap. 11)
 -- ---------------------------------------------------------------------------
-create function app.audit_log_guard() returns trigger
+create function se_vezmou.audit_log_guard() returns trigger
   language plpgsql set search_path = ''
   as $$
 begin
@@ -305,12 +305,12 @@ begin
 end
 $$;
 
-revoke all on function app.audit_log_guard() from public, anon;
+revoke all on function se_vezmou.audit_log_guard() from public, anon;
 
-create trigger audit_log_row_guard before insert or update or delete on public.audit_log
-  for each row execute function app.audit_log_guard();
-create trigger audit_log_truncate_guard before truncate on public.audit_log
-  for each statement execute function app.audit_log_guard();
+create trigger audit_log_row_guard before insert or update or delete on se_vezmou.audit_log
+  for each row execute function se_vezmou.audit_log_guard();
+create trigger audit_log_truncate_guard before truncate on se_vezmou.audit_log
+  for each statement execute function se_vezmou.audit_log_guard();
 
 -- ---------------------------------------------------------------------------
 -- updated_at: všechny tabulky s tímto sloupcem
@@ -324,11 +324,11 @@ begin
       from information_schema.columns c
       join information_schema.tables t
         on t.table_schema = c.table_schema and t.table_name = c.table_name
-     where c.table_schema = 'public' and c.column_name = 'updated_at'
+     where c.table_schema = 'se_vezmou' and c.column_name = 'updated_at'
        and t.table_type = 'BASE TABLE'
   loop
     execute format(
-      'create trigger %I before update on public.%I for each row execute function app.touch_updated_at()',
+      'create trigger %I before update on se_vezmou.%I for each row execute function se_vezmou.touch_updated_at()',
       r.table_name || '_touch_updated_at', r.table_name);
   end loop;
 end

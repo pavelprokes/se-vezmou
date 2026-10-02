@@ -2,7 +2,6 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createTenantClient } from "@/lib/db/client";
 import {
   authCreateSession,
   authRevokeSession,
@@ -81,13 +80,4 @@ export async function endSession(): Promise<void> {
   }
   const expired = expiredCookieSpec("admin", host);
   store.set({ name: expired.name, value: expired.value, ...expired.options });
-}
-
-/** Klient s krátkodobým JWT pro dotazy správce této svatby (RLS). Jen na serveru, na jeden požadavek. */
-export function tenantClientFor(session: AdminSession) {
-  return createTenantClient({
-    weddingId: session.weddingId,
-    weddingRole: "admin",
-    subject: session.subjectId,
-  });
 }

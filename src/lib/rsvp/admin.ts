@@ -17,7 +17,7 @@ import {
  * Správcovská strana RSVP (M8 jako server-side vrstva, rozhraní přijde v M7): seznam hostů
  * a domácností, přehled odpovědí (přijde / nepřijde / neodpověděli), ruční zápis hosta, který
  * odpověděl telefonem. Volá se jen s relací správce (`requireSession()` v Server Action nebo
- * stránce); databázové funkce `admin_*` navíc samy vyžadují JWT role admin a filtrují podle svatby.
+ * stránce); databázové funkce `admin_*` navíc samy vyžadují claimy role admin a filtrují podle svatby.
  * Zdravotní údaje (dieta, alergie) vrací jen `getHouseholdForEntry` pro předvyplnění zápisu.
  */
 

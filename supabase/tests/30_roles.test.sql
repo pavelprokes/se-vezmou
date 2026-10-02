@@ -11,8 +11,8 @@ begin
   foreach v_role in array array['visitor', 'guest_pin', 'preview'] loop
     perform tap.become('authenticated', tap.wa(), v_role);
     for r in select c.relname from pg_class c
-              where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p') order by 1 loop
-      perform tap.invisible('public.' || quote_ident(r.relname), v_role || ' nevidí ' || r.relname);
+              where c.relnamespace = 'se_vezmou'::regnamespace and c.relkind in ('r', 'p') order by 1 loop
+      perform tap.invisible('se_vezmou.' || quote_ident(r.relname), v_role || ' nevidí ' || r.relname);
     end loop;
     perform tap.reset();
   end loop;
@@ -27,8 +27,8 @@ begin
   -- bez wedding_id
   perform tap.become('authenticated', null, 'admin');
   for r in select c.relname from pg_class c
-            where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p') order by 1 loop
-    perform tap.invisible('public.' || quote_ident(r.relname), 'admin bez wedding_id nevidí ' || r.relname);
+            where c.relnamespace = 'se_vezmou'::regnamespace and c.relkind in ('r', 'p') order by 1 loop
+    perform tap.invisible('se_vezmou.' || quote_ident(r.relname), 'admin bez wedding_id nevidí ' || r.relname);
   end loop;
   perform tap.reset();
 
@@ -36,15 +36,15 @@ begin
   perform set_config('request.jwt.claims', '', true);
   set local role authenticated;
   for r in select c.relname from pg_class c
-            where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p') order by 1 loop
-    perform tap.invisible('public.' || quote_ident(r.relname), 'authenticated bez claimů nevidí ' || r.relname);
+            where c.relnamespace = 'se_vezmou'::regnamespace and c.relkind in ('r', 'p') order by 1 loop
+    perform tap.invisible('se_vezmou.' || quote_ident(r.relname), 'authenticated bez claimů nevidí ' || r.relname);
   end loop;
   perform tap.reset();
 
   -- neznámá aplikační role se wedding_id svatby
   perform tap.become('authenticated', tap.wa(), 'superadmin');
-  perform tap.invisible('public.pages', 'neznámá wedding_role nevidí pages');
-  perform tap.invisible('public.guests', 'neznámá wedding_role nevidí guests');
+  perform tap.invisible('se_vezmou.pages', 'neznámá wedding_role nevidí pages');
+  perform tap.invisible('se_vezmou.guests', 'neznámá wedding_role nevidí guests');
   perform tap.reset();
 end
 $$;
@@ -56,14 +56,14 @@ declare
 begin
   set local role anon;
   for r in select c.relname from pg_class c
-            where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p') order by 1 loop
-    perform tap.throws('select count(*) from public.' || quote_ident(r.relname), '42501', 'anon nečte ' || r.relname);
-    perform tap.throws('delete from public.' || quote_ident(r.relname), '42501', 'anon nemaže ' || r.relname);
+            where c.relnamespace = 'se_vezmou'::regnamespace and c.relkind in ('r', 'p') order by 1 loop
+    perform tap.throws('select count(*) from se_vezmou.' || quote_ident(r.relname), '42501', 'anon nečte ' || r.relname);
+    perform tap.throws('delete from se_vezmou.' || quote_ident(r.relname), '42501', 'anon nemaže ' || r.relname);
   end loop;
-  perform tap.throws('select public.get_public_site()', '42501', 'anon nevolá get_public_site');
-  perform tap.throws('select * from public.resolve_slug(''klara-a-matej'')', '42501', 'anon nevolá resolve_slug');
-  perform tap.throws('select * from public.rate_limit_hit(''x'', 1, interval ''1 minute'')', '42501', 'anon nevolá rate_limit_hit');
-  perform tap.throws('select * from public.rsvp_match(''Jan Novák'')', '42501', 'anon nevolá rsvp_match');
+  perform tap.throws('select se_vezmou.get_public_site()', '42501', 'anon nevolá get_public_site');
+  perform tap.throws('select * from se_vezmou.resolve_slug(''klara-a-matej'')', '42501', 'anon nevolá resolve_slug');
+  perform tap.throws('select * from se_vezmou.rate_limit_hit(''x'', 1, interval ''1 minute'')', '42501', 'anon nevolá rate_limit_hit');
+  perform tap.throws('select * from se_vezmou.rsvp_match(''Jan Novák'')', '42501', 'anon nevolá rsvp_match');
   perform tap.reset();
 end
 $$;
@@ -75,17 +75,17 @@ declare
 begin
   foreach v_role in array array['visitor', 'admin'] loop
     perform tap.become('authenticated', tap.wa(), v_role);
-    perform tap.throws('select * from public.rate_limit_hit(''x'', 1, interval ''1 minute'')', '42501', v_role || ' nevolá rate_limit_hit');
-    perform tap.throws('select * from public.resolve_slug(''klara-a-matej'')', '42501', v_role || ' nevolá resolve_slug');
-    perform tap.throws('select * from public.check_slug(''neco'')', '42501', v_role || ' nevolá check_slug');
-    perform tap.throws(format('select * from public.reserve_slug(%L, ''neco'')', tap.wa()), '42501', v_role || ' nevolá reserve_slug');
-    perform tap.throws('select * from public.auth_validate_session(''\x00''::bytea)', '42501', v_role || ' nevolá auth_validate_session');
-    perform tap.throws(format('select public.op_view_guest_data(%L, %L, ''x'')', tap.u('operator:owner'), tap.wa()), '42501', v_role || ' nevolá op_view_guest_data');
-    perform tap.throws(format('select public.op_set_wedding_status(%L, %L, ''blocked'', ''x'')', tap.u('operator:owner'), tap.wa()), '42501', v_role || ' nevolá op_set_wedding_status');
-    perform tap.throws('select * from public.get_app_settings()', '42501', v_role || ' nečte nastavení');
-    perform tap.throws('select public.purge_health_data()', '42501', v_role || ' nespustí retenci');
-    perform tap.throws('select public.housekeeping()', '42501', v_role || ' nespustí úklid');
-    perform tap.throws('select app.write_audit(''admin'', null, null, ''x'')', '42501', v_role || ' nezapíše audit přímo');
+    perform tap.throws('select * from se_vezmou.rate_limit_hit(''x'', 1, interval ''1 minute'')', '42501', v_role || ' nevolá rate_limit_hit');
+    perform tap.throws('select * from se_vezmou.resolve_slug(''klara-a-matej'')', '42501', v_role || ' nevolá resolve_slug');
+    perform tap.throws('select * from se_vezmou.check_slug(''neco'')', '42501', v_role || ' nevolá check_slug');
+    perform tap.throws(format('select * from se_vezmou.reserve_slug(%L, ''neco'')', tap.wa()), '42501', v_role || ' nevolá reserve_slug');
+    perform tap.throws('select * from se_vezmou.auth_validate_session(''\x00''::bytea)', '42501', v_role || ' nevolá auth_validate_session');
+    perform tap.throws(format('select se_vezmou.op_view_guest_data(%L, %L, ''x'')', tap.u('operator:owner'), tap.wa()), '42501', v_role || ' nevolá op_view_guest_data');
+    perform tap.throws(format('select se_vezmou.op_set_wedding_status(%L, %L, ''blocked'', ''x'')', tap.u('operator:owner'), tap.wa()), '42501', v_role || ' nevolá op_set_wedding_status');
+    perform tap.throws('select * from se_vezmou.get_app_settings()', '42501', v_role || ' nečte nastavení');
+    perform tap.throws('select se_vezmou.purge_health_data()', '42501', v_role || ' nespustí retenci');
+    perform tap.throws('select se_vezmou.housekeeping()', '42501', v_role || ' nespustí úklid');
+    perform tap.throws('select se_vezmou.write_audit(''admin'', null, null, ''x'')', '42501', v_role || ' nezapíše audit přímo');
     perform tap.reset();
   end loop;
 end
@@ -95,10 +95,10 @@ $$;
 do $$
 begin
   perform tap.become('authenticated', null, 'visitor');
-  perform tap.ok(public.get_public_site() is null, 'get_public_site bez wedding_id vrací null');
+  perform tap.ok(se_vezmou.get_public_site() is null, 'get_public_site bez wedding_id vrací null');
   perform tap.reset();
   perform tap.become('authenticated', tap.wa(), 'neznama');
-  perform tap.ok(public.get_public_site() is null, 'get_public_site s neznámou rolí vrací null');
+  perform tap.ok(se_vezmou.get_public_site() is null, 'get_public_site s neznámou rolí vrací null');
   perform tap.reset();
 end
 $$;
@@ -107,7 +107,7 @@ $$;
 do $$
 begin
   perform tap.become('authenticated', tap.wb(), 'visitor');
-  perform tap.ok((public.get_public_site() -> 'content' -> 'hero' ->> 'title') = 'Zveřejněno B',
+  perform tap.ok((se_vezmou.get_public_site() -> 'content' -> 'hero' ->> 'title') = 'Zveřejněno B',
     'visitor svatby B vidí jen web B');
   perform tap.reset();
 end

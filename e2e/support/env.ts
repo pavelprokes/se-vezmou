@@ -27,3 +27,17 @@ export function databaseUrl(): string {
   }
   return url;
 }
+
+/**
+ * Adresa databáze pro aplikaci: role `se_vezmou_app` (bez práv, `set local role` v každém volání).
+ * `databaseUrl()` je naopak vlastník schématu a používají ho jen testovací pomocníci k zakládání dat.
+ */
+export function appDatabaseUrl(): string {
+  const url = process.env.E2E_APP_DATABASE_URL;
+  if (!url) {
+    throw new Error(
+      "Chybí E2E_APP_DATABASE_URL. Spusťte testy přes `npm run test:e2e` / `npm run test:a11y` (scripts/e2e-db.sh).",
+    );
+  }
+  return url;
+}

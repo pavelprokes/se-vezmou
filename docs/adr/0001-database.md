@@ -1,6 +1,6 @@
 # ADR 0001: Databáze, izolace dat mezi svatbami a omezení počtu požadavků
 
-- Stav: navrženo (2. 10. 2026), čeká na schválení majitelem.
+- Stav: navrženo (2. 10. 2026), čeká na schválení majitelem. **Částečně nahrazeno ADR 0011** (vlastní schéma `se_vezmou` na sdíleném projektu, přímé spojení `pg` místo `supabase-js`/PostgREST a krátkodobého JWT, role `se_vezmou_app` a `set local role`). Model izolace (RLS podle `wedding_id`, funkce `security definer`, omezení požadavků) platí dál.
 - Související: `docs/data-model.md` (kapitola 5), ADR 0002, ADR 0004.
 
 ## Kontext

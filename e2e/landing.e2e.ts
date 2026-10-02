@@ -379,7 +379,7 @@ for (const locale of locales) {
                 consent_text_version: string;
                 consent_at: Date;
               }>(
-                "select email::text, locale, consent_text_version, consent_at from public.waitlist where email = $1",
+                "select email::text, locale, consent_text_version, consent_at from se_vezmou.waitlist where email = $1",
                 [address.toLowerCase()],
               )
             ).rows,

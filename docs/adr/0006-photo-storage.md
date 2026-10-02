@@ -1,6 +1,6 @@
 # ADR 0006: Úložiště a zpracování fotografií
 
-Stav: navrženo (čeká na schválení majitele)
+Stav: navrženo (čeká na schválení majitele) Poznámka (ADR 0011): aplikace nemá klíč `service_role` ani `supabase-js`, varianta Supabase Storage vyžaduje nové rozhodnutí (OQ-47).
 
 ## Kontext
 

@@ -178,18 +178,18 @@ Tabulka je pracovní kopie pro editor. Hosté ji nikdy nečtou, čtou zveřejně
 
 **`guests`**
 
-| Pole               | Typ                   | Poznámka                                                                                                                |
-| ------------------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `id`, `wedding_id` | uuid                  |                                                                                                                         |
-| `household_id`     | uuid                  | složený FK; každý host patří do domácnosti (jednotlivec = domácnost o jednom)                                           |
-| `display_name`     | text                  |                                                                                                                         |
-| `name_norm`        | text generated stored | `app.normalize_name(display_name)`: Unicode NFKD bez diakritiky, malá písmena, odstraněná interpunkce a zbytečné mezery |
-| `name_key`         | text generated stored | `name_norm` s tokeny seřazenými abecedně (shoda „Novák Matěj“ a „Matěj Novák“)                                          |
-| `is_child`         | bool                  |                                                                                                                         |
-| `age`              | smallint null         | jen u dětí, jen pokud pár zadá                                                                                          |
-| `is_plus_one`      | bool                  | host doplněný ručně při RSVP                                                                                            |
-| `source`           | text                  | `import`, `manual`, `rsvp`                                                                                              |
-| `locale`           | text null             | jazyk e-mailu                                                                                                           |
+| Pole               | Typ                   | Poznámka                                                                                                                      |
+| ------------------ | --------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `id`, `wedding_id` | uuid                  |                                                                                                                               |
+| `household_id`     | uuid                  | složený FK; každý host patří do domácnosti (jednotlivec = domácnost o jednom)                                                 |
+| `display_name`     | text                  |                                                                                                                               |
+| `name_norm`        | text generated stored | `se_vezmou.normalize_name(display_name)`: Unicode NFKD bez diakritiky, malá písmena, odstraněná interpunkce a zbytečné mezery |
+| `name_key`         | text generated stored | `name_norm` s tokeny seřazenými abecedně (shoda „Novák Matěj“ a „Matěj Novák“)                                                |
+| `is_child`         | bool                  |                                                                                                                               |
+| `age`              | smallint null         | jen u dětí, jen pokud pár zadá                                                                                                |
+| `is_plus_one`      | bool                  | host doplněný ručně při RSVP                                                                                                  |
+| `source`           | text                  | `import`, `manual`, `rsvp`                                                                                                    |
+| `locale`           | text null             | jazyk e-mailu                                                                                                                 |
 
 **`invitations`**: `wedding_id`, `guest_id`, `event_id`, pk `(guest_id, event_id)`. Hosté vidí jen otázky a události, na které mají řádek.
 
@@ -222,7 +222,7 @@ Volný text vlastních otázek pár nemůže technicky odlišit od zdravotních 
 
 ### 3.6 Operátoři a audit
 
-**`operators`**: `id`, `auth_user_id uuid unique` (`auth.users`), `email citext unique`, `role` (`owner`, `support`), `disabled_at`. Účty zakládá jen majitel.
+**`operators`**: `id`, `auth_user_id uuid unique` (identita u poskytovatele přihlášení, bez cizího klíče na `auth.users`, ADR 0011), `email citext unique`, `role` (`owner`, `support`), `disabled_at`. Účty zakládá jen majitel.
 
 **`operator_sessions`**: stejná struktura jako `sessions` plus `operator_id`, `aal2_verified_at`; nečinnost 30 minut, absolutně 8 hodin. Supabase Auth ověřuje identitu a TOTP; relace aplikace nese časové limity (limity relací Supabase Auth bývají vázané na tarif `[OVĚŘIT]`).
 
@@ -298,22 +298,29 @@ Hledání zakázek podle jmen, adresy a e-mailu (FR-OPS-1): `pg_trgm` index na `
 
 ### 5.1 Model přístupu
 
-- RLS je zapnuté na **každé** tabulce, i na těch bez `wedding_id` (ty nemají žádnou politiku, tedy nepřístupné rolím `anon` a `authenticated`). Tabulky nemají `force row level security`; DEFINER funkce vlastní role s `bypassrls`.
-- Role `anon` nemá žádná práva na schéma `public` a prohlížeč nikdy nevolá Supabase přímo (žádný klient v prohlížeči, anon key se nepoužívá).
-- Aplikace po ověření vlastní relace vydá **krátkodobý JWT** (návrh: pět minut, vydává se pro každý požadavek serveru a nikdy se neposílá prohlížeči) s claimy: `sub` (id správce nebo hosta-relace, u návštěvníka konstantní), `wedding_id`, `role` a pomocný `wedding_role`. Claim `role` musí obsahovat roli databáze, kterou PostgREST přepne (`authenticated`); aplikační význam proto nese `wedding_role` s hodnotami `admin`, `guest_pin`, `visitor`, `preview`. Pokud tým preferuje jediný claim, je to rozhodnutí k ověření v ADR 0001.
-- Podpis JWT: klíč projektu Supabase. Možnost podepisovat vlastním klíčem u nových asymetrických klíčů `[OVĚŘIT]`; záložní varianta je starší sdílené tajemství nebo alternativa Neon + Drizzle (ADR 0001).
-- **Service role** (jen server, `server-only` modul `src/data/privileged`) smí jen: cron a retenci, operátorské akce (RPC se zápisem auditu v téže transakci), a úzkou sadu funkcí před ověřením (`auth_*` relace a výzvy, `resolve_slug`, `check_slug`, `rate_limit_hit`). Tuto sadu hlídá lint pravidlo a test.
-- Funkce pro hosty (`get_public_site`, `rsvp_match`, `rsvp_get`, `rsvp_submit`) volá server s JWT role `visitor`, `guest_pin` nebo `preview`. Hosté nemají politiky na tabulkách, jen právo `execute` na tyto funkce.
+- RLS je zapnuté na **každé** tabulce, i na těch bez `wedding_id` (ty nemají žádnou politiku, tedy nepřístupné rolím `anon` a `authenticated`). Tabulky nemají `force row level security`: DEFINER funkce vlastní vlastník schématu (role `postgres` s `bypassrls`) a `FORCE` by je zablokoval. Aplikace se připojuje jako `se_vezmou_app`, která tabulky nevlastní a nemá k nim žádná práva (viz níže a `docs/security-privacy.md`).
+- Všechno žije ve schématu `se_vezmou` (ADR 0011; schéma `app` zaniklo, ve `public` nemáme nic). Role `anon` nemá žádná práva na schéma `se_vezmou` a prohlížeč nikdy nevolá Supabase přímo (žádný klient v prohlížeči, anon key se nepoužívá).
+- Aplikace po ověření vlastní relace nastaví v transakci claimy (`select set_config('request.jwt.claims', <json>, true)`, jen pro tu transakci; **ne JWT**: nic se nepodepisuje a nic neopouští server, ADR 0011): `sub` (id správce nebo hosta-relace, u návštěvníka konstantní), `wedding_id` a `wedding_role` s hodnotami `admin`, `guest_pin`, `visitor`, `preview`. Databázová role se nenese v claimu, ale příkazem `set local role authenticated` ve stejné transakci.
+- Připojení: role `se_vezmou_app` (`login`, `noinherit`, `nobypassrls`, členství v `authenticated` a `service_role` jen kvůli `set role`) nemá sama žádná práva; zapomenuté `set role` proto končí chybou oprávnění. Hlídá to test `supabase/tests/as_app/10_app_role.test.sql`.
+- **Service role** (`set local role service_role` v transakci, jen server) smí jen: cron a retenci, operátorské akce (RPC se zápisem auditu v téže transakci), a úzkou sadu funkcí před ověřením (`auth_*` relace a výzvy, `resolve_slug`, `check_slug`, `rate_limit_hit`). Tuto sadu hlídá lint pravidlo a test.
+- Funkce pro hosty (`get_public_site`, `rsvp_match`, `rsvp_get`, `rsvp_submit`) volá server s claimy role `visitor`, `guest_pin` nebo `preview`. Hosté nemají politiky na tabulkách, jen právo `execute` na tyto funkce.
 
 ### 5.2 Pomocné funkce
 
 ```sql
-create function app.wedding_id() returns uuid
-  language sql stable as $$ select nullif(auth.jwt() ->> 'wedding_id', '')::uuid $$;
-create function app.wedding_role() returns text
-  language sql stable as $$ select auth.jwt() ->> 'wedding_role' $$;
-create function app.is_wedding_admin() returns boolean
-  language sql stable as $$ select app.wedding_role() = 'admin' and app.wedding_id() is not null $$;
+create function se_vezmou.jwt_claims() returns jsonb
+  language sql stable set search_path = ''
+  as $$ select coalesce(nullif(pg_catalog.current_setting('request.jwt.claims', true), ''), '{}')::jsonb $$;
+create function se_vezmou.wedding_id() returns uuid
+  language sql stable set search_path = ''
+  as $$ select nullif(se_vezmou.jwt_claims() ->> 'wedding_id', '')::uuid $$;
+create function se_vezmou.wedding_role() returns text
+  language sql stable set search_path = ''
+  as $$ select se_vezmou.jwt_claims() ->> 'wedding_role' $$;
+create function se_vezmou.is_wedding_admin() returns boolean
+  language sql stable set search_path = ''
+  as $$ select se_vezmou.wedding_role() = 'admin' and se_vezmou.wedding_id() is not null $$;
+-- + se_vezmou.actor_id() (claim sub); funkce čtou nastavení transakce přímo, ne schéma auth
 ```
 
 ### 5.3 Matice
@@ -344,20 +351,20 @@ alter table content_blocks enable row level security;
 
 create policy content_blocks_admin_select on content_blocks
   for select to authenticated
-  using (wedding_id = app.wedding_id() and app.is_wedding_admin());
+  using (wedding_id = se_vezmou.wedding_id() and se_vezmou.is_wedding_admin());
 
 create policy content_blocks_admin_insert on content_blocks
   for insert to authenticated
-  with check (wedding_id = app.wedding_id() and app.is_wedding_admin());
+  with check (wedding_id = se_vezmou.wedding_id() and se_vezmou.is_wedding_admin());
 
 create policy content_blocks_admin_update on content_blocks
   for update to authenticated
-  using (wedding_id = app.wedding_id() and app.is_wedding_admin())
-  with check (wedding_id = app.wedding_id() and app.is_wedding_admin());
+  using (wedding_id = se_vezmou.wedding_id() and se_vezmou.is_wedding_admin())
+  with check (wedding_id = se_vezmou.wedding_id() and se_vezmou.is_wedding_admin());
 
 create policy content_blocks_admin_delete on content_blocks
   for delete to authenticated
-  using (wedding_id = app.wedding_id() and app.is_wedding_admin());
+  using (wedding_id = se_vezmou.wedding_id() and se_vezmou.is_wedding_admin());
 ```
 
 Zvláštní případy:
@@ -365,10 +372,10 @@ Zvláštní případy:
 ```sql
 -- weddings: správce vidí a mění jen svou svatbu, nezakládá ani nemaže
 create policy weddings_admin_select on weddings for select to authenticated
-  using (id = app.wedding_id() and app.is_wedding_admin());
+  using (id = se_vezmou.wedding_id() and se_vezmou.is_wedding_admin());
 create policy weddings_admin_update on weddings for update to authenticated
-  using (id = app.wedding_id() and app.is_wedding_admin())
-  with check (id = app.wedding_id());
+  using (id = se_vezmou.wedding_id() and se_vezmou.is_wedding_admin())
+  with check (id = se_vezmou.wedding_id());
 -- sloupce status, slug, phase_override, *_purge_at, blocked_at mění jen RPC:
 revoke update on weddings from authenticated;
 grant update (default_locale, locales, template, palette, partner_a_name, partner_b_name,
@@ -377,11 +384,11 @@ grant update (default_locale, locales, template, palette, partner_a_name, partne
 
 -- rsvp_health: čtení jen správce, zápis jen funkce rsvp_submit a ruční zápis správcem
 create policy rsvp_health_admin_select on rsvp_health for select to authenticated
-  using (wedding_id = app.wedding_id() and app.is_wedding_admin());
+  using (wedding_id = se_vezmou.wedding_id() and se_vezmou.is_wedding_admin());
 
 -- audit_log: správce vidí zásahy operátora u své svatby, nic nemění
 create policy audit_admin_select on audit_log for select to authenticated
-  using (wedding_id = app.wedding_id() and app.is_wedding_admin()
+  using (wedding_id = se_vezmou.wedding_id() and se_vezmou.is_wedding_admin()
          and actor_type = 'operator');
 -- audit_log je append-only: žádný update/delete ani pro service role
 revoke update, delete, truncate on audit_log from public, anon, authenticated, service_role;
@@ -391,21 +398,21 @@ Tabulky `sessions`, `login_challenges`, `rsvp_tickets`, `rate_limits`, `lockouts
 
 ### 5.5 Funkce `security definer`
 
-Povinná pravidla pro každou: `set search_path = ''`, plně kvalifikované názvy, `revoke execute ... from public, anon`, explicitní `grant execute` jen potřebné roli, a **vždy filtr `wedding_id = app.wedding_id()`** (kromě funkcí service role před ověřením).
+Povinná pravidla pro každou: `set search_path = ''`, plně kvalifikované názvy, `revoke execute ... from public, anon`, explicitní `grant execute` jen potřebné roli, a **vždy filtr `wedding_id = se_vezmou.wedding_id()`** (kromě funkcí service role před ověřením).
 
-| Funkce                                                 | Volá                                       | Co dělá                                                                                                                                                                                                                                                                                 |
-| ------------------------------------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `resolve_slug(slug)`                                   | server (service role)                      | vrátí `wedding_id`, stav, jazyky, šablonu; nebo nic. Odpověď má stejný tvar u neexistující, nezveřejněné i zablokované adresy, aby nešlo zjistit rozdíl                                                                                                                                 |
-| `check_slug(slug)`                                     | server                                     | informativní dostupnost s omezením počtu dotazů; nikdy nevrací seznam                                                                                                                                                                                                                   |
-| `reserve_slug(wedding_id, slug)`                       | server                                     | rezervace při prvním uložení, `unique` hlídá kolizi, při kolizi vrátí varianty (FR-WZ-4)                                                                                                                                                                                                |
-| `get_public_site()`                                    | `visitor`, `guest_pin`, `preview`, `admin` | vrátí zveřejněný snímek; část `sensitive` jen pro `guest_pin` a `admin`; pro `preview` koncept podle tokenu                                                                                                                                                                             |
-| `rsvp_match(name)`                                     | `visitor`                                  | normalizuje jméno, porovná v rámci `app.wedding_id()` s tolerancí překlepů (trigramy a seřazené tokeny, prahy se ladí na testovacích datech), vydá `rsvp_tickets` nebo obecnou odpověď. Nikdy nevrací seznam ani počet kandidátů; při nejednoznačnosti žádá o upřesnění bez výpisu jmen |
-| `rsvp_get(ticket)`, `rsvp_submit(ticket, payload)`     | `visitor`                                  | čtení a zápis odpovědi domácnosti; zkontroluje otevření a uzavření RSVP, pozvání na události a povolení hostů mimo seznam                                                                                                                                                               |
-| `rate_limit_hit(...)`                                  | server                                     | viz 3.8                                                                                                                                                                                                                                                                                 |
-| `auth_*` (vytvoření a ověření výzvy, relace, odvolání) | server                                     | před ověřením, jediná cesta ke `sessions` a `login_challenges`                                                                                                                                                                                                                          |
-| `op_*`                                                 | server (service role)                      | operátorské čtení a zásahy; každá kontroluje `operators.role`, `disabled_at` a píše `audit_log` v téže transakci                                                                                                                                                                        |
-| `op_view_guest_data(wedding_id, reason)`               | server                                     | vrací údaje hostů jen při aktivním `data_access_grants`; zapíše audit s důvodem                                                                                                                                                                                                         |
-| `purge_*`                                              | cron                                       | retence (kapitola 10)                                                                                                                                                                                                                                                                   |
+| Funkce                                                 | Volá                                       | Co dělá                                                                                                                                                                                                                                                                                       |
+| ------------------------------------------------------ | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolve_slug(slug)`                                   | server (service role)                      | vrátí `wedding_id`, stav, jazyky, šablonu; nebo nic. Odpověď má stejný tvar u neexistující, nezveřejněné i zablokované adresy, aby nešlo zjistit rozdíl                                                                                                                                       |
+| `check_slug(slug)`                                     | server                                     | informativní dostupnost s omezením počtu dotazů; nikdy nevrací seznam                                                                                                                                                                                                                         |
+| `reserve_slug(wedding_id, slug)`                       | server                                     | rezervace při prvním uložení, `unique` hlídá kolizi, při kolizi vrátí varianty (FR-WZ-4)                                                                                                                                                                                                      |
+| `get_public_site()`                                    | `visitor`, `guest_pin`, `preview`, `admin` | vrátí zveřejněný snímek; část `sensitive` jen pro `guest_pin` a `admin`; pro `preview` koncept podle tokenu                                                                                                                                                                                   |
+| `rsvp_match(name)`                                     | `visitor`                                  | normalizuje jméno, porovná v rámci `se_vezmou.wedding_id()` s tolerancí překlepů (trigramy a seřazené tokeny, prahy se ladí na testovacích datech), vydá `rsvp_tickets` nebo obecnou odpověď. Nikdy nevrací seznam ani počet kandidátů; při nejednoznačnosti žádá o upřesnění bez výpisu jmen |
+| `rsvp_get(ticket)`, `rsvp_submit(ticket, payload)`     | `visitor`                                  | čtení a zápis odpovědi domácnosti; zkontroluje otevření a uzavření RSVP, pozvání na události a povolení hostů mimo seznam                                                                                                                                                                     |
+| `rate_limit_hit(...)`                                  | server                                     | viz 3.8                                                                                                                                                                                                                                                                                       |
+| `auth_*` (vytvoření a ověření výzvy, relace, odvolání) | server                                     | před ověřením, jediná cesta ke `sessions` a `login_challenges`                                                                                                                                                                                                                                |
+| `op_*`                                                 | server (service role)                      | operátorské čtení a zásahy; každá kontroluje `operators.role`, `disabled_at` a píše `audit_log` v téže transakci                                                                                                                                                                              |
+| `op_view_guest_data(wedding_id, reason)`               | server                                     | vrací údaje hostů jen při aktivním `data_access_grants`; zapíše audit s důvodem                                                                                                                                                                                                               |
+| `purge_*`                                              | cron                                       | retence (kapitola 10)                                                                                                                                                                                                                                                                         |
 
 ## 6. Slugy
 
@@ -421,7 +428,7 @@ Povinná pravidla pro každou: `set search_path = ''`, plně kvalifikované náz
 Rozlišuji dvě věci, aby přechody podle dat nepotřebovaly neustálé zápisy:
 
 - **Uložený stav** `weddings.status`: `draft`, `pending_payment`, `published`, `archived`, `deleted`, `blocked` (FR-OPS-2). Mění ho jen akce (publikace, platba, archivace, smazání, blokace) a cron.
-- **Odvozená fáze** (funkce `app.phase(wedding)` a stejná čistá funkce v `src/domain/lifecycle`): u `published` z dat `rsvp_settings.opens_at`, `closes_at`, `starts_on`, `ends_on` a `timezone`:
+- **Odvozená fáze** (funkce `se_vezmou.phase(wedding)` a stejná čistá funkce v `src/domain/lifecycle`): u `published` z dat `rsvp_settings.opens_at`, `closes_at`, `starts_on`, `ends_on` a `timezone`:
   `save_the_date` → `rsvp_open` → `rsvp_closed` → `wedding_day` → `thanks` (po svatbě: odpočet a RSVP zmizí, dary se skryjí, galerie zůstane, FR-WEB-4). `archived` a `deleted` jsou uložené stavy po `thanks`.
 - `phase_override` dovolí operátorovi ruční zásah (FR-LC-1); platí do zrušení a je v auditu.
 
@@ -512,12 +519,20 @@ Zapsáno při implementaci schématu v `supabase/migrations` (milník M3). Kde z
 - `unique (wedding_id, id)` mají všechny tabulky s oběma sloupci kromě `audit_log`, `email_log` a `slug_registry` (bez složených klíčů na `weddings`). Tabulky s přirozeným klíčem bez sloupce `id` (`wedding_auth`, `rsvp_settings`, `invitations`, `rsvp_attendance`, `rsvp_health`, `rsvp_tickets`, `site_version_sensitive`) mají složené cizí klíče na rodiče, ale vlastní `unique (wedding_id, id)` nemají. Test kontroluje, že každý cizí klíč mezi tenant tabulkami obsahuje `wedding_id`.
 - Složené cizí klíče s volitelným odkazem používají `on delete set null (sloupec)` (PostgreSQL 15 a novější), aby se nevynuloval `wedding_id`.
 - `weddings`: navíc kontrola `published` vyžaduje i `published_version_id` (nejen slug); `weddings.slug` má odložený cizí klíč na `slug_registry.slug` (`on delete set null`), takže koncept s uvolněnou rezervací dostane `slug = null` automaticky. `slug_registry` má kontrolu tvaru řádku podle stavu a jedinečnost aktuální adresy na svatbu.
-- Rozšíření (`citext`, `pg_trgm`) leží ve schématu `extensions` (jako na Supabase). Funkce `security definer` s prázdným `search_path` proto porovnávají e-maily přes `lower(email::text)`; k tomu je funkční index na `wedding_admins`.
+- Rozšíření (`citext`, `pg_trgm`, `pgcrypto`) leží ve schématu `extensions` (jako na Supabase); `foundation` je idempotentně zajistí. Funkce `security definer` s prázdným `search_path` proto porovnávají e-maily přes `lower(email::text)`; k tomu je funkční index na `wedding_admins`.
 - `media.mime` navíc odmítá `image/svg+xml` (ADR 0006: SVG od uživatelů se nepřijímá).
 - `wedding_auth`: správce čte jen nehašované sloupce (sloupcové `grant select`); hashe PINů nečte nikdy, ověření PINu bude přes funkce `auth_*` (M4).
 - `rsvp_settings.enabled_questions` je objekt s příznaky `plus_one`, `children`, `diet`, `lodging`, `transport`, `song`. Zdravotní údaje a doprovod `rsvp_submit` přijme jen při zapnutých příznacích `diet` a `plus_one`.
 - `data_access_grants`: správce má právo `select` (vidí, komu dal přístup); zápis jde přes RPC (M7/M9).
 - `app_settings` má navíc klíče `activity_touch_minutes` (5), `session_touch_minutes` (5), `rsvp_match_threshold` (0,7) a `analytics_retention_months` (24). Hodnoty `retention_notice_days_before` (14) a `deleted_site_restore_days` (30) jsou **zástupné** do rozhodnutí právníka (`[OTÁZKA]`, `[LHŮTY]`), výchozí `versions_keep` je 20.
+
+**Schéma `se_vezmou` a přímé spojení (ADR 0011)**
+
+- Všechny objekty (dříve `app.*` a `public.*`) jsou ve schématu `se_vezmou`; schéma `app` zaniklo. Migrace nic nevytvářejí ani nemění mimo něj (kromě rozšíření ve schématu `extensions`, `if not exists`), bez `alter default privileges` mimo `in schema se_vezmou` a bez `grant`/`revoke` na schéma `public`. Hlídá to test izolace migrací.
+- `operators.auth_user_id` nemá cizí klíč na `auth.users` (cizí klíč by přidal spouštěče do cizí tabulky). Vazbu na identitu hlídá aplikace.
+- Pomocné funkce čtou claimy z `request.jwt.claims` přímo (`se_vezmou.jwt_claims()`, `wedding_id()`, `wedding_role()`, `actor_id()`), ne přes `auth.jwt()` a `auth.uid()`.
+- Každá funkce `security definer` výslovně odebírá `execute` pro `public` a `anon`: `alter default privileges in schema` nemůže odebrat globální výchozí `execute` pro `public` u funkcí.
+- `FORCE ROW LEVEL SECURITY` se nezapíná: `security definer` funkce vlastní vlastník schématu a politiky jsou psané jen pro `authenticated`, takže by funkce přestaly číst vlastní data. Ochranu před chybně napsaným dotazem aplikace dává to, že se aplikace připojuje jako `se_vezmou_app` bez práv a tabulky čte jen přes funkce.
 
 **Oprávnění a funkce**
 
@@ -526,7 +541,7 @@ Zapsáno při implementaci schématu v `supabase/migrations` (milník M3). Kde z
 - `check_slug(slug, rate_key, rate_limit, rate_window)` volitelně sám zavolá `rate_limit_hit`; při překročení vrátí `reason = 'rate_limited'` a `available = null`. Důvod `unavailable` je stejný pro zabranou, rezervovanou i zakázanou adresu.
 - `resolve_slug` vrací jen svatby ve stavu `published` (stav `archived` zůstává `[OTÁZKA]`, viz OQ-23). Přibyla funkce `resolve_preview(slug, token_hash)` pro náhled konceptu.
 - `rsvp_match` vrací vždy přesně jeden řádek se sloupcem `ticket`; žádná shoda, více shod, zavřené RSVP i chybná role dávají `ticket = null` (kapitola 12 bod 5 má přednost před "žádá o upřesnění" v kapitole 5.5; výzvu k upřesnění zobrazí rozhraní při každém `null`).
-- `erase_guest(guest_id)` má jediný argument; svatba je vždy `app.wedding_id()` (kapitola 5.5). Volá ji správce, ne server s service role.
+- `erase_guest(guest_id)` má jediný argument; svatba je vždy `se_vezmou.wedding_id()` (kapitola 5.5). Volá ji správce, ne server s service role.
 - `op_view_guest_data` bez aktivního grantu nevrací řádky a zapíše `guest_data.view_denied` do auditu; akce `guest_data.*` bez důvodu odmítne i kontrola na tabulce `audit_log`.
 - `audit_log`: navíc spouštěč odmítne `meta` s klíči, které vypadají jako osobní údaje (`email`, `name`, `diet`, `allergies`, `phone`, `address`, `ip`, `user_agent`), a to i vnořené. Je to obrana do hloubky vedle allowlistu v aplikaci.
 - Retenční a úklidové funkce: `purge_health_data`, `purge_guest_data`, `purge_wedding`, `purge_deleted_weddings`, `purge_expired_slug_reservations`, `housekeeping`. Berou dávky a drží `pg_try_advisory_xact_lock`. Odesílání upozornění, export před smazáním a mazání souborů z úložiště (`purge_wedding` vrací cesty) zůstávají na M10.
@@ -535,7 +550,7 @@ Zapsáno při implementaci schématu v `supabase/migrations` (milník M3). Kde z
 
 **Testy**
 
-- Místo pgTAP a `supabase test db` (ADR 0004, D1) jsou testy čisté SQL skripty (`supabase/tests/*.test.sql`) se spouštěčem `scripts/db-test.sh` (`npm run db:test`). Důvod: běží na samotném PostgreSQL 16 bez Dockeru, Supabase CLI a rozšíření pgTAP, lokálně i v CI přes `DATABASE_URL`. Platformu Supabase (role, `auth`) nahrazuje jen testovací shim `supabase/tests/setup/00_shim.sql`, který se nenasazuje. ADR 0004 tím není upraven; pokud se později přejde na pgTAP, zůstanou scénáře stejné.
+- Místo pgTAP a `supabase test db` (ADR 0004, D1) jsou testy čisté SQL skripty (`supabase/tests/*.test.sql`) se spouštěčem `scripts/db-test.sh` (`npm run db:test`). Důvod: běží na samotném PostgreSQL 16 bez Dockeru, Supabase CLI a rozšíření pgTAP, lokálně i v CI přes `DATABASE_URL`. Platformu Supabase (role, `auth`, výchozí oprávnění ve `public`) nahrazuje jen testovací shim `supabase/tests/setup/00_shim.sql`, který se nenasazuje. Součástí je test izolace migrací (snímek katalogu před a po: mimo schéma `se_vezmou` se nesmí změnit nic) a test jako skutečně přihlášená role `se_vezmou_app`. ADR 0004 tím není upraven; pokud se později přejde na pgTAP, zůstanou scénáře stejné.
 
 ## 14. Odchylky implementace (M4)
 
@@ -556,12 +571,12 @@ Zapsáno při implementaci RSVP hostů, PINu hostů a správcovské strany RSVP 
 
 **Slepé porovnání jména (`rsvp_match`)**
 
-- Trigramová podobnost (`pg_trgm`) se k porovnání **nepoužívá**: u krátkých jmen pouští jiného člověka (Jana ~ Jan, podobnost 0,82). Po přesné shodě seřazených slov (`name_key`) se toleruje překlep **po slovech** (`app.names_close`): stejný počet slov, ve stejném pořadí nejvýš jedna úprava na slovo (dvě u slov od devíti znaků; úprava je vložení, smazání, záměna nebo prohození sousedních znaků, `app.osa_distance`), celkem nejvýš dvě; slovo kratší než čtyři znaky se musí shodovat přesně. Jednoznačnost se posuzuje podle domácností: dvě shody v různých domácnostech dávají stejnou odpověď jako neshoda. Vstup delší než 200 znaků je neshoda. Klíč `app_settings.rsvp_match_threshold` zůstává v nastavení jako nepoužitá rezerva.
+- Trigramová podobnost (`pg_trgm`) se k porovnání **nepoužívá**: u krátkých jmen pouští jiného člověka (Jana ~ Jan, podobnost 0,82). Po přesné shodě seřazených slov (`name_key`) se toleruje překlep **po slovech** (`se_vezmou.names_close`): stejný počet slov, ve stejném pořadí nejvýš jedna úprava na slovo (dvě u slov od devíti znaků; úprava je vložení, smazání, záměna nebo prohození sousedních znaků, `se_vezmou.osa_distance`), celkem nejvýš dvě; slovo kratší než čtyři znaky se musí shodovat přesně. Jednoznačnost se posuzuje podle domácností: dvě shody v různých domácnostech dávají stejnou odpověď jako neshoda. Vstup delší než 200 znaků je neshoda. Klíč `app_settings.rsvp_match_threshold` zůstává v nastavení jako nepoužitá rezerva.
 - Odpověď má vždy stejný tvar (jeden řádek, `ticket = null`) pro neshodu, více shod, zavřené RSVP i chybnou roli (kap. 12 bod 5). Aplikace navíc vrací stejný stav `not_found` při překročení limitu a při vyplněné skryté pasti.
 
-**Zápis odpovědi (`app.rsvp_apply`)**
+**Zápis odpovědi (`se_vezmou.rsvp_apply`)**
 
-- `rsvp_submit`, `rsvp_submit_unlisted` a `admin_rsvp_enter` sdílejí jeden zápis `app.rsvp_apply(wedding, household, payload, entered_by)`. Pořadí kontrol u `rsvp_submit`: lístek, otevření RSVP, teprve potom obsah (chyby `invalid_ticket`, `rsvp_closed`, pak `invalid_payload`, `invalid_guest`, `event_not_invited`, `plus_one_not_allowed`, `children_not_allowed`, `too_many_plus_one`, `answer_required`).
+- `rsvp_submit`, `rsvp_submit_unlisted` a `admin_rsvp_enter` sdílejí jeden zápis `se_vezmou.rsvp_apply(wedding, household, payload, entered_by)`. Pořadí kontrol u `rsvp_submit`: lístek, otevření RSVP, teprve potom obsah (chyby `invalid_ticket`, `rsvp_closed`, pak `invalid_payload`, `invalid_guest`, `event_not_invited`, `plus_one_not_allowed`, `children_not_allowed`, `too_many_plus_one`, `answer_required`).
 - `enabled_questions.plus_one` znamená **nejvýš jednoho** doprovodu (dospělá osoba bez `guest_id`, `is_plus_one = true`). `enabled_questions.children` povoluje děti **doplněné hostem** (osoba bez `guest_id`, `is_child`, věk 0 až 17 povinný); děti ze seznamu hostů se řídí seznamem a příznak nepotřebují. Osoby odpovědi si drží pořadí z payloadu (`created_at` z `clock_timestamp()`).
 - Vestavěné odpovědi v `answers`: `lodging` (`need`, `own`, `unsure`), `transport` (`need`, `own`, `offer`), `song` (text do 200 znaků); při vypnuté otázce se klíč zahodí. Vlastní otázky: `text` (do 1000 znaků), `bool` (boolean), `choice` (hodnota musí být `options[].value`; **tvar `options` je pole `{ "value": text, "label": i18n_text }`**). Povinná otázka bez odpovědi je chyba (`answer_required`), kromě ručního zápisu správcem. Otázka vázaná na událost se týká jen toho, kdo na ni v téže odpovědi přijde; jinak se odpověď zahodí a povinnost odpadne. Neznámé klíče v `answers` se nemažou (zpětná shoda s M3).
 - Databáze nevynucuje úplnost odpovědí (že host odpověděl na každou pozvanou událost); vynucuje ji formulář a `parseSubmission`. Chybějící řádek v `rsvp_attendance` znamená „neodpověděl“ a přehled správce ho tak počítá.
@@ -575,7 +590,7 @@ Zapsáno při implementaci RSVP hostů, PINu hostů a správcovské strany RSVP 
 
 **Správcovská strana (UI přijde v M7)**
 
-- `admin_guest_list()` (domácnosti, hosté, pozvání, odpovědi po hostech, stav domácnosti, odpovědi hostů mimo seznam), `admin_rsvp_overview()` (domácnosti odpověděly a čekají; po událostech pozvaní, přijdou po hlavách včetně doprovodu a hostů mimo seznam, nepřijdou, `pending` = pozvaní bez odpovědi), `admin_rsvp_household(id)` (pohled pro předvyplnění, jediná funkce správcovské strany se zdravotními údaji) a `admin_rsvp_enter(household_id, payload)` (ruční zápis telefonické odpovědi). Každá vyžaduje `app.is_wedding_admin()` (jinak `forbidden`) a filtruje podle `app.wedding_id()`.
+- `admin_guest_list()` (domácnosti, hosté, pozvání, odpovědi po hostech, stav domácnosti, odpovědi hostů mimo seznam), `admin_rsvp_overview()` (domácnosti odpověděly a čekají; po událostech pozvaní, přijdou po hlavách včetně doprovodu a hostů mimo seznam, nepřijdou, `pending` = pozvaní bez odpovědi), `admin_rsvp_household(id)` (pohled pro předvyplnění, jediná funkce správcovské strany se zdravotními údaji) a `admin_rsvp_enter(household_id, payload)` (ruční zápis telefonické odpovědi). Každá vyžaduje `se_vezmou.is_wedding_admin()` (jinak `forbidden`) a filtruje podle `se_vezmou.wedding_id()`.
 - Ruční zápis nezávisí na otevření RSVP (pozdní telefonát po uzavření), nevynucuje povinné otázky, neukládá e-mail, nastaví `entered_by = 'admin'`, nahradí případnou odpověď hosta a zapíše do `audit_log` akci `rsvp.manual_entry` s prázdným `meta` (jen identifikátor domácnosti).
 - Typované API: `src/lib/rsvp/admin.ts` (`listGuests`, `getRsvpOverview`, `getHouseholdForEntry`, `enterResponseManually`, zod schémata v `types.ts`).
 

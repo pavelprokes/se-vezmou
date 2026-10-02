@@ -1,10 +1,6 @@
 import { createHash } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.hoisted(() => {
-  process.env.SUPABASE_JWT_SECRET = "jwt-secret-jwt-secret-jwt-secret-jwt-1";
-});
-
 const state = vi.hoisted(() => ({
   host: "app.se-vezmou.cz",
   cookies: new Map<string, string>(),

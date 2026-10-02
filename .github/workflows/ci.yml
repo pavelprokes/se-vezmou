@@ -26,9 +26,10 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  # Testy databáze (M3): migrace a izolace dat na skutečném PostgreSQL 16, bez Dockeru a Supabase CLI.
-  # Skript scripts/db-test.sh použije službu postgres přes DATABASE_URL; DB_TEST_ALLOW_RESET potvrzuje,
-  # že jde o jednorázovou databázi, jejíž schémata může skript smazat.
+  # Testy databáze (M3): migrace, izolace dat a test izolace migrací (nic mimo schéma se_vezmou se nesmí změnit)
+  # na skutečném PostgreSQL 16, bez Dockeru a Supabase CLI. Skript scripts/db-test.sh použije službu postgres
+  # přes DATABASE_URL; DB_TEST_ALLOW_RESET potvrzuje, že jde o jednorázovou databázi, jejíž schémata může
+  # skript smazat. Druhý krok testuje nástroj `npm run db:migrate` (scripts/db-migrate-test.sh).
   db:
     runs-on: ubuntu-latest
     services:
@@ -46,18 +47,27 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/postgres
       DB_TEST_ALLOW_RESET: "1"
+      MIGRATE_TEST_ALLOW_RESET: "1"
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # nástroj db:migrate potřebuje node a pg
+      - run: npm ci
       # klient psql bývá na runneru předinstalovaný; kdyby chyběl, doinstalujeme ho
       - run: command -v psql >/dev/null || (sudo apt-get update && sudo apt-get install -y postgresql-client)
       - run: npm run db:test
+      - run: npm run db:migrate:test
 
   e2e:
     name: e2e (${{ matrix.shard }}/4)
     # E2E a přístupnost (Playwright + axe) proti produkčnímu sestavení, ADR 0004. Testy přihlášení (M4)
     # běží proti skutečnému PostgreSQL 16 (service container) s aplikovanými migracemi; e-maily se v testech
-    # zapisují do souborů místo odeslání. Aplikace mluví s Postgresem přímo (DB_TRANSPORT=pg), protože
-    # v CI není PostgREST; scripts/e2e-db.sh připraví databázi (shim Supabase + migrace) a spustí příkaz.
+    # zapisují do souborů místo odeslání. Aplikace mluví s Postgresem přímo přes pg jako role se_vezmou_app
+    # (ne superuživatel), jako v produkci; scripts/e2e-db.sh připraví databázi (shim Supabase, init skripty
+    # a migrace aplikované vlastníkem) a spustí příkaz.
     runs-on: ubuntu-latest
     timeout-minutes: 25
     # Čtyři paralelní části (shardy): každá má vlastní service container s databází a vlastní sestavení,

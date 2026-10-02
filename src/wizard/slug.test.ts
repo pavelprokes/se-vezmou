@@ -169,7 +169,7 @@ describe("seznamy rezervovaných slov jsou shodné s databází", () => {
 
   it("rezervovaná slova z migrace seed", () => {
     const seed = sql("20261002120500_seed.sql");
-    const from = seed.indexOf("insert into public.slug_registry");
+    const from = seed.indexOf("insert into se_vezmou.slug_registry");
     const fromSql = [...seed.slice(from).matchAll(/\('([a-z0-9-]+)', 'reserved_word'\)/g)].map(
       (m) => m[1],
     );

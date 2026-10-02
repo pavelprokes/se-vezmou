@@ -4,7 +4,8 @@ import { Icon } from "@/components/ui/icon";
 import { buildSpayd } from "@/site/payment";
 import type { BlockOf } from "@/site/types";
 import type { SiteCtx } from "../context";
-import { PinGate } from "../pin-gate";
+import { PinGate, UnlockedRegion } from "../pin-gate";
+import { pinGateLabels } from "../pin-labels";
 import { Paragraphs, Section } from "./section";
 
 /** QR kód jako inline SVG (černá na bílé s tichou zónou, aby šel načíst v každé paletě). */
@@ -38,7 +39,8 @@ export function PaymentQr({ payload, label }: { payload: string; label: string }
 /**
  * Dary (číslo účtu a QR platba bez pevné částky) jsou citlivý blok za PINem (FR-PRIV-2).
  * Obsah se vykreslí jen s příznakem `sensitiveUnlocked` a dostupnými citlivými údaji;
- * jinak je vidět jen zástupný formulář PINu bez logiky (TODO(M8-7): ověření PINu).
+ * jinak je vidět jen formulář PINu (`PinGate`, ověřuje server). Bez PINu se citlivá data
+ * nedostanou ani do HTML, ani do RSC payloadu: komponenta je nedostává.
  * V režimu poděkování po svatbě se blok nevykresluje vůbec (`renderableBlocks`).
  */
 export function Gifts({
@@ -56,39 +58,36 @@ export function Gifts({
   return (
     <Section block={block} ctx={ctx} tone={tone}>
       {gifts ? (
-        <div className="site-gifts">
-          <div>
-            <Paragraphs value={block.data.intro} ctx={ctx} className="site-lead" />
-            <dl className="site-facts">
-              <div>
-                <dt>{t("site.gifts.account")}</dt>
-                <dd className="site-account">{gifts.account}</dd>
-              </div>
-              {gifts.holder ? (
+        <UnlockedRegion label={t("site.pin.unlocked")}>
+          <div className="site-gifts">
+            <div>
+              <Paragraphs value={block.data.intro} ctx={ctx} className="site-lead" />
+              <dl className="site-facts">
                 <div>
-                  <dt>{t("site.gifts.holder")}</dt>
-                  <dd>{gifts.holder}</dd>
+                  <dt>{t("site.gifts.account")}</dt>
+                  <dd className="site-account">{gifts.account}</dd>
                 </div>
-              ) : null}
-            </dl>
+                {gifts.holder ? (
+                  <div>
+                    <dt>{t("site.gifts.holder")}</dt>
+                    <dd>{gifts.holder}</dd>
+                  </div>
+                ) : null}
+              </dl>
+            </div>
+            <figure className="site-qr-figure">
+              <PaymentQr
+                payload={buildSpayd({ iban: gifts.iban, message: gifts.paymentMessage })}
+                label={t("site.gifts.qrLabel", { account: gifts.account })}
+              />
+              <figcaption className="site-muted">{t("site.gifts.qrHint")}</figcaption>
+            </figure>
           </div>
-          <figure className="site-qr-figure">
-            <PaymentQr
-              payload={buildSpayd({ iban: gifts.iban, message: gifts.paymentMessage })}
-              label={t("site.gifts.qrLabel", { account: gifts.account })}
-            />
-            <figcaption className="site-muted">{t("site.gifts.qrHint")}</figcaption>
-          </figure>
-        </div>
+        </UnlockedRegion>
       ) : (
         <div className="site-gate">
           <Icon icon={Lock} size={28} />
-          <PinGate
-            title={t("site.gifts.gateTitle")}
-            body={t("site.gifts.gateBody")}
-            label={t("site.gifts.pinLabel")}
-            submit={t("site.gifts.pinSubmit")}
-          />
+          <PinGate labels={pinGateLabels(t, "gifts")} locale={ctx.locale} />
         </div>
       )}
     </Section>

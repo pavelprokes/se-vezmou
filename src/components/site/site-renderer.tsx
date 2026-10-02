@@ -2,6 +2,7 @@ import type { CSSProperties } from "react";
 import { Info } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import { locales, type Locale } from "@/i18n/config";
+import type { RsvpSiteState } from "@/lib/rsvp/form";
 import { formatDateRange } from "@/site/format";
 import { getPalette } from "@/site/themes/palettes";
 import type { Block, PublicContent, SensitiveContent } from "@/site/types";
@@ -30,6 +31,8 @@ export interface SiteRendererProps {
   sensitiveUnlocked?: boolean;
   /** Obsah citlivých bloků; bez příznaku `sensitiveUnlocked` se nepoužije. */
   sensitive?: SensitiveContent | null;
+  /** Živý stav RSVP (počáteční stav formuláře a volby páru), viz `loadGuestContext`. */
+  rsvp?: RsvpSiteState | null;
 }
 
 /** Barvy palety jako CSS proměnné `--s-*` (jediný způsob, jak šablona barvy dostane). */
@@ -70,7 +73,7 @@ function renderBlock(block: Block, ctx: SiteCtx, tone: "bg" | "surface") {
 /**
  * Vykreslení webu páru: jedna dlouhá stránka s kotvami nad společnými bloky. Šablona mění jen
  * tokeny (`data-template` a barvy palety), typografii a kompozici v `site.css`. Serverová
- * komponenta bez klientského JavaScriptu (výjimkou je zástupný formulář PINu).
+ * komponenta bez klientského JavaScriptu (výjimkou jsou formuláře PINu a RSVP).
  */
 export function SiteRenderer({
   content,
@@ -79,8 +82,9 @@ export function SiteRenderer({
   now,
   sensitiveUnlocked = false,
   sensitive = null,
+  rsvp = null,
 }: SiteRendererProps) {
-  const ctx = createSiteCtx(content, locale, { now, sensitiveUnlocked, sensitive });
+  const ctx = createSiteCtx(content, locale, { now, sensitiveUnlocked, sensitive, rsvp });
   const { t } = ctx;
   const blocks = renderableBlocks(ctx);
   const rsvpBlock = blocks.find((block) => block.type === "rsvp");

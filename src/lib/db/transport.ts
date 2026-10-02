@@ -2,6 +2,8 @@ import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Pool } from "pg";
 import { env, requireEnv } from "@/env";
+import { createTenantClient } from "./client";
+import { buildTenantClaims, type MintTenantJwtInput } from "./jwt";
 
 /**
  * Doprava volání funkcí databáze (RPC). Aplikace volá databázi jen ze serveru a jen přes
@@ -15,13 +17,36 @@ import { env, requireEnv } from "@/env";
 
 export type RpcKind = "table" | "scalar";
 
+/**
+ * Totožnost volajícího pro funkce, které čtou claimy JWT (`app.wedding_id()`, `app.wedding_role()`):
+ * návštěvník, host po PINu nebo správce jedné svatby. Bez ní se funkce volá jako service role.
+ */
+export type TenantIdentity = MintTenantJwtInput;
+
 export interface RpcTransport {
-  /** `table`: pole řádků; `scalar`: jedna hodnota (nebo `null` u `void`). */
-  call(fn: string, args: Record<string, unknown>, kind: RpcKind): Promise<unknown>;
+  /**
+   * `table`: pole řádků; `scalar`: jedna hodnota (nebo `null` u `void`). S `as` se funkce volá
+   * s rolí `authenticated` a claimy té svatby (stejně jako v produkci přes krátkodobé JWT).
+   */
+  call(
+    fn: string,
+    args: Record<string, unknown>,
+    kind: RpcKind,
+    as?: TenantIdentity,
+  ): Promise<unknown>;
 }
 
-/** Chyba databáze bez argumentů volání (mohou nést osobní údaje): jen funkce, kód a krátká zpráva. */
+/** Hlášení, které je jen identifikátor (`rsvp_closed`): u takových zpráv nic osobního být nemůže. */
+const REASON_PATTERN = /^[a-z][a-z_]{2,39}$/;
+
+/**
+ * Chyba databáze bez argumentů volání (mohou nést osobní údaje): jen funkce, kód a krátká zpráva.
+ * `reason` je identifikátor chyby z naší funkce (`invalid_ticket`, `rsvp_closed`), když ho databáze
+ * vrátila; jiné texty (typicky systémové hlášení o hodnotě, která chybu způsobila) se zahazují.
+ */
 export class DbError extends Error {
+  readonly reason: string | undefined;
+
   constructor(
     readonly fn: string,
     readonly code: string | undefined,
@@ -29,6 +54,7 @@ export class DbError extends Error {
   ) {
     super(`Databáze: ${fn} selhala (${code ?? "bez kódu"}): ${message}`);
     this.name = "DbError";
+    this.reason = REASON_PATTERN.test(message) ? message : undefined;
   }
 }
 
@@ -51,13 +77,14 @@ export function getServiceClient(): SupabaseClient {
 }
 
 const supabaseTransport: RpcTransport = {
-  async call(fn, args) {
+  async call(fn, args, _kind, as) {
     const payload = Object.fromEntries(
       Object.entries(args)
         .filter(([, value]) => value !== undefined)
         .map(([key, value]) => [key, toPostgrest(value)]),
     );
-    const { data, error } = await getServiceClient().rpc(fn, payload);
+    const client = as ? createTenantClient(as) : getServiceClient();
+    const { data, error } = await client.rpc(fn, payload);
     if (error) throw new DbError(fn, error.code, error.message);
     return data;
   },
@@ -76,7 +103,7 @@ async function getPool(): Promise<Pool> {
 const IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
 
 const pgTransport: RpcTransport = {
-  async call(fn, args, kind) {
+  async call(fn, args, kind, as) {
     if (!IDENTIFIER.test(fn)) throw new Error("Neplatný název funkce");
     const entries = Object.entries(args).filter(([, value]) => value !== undefined);
     for (const [key] of entries) {
@@ -91,7 +118,15 @@ const pgTransport: RpcTransport = {
     const client = await (await getPool()).connect();
     try {
       await client.query("begin");
-      await client.query("set local role service_role");
+      if (as) {
+        // Jako PostgREST: claimy JWT v nastavení transakce a role `authenticated`.
+        await client.query("select set_config('request.jwt.claims', $1, true)", [
+          JSON.stringify(buildTenantClaims(as)),
+        ]);
+        await client.query("set local role authenticated");
+      } else {
+        await client.query("set local role service_role");
+      }
       const result = await client.query(
         sql,
         entries.map(([, value]) => value),
@@ -101,7 +136,12 @@ const pgTransport: RpcTransport = {
     } catch (error) {
       await client.query("rollback").catch(() => undefined);
       const code = (error as { code?: string }).code;
-      throw new DbError(fn, code, code ? "chyba SQL" : "chyba spojení");
+      const message = (error as { message?: string }).message ?? "";
+      throw new DbError(
+        fn,
+        code,
+        REASON_PATTERN.test(message) ? message : code ? "chyba SQL" : "chyba spojení",
+      );
     } finally {
       client.release();
     }

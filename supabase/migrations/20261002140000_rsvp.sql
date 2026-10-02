@@ -184,6 +184,9 @@ begin
 
   return jsonb_build_object(
     'household_id', p_household,
+    'wedding', (
+      select jsonb_build_object('timezone', w.timezone, 'default_locale', w.default_locale)
+        from public.weddings w where w.id = v_wedding_id),
     'guests', (
       select coalesce(jsonb_agg(jsonb_build_object(
         'id', g.id, 'display_name', g.display_name, 'is_child', g.is_child, 'age', g.age)
@@ -622,6 +625,7 @@ begin
   end if;
 
   return jsonb_build_object(
+    'wedding', jsonb_build_object('timezone', w.timezone, 'default_locale', w.default_locale),
     'events', (
       select coalesce(jsonb_agg(jsonb_build_object(
         'id', e.id, 'kind', e.kind, 'title', e.title, 'description', e.description,

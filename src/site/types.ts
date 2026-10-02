@@ -42,15 +42,33 @@ const mediaSchema = z.object({
   decorative: z.boolean().default(false),
 });
 
-const venueSchema = z.object({
-  id: z.string(),
-  name: i18nTextSchema,
-  /** Textová adresa je vždy, mapa je jen doplněk (FR-WEB-1). */
-  address: z.string().min(1),
-  directions: i18nTextSchema.nullable().default(null),
-  /** Jen odkaz na mapu; web nevkládá žádnou mapu ani skripty třetích stran. */
-  mapUrl: httpUrl.nullable().default(null),
-});
+const venueSchema = z
+  .object({
+    id: z.string(),
+    name: i18nTextSchema,
+    /**
+     * Textová adresa je vždy, mapa je jen doplněk (FR-WEB-1). Soukromé místo (`isPrivate`) nemá adresu
+     * ve veřejném snímku: je v `SensitiveContent.venues` a hosté ji vidí až po PINu (FR-PRIV-2).
+     */
+    address: z.string().min(1).nullable().default(null),
+    isPrivate: z.boolean().default(false),
+    directions: i18nTextSchema.nullable().default(null),
+    /** Jen odkaz na mapu; web nevkládá žádnou mapu ani skripty třetích stran. */
+    mapUrl: httpUrl.nullable().default(null),
+  })
+  .refine((venue) => venue.isPrivate || venue.address !== null, {
+    message: "Veřejné místo musí mít textovou adresu",
+    path: ["address"],
+  })
+  .refine(
+    (venue) =>
+      !venue.isPrivate ||
+      (venue.address === null && venue.mapUrl === null && venue.directions === null),
+    {
+      message: "Soukromé místo nesmí mít adresu, mapu ani popis cesty ve veřejném snímku",
+      path: ["address"],
+    },
+  );
 
 const eventSchema = z.object({
   id: z.string(),
@@ -179,6 +197,17 @@ export type PublicMedia = PublicContent["media"][number];
  * `sensitiveUnlocked`; do veřejného snímku se nikdy nepřidávají.
  */
 export const sensitiveContentSchema = z.object({
+  /** Adresy soukromých míst podle `venue.id` (místa s `isPrivate`); mapa a popis cesty jsou volitelné. */
+  venues: z
+    .record(
+      z.string(),
+      z.object({
+        address: z.string().min(1),
+        mapUrl: httpUrl.nullable().default(null),
+        directions: i18nTextSchema.nullable().default(null),
+      }),
+    )
+    .default({}),
   gifts: z
     .object({
       /** Číslo účtu v tuzemském tvaru pro zobrazení, např. `19-2000145399/0800`. */

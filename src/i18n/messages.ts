@@ -8,6 +8,7 @@ import csLanding from "./messages/cs/landing.json";
 import csLegal from "./messages/cs/legal.json";
 import csMarketing from "./messages/cs/marketing.json";
 import csPlaceholder from "./messages/cs/placeholder.json";
+import csRsvp from "./messages/cs/rsvp.json";
 import enAuth from "./messages/en/auth.json";
 import csSite from "./messages/cs/site.json";
 import enCatalog from "./messages/en/catalog.json";
@@ -16,6 +17,7 @@ import enLanding from "./messages/en/landing.json";
 import enLegal from "./messages/en/legal.json";
 import enMarketing from "./messages/en/marketing.json";
 import enPlaceholder from "./messages/en/placeholder.json";
+import enRsvp from "./messages/en/rsvp.json";
 import enSite from "./messages/en/site.json";
 
 /** Zdrojem pravdy o klíčích je česká verze; angličtina musí mít stejné klíče (kontrola při sestavení). */
@@ -27,6 +29,7 @@ const cs = {
   legal: csLegal,
   marketing: csMarketing,
   placeholder: csPlaceholder,
+  rsvp: csRsvp,
   site: csSite,
 } as const;
 
@@ -38,6 +41,7 @@ const en: Record<keyof typeof cs, Record<string, MessageValue>> = {
   legal: enLegal,
   marketing: enMarketing,
   placeholder: enPlaceholder,
+  rsvp: enRsvp,
   site: enSite,
 };
 

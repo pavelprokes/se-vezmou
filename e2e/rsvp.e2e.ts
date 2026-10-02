@@ -611,6 +611,9 @@ test.describe("otevření a uzavření, host mimo seznam, ochrana před spamem (
     // další odpověď téhož člověka je samostatná (odpověď mimo seznam se neupravuje)
     await openRsvp(page);
     await section.getByRole("button", { name: "Odpovědět jako host mimo seznam" }).click();
+    // Počkat na přepnutí na formulář hosta mimo seznam: do té doby existuje pole "Vaše jméno" z kroku 1
+    // a text napsaný do něj by se po odpovědi serveru ztratil.
+    await expect(section.getByText(/Novomanželé\spovolili\sodpovědět\si\shostům/)).toBeVisible();
     await section.getByLabel("Vaše jméno").fill("Karel Cizí");
     await choose(section, "Karel Cizí", OBRAD, "no");
     await choose(section, "Karel Cizí", HOSTINA, "no");

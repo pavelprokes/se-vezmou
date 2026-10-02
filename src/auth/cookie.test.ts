@@ -30,6 +30,30 @@ describe("cookieSpec (ostrý provoz)", () => {
     expect(pending.options).toMatchObject({ httpOnly: true, secure: true, sameSite: "lax" });
   });
 
+  it("relace hosta po PINu a lístek RSVP: __Host-, host-only a bez Domain jako ostatní", () => {
+    const guest = cookieSpec("guest", "klara-a-matej.se-vezmou.cz", 172_800);
+    expect(guest.name).toBe("__Host-sv_guest");
+    expect(guest.options).toMatchObject({
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      path: "/",
+    });
+    expect(guest.options).not.toHaveProperty("domain");
+    const rsvp = cookieSpec("rsvp", "klara-a-matej.se-vezmou.cz", 1800);
+    expect(rsvp.name).toBe("__Host-sv_rsvp");
+    expect(rsvp.options).toMatchObject({ httpOnly: true, secure: true, maxAge: 1800 });
+    expect(rsvp.options).not.toHaveProperty("domain");
+    // lokálně bez prefixu a bez Secure, ale pořád HttpOnly a bez Domain
+    expect(cookieSpec("guest", "klara-a-matej.localhost:3100").name).toBe("sv_guest");
+    expect(cookieSpec("rsvp", "klara-a-matej.localhost:3100").options.secure).toBe(false);
+    // názvy cookie správce, hosta a lístku se nesmí shodovat
+    const names = (["admin", "pending", "guest", "rsvp"] as const).map(
+      (kind) => cookieSpec(kind, "klara-a-matej.se-vezmou.cz").name,
+    );
+    expect(new Set(names).size).toBe(4);
+  });
+
   it("neznámý nebo chybějící hostitel se bere jako ostrý (přísná varianta)", () => {
     expect(cookieSpec("admin", null).name).toBe("__Host-sv_admin");
     expect(cookieSpec("admin", undefined).options.secure).toBe(true);

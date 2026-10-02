@@ -4,6 +4,8 @@ Next.js (App Router, TypeScript, Tailwind CSS) aplikace určená pro nasazení n
 
 ## Vývoj
 
+Node.js 24 (jako na Vercelu; `nvm use` načte verzi z `.nvmrc`, `engines` v `package.json` ji vyžaduje).
+
 ```bash
 npm install
 cp .env.example .env.local   # ROOT_DOMAIN=localhost pro lokální hostitele

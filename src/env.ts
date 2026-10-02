@@ -28,6 +28,13 @@ const schema = z.object({
   // Provozní administrace (M9, docs/adr/0012)
   /** Klíč pro šifrování tajných klíčů TOTP operátorů v databázi a pro HMAC záložních kódů (min. 32 znaků). */
   OPERATOR_MFA_KEY: secret.optional(),
+  // Plánované úlohy (M10, Vercel Cron): `Authorization: Bearer ${CRON_SECRET}`. Vercel hodnotu posílá sám,
+  // je-li proměnná nastavena v projektu. Bez ní všechny cesty `/api/cron/*` vrací 401.
+  // Záměrně bez minimální délky v schématu: špatná hodnota nesmí shodit start celé aplikace. Kratší než
+  // 32 znaků cron odmítne (401 a chyba v logu), viz src/lib/cron/default.ts.
+  CRON_SECRET: z.string().min(1).optional(),
+  /** Jen automatické testy: `1` povolí parametr `now` (simulovaný čas) a `wedding_id`; v produkci odmítnuto. */
+  CRON_TEST_CLOCK: z.string().min(1).optional(),
 
   // AWS SES. Bez těchto hodnot se e-maily jen vypíšou do konzole a neodesílají.
   AWS_REGION: z.string().min(1).optional(),

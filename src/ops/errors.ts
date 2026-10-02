@@ -19,6 +19,7 @@ export type OpsErrorKey =
   | "invalidNote"
   | "invalidStatus"
   | "invalidKind"
+  | "invalidPhase"
   | "weddingBlocked"
   | "duplicate"
   | "invalidEmail"
@@ -42,6 +43,7 @@ const BY_REASON: Record<string, OpsErrorKey> = {
   invalid_note: "invalidNote",
   invalid_status: "invalidStatus",
   invalid_kind: "invalidKind",
+  invalid_phase: "invalidPhase",
   wedding_blocked: "weddingBlocked",
   invalid_email: "invalidEmail",
   invalid_role: "invalidRole",
@@ -63,6 +65,8 @@ export function opsErrorField(key: OpsErrorKey): string | undefined {
   switch (key) {
     case "reason":
       return "reason";
+    case "invalidPhase":
+      return "phase";
     case "slugUnavailable":
     case "invalidSlug":
       return "slug";

@@ -1,5 +1,4 @@
 import type { MessageKey } from "@/i18n/messages";
-import type { RetentionKind } from "@/lib/db/rpc-ops";
 import type { WeddingStatus } from "@/lib/db/types";
 
 /** Klíče popisků výčtů (stavy, šablony, jazyky, události, druhy lhůt); v jednom souboru, aby je sdílely stránky. */
@@ -46,11 +45,34 @@ export const ACTOR_KEYS: Record<string, MessageKey> = {
   guest: "ops.actor.guest",
 };
 
-export const RETENTION_KEYS: Record<RetentionKind, MessageKey> = {
-  service: "ops.retention.kind.service",
-  health: "ops.retention.kind.health",
-  guests: "ops.retention.kind.guests",
-  purge: "ops.retention.kind.purge",
+export const RETENTION_KEYS: Record<string, MessageKey> = {
+  site_expiry: "ops.retention.kind.site_expiry",
+  health_purge: "ops.retention.kind.health_purge",
+  guest_purge: "ops.retention.kind.guest_purge",
+  site_purge: "ops.retention.kind.site_purge",
+};
+
+export const PHASE_KEYS: Record<string, MessageKey> = {
+  save_the_date: "ops.phase.save_the_date",
+  rsvp_open: "ops.phase.rsvp_open",
+  rsvp_closed: "ops.phase.rsvp_closed",
+  wedding_day: "ops.phase.wedding_day",
+  thanks: "ops.phase.thanks",
+};
+
+export const JOB_STATUS_KEYS: Record<string, MessageKey> = {
+  running: "ops.jobs.status.running",
+  ok: "ops.jobs.status.ok",
+  partial: "ops.jobs.status.partial",
+  failed: "ops.jobs.status.failed",
+};
+
+export const NOTICE_STATUS_KEYS: Record<string, MessageKey> = {
+  pending: "ops.notices.pending",
+  sending: "ops.notices.sending",
+  sent: "ops.notices.sent",
+  failed: "ops.notices.failed",
+  skipped: "ops.notices.skipped",
 };
 
 /** Popisek hodnoty výčtu; neznámá hodnota se zobrazí tak, jak je (nikdy nespadne). */

@@ -9,3 +9,13 @@ export {
   type OperatorCodeParams,
   type OperatorNoticeParams,
 } from "./operator";
+export {
+  renderRetentionNotice,
+  type RetentionNoticeKind,
+  type RetentionNoticeParams,
+} from "./retention-notice";
+export {
+  renderDeletionNotice,
+  type DeletionNoticeKind,
+  type DeletionNoticeParams,
+} from "./deletion-notice";

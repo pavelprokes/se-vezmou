@@ -7,6 +7,7 @@ import {
   addNoteAction,
   changeSlugAction,
   changeStatusAction,
+  setPhaseAction,
   extendRetentionAction,
   restoreWeddingAction,
   sendLoginLinkAction,
@@ -50,6 +51,50 @@ export function StatusForm({
             options={options}
             error={form.error("status")}
             defaultValue={form.value("status")}
+          />
+          <TextArea
+            id={form.id("reason")}
+            name="reason"
+            label={labels.reason}
+            hint={labels.reasonHint}
+            error={form.error("reason")}
+            defaultValue={form.value("reason")}
+            required
+          />
+        </>
+      )}
+    </ActionForm>
+  );
+}
+
+export function PhaseForm({
+  weddingId,
+  errors,
+  phases,
+  current,
+  labels,
+}: Base & {
+  phases: SelectOption[];
+  current: string;
+  labels: { phase: string; hint: string; reason: string; reasonHint: string; submit: string };
+}) {
+  return (
+    <ActionForm
+      action={setPhaseAction}
+      hiddenFields={{ weddingId }}
+      submitLabel={labels.submit}
+      errors={errors}
+    >
+      {(form) => (
+        <>
+          <SelectField
+            id={form.id("phase")}
+            name="phase"
+            label={labels.phase}
+            hint={labels.hint}
+            options={phases}
+            error={form.error("phase")}
+            defaultValue={form.value("phase") ?? current}
           />
           <TextArea
             id={form.id("reason")}

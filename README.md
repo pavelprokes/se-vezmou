@@ -103,7 +103,7 @@ bez Supabase Auth (`docs/adr/0012`); relace má nečinnost 30 minut a absolutně
 `__Host-sv_operator` je host-only. Obsahuje seznam zakázek s filtry a hledáním, detail se zásahy s auditem
 (stav, adresa, prodloužení lhůt, obnova, přihlašovací odkaz správci, poznámky), nahlédnutí do údajů hostů
 jen se souhlasem páru, přehled, lhůty a retenci, audit a správu operátorů (kód v `src/ops`, stránky v
-`src/app/h/admin`, funkce `op_*` v `supabase/migrations/20261004120100_operators_ops.sql`).
+`src/app/h/admin`, funkce `op_*` v `supabase/migrations/20261006120100_operators_ops.sql`).
 
 Prvního operátora (majitele) založí vlastník databáze mimo aplikaci (bez hesel v repozitáři):
 

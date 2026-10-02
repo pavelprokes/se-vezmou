@@ -109,10 +109,7 @@ test.describe("axe: přehled a seznam zakázek", () => {
   test("přehled, seznam (s výsledky i prázdný), retence a účet", async ({ page }) => {
     const operator = await seedOperator({ role: "support", enrolled: true });
     const base = uniqueTag();
-    const w = await seedOpsWedding({
-      tag: base,
-      serviceEndsAt: new Date(Date.now() + 5 * 86_400_000).toISOString(),
-    });
+    const w = await seedOpsWedding({ tag: base, status: "deleted" });
     await withDb((db) =>
       db.query(
         "insert into se_vezmou.analytics_event (event, locale, step) values ('wizard_step_completed', 'cs', 2)",

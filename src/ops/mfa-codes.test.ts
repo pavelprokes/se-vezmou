@@ -87,7 +87,7 @@ describe("role operátorů", () => {
   });
 
   it("podpora smí číst, psát poznámky, posílat odkaz, nahlížet se souhlasem a blokovat", () => {
-    for (const action of ["view", "note", "login_link", "guest_data", "block"] as const) {
+    for (const action of ["view", "note", "login_link", "guest_data", "phase", "block"] as const) {
       expect(can("support", action)).toBe(true);
     }
   });

@@ -351,6 +351,7 @@ export type EmailLogType =
   | "admin_changed"
   | "backup_login_notice"
   | "expiry_notice"
+  | "deletion_notice"
   | "operator_notice";
 
 export type EmailLogStatus = "queued" | "sent" | "delivered" | "bounced" | "complained" | "failed";

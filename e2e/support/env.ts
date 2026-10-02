@@ -11,6 +11,7 @@ export const E2E_SECRETS = {
   RATE_LIMIT_SECRET: "e2e-rate-secret-e2e-rate-secret-000002",
   PIN_PEPPER: "e2e-pin-pepper-e2e-pin-pepper-0000003",
   OPERATOR_MFA_KEY: "e2e-operator-mfa-key-e2e-operator-0000004",
+  CRON_SECRET: "e2e-cron-secret-e2e-cron-secret-0000004",
 } as const;
 
 /** Adresář s e-maily, které aplikace v testech místo odeslání zapisuje (EMAIL_TRANSPORT=outbox). */

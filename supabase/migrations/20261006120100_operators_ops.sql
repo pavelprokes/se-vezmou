@@ -1,4 +1,4 @@
--- M9 / 2: provozní administrace: čtení (seznam zakázek, detail, přehled, analytika, retence, audit),
+-- M9 / 2: provozní administrace: čtení (seznam zakázek, detail, přehled, analytika, audit; lhůty a běhy úloh dodává M10),
 -- zásahy (stav, adresa, prodloužení, obnova, přihlašovací odkaz, poznámka) a správa operátorů.
 --
 -- Pravidla jako u celé operátorské cesty (functions_ops.sql): funkce volá server (service_role) PO ověření relace
@@ -7,7 +7,7 @@
 -- k nim vede jedině `op_view_guest_data` s aktivním souhlasem páru.
 --
 -- Matice rolí (support = podpora, owner = majitel):
---   čtení (seznam, detail, přehled, analytika, retence) ......... owner, support
+--   čtení (seznam, detail, přehled, analytika) ................ owner, support
 --   poznámka, přihlašovací odkaz správci, nahlédnutí se souhlasem  owner, support
 --   zablokování webu (stav -> blocked) ........................... owner, support
 --   ostatní změny stavu, změna adresy, prodloužení, obnova ....... owner
@@ -168,6 +168,7 @@ begin
       'purge_at', w.purge_at, 'health_purge_at', w.health_purge_at, 'guest_purge_at', w.guest_purge_at,
       'created_at', w.created_at, 'last_activity_at', w.last_activity_at,
       'published_version_no', (select v.version_no from se_vezmou.site_versions v where v.id = w.published_version_id),
+      'phase_override', w.phase_override,
       'has_preview', w.preview_token_hash is not null,
       'restorable', w.status = 'deleted' and (w.purge_at is null or w.purge_at > pg_catalog.now())),
     'order', (select jsonb_build_object('plan_code', o.plan_code, 'status', o.status,
@@ -496,50 +497,6 @@ end
 $$;
 
 -- ---------------------------------------------------------------------------
--- op_list_retention (FR-OPS-5): zakázky s blížícím se vypršením (bez mazání; mazání je M10).
--- kind: service (konec provozu), health (dietní údaje), guests (ostatní údaje hostů), purge (smazaný web).
--- ---------------------------------------------------------------------------
-create function se_vezmou.op_list_retention(p_operator_id uuid, p_within_days integer default 60)
-  returns table (
-    wedding_id uuid, slug text, status text, partner_a_name text, partner_b_name text,
-    kind text, due_at timestamptz, overdue boolean
-  )
-  language plpgsql stable security definer set search_path = ''
-  as $$
-#variable_conflict use_column
-declare
-  v_until timestamptz := pg_catalog.now()
-    + pg_catalog.make_interval(days => least(greatest(coalesce(p_within_days, 60), 1), 3650));
-begin
-  perform se_vezmou.assert_operator(p_operator_id, array['owner', 'support']);
-  return query
-    select d.wedding_id, d.slug, d.status, d.partner_a_name, d.partner_b_name, d.kind, d.due_at,
-           d.due_at < pg_catalog.now()
-      from (
-        select w.id as wedding_id, w.slug, w.status, w.partner_a_name, w.partner_b_name, 'service'::text as kind,
-               o.service_ends_at as due_at
-          from se_vezmou.weddings w join se_vezmou.orders o on o.wedding_id = w.id
-         where o.service_ends_at is not null and o.service_ends_at <= v_until and w.status <> 'deleted'
-        union all
-        select w.id, w.slug, w.status, w.partner_a_name, w.partner_b_name, 'health', w.health_purge_at
-          from se_vezmou.weddings w
-         where w.health_purge_at is not null and w.health_purge_at <= v_until
-           and exists (select 1 from se_vezmou.rsvp_health h where h.wedding_id = w.id)
-        union all
-        select w.id, w.slug, w.status, w.partner_a_name, w.partner_b_name, 'guests', w.guest_purge_at
-          from se_vezmou.weddings w
-         where w.guest_purge_at is not null and w.guest_purge_at <= v_until
-           and exists (select 1 from se_vezmou.households h where h.wedding_id = w.id)
-        union all
-        select w.id, w.slug, w.status, w.partner_a_name, w.partner_b_name, 'purge', w.purge_at
-          from se_vezmou.weddings w
-         where w.status = 'deleted' and w.purge_at is not null and w.purge_at <= v_until
-      ) d
-     order by d.due_at, d.kind, d.wedding_id;
-end
-$$;
-
--- ---------------------------------------------------------------------------
 -- op_list_audit: audit log s filtrem (jen majitel). Meta obsahuje jen identifikátory, počty a stavy.
 -- ---------------------------------------------------------------------------
 create function se_vezmou.op_list_audit(
@@ -705,7 +662,6 @@ revoke all on function
   se_vezmou.op_send_login_link(uuid, uuid, uuid, bytea, bytea, integer),
   se_vezmou.op_overview(uuid),
   se_vezmou.op_analytics_summary(uuid, integer),
-  se_vezmou.op_list_retention(uuid, integer),
   se_vezmou.op_list_audit(uuid, text, uuid, uuid, timestamptz, timestamptz, integer, integer),
   se_vezmou.op_list_operators(uuid),
   se_vezmou.op_create_operator(uuid, text, text),
@@ -724,7 +680,6 @@ grant execute on function
   se_vezmou.op_send_login_link(uuid, uuid, uuid, bytea, bytea, integer),
   se_vezmou.op_overview(uuid),
   se_vezmou.op_analytics_summary(uuid, integer),
-  se_vezmou.op_list_retention(uuid, integer),
   se_vezmou.op_list_audit(uuid, text, uuid, uuid, timestamptz, timestamptz, integer, integer),
   se_vezmou.op_list_operators(uuid),
   se_vezmou.op_create_operator(uuid, text, text),

@@ -21,7 +21,8 @@ import {
   opViewGuestData,
   type GuestDataRow,
 } from "@/lib/db/rpc-ops";
-import { WEDDING_STATUSES } from "@/lib/db/types";
+import { WEDDING_PHASES, WEDDING_STATUSES } from "@/lib/db/types";
+import { setPhaseOverride } from "@/lib/lifecycle/operator";
 import { OPERATOR_RATE_RULES } from "../config";
 import { opsErrorField, opsErrorKey } from "../errors";
 import { isIsoDay } from "../format";
@@ -70,7 +71,7 @@ function failure(error: unknown, values?: Record<string, string>): NonNullable<A
   return { error: key, field: opsErrorField(key), values };
 }
 
-type Result = "status" | "slug" | "extend" | "restore" | "link" | "note";
+type Result = "status" | "slug" | "extend" | "restore" | "link" | "note" | "phase";
 
 /**
  * Po úspěšném zásahu se stránka zakázky načte znovu s hlášením (`?vysledek=`). Hlášení tak nezávisí na
@@ -212,6 +213,32 @@ export async function addNoteAction(
     return failure(error, values);
   }
   done(guarded.weddingId, "note");
+}
+
+export async function setPhaseAction(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const guarded = await guard("phase", formData);
+  if (!guarded.ok) return guarded.state;
+
+  const values = { phase: text(formData, "phase"), reason: text(formData, "reason") };
+  const phase = values.phase === "" ? null : z.enum(WEDDING_PHASES).safeParse(values.phase);
+  if (phase !== null && !phase.success) return { error: "invalidPhase", field: "phase", values };
+  const reason = reasonSchema.safeParse(values.reason);
+  if (!reason.success) return { error: "reason", field: "reason", values };
+
+  try {
+    await setPhaseOverride(
+      guarded.session.operatorId,
+      guarded.weddingId,
+      phase === null ? null : phase.data,
+      reason.data,
+    );
+  } catch (error) {
+    return failure(error, values);
+  }
+  done(guarded.weddingId, "phase");
 }
 
 export async function sendLoginLinkAction(

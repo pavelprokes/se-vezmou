@@ -128,6 +128,7 @@ const detail = (overrides: Record<string, unknown> = {}) => ({
     published_version_no: 1,
     has_preview: false,
     restorable: false,
+    phase_override: null,
   },
   order: null,
   slug_state: null,

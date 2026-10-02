@@ -36,7 +36,6 @@ begin
     perform tap.throws(format('select se_vezmou.op_add_note(%L, %L, ''x'')', v_op, tap.wa()), '42501', 'op_add_note odmítne nepovoleného operátora');
     perform tap.throws(format('select se_vezmou.op_overview(%L)', v_op), '42501', 'op_overview odmítne nepovoleného operátora');
     perform tap.throws(format('select * from se_vezmou.op_analytics_summary(%L)', v_op), '42501', 'op_analytics_summary odmítne nepovoleného operátora');
-    perform tap.throws(format('select * from se_vezmou.op_list_retention(%L)', v_op), '42501', 'op_list_retention odmítne nepovoleného operátora');
     perform tap.throws(format('select * from se_vezmou.op_list_audit(%L)', v_op), '42501', 'op_list_audit odmítne nepovoleného operátora');
     perform tap.throws(format('select se_vezmou.op_change_slug(%L, %L, ''nova-adresa'', ''x'')', v_op, tap.wa()), '42501', 'op_change_slug odmítne nepovoleného operátora');
     perform tap.throws(format('select se_vezmou.op_restore_wedding(%L, %L, ''x'')', v_op, tap.wa()), '42501', 'op_restore_wedding odmítne nepovoleného operátora');
@@ -427,18 +426,6 @@ begin
     'analytika: kroky průvodce');
   perform tap.reset();
   perform tap.ok(v_overview::text not ilike '%@%' and v_overview::text not ilike '%Klára%', 'přehled neobsahuje osobní údaje');
-
-  -- retence: web s blížícím se koncem provozu a smazání dietních údajů
-  update se_vezmou.orders set service_ends_at = now() + interval '20 days' where wedding_id = tap.wb();
-  update se_vezmou.weddings set health_purge_at = now() + interval '10 days' where id = tap.wb();
-  set local role service_role;
-  select count(*) into v_rows from se_vezmou.op_list_retention(tap.u('operator:support'), 30) where wedding_id = tap.wb();
-  perform tap.eq(v_rows, 2, 'retence: konec provozu a dietní údaje do 30 dní');
-  select count(*) into v_rows from se_vezmou.op_list_retention(tap.u('operator:support'), 15) where wedding_id = tap.wb();
-  perform tap.eq(v_rows, 1, 'retence: okno 15 dní');
-  perform tap.ok((select due_at from se_vezmou.op_list_retention(tap.u('operator:support'), 30) where wedding_id = tap.wb() order by due_at limit 1)
-                 < now() + interval '11 days', 'retence: seřazeno podle termínu');
-  perform tap.reset();
 
   -- audit log s filtrem (majitel)
   set local role service_role;

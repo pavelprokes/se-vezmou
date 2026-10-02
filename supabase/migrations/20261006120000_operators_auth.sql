@@ -33,7 +33,7 @@ alter table se_vezmou.login_challenges add constraint login_challenges_purpose_c
 alter table se_vezmou.email_log drop constraint email_log_type_check;
 alter table se_vezmou.email_log add constraint email_log_type_check
   check (type in ('login_code', 'rsvp_confirmation', 'admin_changed', 'backup_login_notice', 'expiry_notice',
-                  'operator_notice'));
+                  'deletion_notice', 'operator_notice'));
 
 -- ---------------------------------------------------------------------------
 -- auth_operator_find: aktivní operátor podle e-mailu (před ověřením kódu).

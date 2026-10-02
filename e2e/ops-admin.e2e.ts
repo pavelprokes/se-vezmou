@@ -697,26 +697,29 @@ test.describe("přehled, retence, audit, operátoři a účet", () => {
     expect(await page.getByRole("main").innerText()).not.toMatch(/@/);
   });
 
-  test("lhůty a retence: zakázka s blížícím se koncem provozu je v seznamu s termínem", async ({
+  test("lhůty a retence: smazaný web před trvalým smazáním je v seznamu s termínem, úlohy mají vlastní tabulku", async ({
     page,
   }) => {
     const operator = await seedOperator({ role: "support", enrolled: true });
     const soon = new Date(Date.now() + 10 * 86_400_000).toISOString();
     const later = new Date(Date.now() + 400 * 86_400_000).toISOString();
-    const a = await seedOpsWedding({ serviceEndsAt: soon });
-    const b = await seedOpsWedding({ serviceEndsAt: later });
+    const a = await seedOpsWedding({ status: "deleted" });
+    const b = await seedOpsWedding({ status: "deleted" });
+    await rows("update se_vezmou.weddings set purge_at = $2 where id = $1", [a.weddingId, soon]);
+    await rows("update se_vezmou.weddings set purge_at = $2 where id = $1", [b.weddingId, later]);
     await loginAsOperator(page, operator);
     await page.getByRole("link", { name: "Lhůty a retence" }).click();
     await page.waitForURL(admin("/retence"));
     await expect(page.getByRole("heading", { level: 1, name: "Lhůty a retence" })).toBeVisible();
     const table = page.getByRole("table", { name: "Blížící se lhůty" });
     const row = table.getByRole("row", { name: new RegExp(a.partnerA) });
-    await expect(row.getByRole("cell", { name: "Konec provozu" })).toBeVisible();
+    await expect(row.getByRole("cell", { name: "Trvalé smazání webu" })).toBeVisible();
     await expect(row.getByRole("link", { name: a.names })).toHaveAttribute(
       "href",
       `/zakazky/${a.weddingId}`,
     );
     await expect(table.getByRole("row", { name: new RegExp(b.partnerA) })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Plánované úlohy" })).toBeVisible();
     // seznam nic nemaže
     expect(
       (
@@ -885,5 +888,36 @@ test.describe("přehled, retence, audit, operátoři a účet", () => {
     await page.getByLabel("Kód z aplikace nebo záložní kód").fill(codes[0]);
     await page.getByRole("button", { name: "Přihlásit se", exact: true }).click();
     await page.waitForURL(admin("/"));
+  });
+});
+
+test.describe("ruční přepsání fáze webu (M10)", () => {
+  test("podpora přepíše fázi s důvodem a auditem, a přepsání zruší", async ({ page }) => {
+    const operator = await seedOperator({ role: "support", enrolled: true });
+    const w = await seedOpsWedding();
+    await loginAsOperator(page, operator);
+    await page.goto(detailUrl(w));
+    const phase = card(page, "Ruční přepsání fáze webu");
+    await phase.getByLabel("Fáze").selectOption({ label: "Poděkování" });
+    await phase.getByRole("button", { name: "Uložit fázi" }).click();
+    await expect(phase.getByLabel("Důvod")).toHaveAttribute("aria-invalid", "true");
+    await phase.getByLabel("Důvod").fill("Svatba proběhla dříve");
+    await phase.getByRole("button", { name: "Uložit fázi" }).click();
+    await expect(banner(page, "Fáze webu byla uložena.")).toBeVisible();
+    await expect(page.getByRole("definition").filter({ hasText: "Poděkování" })).toBeVisible();
+    expect(
+      (await rows("select phase_override from se_vezmou.weddings where id = $1", [w.weddingId]))[0],
+    ).toEqual({ phase_override: "thanks" });
+    expect(
+      await auditRows("wedding_id = $1 and action = 'wedding.phase_override'", [w.weddingId]),
+    ).toHaveLength(1);
+
+    await phase.getByLabel("Fáze").selectOption({ label: "Bez přepsání (podle dat svatby)" });
+    await phase.getByLabel("Důvod").fill("Zrušeno");
+    await phase.getByRole("button", { name: "Uložit fázi" }).click();
+    await expect(page.getByRole("definition").filter({ hasText: "Poděkování" })).toHaveCount(0);
+    expect(
+      (await rows("select phase_override from se_vezmou.weddings where id = $1", [w.weddingId]))[0],
+    ).toEqual({ phase_override: null });
   });
 });

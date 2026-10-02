@@ -1,7 +1,7 @@
 # ADR 0012: Přihlášení operátorů bez Supabase Auth
 
 - Stav: navrženo a implementováno v M9 (2. 10. 2026), čeká na potvrzení majitelem. Do potvrzení platí jako výchozí volba.
-- Související: ADR 0008 (operátorské MFA; varianta A tímto ADR nahrazena), ADR 0011 (aplikace mluví jen přímo s Postgresem), ADR 0002 (relace a hostitelé), ADR 0010 (omezení počtu požadavků), `docs/security-privacy.md`, `docs/data-model.md` (kapitola 17), OQ-47.
+- Související: ADR 0008 (operátorské MFA; varianta A tímto ADR nahrazena), ADR 0011 (aplikace mluví jen přímo s Postgresem), ADR 0002 (relace a hostitelé), ADR 0010 (omezení počtu požadavků), `docs/security-privacy.md`, `docs/data-model.md` (kapitola 18), OQ-47.
 
 ## Kontext
 
@@ -40,7 +40,7 @@ Celá administrace (stránky i Server Actions) vyžaduje **AAL2 a roli**, a to p
 - **Relace:** neprůhledný token (32 náhodných bajtů), v databázi SHA-256, cookie `__Host-sv_operator` (lokálně `sv_operator`), `HttpOnly`, `Secure`, `SameSite=Lax`, bez `Domain`, jen pro `admin.`. Nečinnost 30 minut (posun nejvýše jednou za minutu), absolutně 8 hodin. Nová relace při přihlášení odvolá starou (fixace relace). Zakázání operátora odvolá všechny jeho relace a relace s ním přestane platit okamžitě.
 - **Omezení počtu požadavků** (ADR 0010, `src/ops/config.ts`): vyžádání kódu 5 za hodinu na e-mail a 20 na IP, ověření kódu 30 na IP, druhý faktor 30 na IP a navíc pauza podle operátora (5 chyb, 15 minut, dvojnásobek každou sérii, strop 24 hodin). Selhání úložiště čítačů přihlášení zavře (výjimka).
 - **Oznámení:** každé přihlášení a každé použití záložního kódu nebo nová sada kódů se oznámí e-mailem operátorovi (typ `operator_notice` v `email_log`, bez obsahu).
-- **Role** (`operators.role`): `owner` smí vše; `support` smí číst, psát poznámky, poslat správci přihlašovací odkaz, nahlédnout do údajů hostů se souhlasem páru a zablokovat web. Změnu adresy, prodloužení lhůt, obnovu, ostatní změny stavu, audit a správu operátorů dělá jen majitel. Matice je v `src/ops/roles.ts` a v migraci `20261004120100_operators_ops.sql`, hlídají ji testy SQL i e2e.
+- **Role** (`operators.role`): `owner` smí vše; `support` smí číst, psát poznámky, poslat správci přihlašovací odkaz, nahlédnout do údajů hostů se souhlasem páru a zablokovat web. Změnu adresy, prodloužení lhůt, obnovu, ostatní změny stavu, audit a správu operátorů dělá jen majitel. Matice je v `src/ops/roles.ts` a v migraci `20261006120100_operators_ops.sql`, hlídají ji testy SQL i e2e.
 - **Údaje hostů** operátor ve výchozím stavu nevidí ani jako majitel. `op_view_guest_data` vrátí něco jen při aktivním `data_access_grants` (souhlas páru z M7, platnost a odvolání), vyžaduje důvod a každý pokus (i odmítnutý) zapíše do auditu. Seznam zakázek a hledání pracují jen s jmény páru, adresou a e-maily správců.
 
 ### Založení prvního operátora (majitele)
@@ -74,6 +74,6 @@ Skript odmítne aplikační roli a port 6543, založí majitele jen když ješt�
 
 ## TODO a otevřené
 
-- **Passkey (WebAuthn)** jako silnější druhý faktor vedle TOTP (OQ-50): tabulka pověření, registrace a ověření podpisu, záložní postup při ztrátě zařízení, aktualizace tohoto ADR.
-- **Oznámení páru o nahlédnutí operátora** do údajů hostů (e-mail správcům, `docs/security-privacy.md` kap. 5): patří k správě souhlasu v M7, funkce `op_view_guest_data` už zapisuje audit s důvodem a počtem (OQ-51).
-- Zda majitel chce, aby audit mohla číst i podpora (výchozí: jen majitel) a zda mají být relace operátora vázané na IP nebo zařízení (OQ-52).
+- **Passkey (WebAuthn)** jako silnější druhý faktor vedle TOTP (OQ-52): tabulka pověření, registrace a ověření podpisu, záložní postup při ztrátě zařízení, aktualizace tohoto ADR.
+- **Oznámení páru o nahlédnutí operátora** do údajů hostů (e-mail správcům, `docs/security-privacy.md` kap. 5): patří k správě souhlasu v M7, funkce `op_view_guest_data` už zapisuje audit s důvodem a počtem (OQ-53).
+- Zda majitel chce, aby audit mohla číst i podpora (výchozí: jen majitel) a zda mají být relace operátora vázané na IP nebo zařízení (OQ-54).

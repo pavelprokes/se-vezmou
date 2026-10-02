@@ -288,6 +288,7 @@ const detailSchema = z.object({
     created_at: z.string(),
     last_activity_at: z.string(),
     published_version_no: z.number().nullable(),
+    phase_override: z.string().nullable(),
     has_preview: z.boolean(),
     /** Smazaný web v ochranné lhůtě, který jde obnovit. */
     restorable: z.boolean(),
@@ -388,45 +389,6 @@ export async function opAnalyticsSummary(
     }[]
   >("op_analytics_summary", { p_operator_id: operatorId, p_days: days }, "table");
   return rows.map((r) => ({ ...r, events: Number(r.events) }));
-}
-
-export type RetentionKind = "service" | "health" | "guests" | "purge";
-
-export type RetentionRow = {
-  weddingId: string;
-  slug: string | null;
-  status: WeddingStatus;
-  partnerAName: string;
-  partnerBName: string;
-  kind: RetentionKind;
-  dueAt: Date;
-  /** Termín už uplynul (rozhoduje databáze, ne hodiny stránky). */
-  overdue: boolean;
-};
-
-export async function opListRetention(operatorId: string, days: number): Promise<RetentionRow[]> {
-  const rows = await call<
-    {
-      wedding_id: string;
-      slug: string | null;
-      status: WeddingStatus;
-      partner_a_name: string;
-      partner_b_name: string;
-      kind: RetentionKind;
-      due_at: Date;
-      overdue: boolean;
-    }[]
-  >("op_list_retention", { p_operator_id: operatorId, p_within_days: days }, "table");
-  return rows.map((r) => ({
-    weddingId: r.wedding_id,
-    slug: r.slug,
-    status: r.status,
-    partnerAName: r.partner_a_name,
-    partnerBName: r.partner_b_name,
-    kind: r.kind,
-    dueAt: r.due_at,
-    overdue: r.overdue,
-  }));
 }
 
 export type AuditFilters = {

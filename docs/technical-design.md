@@ -276,6 +276,8 @@ Zadání: wildcard `*.se-vezmou.cz` vyžaduje nameservery Vercelu (`ns1.vercel-d
 
 Vlastnosti všech úloh: idempotentní, po dávkách s omezením času, `pg_try_advisory_lock` proti souběhu, odpověď shrnuje počty (ne data), chyby jdou do monitoringu, další běh dokončí zbytek. Počet cronů a nejkratší interval závisí na tarifu Vercelu (na nejlevnějším tarifu je pravděpodobně jen denní frekvence s hodinovou přesností `[OVĚŘIT]`); proto jsou všechny úlohy navržené jako denní a odolné vůči zpoždění. Čistě databázové úklidy by šlo přesunout do `pg_cron` v Supabase; návrh je ponechává ve Vercel Cronu, protože jedna cesta je jednodušší na provoz a testování a cron posílá i e-maily.
 
+**Stav implementace (M10).** `vercel.json` plánuje jednu denní úlohu `/api/cron/daily`, která spustí retenci, životní cyklus a úklid za sebou (na tarifu Hobby je omezený počet cron úloh a nejvýše denní frekvence); tři jmenované cesty zůstávají k ručnímu spuštění a pro tarif s více cron úlohami. Autorizace `Authorization: Bearer ${CRON_SECRET}`, proměnná `CRON_SECRET` musí být nastavena ve Vercelu (bez ní vrací všechny cesty 401). Podrobnosti, parametry (`dry_run`, `batch`, `wedding_id`) a testovací hodina jsou v `docs/data-model.md`, kapitola 17.
+
 ### 8.4 Plán a cena provozu (kvalitativně)
 
 Ceny a tarify Vercelu, Supabase a e-mailové služby jsem do dokumentu nezapsal, protože se mění a nemám z podkladů ověřené hodnoty `[OVĚŘIT před schválením]`. Rozhodující je, že zaváděcí provoz zdarma potřebuje: produkční tarif databáze se zálohami, odesílání e-mailů, úložiště fotografií a cron. Podrobný přehled nákladů patří do `docs/implementation-plan.md`.

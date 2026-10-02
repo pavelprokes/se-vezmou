@@ -11,6 +11,7 @@ import { coupleNames, formatDay, formatMoment } from "@/ops/format";
 import {
   ACTOR_KEYS,
   LOCALE_KEYS,
+  PHASE_KEYS,
   SLUG_STATE_KEYS,
   STATUS_KEYS,
   TEMPLATE_KEYS,
@@ -26,6 +27,7 @@ import {
   GuestDataForm,
   LoginLinkForm,
   NoteForm,
+  PhaseForm,
   RestoreForm,
   SlugForm,
   StatusForm,
@@ -70,6 +72,7 @@ function errorTexts(): Record<string, string> {
     invalidNote: t("ops.error.invalidNote"),
     invalidStatus: t("ops.error.invalidStatus"),
     invalidKind: t("ops.error.invalidKind"),
+    invalidPhase: t("ops.error.invalidPhase"),
     noAdmin: t("ops.error.noAdmin"),
     limited: t("ops.error.limited"),
     weddingBlocked: t("ops.error.weddingBlocked"),
@@ -94,6 +97,7 @@ const RESULT_KEYS = {
   restore: "ops.success.restore",
   link: "ops.success.link",
   note: "ops.success.note",
+  phase: "ops.success.phase",
 } as const;
 
 export default async function WeddingDetailPage({
@@ -177,6 +181,9 @@ export default async function WeddingDetailPage({
             <Row term={t("ops.detail.field.timezone")}>{w.timezone}</Row>
             <Row term={t("ops.detail.field.created")}>{formatMoment(w.created_at, none)}</Row>
             <Row term={t("ops.detail.field.published")}>{formatMoment(w.published_at, none)}</Row>
+            <Row term={t("ops.detail.field.phase")}>
+              {w.phase_override ? label(t, PHASE_KEYS, w.phase_override) : none}
+            </Row>
             <Row term={t("ops.detail.field.version")}>
               {w.published_version_no === null ? none : `#${w.published_version_no}`}
             </Row>
@@ -373,6 +380,32 @@ export default async function WeddingDetailPage({
                 <p>{t("ops.action.link.none")}</p>
               )}
             </Card>
+
+            {!deleted ? (
+              <Card as="section" aria-labelledby="a-phase">
+                <h3 id="a-phase" className="mb-3 text-xl font-medium">
+                  {t("ops.action.phase.title")}
+                </h3>
+                <PhaseForm
+                  weddingId={w.id}
+                  errors={errors}
+                  current={w.phase_override ?? ""}
+                  phases={[
+                    { value: "", label: t("ops.action.phase.none") },
+                    ...Object.keys(PHASE_KEYS).map((phase) => ({
+                      value: phase,
+                      label: label(t, PHASE_KEYS, phase),
+                    })),
+                  ]}
+                  labels={{
+                    phase: t("ops.action.phase.label"),
+                    hint: t("ops.action.phase.hint"),
+                    ...reason,
+                    submit: t("ops.action.phase.submit"),
+                  }}
+                />
+              </Card>
+            ) : null}
 
             <Card as="section" aria-labelledby="a-note">
               <h3 id="a-note" className="mb-3 text-xl font-medium">

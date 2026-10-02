@@ -87,8 +87,10 @@ export function RsvpForm({ labels, locale, initial, allowUnlisted, closes }: Rsv
   const doneRef = useRef<HTMLDivElement>(null);
   const [focusSummary, setFocusSummary] = useState(0);
   const [nameAnswers, setNameAnswers] = useState(0);
+  // Roste, když se formulář hosta objeví jako nový krok (po shodě jména, po volbě hosta mimo seznam).
+  const [formEntered, setFormEntered] = useState(0);
 
-  function apply(next: RsvpState) {
+  function apply(next: RsvpState, typedName?: string) {
     setStage(next.stage);
     setFlow(next.error);
     setErrors(next.errors ?? {});
@@ -96,13 +98,32 @@ export function RsvpForm({ labels, locale, initial, allowUnlisted, closes }: Rsv
     if (next.value !== undefined) setName(next.value);
     if (next.model) {
       setModel(next.model);
-      setValues(next.model.values);
+      // Host mimo seznam: první osoba je ten, kdo se právě představil, jméno se nepíše podruhé (WCAG 3.3.7).
+      const typed = typedName?.trim().slice(0, 200);
+      const first = next.model.values.extras[0];
+      setValues(
+        next.model.mode === "unlisted" && typed && first && first.name === ""
+          ? {
+              ...next.model.values,
+              extras: [{ ...first, name: typed }, ...next.model.values.extras.slice(1)],
+            }
+          : next.model.values,
+      );
     }
     if (next.errors && Object.keys(next.errors).length > 0) setFocusSummary((n) => n + 1);
-    if (next.stage === "name" && next.error) setNameAnswers((n) => n + 1);
+    // Pole jména se zaměří po chybě i po návratu na první krok ("Zadat jiné jméno").
+    if (next.stage === "name" && (next.error || stage !== "name")) setNameAnswers((n) => n + 1);
+    // Krok 1 zmizel: zaměření přejde na začátek formuláře, jinak by spadlo na `body`.
+    if (next.stage !== "name" && next.model && !next.error && stage === "name") {
+      setFormEntered((n) => n + 1);
+    }
   }
 
-  function run(action: (formData: FormData) => Promise<RsvpState>, formData: FormData) {
+  function run(
+    action: (formData: FormData) => Promise<RsvpState>,
+    formData: FormData,
+    typedName?: string,
+  ) {
     formData.set("locale", locale);
     startTransition(async () => {
       let next: RsvpState;
@@ -111,7 +132,7 @@ export function RsvpForm({ labels, locale, initial, allowUnlisted, closes }: Rsv
       } catch {
         next = { stage, error: "generic" };
       }
-      startTransition(() => apply(next));
+      startTransition(() => apply(next, typedName));
     });
   }
 
@@ -165,7 +186,7 @@ export function RsvpForm({ labels, locale, initial, allowUnlisted, closes }: Rsv
           focusKey={nameAnswers}
           allowUnlisted={allowUnlisted}
           onSubmit={(formData) => run(matchAction, formData)}
-          onUnlisted={() => run(unlistedAction, new FormData())}
+          onUnlisted={() => run(unlistedAction, new FormData(), name)}
         />
       ) : unlistedDone && done ? (
         <div ref={doneRef} tabIndex={-1} className="site-done">
@@ -183,6 +204,7 @@ export function RsvpForm({ labels, locale, initial, allowUnlisted, closes }: Rsv
             pending={pending}
             saved={done !== undefined || model.existing}
             summaryRef={summaryRef}
+            enterKey={formEntered}
             onSubmit={(formData) => run(submitAction, formData)}
             onOtherName={() => {
               setDone(undefined);
@@ -391,6 +413,7 @@ function GuestForm({
   pending,
   saved,
   summaryRef,
+  enterKey,
   onSubmit,
   onOtherName,
 }: {
@@ -402,10 +425,36 @@ function GuestForm({
   pending: boolean;
   saved: boolean;
   summaryRef: RefObject<HTMLDivElement | null>;
+  /** Roste, když se formulář objevil jako nový krok; úvod se zaměří (i hned po vykreslení). */
+  enterKey: number;
   onSubmit: (formData: FormData) => void;
   onOtherName: () => void;
 }) {
   const unlisted = model.mode === "unlisted";
+  const introRef = useRef<HTMLParagraphElement>(null);
+  const addPersonRef = useRef<HTMLButtonElement>(null);
+  const addChildRef = useRef<HTMLButtonElement>(null);
+  // Kam přesunout zaměření po změně počtu osob (vyřídí efekt po vykreslení).
+  const pendingFocus = useRef<
+    { kind: "name"; index: number } | { kind: "add"; child: boolean } | null
+  >(null);
+
+  useEffect(() => {
+    if (enterKey > 0) introRef.current?.focus();
+  }, [enterKey]);
+
+  useEffect(() => {
+    const target = pendingFocus.current;
+    if (!target) return;
+    pendingFocus.current = null;
+    if (target.kind === "name") {
+      const field = document.getElementById(fieldId(`${extraField(target.index)}.name`));
+      field?.focus();
+    } else {
+      (target.child ? addChildRef.current : addPersonRef.current)?.focus();
+    }
+  });
+
   const eventById = new Map(model.events.map((event) => [event.id, event]));
   const adults = values.extras.filter((extra) => extra.kind === "adult");
   const hasPlusOne = !unlisted && adults.length > 0;
@@ -462,7 +511,14 @@ function GuestForm({
     });
   }
 
+  function addExtra(extra: FormExtra) {
+    pendingFocus.current = { kind: "name", index: values.extras.length };
+    setValues((current) => ({ ...current, extras: [...current.extras, extra] }));
+  }
+
   function removeExtra(index: number) {
+    // Odebraná osoba zmizela i se zaměřeným tlačítkem: zaměření dostane tlačítko Přidat.
+    pendingFocus.current = { kind: "add", child: values.extras[index]?.kind === "child" };
     setValues((current) => ({ ...current, extras: current.extras.filter((_, i) => i !== index) }));
   }
 
@@ -542,7 +598,7 @@ function GuestForm({
     >
       {!unlisted ? (
         <>
-          <p className="site-muted">
+          <p ref={introRef} tabIndex={-1} className="site-muted">
             {model.existing ? labels.form.introEdit : labels.form.introListed}
           </p>
           <p className="site-muted site-hint">
@@ -553,7 +609,9 @@ function GuestForm({
           </p>
         </>
       ) : (
-        <p className="site-muted">{labels.unlisted.intro}</p>
+        <p ref={introRef} tabIndex={-1} className="site-muted">
+          {labels.unlisted.intro}
+        </p>
       )}
       <p className="site-muted site-hint">{labels.form.required}</p>
 
@@ -781,9 +839,10 @@ function GuestForm({
         <div className="site-actions">
           {unlisted ? (
             <button
+              ref={addPersonRef}
               type="button"
               className="site-btn site-btn-secondary"
-              onClick={() => setValues((c) => ({ ...c, extras: [...c.extras, NEW_ADULT] }))}
+              onClick={() => addExtra(NEW_ADULT)}
             >
               <Icon icon={Plus} size={18} />
               <span>{labels.unlisted.addPerson}</span>
@@ -791,9 +850,10 @@ function GuestForm({
           ) : null}
           {model.flags.children ? (
             <button
+              ref={addChildRef}
               type="button"
               className="site-btn site-btn-secondary"
-              onClick={() => setValues((c) => ({ ...c, extras: [...c.extras, NEW_CHILD] }))}
+              onClick={() => addExtra(NEW_CHILD)}
             >
               <Icon icon={Plus} size={18} />
               <span>{labels.child.add}</span>
@@ -1068,6 +1128,7 @@ function AttendanceGroup({
             type="radio"
             name={field}
             value="yes"
+            required
             checked={value === "yes"}
             onChange={() => onChange("yes")}
           />
@@ -1078,6 +1139,7 @@ function AttendanceGroup({
             type="radio"
             name={field}
             value="no"
+            required
             checked={value === "no"}
             onChange={() => onChange("no")}
           />

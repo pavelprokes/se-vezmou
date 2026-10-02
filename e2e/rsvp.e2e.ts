@@ -709,3 +709,41 @@ test.describe("otevření a uzavření, host mimo seznam, ochrana před spamem (
     expect((await w.state()).responses).toHaveLength(0);
   });
 });
+
+test.describe("zaměření po změně kroku a počtu osob (WCAG 2.4.3, 3.3.7)", () => {
+  test("po shodě jména, přidání a odebrání dítěte a návratu na první krok zaměření nezmizí", async ({
+    page,
+    wedding,
+  }) => {
+    const w = await wedding({ questions: ALL_QUESTIONS });
+    await w.addHousehold("Novákovi", [{ name: "Jan Novák" }]);
+    const section = await openRsvp(page);
+    await identify(page, "Jan Novák");
+    // krok 1 zmizel: zaměření je na úvodu formuláře, ne na `body`
+    await expect(section.getByText(/Odpovězte\sprosím\sza\scelou\sdomácnost/)).toBeFocused();
+
+    const add = section.getByRole("button", { name: "Přidat dítě" });
+    await add.click();
+    await expect(section.getByLabel("Jméno dítěte")).toBeFocused();
+    await add.click();
+    await expect(section.getByLabel("Jméno dítěte").nth(1)).toBeFocused();
+    await section.getByRole("button", { name: "Odebrat dítě 1" }).click();
+    await expect(add).toBeFocused();
+
+    await section.getByRole("button", { name: "Zadat jiné jméno" }).click();
+    await expect(section.getByLabel("Vaše jméno")).toBeFocused();
+  });
+
+  test("host mimo seznam: už napsané jméno se předvyplní a nepíše se podruhé", async ({
+    page,
+    wedding,
+  }) => {
+    const w = await wedding({ questions: ALL_QUESTIONS, allowUnlisted: true });
+    await w.addHousehold("Novákovi", [{ name: "Jan Novák" }]);
+    const section = await openRsvp(page);
+    await section.getByLabel("Vaše jméno").fill("Karel Cizí");
+    await section.getByRole("button", { name: "Odpovědět jako host mimo seznam" }).click();
+    await expect(section.getByLabel("Vaše jméno")).toHaveValue("Karel Cizí");
+    await expect(section.getByText(/Novomanželé\spovolili/)).toBeFocused();
+  });
+});

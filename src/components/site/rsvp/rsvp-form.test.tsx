@@ -139,6 +139,22 @@ describe("krok 1: jméno (FR-RSVP-1)", () => {
     expect(screen.queryByRole("button", { name: "Zadat jiné jméno" })).toBeNull();
   });
 
+  it("host mimo seznam: už napsané jméno se předvyplní do prvního pole a zaměření přejde na krok", async () => {
+    actions.unlistedAction.mockResolvedValue({
+      stage: "form",
+      model: buildUnlistedModel(unlistedView(), "cs"),
+    });
+    const user = userEvent.setup();
+    renderForm({ stage: "name" }, { allowUnlisted: true });
+    await user.type(screen.getByLabelText("Vaše jméno"), "Karel Nikdo");
+    await user.click(screen.getByRole("button", { name: "Odpovědět jako host mimo seznam" }));
+    expect(
+      await screen.findByLabelText("Vaše jméno", { selector: "input[name='x.0.name']" }),
+    ).toHaveValue("Karel Nikdo");
+    const intro = screen.getByText(/Novomanželé povolili odpovědět i hostům mimo seznam/);
+    await waitFor(() => expect(intro).toHaveFocus());
+  });
+
   it("konec potvrzování je napsaný", () => {
     renderForm({ stage: "name" }, { closes: "30. dubna 2027" });
     expect(screen.getByText("Potvrzení účasti je otevřeno do 30. dubna 2027.")).toBeInTheDocument();
@@ -182,6 +198,16 @@ describe("krok 2: formulář domácnosti (FR-RSVP-2, FR-RSVP-3, FR-RSVP-4)", () 
       ).getByRole("button", { name: "Nepřijde nikdo" }),
     );
     expect(radio("Jan Novák", "Svatební hostina", "Nepřijde")).toBeChecked();
+  });
+
+  it("přidání a odebrání osoby přesouvá zaměření, aby nespadlo na body (2.4.3)", async () => {
+    const user = userEvent.setup();
+    renderForm(listedState());
+    await user.click(screen.getByRole("button", { name: "Přidat dítě" }));
+    expect(screen.getByLabelText("Jméno dítěte")).toHaveFocus();
+    await user.click(screen.getByRole("button", { name: "Přidat dítě" }));
+    await user.click(screen.getByRole("button", { name: "Odebrat dítě 1" }));
+    expect(screen.getByRole("button", { name: "Přidat dítě" })).toHaveFocus();
   });
 
   it("plus jedna s ručním jménem a děti s věkem: přidání, pole, odebrání", async () => {
@@ -445,7 +471,10 @@ describe("odeslání, chyby a potvrzení (FR-RSVP-5, FR-RSVP-6)", () => {
     const user = userEvent.setup();
     renderForm(listedState());
     await user.click(screen.getByRole("button", { name: "Zadat jiné jméno" }));
-    expect(await screen.findByLabelText("Vaše jméno")).toHaveValue("");
+    const field = await screen.findByLabelText("Vaše jméno");
+    expect(field).toHaveValue("");
+    // po vrácení na první krok se zaměří pole jména, ne `body`
+    await waitFor(() => expect(field).toHaveFocus());
     expect(actions.resetAction).toHaveBeenCalledTimes(1);
   });
 

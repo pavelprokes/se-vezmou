@@ -1,10 +1,11 @@
 "use client";
 
 import { CircleAlert, CircleCheck } from "lucide-react";
-import { useActionState, useId } from "react";
+import { useActionState, useEffect, useId, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/choice";
 import { Field } from "@/components/ui/field";
+import { FormAlert } from "@/components/ui/form-alert";
 import { Icon } from "@/components/ui/icon";
 import { HONEYPOT_FIELD } from "@/lib/waitlist-fields";
 import { joinWaitlist } from "./waitlist-action";
@@ -35,6 +36,7 @@ export function WaitlistFormClient({ locale, labels }: { locale: string; labels:
   const [state, action, pending] = useActionState(joinWaitlist, initialWaitlistState);
   const consentId = useId();
   const consentErrorId = `${consentId}-error`;
+  const formRef = useRef<HTMLFormElement>(null);
 
   const emailError =
     state.errors?.email === "required"
@@ -50,8 +52,24 @@ export function WaitlistFormClient({ locale, labels }: { locale: string; labels:
         ? labels.errors.generic
         : undefined;
 
+  // Po chybě se zaměří první chybné pole (3.3.1); bez chybného pole zůstane zaměření na tlačítku,
+  // které se během odesílání jen označuje `aria-disabled`, takže ho neztratí.
+  useEffect(() => {
+    if (state.status === "idle" || state.status === "success") return;
+    formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+  }, [state]);
+
   return (
-    <form action={action} noValidate className="mt-5 flex flex-col gap-4">
+    <form
+      ref={formRef}
+      action={action}
+      onSubmit={(event) => {
+        // Dvojité odeslání během čekání zahodit (tlačítko není `disabled`, aby neztratilo zaměření).
+        if (pending) event.preventDefault();
+      }}
+      noValidate
+      className="mt-5 flex flex-col gap-4"
+    >
       <input type="hidden" name="locale" value={locale} />
       {/* Past na roboty: člověk pole nevidí ani nezaměří; vyplněné pole zahodí odeslání. */}
       <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
@@ -62,7 +80,6 @@ export function WaitlistFormClient({ locale, labels }: { locale: string; labels:
       </div>
 
       <Field
-        key={state.email ?? "empty"}
         label={labels.email}
         name="email"
         type="email"
@@ -94,7 +111,7 @@ export function WaitlistFormClient({ locale, labels }: { locale: string; labels:
       </div>
 
       <div>
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" aria-disabled={pending || undefined}>
           {pending ? labels.pending : labels.submit}
         </Button>
       </div>
@@ -107,13 +124,9 @@ export function WaitlistFormClient({ locale, labels }: { locale: string; labels:
             <span>{labels.success}</span>
           </p>
         ) : null}
-        {formError ? (
-          <p className="text-cinnamon-deep flex items-start gap-2 font-medium">
-            <Icon icon={CircleAlert} size={20} className="mt-0.5" />
-            <span>{formError}</span>
-          </p>
-        ) : null}
       </div>
+      {/* Chyba celého formuláře (omezení počtu požadavků, selhání): `role="alert"` je v DOM stále. */}
+      <FormAlert>{formError}</FormAlert>
     </form>
   );
 }

@@ -215,8 +215,14 @@ describe("PhotosPanel", () => {
         spies={{ onReorder }}
       />,
     );
-    expect(screen.getByRole("button", { name: "Posunout fotografii 1 výš" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Posunout fotografii 3 níž" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Posunout fotografii 1 výš" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Posunout fotografii 3 níž" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
     await user.click(screen.getByRole("button", { name: "Posunout fotografii 3 výš" }));
     expect(onReorder).toHaveBeenLastCalledWith([ID(1), ID(3), ID(2)]);
     expect(screen.getByText("Fotografie přesunuta na pozici 2 z 3.")).toBeInTheDocument();

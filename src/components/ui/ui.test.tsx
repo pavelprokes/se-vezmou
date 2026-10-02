@@ -35,6 +35,31 @@ describe("Button", () => {
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
+  it("zakázané tlačítko zůstane zaměřitelné (aria-disabled), klik ani odeslání formuláře neprojde", async () => {
+    const onClick = vi.fn();
+    const onSubmit = vi.fn((event: { preventDefault: () => void }) => event.preventDefault());
+    const user = userEvent.setup();
+    render(
+      <form onSubmit={onSubmit}>
+        <input aria-label="Pole" />
+        <Button type="submit" onClick={onClick} disabled>
+          Pošli
+        </Button>
+      </form>,
+    );
+    const button = screen.getByRole("button", { name: "Pošli" });
+    expect(button).not.toBeDisabled();
+    expect(button).toHaveAttribute("aria-disabled", "true");
+    await user.tab();
+    await user.tab();
+    expect(button).toHaveFocus();
+    await user.keyboard("{Enter}");
+    await user.click(screen.getByLabelText("Pole"));
+    await user.keyboard("{Enter}");
+    expect(onClick).not.toHaveBeenCalled();
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
   it("má zaoblení 10 px a cíl 44 px ve všech variantách", () => {
     for (const variant of ["primary", "secondary", "text"] as const) {
       const classes = buttonVariants({ variant });

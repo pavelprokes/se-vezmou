@@ -328,5 +328,6 @@
   "issue.deadline_after_start": "Uzávěrka potvrzení účasti musí být nejpozději v den svatby.",
   "issue.pin_required": "Zadejte PIN, nebo ochranu PINem vypněte.",
   "issue.pin_format": "PIN musí mít 6 až 12 číslic.",
-  "issue.pin_trivial": "Tento PIN je příliš snadný (řada čísel nebo samé stejné číslice). Zvolte jiný."
+  "issue.pin_trivial": "Tento PIN je příliš snadný (řada čísel nebo samé stejné číslice). Zvolte jiný.",
+  "preview.meta": "Náhled konceptu"
 }

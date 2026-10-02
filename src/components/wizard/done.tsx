@@ -45,7 +45,12 @@ export function Done({ info, uiLocale }: { info: DoneInfo; uiLocale: Locale }) {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6" data-testid="done">
+    <main
+      id="obsah"
+      tabIndex={-1}
+      className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 py-8 sm:px-8"
+      data-testid="done"
+    >
       <div>
         <h1
           ref={heading}
@@ -105,12 +110,14 @@ export function Done({ info, uiLocale }: { info: DoneInfo; uiLocale: Locale }) {
           <h2 id="wz-done-pin" className="text-xl font-medium">
             {t("wizard.done.pin.title")}
           </h2>
-          <p
-            className="text-3xl font-semibold tracking-widest"
-            data-testid="done-pin"
-            aria-label={t("wizard.done.pin.spoken", { pin: info.pin.split("").join(" ") })}
-          >
-            {info.pin}
+          {/* `aria-label` na odstavci čtečky ignorují: vizuální PIN je skrytý a čtečka dostane číslice zvlášť. */}
+          <p className="text-3xl font-semibold tracking-widest">
+            <span aria-hidden="true" data-testid="done-pin">
+              {info.pin}
+            </span>
+            <span className="sr-only">
+              {t("wizard.done.pin.spoken", { pin: info.pin.split("").join(" ") })}
+            </span>
           </p>
           <p>{t("wizard.done.pin.body")}</p>
           <div className="flex flex-wrap items-center gap-3">
@@ -148,6 +155,6 @@ export function Done({ info, uiLocale }: { info: DoneInfo; uiLocale: Locale }) {
           {t("wizard.done.dashboard")}
         </a>
       </p>
-    </div>
+    </main>
   );
 }

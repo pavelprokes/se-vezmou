@@ -6,7 +6,7 @@ import { useAdminT } from "./i18n";
 
 /**
  * Nevratnější akce potvrzuje druhým krokem přímo v místě (bez vyskakovacího okna): první klik
- * ukáže otázku s tlačítky Ano a Zrušit a přesune na ni zaměření, Escape krok zruší.
+ * ukáže otázku s tlačítky Ano a Zrušit a přesune na ni zaměření, Escape krok zruší. Po zavření otázky se zaměření vrací na tlačítko.
  */
 export function ConfirmButton({
   label,
@@ -29,22 +29,38 @@ export function ConfirmButton({
   const t = useAdminT();
   const [asking, setAsking] = useState(false);
   const confirm = useRef<HTMLButtonElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  // Po zavření otázky (Escape, Zrušit i Ano) se zaměření vrací na tlačítko, jinak by spadlo na `body`.
+  const restoreFocus = useRef(false);
 
   useEffect(() => {
     if (asking) confirm.current?.focus();
+    else if (restoreFocus.current) {
+      restoreFocus.current = false;
+      trigger.current?.focus();
+    }
   }, [asking]);
+
+  function close() {
+    restoreFocus.current = true;
+    setAsking(false);
+  }
 
   if (!asking) {
     return (
-      <Button
+      // `aria-disabled` místo `disabled`: tlačítko, které se právě zaneprázdnilo, neztratí zaměření.
+      <button
+        ref={trigger}
         type="button"
-        variant={variant}
-        disabled={disabled}
+        className={buttonVariants({ variant })}
+        aria-disabled={disabled || undefined}
         aria-label={ariaLabel}
-        onClick={() => setAsking(true)}
+        onClick={() => {
+          if (!disabled) setAsking(true);
+        }}
       >
         {label}
-      </Button>
+      </button>
     );
   }
   return (
@@ -53,7 +69,7 @@ export function ConfirmButton({
       aria-label={question}
       className="border-hairline bg-warm flex flex-col gap-2 rounded-2xl border p-3"
       onKeyDown={(event) => {
-        if (event.key === "Escape") setAsking(false);
+        if (event.key === "Escape") close();
       }}
     >
       <p className="text-ink font-medium">{question}</p>
@@ -63,13 +79,13 @@ export function ConfirmButton({
           type="button"
           className={buttonVariants()}
           onClick={() => {
-            setAsking(false);
+            close();
             onConfirm();
           }}
         >
           {confirmLabel}
         </button>
-        <Button type="button" variant="secondary" onClick={() => setAsking(false)}>
+        <Button type="button" variant="secondary" onClick={close}>
           {t("admin.common.cancel")}
         </Button>
       </div>

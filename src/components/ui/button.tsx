@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
+import { ButtonElement } from "./button-element";
 
 /**
  * Tlačítka: hlavní (plná plocha), vedlejší (obrys) a textové (podtržené).
@@ -34,9 +35,13 @@ export const buttonVariants = cva(
 export interface ButtonProps
   extends ButtonHTMLAttributes<HTMLButtonElement>, VariantProps<typeof buttonVariants> {}
 
+/**
+ * `disabled` se vykreslí jako `aria-disabled` s hlídáním kliknutí (viz `ButtonElement`), aby
+ * tlačítko při odesílání neztratilo zaměření z klávesnice.
+ */
 export function Button({ variant, fullWidth, className, type = "button", ...props }: ButtonProps) {
   return (
-    <button
+    <ButtonElement
       type={type}
       className={cn(buttonVariants({ variant, fullWidth }), className)}
       {...props}

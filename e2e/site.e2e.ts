@@ -313,3 +313,54 @@ test.describe("vývojový náhled", () => {
     await expect(page.locator(".site-root")).toHaveAttribute("data-template", "eukalyptus");
   });
 });
+
+test.describe("skutečný web páru: reflow a omezený pohyb", () => {
+  for (const [lang, path] of [
+    ["cs", "/"],
+    ["en", "/en"],
+  ] as const) {
+    test(`reflow při 320 px (400 % zvětšení), ${lang}: bez vodorovného posunu`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: 320, height: 256 });
+      await page.goto(pageUrl(HOSTS.tenant, path));
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      for (const summary of await page.locator("summary").all()) await summary.click();
+      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+      await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    });
+  }
+
+  test("prefers-reduced-motion: žádné animace ani plynulé posouvání na webu páru", async ({
+    browser,
+  }) => {
+    const motion = async (reducedMotion: "reduce" | "no-preference") => {
+      const context = await browser.newContext({ reducedMotion });
+      const page = await context.newPage();
+      await page.goto(pageUrl(HOSTS.tenant, "/"));
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      const result = await page.evaluate(() => {
+        const seconds = (value: string) =>
+          Math.max(...value.split(",").map((part) => parseFloat(part) || 0));
+        const moving: string[] = [];
+        for (const el of document.querySelectorAll<HTMLElement>("body, body *")) {
+          const style = getComputedStyle(el);
+          const animated =
+            style.animationName !== "none" && seconds(style.animationDuration) > 0.01;
+          const transitioned = seconds(style.transitionDuration) > 0.01;
+          if (animated || transitioned) moving.push(`${el.tagName}.${el.className}`);
+        }
+        return {
+          moving,
+          scrollBehavior: getComputedStyle(document.documentElement).scrollBehavior,
+        };
+      });
+      await context.close();
+      return result;
+    };
+    const reduced = await motion("reduce");
+    expect(reduced.moving).toEqual([]);
+    expect(reduced.scrollBehavior).toBe("auto");
+  });
+});

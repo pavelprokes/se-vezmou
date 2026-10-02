@@ -58,9 +58,28 @@ body {
 
 /* Viditelný focus pro všechny ovladatelné prvky (WCAG 2.4.7, 2.4.13). */
 :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
-  outline: 3px solid var(--color-ink);
+  /* Barvu obrysu mění tmavé plochy (`--focus-ring`), aby měl obrys vůči pozadí aspoň 3 : 1 (WCAG 1.4.11). */
+  outline: 3px solid var(--focus-ring, var(--color-ink));
   outline-offset: 3px;
   border-radius: 4px;
+}
+
+/*
+ * Průvodce má dole pevný pruh s tlačítky; zaměřený prvek se při posunu (Tab, zpětný Tab) nesmí
+ * schovat pod něj (WCAG 2.4.11). Odsazení posunu odpovídá `pb-44` stránky (11 rem), pruh je nižší.
+ */
+html:has(.wizard-page) {
+  scroll-padding-bottom: 11rem;
+}
+
+/* Mobilní nabídka úvodní stránky bez JavaScriptu: tlačítko by nic nedělalo, proto je panel vždy rozbalený. */
+@media (scripting: none) {
+  .header-menu-button {
+    display: none;
+  }
+  .header-menu-panel {
+    display: flex;
+  }
 }
 
 /* Cíl odkazu na kotvu (přeskočení na obsah) nemá vlastní obrys, zaměření se jen přesune. */

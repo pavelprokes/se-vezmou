@@ -306,7 +306,7 @@
   "issue.slug_too_short": "The address must have at least 3 characters.",
   "issue.slug_too_long": "The address can have at most 63 characters.",
   "issue.slug_format": "Use only lowercase letters without accents, numbers and hyphens; a hyphen cannot be at the edge or doubled.",
-  "issue.slug_reserved": "This address cannot be used. Please try another one.",
+  "issue.slug_reserved": "This address is not available. Please try another one.",
   "issue.palette_invalid": "Choose colours from the list.",
   "issue.palette_contrast": "These colours have low contrast and the website would be hard to read. Choose others.",
   "issue.time_required": "Enter the time, for example 14:00.",

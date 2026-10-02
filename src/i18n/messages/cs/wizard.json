@@ -312,7 +312,7 @@
   "issue.slug_too_short": "Adresa musí mít aspoň 3 znaky.",
   "issue.slug_too_long": "Adresa může mít nejvýš 63 znaků.",
   "issue.slug_format": "Použijte jen malá písmena bez diakritiky, čísla a pomlčky; pomlčka nesmí být na kraji ani dvě za sebou.",
-  "issue.slug_reserved": "Tuto adresu nelze použít. Zkuste jinou.",
+  "issue.slug_reserved": "Tato adresa není k dispozici. Zkuste jinou.",
   "issue.palette_invalid": "Vyberte barvy z nabídky.",
   "issue.palette_contrast": "Tyto barvy mají nízký kontrast a web by se špatně četl. Vyberte jiné.",
   "issue.time_required": "Zadejte čas, například 14:00.",

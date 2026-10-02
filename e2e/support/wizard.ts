@@ -52,7 +52,7 @@ export async function completeRequiredSteps(
   await expect(heading(page)).toHaveText("Vyberte vzhled webu");
   await page.getByRole("radio", { name: options.template ?? /Chateau/ }).check();
   await nextScreen(page);
-  await page.getByRole("radio", { name: options.palette ?? /Slonovina/ }).check();
+  await page.getByRole("radio", { name: options.palette ?? /Slonová kost/ }).check();
   await next(page);
   await expect(heading(page)).toHaveText("Program dne a místo konání");
 }
@@ -97,7 +97,7 @@ export async function fillOptionalSteps(page: Page): Promise<{ pin: string }> {
   // 7. Přístup a soukromí
   await expect(heading(page)).toHaveText("Kdo smí web vidět?");
   await page.getByLabel("Chránit citlivé části webu PINem").check();
-  const pin = await page.getByLabel("PIN pro hosty", { exact: true }).inputValue();
+  const pin = await page.getByRole("textbox", { name: "PIN pro hosty" }).inputValue();
   await next(page);
   await expect(heading(page)).toHaveText("Zkontrolujte, co jste zadali");
   return { pin };
@@ -108,8 +108,9 @@ export async function verifyEmail(
   page: Page,
   emails: { email: string; backup: string },
 ): Promise<void> {
-  const dialog = page.getByRole("dialog", { name: "Uložte svůj koncept" });
-  await expect(dialog).toBeVisible();
+  // Název dialogu se mezi fázemi mění (e-mail, kód), proto se hledá podle otevřeného dialogu.
+  const dialog = page.locator("dialog[open]");
+  await expect(dialog.getByRole("heading", { name: "Uložte svůj koncept" })).toBeVisible();
   await dialog.getByLabel("Váš e-mail").fill(emails.email);
   await dialog.getByLabel("Záložní e-mail").fill(emails.backup);
   await dialog.getByRole("button", { name: "Poslat kód" }).click();

@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, CircleAlert, SkipForward } from "lucide-react";
+import { useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import { STEP_COUNT, STEP_KEYS, stepState, type StepState, type WizardDraft } from "@/wizard/draft";
@@ -28,6 +29,8 @@ function StateMark({ state }: { state: StepState }) {
  */
 export function Stepper({ draft, onGoTo }: { draft: WizardDraft; onGoTo: (step: number) => void }) {
   const t = useT();
+  // Rozbalený seznam kroků na mobilu se po výběru kroku zase sbalí.
+  const [open, setOpen] = useState(false);
   const { step, reached } = draft.progress;
   const steps = Array.from({ length: STEP_COUNT }, (_, index) => index + 1);
 
@@ -43,7 +46,10 @@ export function Stepper({ draft, onGoTo }: { draft: WizardDraft; onGoTo: (step: 
               type="button"
               disabled={!enabled}
               aria-current={current ? "step" : undefined}
-              onClick={() => onGoTo(number)}
+              onClick={() => {
+                setOpen(false);
+                onGoTo(number);
+              }}
               className={cn(
                 "min-h-target rounded-button flex w-full items-center gap-2 border-2 px-3 text-start text-base",
                 enabled ? "cursor-pointer" : "cursor-not-allowed opacity-70",
@@ -86,7 +92,11 @@ export function Stepper({ draft, onGoTo }: { draft: WizardDraft; onGoTo: (step: 
       >
         <div className="bg-pine h-full" style={{ width: `${(step / STEP_COUNT) * 100}%` }} />
       </div>
-      <details className="lg:hidden">
+      <details
+        className="lg:hidden"
+        open={open}
+        onToggle={(event) => setOpen(event.currentTarget.open)}
+      >
         <summary className="min-h-target text-pine flex cursor-pointer items-center font-medium underline underline-offset-4">
           {t("wizard.stepper.all")}
         </summary>

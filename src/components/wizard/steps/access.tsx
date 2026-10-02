@@ -41,8 +41,8 @@ export function StepAccess({ draft, update, errors, screen, mobile }: StepProps)
         <p className="text-muted mt-2 text-sm">{t("wizard.access.noindex.note")}</p>
       </section>
 
-      <section aria-labelledby="wz-pin" className="flex flex-col gap-4">
-        <h3 id="wz-pin" className="flex items-center gap-2 text-lg font-medium">
+      <section aria-labelledby="wz-pin-title" className="flex flex-col gap-4">
+        <h3 id="wz-pin-title" className="flex items-center gap-2 text-lg font-medium">
           <Icon icon={ShieldCheck} size={22} />
           {t("wizard.access.pin.title")}
         </h3>

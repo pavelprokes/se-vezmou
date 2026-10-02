@@ -52,10 +52,10 @@ function Row({
 }) {
   const t = useT();
   return (
-    <div className="border-hairline flex flex-wrap items-start justify-between gap-x-4 gap-y-1 border-b py-3 last:border-b-0">
+    <li className="border-hairline flex flex-wrap items-start justify-between gap-x-4 gap-y-1 border-b py-3 last:border-b-0">
       <div className="min-w-0 flex-1 basis-60">
-        <dt className="text-muted text-sm">{label}</dt>
-        <dd className="text-ink font-medium break-words">{value}</dd>
+        <p className="text-muted text-sm">{label}</p>
+        <p className="text-ink font-medium break-words">{value}</p>
       </div>
       <Button
         variant="text"
@@ -64,7 +64,7 @@ function Row({
       >
         {t("wizard.review.edit")}
       </Button>
-    </div>
+    </li>
   );
 }
 
@@ -193,7 +193,7 @@ export function StepReview({
         </section>
       ) : null}
 
-      <dl className="bg-warm border-hairline rounded-2xl border px-4">
+      <ul className="bg-warm border-hairline rounded-2xl border px-4">
         <Row
           label={t("wizard.review.names")}
           value={`${draft.partnerA || none} ${t("wizard.review.and")} ${draft.partnerB || none}`.replace(
@@ -232,7 +232,7 @@ export function StepReview({
           step={7}
           onGoTo={onGoTo}
         />
-      </dl>
+      </ul>
     </div>
   );
 }

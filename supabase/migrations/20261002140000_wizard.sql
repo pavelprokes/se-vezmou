@@ -17,6 +17,15 @@ alter table public.weddings
   check (wizard_draft is null or jsonb_typeof(wizard_draft) = 'object');
 
 -- ---------------------------------------------------------------------------
+-- Účel výzvy "wizard_create": kód z e-mailu při prvním uložení v průvodci (ověření e-mailu před
+-- rezervací adresy). Samostatný účel, aby kód z průvodce nešel použít k přihlášení a naopak
+-- (auth_verify_challenge porovnává účel).
+-- ---------------------------------------------------------------------------
+alter table public.login_challenges drop constraint login_challenges_purpose_check;
+alter table public.login_challenges add constraint login_challenges_purpose_check
+  check (purpose in ('admin_login', 'admin_add_confirm', 'operator_recovery', 'wizard_create'));
+
+-- ---------------------------------------------------------------------------
 -- Blokované výrazy v adresách (OQ-37, FR-WZ-4): vulgarismy, urážlivé a podvodné výrazy.
 -- Řádek se nikdy nemaže (spouštěč slug_registry_guard). Seznam je výchozí a majitel ho rozšiřuje
 -- vkládáním řádků se state = 'reserved_word'.

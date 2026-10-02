@@ -17,6 +17,8 @@ export const COOKIE_KINDS = {
   admin: "sv_admin",
   /** Rozpracované přihlášení kódem (zapečetěný e-mail) na `app.`. */
   pending: "sv_login",
+  /** Ověřování e-mailu při prvním uložení v průvodci (zapečetěné e-maily, `src/wizard/server/flow.ts`). */
+  wizard: "sv_wizard",
 } as const;
 
 export type CookieKind = keyof typeof COOKIE_KINDS;

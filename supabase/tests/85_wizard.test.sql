@@ -72,6 +72,24 @@ end
 $$;
 
 -- ---------------------------------------------------------------------------
+-- Výzva s účelem wizard_create: kód z průvodce nejde použít k přihlášení a naopak
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_email bytea := sha256(convert_to('wizard@example.test', 'UTF8'));
+  v_code bytea := sha256(convert_to('123456', 'UTF8'));
+begin
+  set local role service_role;
+  perform public.auth_create_challenge(v_email, 'wizard_create', v_code, 600);
+  perform tap.ok(not public.auth_verify_challenge(v_email, 'admin_login', v_code), 'kód z průvodce neplatí pro přihlášení');
+  perform tap.ok(public.auth_verify_challenge(v_email, 'wizard_create', v_code), 'kód z průvodce platí pro průvodce');
+  perform tap.ok(not public.auth_verify_challenge(v_email, 'wizard_create', v_code), 'a jen jednou');
+  perform tap.throws('select public.auth_create_challenge(''\x00''::bytea, ''neznamy'', ''\x00''::bytea, 600)', '23514', 'neznámý účel výzvy se odmítne');
+  perform tap.reset();
+end
+$$;
+
+-- ---------------------------------------------------------------------------
 -- Analytické události: uzavřený seznam
 -- ---------------------------------------------------------------------------
 do $$

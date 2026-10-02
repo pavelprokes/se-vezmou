@@ -182,7 +182,8 @@ export function authRevokeSessions(weddingId: string, subjectId?: string): Promi
 
 // --- výzvy (kód z e-mailu) ---------------------------------------------------------------
 
-export type ChallengePurpose = "admin_login" | "admin_add_confirm" | "operator_recovery";
+export type ChallengePurpose =
+  "admin_login" | "admin_add_confirm" | "operator_recovery" | "wizard_create";
 
 export function authCreateChallenge(input: {
   emailHash: Bytes;

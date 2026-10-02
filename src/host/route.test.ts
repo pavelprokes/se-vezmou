@@ -56,6 +56,39 @@ describe("routeRequest: přepis na interní segmenty", () => {
   });
 });
 
+describe("routeRequest: jazyk rozhraní na hostiteli app", () => {
+  it("/en/... se přepíše na stejnou cestu a jazyk nese pole uiLocale", () => {
+    expect(route("app.se-vezmou.cz", "/en/vytvorit")).toEqual({
+      action: "rewrite",
+      kind: "app",
+      pathname: "/h/app/vytvorit",
+      uiLocale: "en",
+    });
+    expect(route("app.se-vezmou.cz", "/en")).toMatchObject({ pathname: "/h/app", uiLocale: "en" });
+    expect(route("app.se-vezmou.cz", "/en/prihlaseni")).toMatchObject({
+      pathname: "/h/app/prihlaseni",
+      uiLocale: "en",
+    });
+  });
+
+  it("průvodce je česky podle cesty, ne podle prohlížeče", () => {
+    expect(route("app.se-vezmou.cz", "/vytvorit")).toMatchObject({
+      pathname: "/h/app/vytvorit",
+      uiLocale: "cs",
+    });
+    expect(route("app.se-vezmou.cz", "/vytvorit/nahled")).toMatchObject({ uiLocale: "cs" });
+  });
+
+  it("ostatní stránky bez jazyka v cestě volí jazyk podle prohlížeče (bez uiLocale)", () => {
+    expect(route("app.se-vezmou.cz", "/prihlaseni")).not.toHaveProperty("uiLocale");
+  });
+
+  it("/cs/... je duplicita, 404; admin předponu /en nezná", () => {
+    expect(route("app.se-vezmou.cz", "/cs/vytvorit")).toEqual({ action: "notFound", kind: "app" });
+    expect(route("admin.se-vezmou.cz", "/en")).toMatchObject({ pathname: "/h/admin/en" });
+  });
+});
+
 describe("routeRequest: blokace a 404", () => {
   it.each([
     "se-vezmou.cz",

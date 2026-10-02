@@ -8,12 +8,12 @@ import { localizedPath } from "@/i18n/pathnames";
 import { createTranslator } from "@/i18n/translator";
 import { getPublicContent } from "@/site/content";
 import { languageAlternates, originFromHeaders } from "@/site/origin";
-import { tenantExists } from "@/tenant/resolve";
 
 type Props = PageProps<"/h/tenant/[slug]/[locale]">;
 
 async function load(slug: string, locale: string) {
-  if (!isLocale(locale) || !tenantExists(slug)) return null;
+  if (!isLocale(locale)) return null;
+  // Neexistující, nezveřejněná i zablokovaná adresa: `null`, tedy stejná 404 (FR-PRIV-3).
   const content = await getPublicContent(slug);
   // Jazyk, který web nenabízí, je stejná 404 jako neexistující web.
   if (!content || !content.locales.includes(locale)) return null;
@@ -38,8 +38,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * Web páru z `getPublicContent(slug)`. Čte aktuální čas (odpočet), proto se vykresluje za běhu.
- * TODO(M5): obsah z databáze (zveřejněný snímek); dosud ukázková fixture Klára a Matěj.
+ * Web páru ze zveřejněného snímku v databázi (`getPublicContent(slug)`). Čte aktuální čas
+ * (odpočet) a živou fázi, proto se vykresluje za běhu.
  */
 export default async function TenantSite({ params }: Props) {
   await connection();

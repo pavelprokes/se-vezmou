@@ -30,6 +30,18 @@ describe("cookieSpec (ostrý provoz)", () => {
     expect(pending.options).toMatchObject({ httpOnly: true, secure: true, sameSite: "lax" });
   });
 
+  it("cookie průvodce má vlastní název a stejné atributy", () => {
+    const wizard = cookieSpec("wizard", "app.se-vezmou.cz", 1800);
+    expect(wizard.name).toBe("__Host-sv_wizard");
+    expect(wizard.options).toMatchObject({
+      httpOnly: true,
+      secure: true,
+      sameSite: "lax",
+      maxAge: 1800,
+    });
+    expect(cookieSpec("wizard", "app.localhost:3100").name).toBe("sv_wizard");
+  });
+
   it("neznámý nebo chybějící hostitel se bere jako ostrý (přísná varianta)", () => {
     expect(cookieSpec("admin", null).name).toBe("__Host-sv_admin");
     expect(cookieSpec("admin", undefined).options.secure).toBe(true);

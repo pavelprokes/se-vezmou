@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { locales, type Locale } from "@/i18n/config";
 import { NBSP, findTypoViolations, typo } from "@/i18n/typo";
-import { renderBackupLoginNotice, renderLoginCode, type RenderedEmail } from "./index";
+import {
+  renderBackupLoginNotice,
+  renderLoginCode,
+  renderWizardCode,
+  type RenderedEmail,
+} from "./index";
 
 const LINK = "https://app.se-vezmou.cz/prihlaseni/odkaz?t=abc_DEF-123";
 const AT = new Date("2026-10-02T12:05:00Z"); // 14:05 pražského času
@@ -9,6 +14,7 @@ const AT = new Date("2026-10-02T12:05:00Z"); // 14:05 pražského času
 function allEmails(locale: Locale): Record<string, RenderedEmail> {
   return {
     loginCode: renderLoginCode({ locale, code: "048213", link: LINK, ttlSeconds: 600 }),
+    wizardCode: renderWizardCode({ locale, code: "731905", ttlSeconds: 600 }),
     pinLogin: renderBackupLoginNotice({
       locale,
       event: "pin_login",
@@ -73,6 +79,14 @@ describe.each(locales)("e-mailové šablony (%s)", (locale) => {
     expect(html).toContain(">048213<");
   });
 
+  it("kód z průvodce je na vlastním řádku a e-mail neobsahuje žádný odkaz", () => {
+    const { text, html } = emails.wizardCode;
+    expect(text.split("\n")).toContain("731905");
+    expect(html).toContain(">731905<");
+    expect(html).not.toContain("<a ");
+    expect(text).not.toMatch(/https?:/);
+  });
+
   it("odkaz je v textové verzi na vlastním řádku a v HTML jako odkaz s popisem", () => {
     const { text, html } = emails.loginCode;
     expect(text.split("\n")).toContain(LINK);
@@ -105,7 +119,7 @@ describe.each(locales)("e-mailové šablony (%s)", (locale) => {
 
   it("předměty se mezi typy oznámení liší", () => {
     const subjects = Object.values(emails).map((email) => email.subject);
-    expect(new Set(subjects).size).toBe(4); // pinLogin a pinLoginNoSite sdílejí předmět
+    expect(new Set(subjects).size).toBe(5); // pinLogin a pinLoginNoSite sdílejí předmět
   });
 });
 

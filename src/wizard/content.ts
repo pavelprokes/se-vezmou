@@ -11,6 +11,7 @@ import {
 } from "@/site/types";
 import type { PlaceDraft, WizardDraft } from "./draft";
 import { normalizePhone, normalizeUrl } from "./normalize";
+import { phaseFromDates } from "@/site/phase";
 import { addDays, DEFAULT_TIMEZONE, endOfDayIso, todayIn, zonedIso } from "./zoned";
 
 /**
@@ -59,13 +60,10 @@ export interface ContentOptions {
 
 /** Fáze koncepčního náhledu: potvrzení účasti otevřené, po svatbě poděkování (jako `app.phase`). */
 export function previewPhase(draft: WizardDraft, now: Date = new Date()): Phase {
-  if (draft.startsOn === "") return "rsvp_open";
-  const today = todayIn(now);
-  const last = draft.endsOn || draft.startsOn;
-  if (today > last) return "thanks";
-  if (today >= draft.startsOn) return "wedding_day";
-  if (draft.rsvp.deadline !== "" && today > draft.rsvp.deadline) return "rsvp_closed";
-  return "rsvp_open";
+  return phaseFromDates(
+    { startsOn: draft.startsOn, endsOn: draft.endsOn, deadline: draft.rsvp.deadline },
+    now,
+  );
 }
 
 interface Resolved {

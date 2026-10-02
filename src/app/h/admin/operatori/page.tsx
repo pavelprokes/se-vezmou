@@ -91,7 +91,7 @@ export default async function OperatorsPage() {
         </TableRegion>
       </section>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
         <Card as="section" aria-labelledby="o-create">
           <h2 id="o-create" className="mb-3 text-xl font-medium">
             {t("ops.operators.create.title")}

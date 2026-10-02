@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
+import type { MessageKey } from "@/i18n/messages";
 import { createTranslator } from "@/i18n/translator";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "../actions/login";
@@ -8,13 +9,13 @@ import type { OperatorSession } from "../session";
 
 export type NavKey = "overview" | "weddings" | "retention" | "audit" | "operators" | "account";
 
-const NAV: { key: NavKey; href: string; action: OperatorAction }[] = [
-  { key: "overview", href: "/", action: "view" },
-  { key: "weddings", href: "/zakazky", action: "view" },
-  { key: "retention", href: "/retence", action: "view" },
-  { key: "audit", href: "/audit", action: "audit" },
-  { key: "operators", href: "/operatori", action: "manage_operators" },
-  { key: "account", href: "/ucet", action: "view" },
+const NAV: { key: NavKey; href: string; action: OperatorAction; label: MessageKey }[] = [
+  { key: "overview", href: "/", action: "view", label: "ops.nav.overview" },
+  { key: "weddings", href: "/zakazky", action: "view", label: "ops.nav.weddings" },
+  { key: "retention", href: "/retence", action: "view", label: "ops.nav.retention" },
+  { key: "audit", href: "/audit", action: "audit", label: "ops.nav.audit" },
+  { key: "operators", href: "/operatori", action: "manage_operators", label: "ops.nav.operators" },
+  { key: "account", href: "/ucet", action: "view", label: "ops.nav.account" },
 ];
 
 /**
@@ -67,7 +68,7 @@ export function OpsShell({
                         : "text-pine hover:bg-linen underline",
                     )}
                   >
-                    {t(`ops.nav.${item.key}` as const)}
+                    {t(item.label)}
                   </a>
                 </li>
               ))}

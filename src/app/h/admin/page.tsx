@@ -73,7 +73,7 @@ export default async function OverviewPage() {
 
   return (
     <OpsShell session={session} current="overview" title={t("ops.overview.title")}>
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-2">
         <section aria-labelledby="ov-status">
           <SectionTitle id="ov-status">{t("ops.overview.status.title")}</SectionTitle>
           <CountTable
@@ -135,7 +135,7 @@ export default async function OverviewPage() {
           {events.size === 0 ? (
             <p>{t("ops.overview.analytics.none")}</p>
           ) : (
-            <div className="grid gap-8 md:grid-cols-2">
+            <div className="grid grid-cols-[minmax(0,1fr)] gap-8 md:grid-cols-2">
               <CountTable
                 caption={t("ops.overview.analytics.title", { days: ANALYTICS_WINDOW_DAYS })}
                 firstColumn={t("ops.overview.col.event")}

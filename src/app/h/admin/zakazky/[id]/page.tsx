@@ -151,7 +151,7 @@ export default async function WeddingDetailPage({
         </a>
       </p>
 
-      <div className="grid gap-10">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-10">
         <section aria-labelledby="d-summary">
           <SectionTitle id="d-summary">{t("ops.detail.summary.title")}</SectionTitle>
           <dl>
@@ -330,7 +330,7 @@ export default async function WeddingDetailPage({
 
         <section aria-labelledby="d-actions">
           <SectionTitle id="d-actions">{t("ops.detail.actions.title")}</SectionTitle>
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-2">
             <Card as="section" aria-labelledby="a-status">
               <h3 id="a-status" className="mb-3 text-xl font-medium">
                 {t("ops.action.status.title")}

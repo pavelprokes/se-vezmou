@@ -29,7 +29,7 @@ async function submitCode(page: import("@playwright/test").Page, code: string) {
 
 async function expectDashboard(page: import("@playwright/test").Page) {
   await expect(page).toHaveURL(app("/"));
-  await expect(page.getByRole("heading", { level: 1, name: "Správa svatby" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Můj web" })).toBeVisible();
   await expect(page.getByText(/Klára a\s+Matěj/)).toBeVisible();
 }
 

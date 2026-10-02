@@ -16,6 +16,11 @@ const isoDateTime = z.iso.datetime({ offset: true });
 const anchorSchema = z.string().regex(/^[a-z][a-z0-9-]{0,40}$/);
 /** Jen odkazy http(s): do webu nesmí proniknout `javascript:` ani jiná schémata. */
 const httpUrl = z.url({ protocol: /^https?$/ });
+/** Odkaz na externí galerii (FR-WEB-5): jen https, nic jiného (ani `http:`, `javascript:` či `data:`). */
+export const httpsUrl = z
+  .url({ protocol: /^https$/ })
+  .max(500)
+  .refine((value) => !/\s/.test(value), "Odkaz nesmí obsahovat mezery");
 
 export const blockTypes = [
   "hero",
@@ -78,6 +83,11 @@ const eventSchema = z.object({
   startsAt: isoDateTime,
   endsAt: isoDateTime.nullable().default(null),
   venueId: z.string().nullable().default(null),
+  /**
+   * Událost je cílem pozvání a větvení potvrzení účasti (správa hostů, M7b). Starší snímky pole
+   * nemají; chybějící hodnota znamená obřad a hostina ano, ostatní události ne.
+   */
+  rsvpEnabled: z.boolean().optional(),
 });
 
 const blockBase = {
@@ -89,16 +99,16 @@ const blockBase = {
   sensitive: z.boolean().default(false),
 };
 
-const heroData = z.object({
+export const heroData = z.object({
   countdown: z.boolean().default(false),
   tagline: i18nTextSchema.nullable().default(null),
 });
-const programData = z.object({ intro: i18nTextSchema.nullable().default(null) });
-const venueData = z.object({
+export const programData = z.object({ intro: i18nTextSchema.nullable().default(null) });
+export const venueData = z.object({
   venueIds: z.array(z.string()),
   intro: i18nTextSchema.nullable().default(null),
 });
-const lodgingData = z.object({
+export const lodgingData = z.object({
   items: z.array(
     z.object({
       id: z.string(),
@@ -109,11 +119,11 @@ const lodgingData = z.object({
   ),
   transport: i18nTextSchema.nullable().default(null),
 });
-const dresscodeData = z.object({ text: i18nTextSchema });
-const faqData = z.object({
+export const dresscodeData = z.object({ text: i18nTextSchema });
+export const faqData = z.object({
   items: z.array(z.object({ id: z.string(), question: i18nTextSchema, answer: i18nTextSchema })),
 });
-const contactData = z.object({
+export const contactData = z.object({
   people: z.array(
     z.object({
       id: z.string(),
@@ -128,10 +138,54 @@ const contactData = z.object({
     }),
   ),
 });
-const storyData = z.object({ text: i18nTextSchema, mediaId: z.string().nullable().default(null) });
-const giftsData = z.object({ intro: i18nTextSchema.nullable().default(null) });
-const galleryData = z.object({ mediaIds: z.array(z.string()) });
-const rsvpData = z.object({ intro: i18nTextSchema.nullable().default(null) });
+export const storyData = z.object({
+  text: i18nTextSchema,
+  mediaId: z.string().nullable().default(null),
+});
+export const giftsData = z.object({ intro: i18nTextSchema.nullable().default(null) });
+/**
+ * Karta odkazu na externí galerii: údaje z Open Graph cílové stránky, které načetl SERVER při uložení
+ * nebo změně odkazu (ne při zobrazení hostovi). Titulek a popis jsou nedůvěryhodný text (vždy se
+ * vypisují jako text). `imageUrl` se na webu NEVYKRESLUJE (žádný hotlink, host nevolá cizí web):
+ * drží se jen pro pozdější zkopírování do vlastního úložiště fotek (OQ-47).
+ */
+export const galleryCardSchema = z.object({
+  title: z.string().max(200).nullable().default(null),
+  description: z.string().max(400).nullable().default(null),
+  imageUrl: httpsUrl.nullable().default(null),
+  fetchedAt: isoDateTime.nullable().default(null),
+  /** `ok`: něco se načetlo; `failed`: pokus selhal (karta spadne na doménu a text odkazu). */
+  status: z.enum(["ok", "failed"]).default("ok"),
+});
+export type GalleryCard = z.infer<typeof galleryCardSchema>;
+
+/**
+ * Odkaz na externí fotogalerii (např. u fotografa). Nahrávání fotek se nepodporuje (OQ-47), odkaz
+ * je jediná cesta k velké galerii. Veřejný odkaz je přímo ve snímku; chráněný odkaz (`protected`)
+ * v něm není (`url = null`, ani `card`): je v `SensitiveContent.gallery` a vykreslí se až po PINu hostů.
+ */
+export const galleryLinkSchema = z
+  .object({
+    url: httpsUrl.nullable().default(null),
+    /** Text odkazu (název galerie) po jazycích; přepisuje název z cílové stránky. */
+    label: i18nTextSchema.nullable().default(null),
+    protected: z.boolean().default(false),
+    card: galleryCardSchema.nullable().default(null),
+  })
+  .refine(
+    (link) => (link.protected ? link.url === null && link.card === null : link.url !== null),
+    {
+      message: "Veřejný odkaz má adresu, chráněný ji ani kartu ve veřejném snímku mít nesmí",
+      path: ["url"],
+    },
+  );
+export type GalleryLink = z.infer<typeof galleryLinkSchema>;
+
+export const galleryData = z.object({
+  mediaIds: z.array(z.string()),
+  link: galleryLinkSchema.nullable().default(null),
+});
+export const rsvpData = z.object({ intro: i18nTextSchema.nullable().default(null) });
 
 export const blockSchema = z.discriminatedUnion("type", [
   z.object({ ...blockBase, type: z.literal("hero"), data: heroData }),
@@ -208,6 +262,11 @@ export const sensitiveContentSchema = z.object({
       }),
     )
     .default({}),
+  /** Adresa chráněného odkazu na externí galerii (`GalleryLink.protected`). */
+  gallery: z
+    .object({ url: httpsUrl, card: galleryCardSchema.nullable().default(null) })
+    .nullable()
+    .default(null),
   gifts: z
     .object({
       /** Číslo účtu v tuzemském tvaru pro zobrazení, např. `19-2000145399/0800`. */

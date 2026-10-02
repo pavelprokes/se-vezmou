@@ -484,6 +484,48 @@ html:has(.site-root[data-sticky="true"]) {
   list-style: none;
 }
 
+/* Karta odkazu na externí galerii: jeden odkaz, titulek, popis a doména (bez cizího obrázku) */
+.site-linkcard {
+  display: flex;
+  max-width: 40rem;
+  min-height: 44px;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 1.5rem 0 0;
+  border: 1px solid var(--s-border);
+  border-radius: min(var(--s-radius), 0.75rem);
+  background: var(--s-bg);
+  padding: 1rem 1.25rem;
+  color: var(--s-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.site-section[data-tone="bg"] .site-linkcard {
+  background: var(--s-surface);
+}
+.site-linkcard:hover .site-linkcard-title {
+  text-decoration-thickness: 3px;
+}
+.site-linkcard-title {
+  color: var(--s-accent);
+  font-family: var(--s-font-display);
+  font-size: 1.25rem;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+  text-decoration-thickness: 2px;
+}
+.site-linkcard-desc {
+  color: var(--s-text);
+}
+.site-linkcard-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--s-muted);
+  font-size: 0.9rem;
+}
+
 /* FAQ */
 .site-faq {
   max-width: 44rem;

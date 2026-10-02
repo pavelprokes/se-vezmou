@@ -124,10 +124,13 @@ function hasContent(block: Block, ctx: SiteCtx): boolean {
     case "story":
       return ctx.text(block.data.text) !== "";
     case "gallery":
-      return block.data.mediaIds.some((id) => {
-        const media = ctx.media(id);
-        return media && (media.decorative || ctx.text(media.alt) !== "");
-      });
+      return (
+        block.data.link !== null ||
+        block.data.mediaIds.some((id) => {
+          const media = ctx.media(id);
+          return media && (media.decorative || ctx.text(media.alt) !== "");
+        })
+      );
   }
 }
 

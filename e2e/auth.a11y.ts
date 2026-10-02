@@ -81,7 +81,7 @@ test.describe("axe: obrazovky přihlášení", () => {
     await requestCode(page, wedding.adminEmail);
     await page.getByLabel("Šestimístný kód").fill(codeOf(await waitForMail(wedding.adminEmail)));
     await page.getByRole("button", { name: "Přihlásit se" }).click();
-    await expect(page.getByRole("heading", { level: 1, name: "Správa svatby" })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: "Můj web" })).toBeVisible();
     await expectNoViolations(page);
     await page.goto(app("/odhlaseni"));
     await expect(page.getByRole("heading", { level: 1, name: "Odhlášení" })).toBeVisible();

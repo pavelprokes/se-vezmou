@@ -61,6 +61,12 @@ export const RATE_RULES = {
   rsvpSubmitIp: { limit: 10, windowSeconds: HOUR },
   /** RSVP, odeslání za celou svatbu (součet všech IP). */
   rsvpSubmitWedding: { limit: 200, windowSeconds: HOUR },
+  /** Správa webu (M7a): průběžné ukládání konceptu podle svatby (autosave je častý, ale ne neomezený). */
+  siteSaveWedding: { limit: 1500, windowSeconds: HOUR },
+  /** Správa webu: zveřejnění, stažení, body pro vrácení a vrácení verze podle svatby. */
+  siteVersionWedding: { limit: 60, windowSeconds: HOUR },
+  /** Správa webu: načtení náhledu externí galerie (stahuje cizí stránku) podle svatby. */
+  galleryCardWedding: { limit: 20, windowSeconds: HOUR },
 } as const satisfies Record<string, RateRule>;
 
 /**

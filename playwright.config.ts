@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { defineConfig, devices } from "@playwright/test";
 import { E2E_SECRETS, appDatabaseUrl } from "./e2e/support/env";
+import { OG_HOST, OG_PORT } from "./e2e/support/og-server";
 
 /**
  * E2E a přístupnost (ADR 0004). Testy běží proti produkčnímu sestavení (`next start`),
@@ -59,7 +60,7 @@ export default defineConfig({
     },
     {
       name: "a11y-mobile",
-      testMatch: /(landing|wizard)\.a11y\.ts$/,
+      testMatch: /(landing|wizard|admin-site)\.a11y\.ts$/,
       use: { ...devices["Pixel 7"] },
     },
   ],
@@ -79,6 +80,9 @@ export default defineConfig({
       EMAIL_TRANSPORT: "outbox",
       EMAIL_OUTBOX_DIR: process.env.E2E_OUTBOX_DIR as string,
       ...E2E_SECRETS,
+      // Správa webu (M7a): falešný cílový server pro karty externí galerie. Jediná výjimka z ochrany
+      // před SSRF: jméno `fotky-test.example` se bez DNS a bez TLS spojí s loopbackem (src/admin/site/og.ts).
+      OG_FETCH_TEST_HOST: `${OG_HOST}=127.0.0.1:${OG_PORT}`,
       // Adresa průvodce pro tlačítka a pole jmen: lokální hostitel `app.` (zástupná stránka).
       NEXT_PUBLIC_APP_URL: `http://app.localhost:${PORT}`,
     },

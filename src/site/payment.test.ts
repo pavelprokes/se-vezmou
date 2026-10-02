@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { buildSpayd, isValidIban, spaydMessage } from "./payment";
+import {
+  buildSpayd,
+  czAccountToIban,
+  isValidCzAccount,
+  isValidIban,
+  parseCzAccount,
+  spaydMessage,
+} from "./payment";
 
 describe("QR platba (SPAYD)", () => {
   it("ověří IBAN kontrolním součtem", () => {
@@ -28,5 +35,31 @@ describe("QR platba (SPAYD)", () => {
     expect(buildSpayd({ iban: "CZ6508000000192000145399" })).toBe(
       "SPD*1.0*ACC:CZ6508000000192000145399*CC:CZK",
     );
+  });
+});
+
+describe("tuzemské číslo účtu", () => {
+  it("rozloží číslo účtu s předčíslím i bez něj a ověří kontrolní součty", () => {
+    expect(parseCzAccount("19-2000145399/0800")).toEqual({
+      prefix: "19",
+      number: "2000145399",
+      bank: "0800",
+    });
+    expect(parseCzAccount("2000145399 / 0800")).toEqual({
+      prefix: "",
+      number: "2000145399",
+      bank: "0800",
+    });
+    expect(parseCzAccount("19-2000145398/0800")).toBeNull();
+    expect(parseCzAccount("20-2000145399/0800")).toBeNull();
+    expect(parseCzAccount("19-2000145399/800")).toBeNull();
+    expect(isValidCzAccount("neplatne")).toBe(false);
+  });
+
+  it("odvodí IBAN s platnou kontrolní číslicí", () => {
+    expect(czAccountToIban("19-2000145399/0800")).toBe("CZ6508000000192000145399");
+    const iban = czAccountToIban("19-2000145399/0800");
+    expect(iban && isValidIban(iban)).toBe(true);
+    expect(czAccountToIban("123456789/0100")).toBeNull();
   });
 });

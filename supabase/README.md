@@ -28,8 +28,9 @@ Migrace:
 7. `auth_pins_lockouts` (M4): pauzy po chybách (`auth_lockout_*`, sloupec `lockouts.failures`), PIN správy a hostů (`auth_pin_get`, `auth_pin_other_hash`, `auth_pin_set`), `auth_session_context`.
 8. `email_log_functions` (M4): `email_log_insert` a `email_log_set_status` (záznam e-mailu bez osobních údajů).
 9. `rsvp` (M8): tolerance překlepů ve jménech (`se_vezmou.names_close`), společný zápis odpovědi `se_vezmou.rsvp_apply`, nové `rsvp_match`, `rsvp_get`, `rsvp_submit`, dále `rsvp_info`, `rsvp_unlisted_form`, `rsvp_submit_unlisted`, správcovské `admin_guest_list`, `admin_rsvp_overview`, `admin_rsvp_household`, `admin_rsvp_enter` a `analytics_record`.
+10. `admin_site` (M7a): správa webu páru. `venues.map_url`, `weddings.site_rev`, `weddings.draft_saved_at`; funkce správce `admin_site_load`, `admin_site_save` (optimistické zamykání), `admin_site_publish`, `admin_site_unpublish`, `admin_site_checkpoint`, `admin_site_version_get`, `admin_quick_notice_set`, `admin_my_weddings`; po zveřejnění průvodce pracovní kopii nepřepíše (`wizard_load`, `wizard_save`); `get_public_site` (koncept) nese odkaz na mapu.
 
-Co je záměrně odložené (označeno `TODO` v `functions_core.sql`; PINy a pauzy dodala M4): založení konceptu a publikace (M5), správa správců a souhlas s nahlédnutím (M7), zbytek `op_*` a relace operátorů (M9), e-maily a export při retenci (M10).
+Co je záměrně odložené (označeno `TODO` v `functions_core.sql`; PINy a pauzy dodala M4, koncept a publikaci M5, správu webu M7a): správa správců a souhlas s nahlédnutím (M7b), zbytek `op_*` a relace operátorů (M9), e-maily a export při retenci (M10).
 
 ## Spuštění testů
 
@@ -64,6 +65,7 @@ V CI běží test jako samostatný job `db` (`.github/workflows/ci.yml`), spolu 
 - `80_rsvp_site`: slepé RSVP (stejný tvar odpovědi), uzavřené RSVP, pozvání na události, `get_public_site`, odvozená fáze.
 - `95_auth_pin` (M4): pauzy po chybách (série, zdvojnásobování, strop 24 h, samovolný návrat úrovně, nulování), `auth_pin_get` (skrývá svatbu bez PINu, smazanou, bez správce), nastavení PINu (formát hashe, odvolání relací, audit bez hodnoty), `auth_session_context`, `email_log_*` a že správce tyto funkce nespustí.
 - `85_rsvp_m8` (M8): tolerance překlepů (`se_vezmou.osa_distance`, `se_vezmou.names_close`) a nejednoznačnost, vlastní a vestavěné otázky (typy, možnosti, povinnost, otázky k události), doprovod a děti, `rsvp_info`, host mimo seznam (vypnuto, zapnuto, zavřeno, role), správcovský seznam, přehled a ruční zápis (oprávnění, izolace svatby, audit bez osobních údajů), `analytics_record` bez identifikátorů.
+- `87_admin_site` (M7a): oprávnění funkcí správy (návštěvník, host, náhled, `anon`, service role), izolace mezi svatbami, optimistické zamykání, zveřejnění, stažení a znovuzveřejnění, průvodce po zveřejnění, oříznutí historie, rychlá změna, výběr svatby, audit bez obsahu webu.
 - `90_lifecycle`: relace a výzvy, limit správců, retenční data a mazání, výmaz hosta, normalizace jmen.
 
 ## Nasazení krok za krokem (pro majitele)
@@ -89,7 +91,7 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
 7. **Ověření po nasazení** (SQL editor, role `postgres`):
 
    ```sql
-   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 15)
+   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 16)
    select count(*) from se_vezmou.schema_migrations;
    -- RLS je zapnuté na každé tabulce schématu (0 řádků = v pořádku)
    select relname from pg_class

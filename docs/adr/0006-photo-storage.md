@@ -1,54 +1,71 @@
 # ADR 0006: Úložiště a zpracování fotografií
 
-Stav: navrženo (čeká na schválení majitele) Poznámka (ADR 0011): aplikace nemá klíč `service_role` ani `supabase-js`, varianta Supabase Storage vyžaduje nové rozhodnutí (OQ-47).
+Stav: rozhodnuto majitelem pro **Cloudflare R2** (2. 10. 2026). Podrobnosti doručování a limity jsou doporučení k potvrzení. Nahrazuje původní návrh se Supabase Storage (ADR 0011: aplikace mluví s Postgresem přímo a nemá klíč `service_role`, takže Supabase Storage odpadá).
 
 ## Kontext
 
-Pár nahrává fotografie do galerie a případně do hera webu. Fotografie hostů přes QR jsou mimo MVP. Požadavky zadání: moderní formáty ve více velikostech (výkon, Core Web Vitals), popisek povinný, nebo označit jako dekorativní (WCAG 1.1.1), minimalizace osobních údajů, export fotografií před vypršením webu (FR-LC-2), mazání podle retence. Fotografie mohou vyzrazovat polohu (EXIF/GPS) a zobrazují lidi, takže jde o osobní údaje.
+Pár nahrává do webu **malou sadu vlastních fotografií** (blok galerie páru, případně hero): předsvatební focení, příběh páru. Velké galerie celé svatby a fotky od hostů přes QR kód zůstávají v samostatném projektu `g-gallery` (fotograf, `photos.svatebni-fotograf-cechy.cz`). Náš web na ně jen odkazuje (odkaz na externí galerii v administraci, volitelně za PINem hostů).
+
+Požadavky: výkon (Core Web Vitals, více velikostí), popisek povinný nebo označení jako dekorativní (WCAG 1.1.1), minimalizace osobních údajů (EXIF/GPS pryč), soukromí (weby párů jsou `noindex`, fotky nesmí jít najít ani prolistovat), export před vypršením webu (FR-LC-2), mazání podle retence.
+
+Provozní fakta, ze kterých návrh vychází:
+
+- Majitel už R2 používá v `g-gallery` (jurisdikce EU, nahrávání přes podepsané URL, zmenšení a odstranění GPS v prohlížeči). Tuto logiku převezmeme upravenou, místo psaní od nuly.
+- DNS domény `se-vezmou.cz` je ve Vercelu (nutné pro wildcard `*.se-vezmou.cz`). Cloudflare Image Transformations a vlastní doména R2 vyžadují zónu v Cloudflare, takže **pro `se-vezmou.cz` nejsou k dispozici**. Postup `g-gallery` s `cdn.<doména>/cdn-cgi/image/…` zde nejde použít.
 
 ## Možnosti
 
-| Možnost                  | Pro                                                                                                                                   | Proti                                                                                                         |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| A. Supabase Storage (EU) | Stejný dodavatel jako databáze (ADR o databázi), privátní buckety, politiky přístupu vedle dat, podepsané adresy s omezenou platností | Vazba na jednoho dodavatele. Transformace obrázků za příplatek nebo v tarifu, proto je zpracování vlastní     |
-| B. Vercel Blob           | Blízko hostingu, jednoduché API                                                                                                       | Přístupová kontrola podle svatby a mazání podle retence by byly mimo databázi. Umístění dat a podmínky ověřit |
-| C. Cloudflare R2         | Bez poplatků za odchozí přenos, S3 API                                                                                                | Další dodavatel a účet, DPA a umístění ověřit, politiky přístupu mimo databázi                                |
+| Možnost                                                 | Pro                                                                                                              | Proti                                                                                                               |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| A. R2, předem zmenšené varianty, podepsané URL          | Žádná závislost na DNS. Bez poplatků za odchozí přenos. Přenos obrázků mimo Vercel. Funguje s převzatou logikou. | Pevné velikosti místo transformací za běhu. Podepsané adresy a cache je potřeba navrhnout (viz Doručování).         |
+| B. R2 s CDN hostem na zóně `svatebni-fotograf-cechy.cz` | Cloudflare transformace a cache.                                                                                 | V adresách fotek na webech párů by byla doména fotografa. Vazba na cizí zónu a její nastavení.                      |
+| C. Supabase Storage / Vercel Blob                       | Jednoduché.                                                                                                      | Supabase Storage odpadá (ADR 0011). Vercel Blob: další dodavatel bez převzaté logiky, přístup podle svatby mimo DB. |
 
-Ceny nejsou zde uvedeny, ověří se v ceníku `[OTÁZKA]`.
+Ceny jsou záměrně neuvedené, ověří se v ceníku `[OTÁZKA]`.
 
-## Rozhodnutí (doporučení)
+## Rozhodnutí
 
-Zvolit **A: Supabase Storage, projekt v regionu EU, privátní bucket**. Soubory se nikdy nepublikují přímou veřejnou adresou bucketu.
+**Varianta A: Cloudflare R2, nový samostatný bucket pro tento projekt** (ne sdílený s `g-gallery`), **jurisdikce EU** (nastavuje se při vytvoření bucketu a nejde změnit), **privátní**. Přístup jen přes serverové přihlašovací údaje a podepsané adresy. Hranice svatby je předpona klíče `{wedding_id}/…`.
+
+Proměnné prostředí (jen serverové, na Vercelu): `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, `R2_ENDPOINT` (`https://<account-id>.eu.r2.cloudflarestorage.com`), `S3_REGION=auto`. Klíč R2 je omezený jen na tento bucket.
 
 ### Postup nahrání
 
-1. Klient požádá server o nahrání (Server Action nebo route). Server ověří relaci správce a svatbu, zkontroluje celkovou kvótu svatby `[OTÁZKA]`.
-2. Soubor se nahraje na server (nebo přes krátkodobě platnou nahrávací adresu) do **původního** privátního prostoru. Původní soubor se po zpracování nezveřejňuje.
-3. Server ověří **skutečný typ podle obsahu** (ne podle přípony nebo hlavičky `Content-Type`). Povolit jen běžné rastrové formáty (JPEG, PNG, WebP, HEIC dle podpory knihovny `[OTÁZKA]`). SVG od uživatelů **nepřijímat** (riziko skriptů).
-4. Limity: maximální velikost souboru, maximální rozměry v pixelech (ochrana proti „decompression bomb“), maximální počet fotografií na svatbu. Konkrétní čísla `[OTÁZKA]`, doporučení stanovit po měření v betě. Limit vynutit na serveru, ne jen v prohlížeči.
-5. Zpracování knihovnou **sharp** na serveru: otočení podle EXIF orientace, pak **odstranění všech metadat včetně EXIF a GPS** (sharp je ve výchozím stavu nepřenáší, ověřit testem), převod do sRGB.
-6. Výstupy: šířky **640, 1280 a 1920 px** ve **WebP a AVIF** (nezvětšovat nad původní rozměr). Uložit do privátního bucketu pod cestou s identifikátorem svatby (`{wedding_id}/{media_id}/{width}.{format}`).
-7. Záznam Média v databázi: svatba, cesty, rozměry, popisek v každém jazyce, příznak dekorativní, stav zpracování.
-8. Původní soubor smazat po úspěšném zpracování, nebo ponechat jen na pár dní pro opakované zpracování a poté smazat (doporučení: smazat hned, pár má originál u sebe).
+1. Klient požádá server o nahrání (Server Action). Server ověří relaci správce a svatbu, zkontroluje kvótu a vrátí **krátkodobě platnou podepsanou adresu pro PUT** (`aws4fetch`) do karantény `incoming/{wedding_id}/{upload_id}`. Bajty fotografie neprocházejí Vercelem (limit těla požadavku).
+2. Prohlížeč před nahráním: otočí podle EXIF orientace, **odstraní EXIF a GPS**, převede do sRGB a vytvoří pevné varianty (šířky 640, 1280 a 1920 px, nezvětšovat nad původní rozměr, výstup **WebP**). Původní soubor se **neukládá**. (AVIF z prohlížeče není spolehlivě dostupný, proto jen WebP.) Převzato z `g-gallery` (zmenšování, odstranění GPS, příprava ve workeru, fronta nahrávání).
+3. Nahrají se jen varianty. Klient pak zavolá serverové „dokončit“.
+4. **Ověření na serveru** (klientovi se nevěří): z karantény se načte začátek objektu a ověří se **skutečný typ podle obsahu** (magická čísla WebP/JPEG/PNG, ne přípona ani `Content-Type`), velikost, rozměry v pixelech (ochrana proti „decompression bomb“) a počet. SVG od uživatelů se **nepřijímá**. Chybné objekty se smažou. Úspěšné se přesunou pod `{wedding_id}/{media_id}/{width}.webp`.
+5. Záznam Média v databázi (svatba, klíče, rozměry, popisek v každém jazyce, příznak dekorativní, stav). Fotografie bez popisku a bez příznaku „dekorativní“ se nezveřejní.
+6. Pravidlo životního cyklu bucketu: `incoming/` se maže po 1 dni (opuštěná nahrávání).
+
+Počáteční limity (návrh k potvrzení po měření v betě `[OTÁZKA]`): nejvýše 12 fotografií v galerii páru, nejvýše 15 MB na původní soubor v prohlížeči, nejdelší strana nejvýše 6 000 px. Limity se vynucují na serveru.
 
 ### Popisek povinný
 
-Uložení fotografie do galerie vyžaduje buď popisek (alespoň v jazyce webu, další jazyky s upozorněním na chybějící překlad), nebo zaškrtnutí „dekorativní“. Kontrola je na serveru i v rozhraní. Dekorativní obrázek dostane prázdný `alt`. Fotografie bez rozhodnutí se nezveřejní.
+Uložení fotografie vyžaduje popisek (alespoň v jazyce webu, další jazyky s upozorněním na chybějící překlad), nebo zaškrtnutí „dekorativní“ (prázdný `alt`). Kontrola je na serveru i v rozhraní.
 
 ### Doručování
 
-- Veřejná část (galerie na webu páru): server vygeneruje podepsané adresy s krátkou platností, nebo obrázky podává přes vlastní route s kontrolou svatby a stavu (po retenci 404). Nikdy nevypisovat obsah bucketu. Doporučení: vlastní route na hostiteli webu páru, jednotná hlavička `Cache-Control` a `X-Robots-Tag: noindex`.
-- Obrázky podávat v `<picture>` se `srcset`, AVIF před WebP, s rozměry kvůli posunu rozvržení.
-- Politiky Supabase Storage (RLS) zakazují čtení a zápis mimo prefix vlastní svatby. Klíč `service_role` je jen na serveru.
+- Obrázky se podávají **přes vlastní adresu na hostiteli webu páru** (`/media/{media_id}/{width}`), která po kontrole svatby a stavu (po retenci 404) odpoví **přesměrováním na čerstvě podepsanou adresu R2**. Díky tomu v HTML není adresa s vypršením a stránku lze cachovat. Bajty obrázků jdou z R2 přímo, ne přes Vercel.
+- Platnost podpisu se zaokrouhluje na časová okna, aby byla adresa po dobu okna stabilní a prohlížeč ji cachoval. Přesměrování má krátké `Cache-Control`, hlavička `X-Robots-Tag: noindex`.
+- `<img>` se `srcset` (640, 1280, 1920) a rozměry kvůli posunu rozvržení, `loading="lazy"` mimo první obrazovku.
+- Citlivé galerie (odkaz za PINem hostů) mají stejnou kontrolu relace hosta jako ostatní citlivé bloky.
+- Bucket se nikdy nevypisuje a nemá veřejnou adresu.
 
 ### Mazání a export
 
-- Smazání webu a uplynutí retence smaže soubory (prefix svatby) a záznamy Médií. Výmaz je součástí úlohy retence (viz `docs/security-privacy.md`) a zapisuje se do auditu bez osobních údajů.
-- Export před vypršením: archiv původních zpracovaných variant (největší varianta) ke stažení přes podepsanou adresu.
-- Zálohy databáze a úložiště: doba uchování záloh musí být slučitelná s retencí, jinak se smazané údaje v zálohách vrátí po obnově `[OTÁZKA]` pro právníka.
+- Smazání webu nebo uplynutí retence smaže předponu `{wedding_id}/` (výpis a mazání přes S3 API) a záznamy Médií. Je součástí úlohy retence M10 a zapisuje se do auditu bez osobních údajů.
+- Export před vypršením: archiv největších variant ke stažení přes podepsanou adresu.
+- Zálohy: R2 samo nezálohuje. Doba uchování případných záloh musí být slučitelná s retencí `[OTÁZKA]` pro právníka. Smlouva o zpracování s Cloudflare a ověření umístění dat (jurisdikce EU) `[OTÁZKA]`.
+
+## Co se z `g-gallery` přebírá a co ne
+
+- **Přebírá se (upraveně):** příprava a zmenšení v prohlížeči, odstranění GPS a čtení orientace, fronta a obnovení nahrávání, kontrola typů a limitů nahrávání, mřížka a lightbox, hlavička pro stabilní podepsané adresy.
+- **Nepřebírá se:** `better-auth`, Prisma, ZIP workery, oblíbené, tiskové fronty, push notifikace, sdílecí odkazy s expirací, Cloudflare transformace. Fotky od hostů přes QR a velké galerie zůstávají v `g-gallery`.
 
 ## Důsledky
 
-- **Cena:** úložiště a přenos nejsou zdarma při růstu. Tři velikosti ve dvou formátech znamenají zhruba šest souborů na fotografii, proto kvóta na svatbu. Zpracování sharp spotřebuje čas funkce na Vercelu (nutné ověřit limity doby běhu a paměti) `[OTÁZKA]`.
-- **Bezpečnost:** odstranění EXIF/GPS zabraňuje úniku polohy. Privátní bucket a podepsané adresy brání prolistování. Validace obsahu a limity omezují zneužití (nahrávání škodlivých souborů, vyčerpání úložiště). Fotografie lidí je osobní údaj: pár je správce, provozovatel zpracovatel.
-- **Údržba:** vlastní kód zpracování (sharp je nativní závislost, hlídat kompatibilitu s prostředím Vercelu a bezpečnostní aktualizace). Jedna sada politik přístupu vedle databáze. Možný pozdější přesun na R2 (C) díky tenké vrstvě `storage` s rozhraním nahrát, podepsat adresu, smazat prefix.
+- **Cena:** R2 bez poplatků za odchozí přenos, platí se za úložiště a operace (ověřit v ceníku). Tři velikosti ve WebP znamenají tři soubory na fotografii, proto malý limit na svatbu. Žádný čas funkce na Vercelu za zpracování obrázků, protože zmenšuje prohlížeč.
+- **Bezpečnost:** privátní bucket, podpisy s krátkou platností, ověření obsahu na serveru. Odstranění EXIF/GPS v prohlížeči chrání pár před únikem polohy, ale **neumí zabránit, aby si ho zlý klient nechal**. Dopadá jen na jeho vlastní data, proto je serverová kontrola typu a rozměrů povinná a spolehnutí na klienta jen pro soukromí. R2 nemá politiky přístupu na úrovni řádků: izolace svatby stojí na předponě klíče a na tom, že podepisuje jen server po kontrole v databázi (hlídají to testy).
+- **Údržba:** vlastní zpracování v prohlížeči, bez nativních závislostí na serveru (výhoda oproti `sharp`). Přenos mezi projekty je kopie s úpravami, ne sdílená knihovna: změny v `g-gallery` se nepřenášejí samy.
+- **Otevřené:** limity a počty `[OTÁZKA]`, ceny `[OTÁZKA]`, DPA a záložní politika `[OTÁZKA]`. Pokud se později ukáže, že pevné velikosti nestačí, lze přejít na variantu B (CDN host na zóně v Cloudflare) beze změny datového modelu, protože klíče a Média jsou stejné.

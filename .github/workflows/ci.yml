@@ -22,4 +22,27 @@ jobs:
       - run: npm run format:check
       - run: npm run lint
       - run: npm run typecheck
+      - run: npm run i18n:check
+      - run: npm test
       - run: npm run build
+
+  e2e:
+    # E2E a přístupnost (Playwright + axe) proti produkčnímu sestavení, ADR 0004.
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      # Konfigurace sestaví aplikaci (`npm run build`), spustí `next start` a spustí oba projekty (e2e, a11y).
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-test-results
+          path: test-results/
+          retention-days: 7

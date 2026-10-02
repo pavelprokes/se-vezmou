@@ -197,11 +197,14 @@ create function se_vezmou.retention_due_weddings(
   p_now timestamptz default pg_catalog.now(),
   p_batch integer default 20,
   p_wedding_id uuid default null
-) returns table (wedding_id uuid, purge_at timestamptz, media_count integer)
+) returns table (
+  wedding_id uuid, purge_at timestamptz, media_count integer, slug text, timezone text, locale text
+)
   language sql stable security definer set search_path = ''
   as $$
   select w.id, w.purge_at,
-         (select count(*)::integer from se_vezmou.media m where m.wedding_id = w.id)
+         (select count(*)::integer from se_vezmou.media m where m.wedding_id = w.id),
+         w.slug, w.timezone, w.default_locale
     from se_vezmou.weddings w
    where w.status = 'deleted' and w.purge_at is not null and w.purge_at <= p_now
      and (p_wedding_id is null or w.id = p_wedding_id)
@@ -361,7 +364,7 @@ begin
 
   return jsonb_build_object('sessions', v_sessions, 'operator_sessions', v_operator_sessions,
     'login_challenges', v_challenges, 'rsvp_tickets', v_tickets, 'rate_limits', v_rate_limits,
-    'lockouts', v_lockouts, 'analytics_events', v_analytics, 'email_log', v_email_log,
+    'lockouts', v_lockouts, 'analytics_events', v_analytics, 'mail_log', v_email_log,
     'job_runs', v_job_runs);
 end
 $$;

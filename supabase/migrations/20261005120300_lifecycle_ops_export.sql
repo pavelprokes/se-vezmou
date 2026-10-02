@@ -181,7 +181,7 @@ begin
                                 order by e.position, e.starts_at), '[]'::jsonb)
         from se_vezmou.events e where e.wedding_id = v_wedding_id and e.rsvp_enabled),
     'questions', (
-      select coalesce(jsonb_agg(jsonb_build_object('key', q.key, 'type', q.type, 'label', q.label)
+      select coalesce(jsonb_agg(jsonb_build_object('key', q.key, 'type', q.type, 'label', q.label, 'options', q.options)
                                 order by q.position, q.key), '[]'::jsonb)
         from se_vezmou.rsvp_questions q where q.wedding_id = v_wedding_id),
     'people', v_people);

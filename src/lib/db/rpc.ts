@@ -346,7 +346,12 @@ export async function authSessionContext(weddingId: string): Promise<SessionCont
 // --- záznam e-mailů (bez osobních údajů) -------------------------------------------------
 
 export type EmailLogType =
-  "login_code" | "rsvp_confirmation" | "admin_changed" | "backup_login_notice" | "expiry_notice";
+  | "login_code"
+  | "rsvp_confirmation"
+  | "admin_changed"
+  | "backup_login_notice"
+  | "expiry_notice"
+  | "deletion_notice";
 
 export type EmailLogStatus = "queued" | "sent" | "delivered" | "bounced" | "complained" | "failed";
 

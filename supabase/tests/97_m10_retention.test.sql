@@ -275,20 +275,20 @@ begin
   insert into se_vezmou.rate_limits (bucket_key, window_start, hits) values ('hk-test', timestamptz '2027-01-01', 3);
   set local role service_role;
   v_r := se_vezmou.housekeeping(timestamptz '2027-05-01', true);
-  perform tap.ok((v_r ->> 'analytics_events')::int = 1 and (v_r ->> 'email_log')::int >= 1 and (v_r ->> 'job_runs')::int >= 1 and (v_r ->> 'rate_limits')::int = 1,
+  perform tap.ok((v_r ->> 'analytics_events')::int = 1 and (v_r ->> 'mail_log')::int >= 1 and (v_r ->> 'job_runs')::int >= 1 and (v_r ->> 'rate_limits')::int = 1,
     'dry_run housekeeping ohlásí práci: ' || v_r::text);
   perform tap.reset();
   perform tap.eq((select count(*) from se_vezmou.analytics_event where created_at = timestamptz '2025-01-01'), 1, 'dry_run housekeeping nic nesmazal');
   set local role service_role;
   v_r := se_vezmou.housekeeping(timestamptz '2027-05-01');
   perform tap.reset();
-  perform tap.ok((v_r ->> 'analytics_events')::int = 1 and (v_r ->> 'email_log')::int >= 1 and (v_r ->> 'rate_limits')::int = 1,
+  perform tap.ok((v_r ->> 'analytics_events')::int = 1 and (v_r ->> 'mail_log')::int >= 1 and (v_r ->> 'rate_limits')::int = 1,
     'housekeeping smazal prošlé záznamy');
   perform tap.eq((select count(*) from se_vezmou.analytics_event where created_at = timestamptz '2027-01-01'), 1, 'čerstvá analytická událost zůstala (24 měsíců)');
   set local role service_role;
   v_r := se_vezmou.housekeeping(timestamptz '2027-05-01');
   perform tap.reset();
-  perform tap.ok((v_r ->> 'analytics_events')::int = 0 and (v_r ->> 'email_log')::int = 0 and (v_r ->> 'rate_limits')::int = 0, 'housekeeping je idempotentní');
+  perform tap.ok((v_r ->> 'analytics_events')::int = 0 and (v_r ->> 'mail_log')::int = 0 and (v_r ->> 'rate_limits')::int = 0, 'housekeeping je idempotentní');
   perform tap.ok((select count(*) from se_vezmou.audit_log) > 0, 'audit_log housekeeping nemaže');
 end
 $$;

@@ -25,6 +25,12 @@ const schema = z.object({
   /** Pepper pro PINy: PIN se před argon2id zpracuje HMAC, docs/security-privacy.md kap. 1.2. */
   PIN_PEPPER: secret.optional(),
 
+  // Plánované úlohy (M10, Vercel Cron): `Authorization: Bearer ${CRON_SECRET}`. Vercel hodnotu posílá sám,
+  // je-li proměnná nastavena v projektu. Bez ní všechny cesty `/api/cron/*` vrací 401.
+  CRON_SECRET: secret.optional(),
+  /** Jen automatické testy: `1` povolí parametr `now` (simulovaný čas) a `wedding_id`; v produkci odmítnuto. */
+  CRON_TEST_CLOCK: z.enum(["1"]).optional(),
+
   // AWS SES. Bez těchto hodnot se e-maily jen vypíšou do konzole a neodesílají.
   AWS_REGION: z.string().min(1).optional(),
   AWS_ACCESS_KEY_ID: z.string().min(1).optional(),

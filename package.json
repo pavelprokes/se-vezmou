@@ -15,6 +15,7 @@
   "dependencies": {
     "@aws-sdk/client-sesv2": "^3.1145.0",
     "@hookform/resolvers": "^5.9.1",
+    "@sentry/nextjs": "^11.3.0",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.117.2",
     "@vercel/analytics": "^2.0.1",

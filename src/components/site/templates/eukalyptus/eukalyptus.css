@@ -365,6 +365,12 @@
   --t-focus: var(--eu-light-focus);
   --t-text: var(--eu-light-text);
 }
+/* Na mobilu je navigace vždy plná: pod průhlednou by zasahovaly lístky a kontrast textu by nebyl zaručený. */
+@media (max-width: 47.99rem) {
+  .eu-nav:not([data-on-photo="true"]) {
+    background: color-mix(in srgb, var(--eu-light-bg) 96%, transparent);
+  }
+}
 .eu-nav[data-scrolled="true"] {
   border-bottom-color: color-mix(in srgb, var(--eu-paper-text) 15%, transparent);
   background: color-mix(in srgb, var(--eu-paper-bg) 95%, transparent);
@@ -874,6 +880,10 @@
 }
 
 /* Potvrzení účasti */
+.eu-watermark::before,
+.eu-footer-giant::before {
+  content: attr(data-text);
+}
 .eu-watermark {
   position: absolute;
   right: -2rem;
@@ -1238,6 +1248,7 @@
   text-transform: uppercase;
 }
 .eu-footer-giant {
+  display: block;
   margin: 3rem 0 0;
   padding-inline: var(--eu-gutter);
   color: color-mix(in srgb, var(--t-muted) 25%, transparent);

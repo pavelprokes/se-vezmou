@@ -346,9 +346,8 @@ export function EuRsvp({ block, ctx, tone, index }: EuBlockProps<"rsvp">) {
   const id = headingId(block.anchor);
   return (
     <SectionShell id={block.anchor} tone={tone} labelledBy={id} part="rsvp">
-      <p className="eu-watermark" aria-hidden="true">
-        {t("site.rsvp.watermark")}
-      </p>
+      {/* Vodoznak je jen kresba: text je v CSS (`::before`), ne v obsahu stránky. */}
+      <span className="eu-watermark" aria-hidden="true" data-text={t("site.rsvp.watermark")} />
       <div className="eu-wrap eu-split eu-split-even">
         <div className="eu-split-aside">
           <SectionHead
@@ -678,9 +677,12 @@ export function EuFooter({ ctx, tone }: { ctx: SiteCtx; tone: SurfaceKey }) {
           </time>
         </p>
       </div>
-      <p className="eu-footer-giant" aria-hidden="true">
-        {content.partners.a} &amp; {content.partners.b}
-      </p>
+      {/* Obří jména jsou jen kresba (text v CSS `::before`); jména jsou výš jako text. */}
+      <span
+        className="eu-footer-giant"
+        aria-hidden="true"
+        data-text={`${content.partners.a} & ${content.partners.b}`}
+      />
     </footer>
   );
 }

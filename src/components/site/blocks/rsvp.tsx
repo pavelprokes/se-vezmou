@@ -20,13 +20,13 @@ export function Rsvp({
   ctx: SiteCtx;
   tone: "bg" | "surface";
 }) {
-  const { t, content } = ctx;
+  const { t } = ctx;
   const { open, closes, status } = rsvpModel(ctx);
 
   return (
     <Section block={block} ctx={ctx} tone={tone}>
       <Paragraphs value={block.data.intro} ctx={ctx} className="site-lead" />
-      {open ? <RsvpPrivacyNotice t={t} locale={ctx.locale} partners={content.partners} /> : null}
+      {open ? <RsvpPrivacyNotice t={t} locale={ctx.locale} /> : null}
       {open ? (
         <RsvpForm
           labels={rsvpLabels(t)}

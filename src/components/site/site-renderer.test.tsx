@@ -102,7 +102,9 @@ describe("SiteRenderer: bloky a struktura", () => {
       "20:00",
     ]);
     expect(items[0]).toHaveTextContent("Svatební obřad");
-    expect(items[0]).toHaveTextContent("v Zámecká kaple");
+    // Místo bez předložky a bez skloňování, tak jak ho pár zadal.
+    expect(items[0]).toHaveTextContent("Zámecká kaple");
+    expect(items[0]).not.toHaveTextContent("v Zámecká kaple");
   });
 
   it("místo má vždy textovou adresu a mapu jen jako odkaz, bez vložení třetích stran", () => {

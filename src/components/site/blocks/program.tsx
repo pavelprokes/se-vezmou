@@ -5,20 +5,6 @@ import type { SiteCtx } from "../context";
 import { programDays } from "../models";
 import { Paragraphs, Section } from "./section";
 
-/** Zástupný znak místa ve větě "v {place}": název místa může být v záložním jazyce a dostane vlastní `lang` (3.1.2). */
-const PLACE_MARK = "";
-
-function placeAt(sentence: string, name: Parameters<SiteCtx["text"]>[0], ctx: SiteCtx) {
-  const [before, after = ""] = sentence.split(PLACE_MARK);
-  return (
-    <>
-      {before}
-      <span lang={ctx.lang(name)}>{ctx.text(name)}</span>
-      {after}
-    </>
-  );
-}
-
 const KIND_ICON: Record<PublicEvent["kind"], LucideIcon> = {
   ceremony: Heart,
   reception: Wine,
@@ -35,7 +21,6 @@ export function Program({
   ctx: SiteCtx;
   tone: "bg" | "surface";
 }) {
-  const { t } = ctx;
   const { days, multiDay } = programDays(ctx);
 
   return (
@@ -64,8 +49,9 @@ export function Program({
                     </h3>
                     <Paragraphs value={event.description} ctx={ctx} className="site-muted" />
                     {venue ? (
-                      <p className="site-muted">
-                        {placeAt(t("site.program.at", { place: PLACE_MARK }), venue.name, ctx)}
+                      // Místo tak, jak ho pár zadal: bez předložky a bez skloňování.
+                      <p className="site-muted" lang={ctx.lang(venue.name)}>
+                        {ctx.text(venue.name)}
                       </p>
                     ) : null}
                   </div>

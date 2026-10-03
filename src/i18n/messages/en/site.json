@@ -24,7 +24,6 @@
   "program.kind.ceremony": "Ceremony",
   "program.kind.reception": "Reception",
   "program.kind.other": "Programme",
-  "program.at": "at {place}",
   "venue.title": "Venue",
   "venue.address": "Address",
   "venue.directions": "Getting there",

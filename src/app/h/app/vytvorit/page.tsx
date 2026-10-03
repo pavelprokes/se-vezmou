@@ -92,10 +92,8 @@ export default async function WizardPage({ searchParams }: PageProps<"/h/app/vyt
           siteLocale,
         }}
         server={server}
+        noscript={t("wizard.noscript")}
       />
-      <noscript>
-        <p className="mx-auto max-w-3xl px-4 py-8">{t("wizard.noscript")}</p>
-      </noscript>
     </>
   );
 }

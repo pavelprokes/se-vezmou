@@ -34,10 +34,10 @@ describe.each(locales)("upozornění na odpověď (%s)", (locale) => {
     expect(email.html).toContain(`href="${MANAGE}"`);
   });
 
-  it("jména hostů se v HTML escapují", () => {
+  it("znaky HTML ve jménech hostů se nedostanou do zprávy", () => {
     const email = renderRsvpNotice(base(locale));
     expect(email.html).not.toContain("<b>Nováková</b>");
-    expect(email.html).toContain("&lt;b&gt;");
+    expect(email.html).toContain("Nováková");
   });
 
   it("odkaz ve jménu hosta se vyřízne a dlouhé jméno se zkrátí", () => {
@@ -46,10 +46,13 @@ describe.each(locales)("upozornění na odpověď (%s)", (locale) => {
       people: [
         { name: "Pozor: obnovte heslo na http://evil.example/x", rows: [] },
         { name: "Zadejte kód na evil.example/x", rows: [] },
+        { name: "evil[.]example a ｅｖｉｌ．ｅｘａｍｐｌｅ", rows: [] },
+        { name: "J. K. Rowling", rows: [] },
         { name: "A".repeat(200), rows: [] },
       ],
     });
-    expect(email.text).not.toContain("evil.example");
+    expect(email.text).not.toMatch(/evil\s*[.[]+\s*example|\/x/i);
+    expect(email.text).toContain("J. K. Rowling");
     expect(email.text).not.toContain("A".repeat(81));
   });
 

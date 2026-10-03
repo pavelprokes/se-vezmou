@@ -50,19 +50,19 @@ const COPY = {
 } as const;
 
 /**
- * Host mimo seznam píše jméno sám a e-mail jde z naší domény: odkazy ve jménu se vyřežou a délka
- * omezí, aby z upozornění nešla udělat návnada na cizí stránku.
+ * Host mimo seznam píše jméno sám a e-mail jde z naší domény. Seznam zakázaných vzorů (odkazy, domény)
+ * by šel obejít, proto se propouští jen to, co patří do jména: písmena, číslice, mezera a běžná
+ * interpunkce. Tečka jen na konci slova (iniciály), takže z `evil.example` zbude `evil example`,
+ * nic, co by schránka udělala odkazem. Délka je omezená.
  */
 function safeName(name: string): string {
-  return (
-    name
-      // odkazy se schématem, `www.` i holé domény (`evil.example/x`)
-      .replace(/(?:https?:\/\/|www\.)\S+/gi, "…")
-      .replace(/\b[a-z0-9-]{2,}(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b(?:\/\S*)?/gi, "…")
-      .replace(/\s+/g, " ")
-      .trim()
-      .slice(0, 80)
-  );
+  return name
+    .normalize("NFKC")
+    .replace(/\.(?=[^\s])/g, " ")
+    .replace(/[^\p{L}\p{M}\p{N} .,'’&-]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
 }
 
 export function renderRsvpNotice({

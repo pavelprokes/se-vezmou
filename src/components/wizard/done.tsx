@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
+import { ShareLinks } from "@/components/share-links";
 import type { Locale } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 import { useT } from "./i18n";
@@ -89,6 +90,24 @@ export function Done({ info, uiLocale }: { info: DoneInfo; uiLocale: Locale }) {
             {copied === "url" ? t("wizard.copied") : ""}
           </span>
         </div>
+      </Card>
+
+      <Card as="section" aria-labelledby="wz-done-share" className="flex flex-col gap-3">
+        <h2 id="wz-done-share" className="text-xl font-medium">
+          {t("wizard.done.share.title")}
+        </h2>
+        <p>{t("wizard.done.share.body")}</p>
+        <ShareLinks
+          url={info.url}
+          labels={{
+            whatsapp: t("wizard.done.share.whatsapp"),
+            sms: t("wizard.done.share.sms"),
+            email: t("wizard.done.share.email"),
+            native: t("wizard.done.share.native"),
+            subject: t("wizard.done.share.subject"),
+            message: t("wizard.done.share.message", { url: info.url }),
+          }}
+        />
       </Card>
 
       <Card as="section" aria-labelledby="wz-done-qr" className="flex flex-col gap-4 sm:flex-row">

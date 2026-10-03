@@ -593,6 +593,10 @@ html:has(.site-root[data-sticky="true"]) {
 .site-root .site-map .site-map-pin[data-kind="lodging"]::after {
   bottom: 2.25rem;
 }
+/* Modern má místo konání jako čtverec, ubytování proto kruh (tvar se liší i bez barvy) */
+.site-root[data-template="modern"] .site-map .site-map-pin[data-kind="lodging"]::before {
+  border-radius: 50%;
+}
 /* Legenda (jen když jsou na mapě obě skupiny): tvar špendlíku a popis */
 .site-map-legend {
   display: inline-flex;
@@ -618,13 +622,30 @@ html:has(.site-root[data-sticky="true"]) {
   background: var(--s-accent2);
   transform: none;
 }
+/* Vzorky v legendě kopírují tvar špendlíků šablony */
+.site-root[data-template="editorial"] .site-map-legend-item[data-kind="venue"]::before {
+  border-radius: 50%;
+  transform: none;
+}
+.site-root[data-template="chateau"] .site-map-legend-item[data-kind="venue"]::before {
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+.site-root[data-template="modern"] .site-map-legend-item[data-kind="venue"]::before {
+  border-radius: 0;
+  transform: none;
+}
+.site-root[data-template="modern"] .site-map-legend-item[data-kind="lodging"]::before {
+  border-radius: 50%;
+}
 
 @media (forced-colors: active) {
   .site-map-canvas::after {
     display: none;
   }
   .site-map-pin::before,
-  .site-map-pin::after {
+  .site-map-pin::after,
+  .site-map-legend-item::before {
     forced-color-adjust: none;
     border-color: Canvas;
     background: CanvasText;

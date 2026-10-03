@@ -41,6 +41,7 @@ create trigger sessions_admin_login_activity after insert on se_vezmou.sessions
 
 -- ---------------------------------------------------------------------------
 -- housekeeping: stejná jako v 20261009120300_retention_gaps.sql, jen opuštěné koncepty jdou obnovit
+-- a čítače omezení se drží dva dny (posuvné okno v 20261012120400_rate_limit_sliding.sql)
 -- ---------------------------------------------------------------------------
 create or replace function se_vezmou.housekeeping(
   p_now timestamptz default pg_catalog.now(),
@@ -87,8 +88,9 @@ begin
       select count(*) into v_challenges from d;
     with d as (delete from se_vezmou.rsvp_tickets t where t.expires_at < p_now returning 1)
       select count(*) into v_tickets from d;
+    -- dva dny: posuvné okno (20261012120400) potřebuje i předchozí okno denních pravidel
     with d as (delete from se_vezmou.rate_limits r
-                where r.window_start < p_now - interval '1 day' returning 1)
+                where r.window_start < p_now - interval '2 days' returning 1)
       select count(*) into v_rate_limits from d;
     -- pauza trvá nejvýše den; řádek bez pauzy (jen počítá chyby) stárne podle updated_at. Dřív se nemazaly nikdy.
     with d as (delete from se_vezmou.lockouts l

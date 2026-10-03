@@ -369,5 +369,8 @@
   "account.regenerate.intro": "Staré kódy přestanou platit. Nové se ukážou jen jednou.",
   "account.regenerate.submit": "Vytvořit nové kódy",
   "account.codes.title": "Nové záložní kódy",
-  "account.codes.intro": "Uložte si je na bezpečné místo. Znovu se už nezobrazí."
+  "account.codes.intro": "Uložte si je na bezpečné místo. Znovu se už nezobrazí.",
+  "account.regenerate.code": "Kód z aplikace pro ověřování",
+  "account.regenerate.hint": "Pro jistotu ověříme, že jste to vy: zadejte aktuální šestimístný kód z aplikace (záložní kód tu neplatí).",
+  "account.regenerate.error.format": "Zadejte šest číslic z aplikace pro ověřování."
 }

@@ -131,6 +131,9 @@ const pgTransport: RpcTransport = {
         ...(claims
           ? [`select set_config('request.jwt.claims', ${escapeLiteral(claims)}, true)`]
           : []),
+        // Správce: relace se ověřila v jiné transakci, tady se ověří, že je pořád aktivní a svatba není
+        // smazaná ani zablokovaná (jinak `forbidden` a nic se nezapíše).
+        ...(as?.weddingRole === "admin" ? ["select se_vezmou.assert_admin_session()"] : []),
       ].join("; ");
       await client.query(setup);
       const result = await client.query(

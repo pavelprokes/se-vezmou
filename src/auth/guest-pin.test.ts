@@ -84,8 +84,9 @@ describe("PIN hostů (FR-PRIV-2)", () => {
     expect(Buffer.from(create.p_token_hash as Buffer).toString("hex")).toBe(
       createHash("sha256").update(result.token).digest("hex"),
     );
+    // pokus se započítá před ověřením (souběžné pokusy pauzu neobejdou) a úspěch čítače vynuluje
+    expect(db.of("auth_lockout_failure")).toHaveLength(2);
     expect(db.of("auth_lockout_reset")).toHaveLength(2);
-    expect(db.of("auth_lockout_failure")).toHaveLength(0);
   });
 
   it("platnost relace hosta je kratší než u správce: 6 hodin nečinnosti a 2 dny", () => {
@@ -132,7 +133,11 @@ describe("PIN hostů (FR-PRIV-2)", () => {
 
   it("pauza platí i pro správný PIN a PIN se v ní vůbec neověřuje", async () => {
     const db = fakeDb(
-      await handlers({ auth_lockout_state: () => [{ locked: true, retry_after: 600 }] }),
+      await handlers({
+        auth_lockout_failure: () => [
+          { locked: true, retry_after: 600, level: 1, newly_locked: false },
+        ],
+      }),
     );
     expect(await unlockWithGuestPin(input)).toEqual({ status: "locked", retryAfter: 600 });
     expect(db.names()).not.toContain("auth_pin_get");
@@ -143,11 +148,11 @@ describe("PIN hostů (FR-PRIV-2)", () => {
     let call = 0;
     const db = fakeDb(
       await handlers({
-        // první dotaz je podle hosta a IP (volno), druhý podle svatby (pauza)
-        auth_lockout_state: () =>
+        // první pokus je podle hosta a IP (volno), druhý podle svatby (pauza trvá)
+        auth_lockout_failure: () =>
           ++call === 1
-            ? [{ locked: false, retry_after: 0 }]
-            : [{ locked: true, retry_after: 1200 }],
+            ? [{ locked: false, retry_after: 0, level: 0, newly_locked: false }]
+            : [{ locked: true, retry_after: 1200, level: 1, newly_locked: false }],
       }),
     );
     expect(await unlockWithGuestPin(input)).toEqual({ status: "locked", retryAfter: 1200 });

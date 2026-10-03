@@ -117,6 +117,8 @@ export interface PayloadPerson {
   allergies?: string | null;
   /** Ponechat dřívější dietu a alergie, které host neviděl (bez nových hodnot). */
   keep_health?: boolean;
+  /** Původní jméno doprovodu nebo dítěte, podle kterého se uložené údaje najdou i po přejmenování. */
+  health_name?: string;
   attendance: { event_id: string; attending: boolean }[];
 }
 

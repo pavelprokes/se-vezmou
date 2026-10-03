@@ -126,6 +126,25 @@ describe("odeslání domácnosti: obsah pro databázi", () => {
     );
     expect(cleared.ok && "keep_health" in cleared.payload.people[0]).toBe(false);
 
+    // doprovod: původní jméno jde s příznakem, aby se údaje našly i po přejmenování
+    const extra = parseSubmission(
+      formOf([
+        ...everyone,
+        ["x.0.kind", "adult"],
+        ["x.0.name", "Terezie Doprovodová"],
+        [`x.0.ev.${E_OBRAD}`, "yes"],
+        [`x.0.ev.${E_HOSTINA}`, "yes"],
+        ["x.0.savedHealth", "1"],
+        ["x.0.savedName", "Tereza Doprovodová"],
+      ]),
+      listed(),
+    );
+    expect(extra.ok && extra.payload.people.at(-1)).toMatchObject({
+      person_name: "Terezie Doprovodová",
+      keep_health: true,
+      health_name: "Tereza Doprovodová",
+    });
+
     // bez příznaku uložených údajů se nic neponechává
     const plain = parseSubmission(formOf(everyone), listed());
     expect(plain.ok && "keep_health" in plain.payload.people[0]).toBe(false);

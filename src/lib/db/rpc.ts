@@ -128,6 +128,26 @@ export async function lockoutFailure(
   };
 }
 
+/** Výsledek `lockoutAttempt`: v pauze se neověřuje; jinak se ověří a `newlyLocked` řekne, že pokus pauzu zahájil. */
+export type LockoutAttempt =
+  | { blocked: true; retryAfter: number }
+  | { blocked: false; newlyLocked: boolean; retryAfter: number };
+
+/**
+ * Pokus o PIN nebo kód: nejdřív se atomicky započítá jako chyba (zámek řádku v `auth_lockout_failure`),
+ * teprve potom se ověřuje a úspěch čítač vynuluje (`lockoutReset`). Souběžné požadavky tak pauzu neobejdou:
+ * dřív se stav četl před ověřením a chyba zapsala až po něm, takže dávka paralelních pokusů prošla celá.
+ * Pokus, který pauzu právě zahájil, se ještě ověří (je to poslední povolený pokus série).
+ */
+export async function lockoutAttempt(
+  bucketKey: string,
+  options: { threshold: number; baseSeconds: number; maxSeconds: number },
+): Promise<LockoutAttempt> {
+  const result = await lockoutFailure(bucketKey, options);
+  if (result.locked && !result.newlyLocked) return { blocked: true, retryAfter: result.retryAfter };
+  return { blocked: false, newlyLocked: result.newlyLocked, retryAfter: result.retryAfter };
+}
+
 export async function lockoutReset(bucketKey: string): Promise<void> {
   await call("auth_lockout_reset", { p_bucket_key: bucketKey }, "scalar");
 }
@@ -255,6 +275,11 @@ export function authVerifyChallenge(input: {
   purpose: ChallengePurpose;
   codeHash: Bytes;
   maxAttempts?: number;
+  /**
+   * HMAC klienta (IP): chyby se počítají zvlášť klientovi a s vyšším prahem celému e-mailu, takže cizí
+   * člověk nezablokuje přihlášení majiteli adresy.
+   */
+  clientKey: string;
 }): Promise<boolean> {
   return call<boolean>(
     "auth_verify_challenge",
@@ -263,6 +288,7 @@ export function authVerifyChallenge(input: {
       p_purpose: input.purpose,
       p_code_hash: input.codeHash,
       p_max_attempts: input.maxAttempts,
+      p_client_key: input.clientKey,
     },
     "scalar",
   );

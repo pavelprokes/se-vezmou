@@ -75,6 +75,8 @@ export interface FormExtra {
   allergies: string;
   /** Dřívější odpověď má uložené zdravotní údaje, které host nevidí (ponechají se, pokud je nezmění). */
   savedHealth?: boolean;
+  /** Jméno z dřívější odpovědi: podle něj se uložené údaje najdou i po přejmenování. */
+  savedName?: string;
 }
 
 export interface FormValues {
@@ -295,7 +297,7 @@ export function buildListedModel(view: RsvpView, locale: Locale): RsvpFormModel 
           ),
           diet: person.diet ?? "",
           allergies: person.allergies ?? "",
-          ...(person.has_health ? { savedHealth: true } : {}),
+          ...(person.has_health ? { savedHealth: true, savedName: person.person_name } : {}),
         });
       }
     }

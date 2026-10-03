@@ -365,5 +365,8 @@
   "account.regenerate.intro": "Old codes stop working. The new ones are shown only once.",
   "account.regenerate.submit": "Create new codes",
   "account.codes.title": "New backup codes",
-  "account.codes.intro": "Save them in a safe place. They will not be shown again."
+  "account.codes.intro": "Save them in a safe place. They will not be shown again.",
+  "account.regenerate.code": "Code from your authenticator app",
+  "account.regenerate.hint": "To make sure it is you, enter the current six-digit code from your app (backup codes are not accepted here).",
+  "account.regenerate.error.format": "Enter the six digits from your authenticator app."
 }

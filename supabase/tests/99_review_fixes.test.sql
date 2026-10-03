@@ -86,6 +86,50 @@ begin
                     join se_vezmou.rsvp_people p on p.id = h.person_id
                    where p.wedding_id = tap.wa() and p.person_name = 'Doprovod Hosta'),
     'keep_health u doprovodu ponechá jeho alergie');
+
+  -- přejmenovaný doprovod: údaje se najdou podle původního jména (health_name)
+  perform tap.become('authenticated', tap.wa(), 'visitor');
+  perform se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Doprovod Opravený', 'keep_health', true,
+                       'health_name', 'Doprovod Hosta', 'attendance', v_att))));
+  perform tap.reset();
+  perform tap.ok((select h.allergies = 'laktóza' from se_vezmou.rsvp_health h
+                    join se_vezmou.rsvp_people p on p.id = h.person_id
+                   where p.wedding_id = tap.wa() and p.person_name = 'Doprovod Opravený'),
+    'přejmenovaný doprovod si podle původního jména ponechá alergie');
+end
+$$;
+
+-- stejnojmenné děti: údaje se párují podle pořadí, ne náhodně; ponechaný e-mail se vrátí serveru
+do $$
+declare
+  v_ticket text;
+  v_result jsonb;
+  g1 uuid := tap.u('A:guest1');
+  e1 uuid := tap.u('A:event1');
+  v_att jsonb := jsonb_build_array(jsonb_build_object('event_id', e1, 'attending', true));
+begin
+  update se_vezmou.rsvp_settings
+     set enabled_questions = '{"plus_one": true, "children": true, "diet": true}', email_confirmation = true
+   where wedding_id = tap.wa();
+  perform tap.become('authenticated', tap.wa(), 'visitor');
+  select ticket into v_ticket from se_vezmou.rsvp_match('Jan Novák');
+  perform se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('contact_email', 'jan@example.test',
+    'people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Eliška', 'is_child', true, 'age', 3, 'diet', 'první', 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Eliška', 'is_child', true, 'age', 6, 'diet', 'druhá', 'attendance', v_att))));
+  v_result := se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('keep_email', true, 'people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Eliška', 'is_child', true, 'age', 3, 'keep_health', true, 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Eliška', 'is_child', true, 'age', 6, 'keep_health', true, 'attendance', v_att))));
+  perform tap.reset();
+  perform tap.ok((select array_agg(h.diet order by p.created_at) = array['první', 'druhá']
+                    from se_vezmou.rsvp_health h join se_vezmou.rsvp_people p on p.id = h.person_id
+                   where p.wedding_id = tap.wa() and p.person_name = 'Eliška'),
+    'stejnojmenné děti dostanou své údaje v původním pořadí');
+  perform tap.ok(v_result ->> 'kept_email' = 'jan@example.test', 'ponechaný e-mail se vrátí serveru kvůli potvrzení');
 end
 $$;
 
@@ -145,6 +189,72 @@ begin
   perform tap.reset();
   perform tap.ok((select status from se_vezmou.weddings where id = v_draft) = 'draft',
     'koncept obnovený operátorem se před uplynutím lhůty nečinnosti znovu nesmaže');
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Kódy z e-mailu: pauza podle klienta, cizí klient nezablokuje majitele adresy
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_email bytea := sha256(convert_to('hmac:majitel@example.test', 'UTF8'));
+  v_code bytea := sha256(convert_to('123456', 'UTF8'));
+  v_wrong bytea := sha256(convert_to('000000', 'UTF8'));
+begin
+  set local role service_role;
+  perform se_vezmou.auth_create_challenge(v_email, 'admin_login', v_code);
+  for i in 1..5 loop
+    perform se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_wrong, 5::smallint, 'utocnik');
+  end loop;
+  perform se_vezmou.auth_create_challenge(v_email, 'admin_login', v_code);
+  perform tap.ok(not se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_code, 5::smallint, 'utocnik'),
+    'útočník je po pěti chybách v pauze (ani správný kód neprojde)');
+  perform tap.ok(se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_code, 5::smallint, 'majitel'),
+    'majitel adresy se z jiného klienta přihlásí');
+
+  -- celý e-mail: desetinásobný práh přes všechny klienty
+  for k in 1..10 loop
+    perform se_vezmou.auth_create_challenge(v_email, 'admin_login', v_code);
+    for i in 1..5 loop
+      perform se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_wrong, 5::smallint, 'klient-' || k);
+    end loop;
+  end loop;
+  perform se_vezmou.auth_create_challenge(v_email, 'admin_login', v_code);
+  perform tap.ok(not se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_code, 5::smallint, 'novy-klient'),
+    'padesát chyb z mnoha klientů zastaví ověřování celého e-mailu');
+  perform tap.reset();
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Správce: aktivní kontrola v transakci a odebrání po zámku
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_b uuid;
+begin
+  insert into se_vezmou.wedding_admins (wedding_id, email) values (tap.wa(), 'druhy@example.test') returning id into v_b;
+
+  perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
+  perform se_vezmou.assert_admin_session();
+  perform tap.reset();
+  perform tap.ok(true, 'aktivní správce kontrolou projde');
+
+  -- B je mezitím odebrán: jeho rozběhnuté volání neprojde ani kontrolou, ani odebráním správce A
+  update se_vezmou.wedding_admins set removed_at = now() where id = v_b;
+  perform tap.become('authenticated', tap.wa(), 'admin', v_b);
+  perform tap.throws('select se_vezmou.assert_admin_session()', 'forbidden', 'odebraný správce kontrolou neprojde');
+  perform tap.throws(format('select se_vezmou.admin_admin_remove(%L)', tap.u('A:admin')), 'forbidden',
+    'odebraný správce už nikoho neodebere (svatba nezůstane bez správce)');
+  perform tap.reset();
+  perform tap.ok((select removed_at is null from se_vezmou.wedding_admins where id = tap.u('A:admin')),
+    'správce A zůstal');
+
+  -- zablokovaná svatba
+  update se_vezmou.weddings set status = 'blocked' where id = tap.wa();
+  perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
+  perform tap.throws('select se_vezmou.assert_admin_session()', 'forbidden', 'zablokovaná svatba kontrolou neprojde');
+  perform tap.reset();
 end
 $$;
 

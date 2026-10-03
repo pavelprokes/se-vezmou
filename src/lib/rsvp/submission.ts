@@ -60,7 +60,9 @@ export function parseSubmission(form: FormData, model: RsvpFormModel): ParseResu
   const eventTitle = new Map(model.events.map((event) => [event.id, event.title]));
   const attendingEvents = new Set<string>();
 
-  const health = (prefix: string): Pick<PayloadPerson, "diet" | "allergies" | "keep_health"> => {
+  const health = (
+    prefix: string,
+  ): Pick<PayloadPerson, "diet" | "allergies" | "keep_health" | "health_name"> => {
     if (!model.flags.diet) return {};
     const result: Pick<PayloadPerson, "diet" | "allergies"> = {};
     for (const field of ["diet", "allergies"] as const) {
@@ -75,7 +77,8 @@ export function parseSubmission(form: FormData, model: RsvpFormModel): ParseResu
       read(form, `${prefix}.savedHealth`) === "1" &&
       read(form, `${prefix}.clearHealth`) === ""
     ) {
-      return { keep_health: true };
+      const savedName = read(form, `${prefix}.savedName`);
+      return { keep_health: true, ...(savedName ? { health_name: savedName } : {}) };
     }
     return result;
   };

@@ -165,12 +165,31 @@ export async function enrollAction(
   }
 }
 
-/** Nová sada záložních kódů pro přihlášeného operátora (AAL2). */
-export async function regenerateCodesAction(): Promise<ActionState<CodesData>> {
+/** Nová sada záložních kódů pro přihlášeného operátora (AAL2); vyžaduje aktuální kód z aplikace. */
+export async function regenerateCodesAction(
+  _previous: ActionState<CodesData>,
+  formData: FormData,
+): Promise<ActionState<CodesData>> {
   const auth = await authorizeOperator("view");
   if (!auth.ok) return { error: auth.reason };
-  const codes = await regenerateBackupCodes({ session: auth.session, defer });
-  return { ok: true, data: { codes } };
+  const result = await regenerateBackupCodes({
+    session: auth.session,
+    value: formData.get("code"),
+    ip: await getClientIp(),
+    defer,
+  });
+  switch (result.status) {
+    case "ok":
+      return { ok: true, data: { codes: result.backupCodes } };
+    case "format":
+      return { error: "format", field: "code" };
+    case "invalid":
+      return { error: "invalid", field: "code" };
+    case "locked":
+      return { error: "locked", pause: formatPause(result.retryAfter, await getUiLocale()) };
+    case "limited":
+      return { error: "limited" };
+  }
 }
 
 /** Odhlášení: relace se odvolá na serveru a cookie zanikne. */

@@ -817,6 +817,7 @@ function GuestForm({
                 diet={extra.diet}
                 allergies={extra.allergies}
                 saved={extra.savedHealth === true}
+                savedName={extra.savedName}
                 errors={errors}
                 onDiet={(value) => setExtra(index, { diet: value })}
                 onAllergies={(value) => setExtra(index, { allergies: value })}
@@ -1226,6 +1227,7 @@ function HealthFields({
   onDiet,
   onAllergies,
   saved = false,
+  savedName,
 }: {
   prefix: string;
   name: string;
@@ -1237,6 +1239,8 @@ function HealthFields({
   onAllergies: (value: string) => void;
   /** Dřívější odpověď má uložené údaje, které se hostovi z ochrany soukromí nezobrazují. */
   saved?: boolean;
+  /** Jméno z dřívější odpovědi (doprovod, dítě): podle něj se uložené údaje najdou i po přejmenování. */
+  savedName?: string;
 }) {
   const dietField = `${prefix}.diet`;
   const allergiesField = `${prefix}.allergies`;
@@ -1247,6 +1251,9 @@ function HealthFields({
       {saved ? (
         <>
           <input type="hidden" name={`${prefix}.savedHealth`} value="1" />
+          {savedName ? (
+            <input type="hidden" name={`${prefix}.savedName`} value={savedName} />
+          ) : null}
           <p className="site-muted site-hint">{labels.health.saved}</p>
         </>
       ) : null}

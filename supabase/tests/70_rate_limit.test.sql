@@ -1,4 +1,4 @@
--- rate_limit_hit (ADR 0010, kap. 3.8): čítač s pevným oknem, nezávislé klíče, nové okno, neplatné vstupy.
+-- rate_limit_hit (ADR 0010, kap. 3.8): čítač s posuvným oknem, nezávislé klíče, nové okno, neplatné vstupy.
 -- Souběžnou atomicitu ověřuje scripts/db-test.sh (skutečná paralelní spojení).
 begin;
 
@@ -71,11 +71,13 @@ begin
 end
 $$;
 
--- Nové okno: po uplynutí okna se čítač nuluje (okno 2 s, mezi voláními pg_sleep)
+-- Posuvné okno (okno 2 s, mezi voláními pg_sleep): hned za hranicí oken se předchozí okno ještě počítá,
+-- takže limit nejde vyčerpat dvakrát za sebou; po uplynutí celého posuvného okna je čítač nový.
 do $$
 declare
   v_first boolean;
   v_second boolean;
+  v_boundary boolean;
   v_third boolean;
   v_deadline timestamptz;
 begin
@@ -87,12 +89,18 @@ begin
   end loop;
   select allowed into v_first from se_vezmou.rate_limit_hit('test:window', 1, interval '2 seconds');
   select allowed into v_second from se_vezmou.rate_limit_hit('test:window', 1, interval '2 seconds');
-  perform pg_sleep(2.2);
+  -- těsně za hranicí oken (do 0,4 s nového okna): z předchozího okna se počítá většina
+  while extract(epoch from clock_timestamp())::numeric % 2 > 0.4 loop
+    perform pg_sleep(0.02);
+  end loop;
+  select allowed into v_boundary from se_vezmou.rate_limit_hit('test:window', 1, interval '2 seconds');
+  perform pg_sleep(4.2);
   select allowed into v_third from se_vezmou.rate_limit_hit('test:window', 1, interval '2 seconds');
   perform tap.reset();
   perform tap.ok(v_first, 'okno: první pokus projde');
   perform tap.ok(not v_second, 'okno: druhý pokus ve stejném okně je zamítnut');
-  perform tap.ok(v_third, 'okno: po uplynutí okna je čítač nový');
+  perform tap.ok(not v_boundary, 'posuvné okno: hned za hranicí oken se předchozí okno počítá (žádný dvojnásobek)');
+  perform tap.ok(v_third, 'okno: po uplynutí celého posuvného okna je čítač nový');
 end
 $$;
 

@@ -1,3 +1,4 @@
+import type { Locale } from "../../src/i18n/config";
 import { randomUUID } from "node:crypto";
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
@@ -195,7 +196,7 @@ export interface OpsWeddingOptions {
   tag?: string;
   status?: "draft" | "published" | "blocked" | "archived" | "deleted";
   template?: "editorial" | "eukalyptus" | "chateau" | "modern";
-  locales?: ("cs" | "en")[];
+  locales?: Locale[];
   startsOn?: string | null;
   /** Hosté (domácnost a jména): jen ve zvláštním testu nahlížení. */
   guests?: string[];

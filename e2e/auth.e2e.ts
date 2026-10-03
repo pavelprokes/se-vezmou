@@ -598,7 +598,7 @@ test.describe("angličtina", () => {
     await context.close();
   });
 
-  test("anglický prohlížeč na české adrese vidí češtinu (jazyk určuje cesta)", async ({
+  test("anglický prohlížeč: vstup na českou adresu vede na /en, volba češtiny pak platí (ADR 0013)", async ({
     browser,
   }) => {
     const context = await browser.newContext({
@@ -607,8 +607,21 @@ test.describe("angličtina", () => {
     });
     const page = await context.newPage();
     await page.goto(app("/prihlaseni"));
+    await expect(page).toHaveURL(app("/en/prihlaseni"));
+    await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
+
+    await page
+      .getByRole("navigation", { name: "Language", exact: true })
+      .getByRole("link", { name: "Čeština" })
+      .click();
+    await expect(page).toHaveURL(app("/prihlaseni"));
     await expect(page.locator("html")).toHaveAttribute("lang", "cs");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Přihlášení");
+
+    // Česká adresa pak zůstane česky i při novém vstupu (jazyk určuje adresa a volba v cookie).
+    await page.goto(app("/prihlaseni"));
+    await expect(page).toHaveURL(app("/prihlaseni"));
+    await expect(page.locator("html")).toHaveAttribute("lang", "cs");
     await context.close();
   });
 });

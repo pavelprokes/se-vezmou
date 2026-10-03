@@ -1,3 +1,4 @@
+import type { Locale } from "../../src/i18n/config";
 import { randomUUID } from "node:crypto";
 import type { BrowserContext, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
@@ -37,7 +38,7 @@ export interface ManagedSite {
 export interface SeedOptions {
   tag?: string;
   names?: [string, string];
-  locales?: ("cs" | "en")[];
+  locales?: Locale[];
   template?: "editorial" | "eukalyptus" | "chateau" | "modern";
   palette?: string;
   /** PIN hostů (zapne ho a uloží hash); bez něj je PIN hostů vypnutý. */

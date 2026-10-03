@@ -150,7 +150,7 @@ shodí `npm run i18n:check` (ADR 0003).
    `CRON_TEST_CLOCK`, `OG_FETCH_TEST_HOST`, `ENABLE_UI_CATALOG`, `HOST_PRESET`) na Vercelu nenastavuj.
 
 4. Po prvním nasazení projdi **ověření po nasazení** níže. Na Vercelu se staví **pouze větev `main`** (produkce). Ostatní větve se přeskakují přes
-   `ignoreCommand` ve `vercel.json`, takže PR a pushe do `pre-prod` nespouštějí build.
+   `ignoreCommand` ve `vercel.json`, takže PR a pushe do feature větví nespouštějí build.
 
 ### Ověření po nasazení
 
@@ -172,9 +172,8 @@ shodí `npm run i18n:check` (ADR 0003).
 ## Workflow větví
 
 - `main`: produkce, každý push = produkční deploy.
-- `pre-prod`: sběrná větev. Feature větve se z ní větví a PR mířejí do `pre-prod`.
-  Až je hotová dávka změn, otevře se jeden PR `pre-prod` → `main` a mergne se najednou.
-- CI (GitHub Actions) běží na každém PR i pushi do `main` a `pre-prod`.
+- Feature větve se větví z `main` a PR mířejí přímo do `main`.
+- CI (GitHub Actions) běží na každém PR i pushi do `main`.
 - Preview konkrétní větve lze vyžádat ručně: `npx vercel` (nebo dočasně upravit `ignoreCommand`).
 
 Případně přes CLI: `npx vercel` (preview) / `npx vercel --prod`.

@@ -96,7 +96,7 @@ for (const locale of locales) {
       };
       expect(faq.mainEntity).toHaveLength(6);
 
-      // Reference jsou zástupný text: žádné recenze ve strukturovaných datech.
+      // Žádné recenze ve strukturovaných datech (skutečné reference zatím nejsou).
       expect(JSON.stringify(documents)).not.toContain('"Review"');
       expect(JSON.stringify(documents)).not.toContain("AggregateRating");
       // Kontakt provozovatele je ve značkách, zástupné texty ne.
@@ -168,7 +168,7 @@ for (const locale of locales) {
         "features-title",
         "trust-title",
         "pricing-title",
-        "references-title",
+        "launch-title",
         "faq-title",
         "cta-title",
       ]);
@@ -187,11 +187,14 @@ for (const locale of locales) {
       await expect(pricing).toContainText("[PODMÍNKY]");
     });
 
-    test("reference jsou zástupný text bez vymyšlených recenzí", async ({ page }) => {
+    test("sekce oznámení o spuštění nemá zástupné texty ani vymyšlené recenze", async ({
+      page,
+    }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
-      const references = page.locator("#references");
-      await expect(references.getByText(/\[.*\]/).first()).toBeVisible();
-      await expect(references.locator("blockquote")).toHaveCount(0);
+      const launch = page.locator("#launch");
+      await expect(launch.locator("blockquote")).toHaveCount(0);
+      await expect(launch.getByText(/\[.*\]|Zástupný text|Placeholder text/)).toHaveCount(0);
+      await expect(launch.locator("#waitlist form")).toBeVisible();
     });
 
     test("šablony: čtyři živé ukázky se jmény Klára a Matěj", async ({ page }) => {

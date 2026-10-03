@@ -6,7 +6,7 @@ Stav k 3. 10. 2026. Úkoly, které čekají na majitele nebo na dokončení slu�
 
 - [ ] **Podmínky služby** (`[PODMÍNKY]`, `/podminky`, `/en/terms`): vymyslet a napsat až po dokončení služeb (cena po zaváděcím provozu, zpracovatelská ujednání podle čl. 28 GDPR). Text musí ověřit skutečný právník. Navazuje OQ-11.
 - [ ] **Zásady zpracování osobních údajů** (`/soukromi`, `/en/privacy`) a **prohlášení o přístupnosti**: dokončit s podmínkami; poté zrušit `noindex` a přidat do `indexableRoutes` v `src/seo/sitemap.ts`.
-- [ ] **Skutečné reference**: nahradit tři „Zástupný text" opravdovými recenzemi se souhlasem autorů (např. od párů, kterým Pavel fotil svatbu, nebo od prvních uživatelů zaváděcího provozu). Do té doby je v sekci čekací listina. Žádné vymyšlené recenze.
+- [ ] **Skutečné reference**: přidat na úvodní stránku sekci s opravdovými recenzemi se souhlasem autorů (např. od párů, kterým Pavel fotil svatbu, nebo od prvních uživatelů zaváděcího provozu). Zástupné karty jsou odstraněné, na úvodní stránce je teď jen sekce Oznámení o spuštění (`launch-section.tsx`). Žádné vymyšlené recenze, bez `Review` ve strukturovaných datech, dokud nejsou skutečné.
 
 ## SEO a provoz
 

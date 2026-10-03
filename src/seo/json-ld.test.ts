@@ -161,7 +161,7 @@ describe("graph", () => {
     expect(doc["@graph"]).toHaveLength(2);
   });
 
-  it("Review se ve zdrojích strukturovaných dat nikde nevypisuje (reference jsou zástupné)", async () => {
+  it("Review se ve zdrojích strukturovaných dat nikde nevypisuje (skutečné reference zatím nejsou)", async () => {
     const { readFileSync, readdirSync } = await import("node:fs");
     const { join } = await import("node:path");
     const files = [

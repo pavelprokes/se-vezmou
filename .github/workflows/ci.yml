@@ -100,11 +100,11 @@ jobs:
       - run: npm ci
       - run: command -v psql >/dev/null || (sudo apt-get update && sudo apt-get install -y postgresql-client)
       # Cache stažených prohlížečů a sestavení Next (zrychlí opakované běhy).
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         with:
           path: .next/cache
           key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'next.config.ts') }}
@@ -114,7 +114,7 @@ jobs:
       # Skript připraví databázi, konfigurace Playwrightu sestaví aplikaci (`npm run build`), spustí `next start`
       # a spustí všechny projekty (e2e, a11y) jen pro tuto část testů.
       - run: bash scripts/e2e-db.sh run -- npx playwright test --shard=${{ matrix.shard }}/4
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-test-results-${{ matrix.shard }}

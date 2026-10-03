@@ -32,6 +32,7 @@ function full(): WizardDraft {
       venueName: "Zámecká kaple",
       venueAddress: "Zámecká 1, Dobřichovice",
       directions: { cs: "Parkování na nádvoří." },
+      geo: null,
     },
     reception: {
       enabled: true,
@@ -39,6 +40,7 @@ function full(): WizardDraft {
       venueName: "",
       venueAddress: "",
       directions: {},
+      geo: null,
       sameVenue: true,
     },
     extraEvents: [{ id: newId(), title: { cs: "Raut" }, time: "15:00" }],
@@ -123,7 +125,14 @@ describe("toPublicContent", () => {
 
   it("nehotové položky se vynechají (událost bez času, místo bez adresy)", () => {
     const draft = base({
-      ceremony: { enabled: true, time: "", venueName: "Kaple", venueAddress: "", directions: {} },
+      ceremony: {
+        enabled: true,
+        time: "",
+        venueName: "Kaple",
+        venueAddress: "",
+        directions: {},
+        geo: null,
+      },
       extraEvents: [{ id: newId(), title: {}, time: "15:00" }],
       lodging: [{ id: newId(), name: "", description: {}, url: "" }],
       contacts: [{ id: newId(), name: "", email: "", phone: "" }],
@@ -142,6 +151,7 @@ describe("toPublicContent", () => {
         venueName: "Sál",
         venueAddress: "Hlavní 5",
         directions: { cs: "Vchod z dvora." },
+        geo: null,
         sameVenue: true,
       },
     });
@@ -190,6 +200,42 @@ describe("toPublicContent", () => {
 
   it("obsah za PINem je prázdný (průvodce žádný nemá)", () => {
     expect(toSensitiveContent()).toEqual({ venues: {}, gifts: null, gallery: null, photos: [] });
+  });
+});
+
+describe("mapa místa", () => {
+  const geo = {
+    query: "Zámecká 1, Dobřichovice",
+    lat: 49.92556,
+    lng: 14.27639,
+    label: "Zámecká 1",
+  };
+
+  it("souřadnice platí jen k adrese, ke které se hledaly; volba mapy jde do bloku", () => {
+    const draft = full();
+    const located = toPublicContent(
+      { ...draft, showMap: true, ceremony: { ...draft.ceremony, geo } },
+      { slug: "klara-a-matej" },
+    );
+    expect(located.venues[0]).toMatchObject({ lat: 49.92556, lng: 14.27639 });
+    const block = located.blocks.find((b) => b.type === "venue");
+    expect(block?.type === "venue" && block.data.showMap).toBe(true);
+
+    const stale = toPublicContent(
+      {
+        ...draft,
+        showMap: true,
+        ceremony: { ...draft.ceremony, venueAddress: "Hlavní 5, Praha", geo },
+      },
+      { slug: "klara-a-matej" },
+    );
+    expect(stale.venues[0]).toMatchObject({ lat: null, lng: null });
+  });
+
+  it("pracovní sada nese souřadnice", () => {
+    const draft = full();
+    const work = toWorkingSet({ ...draft, ceremony: { ...draft.ceremony, geo } }, now);
+    expect(work.venues[0]).toMatchObject({ lat: 49.92556, lng: 14.27639 });
   });
 });
 

@@ -77,6 +77,8 @@ const schema = z.object({
   ALLOW_TEST_HATCHES: z.string().min(1).optional(),
   ENABLE_UI_CATALOG: z.string().min(1).optional(),
   OG_FETCH_TEST_HOST: z.string().min(1).optional(),
+  /** Jen automatické testy: `1` = mapa bez sítě (pevné souřadnice, šedé dlaždice), src/site/map/server.ts. */
+  MAP_STUB: z.string().min(1).optional(),
   // SENTRY_ORG, SENTRY_PROJECT a SENTRY_AUTH_TOKEN čte jen next.config.ts při sestavení (před startem
   // aplikace), NEXT_PUBLIC_SENTRY_DSN se vkládá do sestavení doslovným `process.env.…` v sentry.*.config.ts
   // a instrumentation-client.ts. Proto nejsou tady.

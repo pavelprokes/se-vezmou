@@ -12,9 +12,43 @@ import {
   useErrorText,
 } from "../fields";
 import { useT } from "../i18n";
+import { useGeocode, type GeocodeStatus } from "../use-geocode";
 import type { StepProps } from "./types";
 
 type PlaceKey = "ceremony" | "reception";
+export type PlaceGeoStatus = Record<PlaceKey, GeocodeStatus | null>;
+
+/** Adresa místa, kterou je potřeba najít na mapě (mapa zapnutá, místo vyplněné, souřadnice chybí). */
+function pendingAddress(draft: WizardDraft, which: PlaceKey): string | null {
+  const part = draft[which];
+  const address = part.venueAddress.trim();
+  const used =
+    which === "ceremony"
+      ? part.enabled
+      : part.enabled && !(draft.reception.sameVenue && draft.ceremony.enabled);
+  if (!draft.showMap || !used || address === "" || part.geo?.query === address) return null;
+  return address;
+}
+
+/**
+ * Souřadnice míst pro mapu. Běží v celém průvodci (ne jen v kroku 4), aby se hledání nepřerušilo
+ * přechodem na další krok; nalezené místo se zapíše do konceptu k adrese, ke které se hledalo.
+ */
+export function useDraftGeocode(draft: WizardDraft, update: StepProps["update"]): PlaceGeoStatus {
+  const found =
+    (which: PlaceKey, address: string) => (hit: { lat: number; lng: number; label: string }) =>
+      update((d) =>
+        d[which].venueAddress.trim() === address
+          ? { ...d, [which]: { ...d[which], geo: { query: address, ...hit } } }
+          : d,
+      );
+  const ceremony = pendingAddress(draft, "ceremony");
+  const reception = pendingAddress(draft, "reception");
+  return {
+    ceremony: useGeocode(ceremony, found("ceremony", ceremony ?? "")),
+    reception: useGeocode(reception, found("reception", reception ?? "")),
+  };
+}
 
 /** Místo konání a poznámka, jak se tam dostat: zadává se jednou, hostina může využít místo obřadu. */
 function VenueFields({
@@ -22,12 +56,19 @@ function VenueFields({
   draft,
   update,
   errors,
-}: Pick<StepProps, "draft" | "update" | "errors"> & { which: PlaceKey }) {
+  geoStatus,
+}: Pick<StepProps, "draft" | "update" | "errors"> & {
+  which: PlaceKey;
+  geoStatus: GeocodeStatus | null;
+}) {
   const t = useT();
   const errorText = useErrorText();
   const part = draft[which];
   const patch = (change: Partial<PlaceDraft>) =>
     update((d) => ({ ...d, [which]: { ...d[which], ...change } }));
+  const address = part.venueAddress.trim();
+  // Souřadnice platí jen k adrese, ke které se hledaly; po úpravě adresy průvodce hledá znovu.
+  const located = address !== "" && part.geo?.query === address;
 
   return (
     <>
@@ -51,6 +92,13 @@ function VenueFields({
         autoComplete="off"
         maxLength={250}
       />
+      {draft.showMap && address !== "" ? (
+        <p role="status" className="text-muted -mt-2 text-sm">
+          {located && part.geo
+            ? t("wizard.map.found", { place: part.geo.label })
+            : t(`wizard.map.${geoStatus ?? "searching"}`)}
+        </p>
+      ) : null}
       <LocalizedTextArea
         field={`${which}-directions`}
         label={t("wizard.venue.directions.label")}
@@ -66,7 +114,14 @@ function VenueFields({
 }
 
 /** Krok 4: program dne a místo. Všechno je nepovinné a jde to doplnit později ve správě webu. */
-export function StepProgram({ draft, update, errors, screen, mobile }: StepProps) {
+export function StepProgram({
+  draft,
+  update,
+  errors,
+  screen,
+  mobile,
+  geoStatus,
+}: StepProps & { geoStatus: PlaceGeoStatus }) {
   const t = useT();
   const errorText = useErrorText();
   const { ceremony, reception } = draft;
@@ -122,7 +177,13 @@ export function StepProgram({ draft, update, errors, screen, mobile }: StepProps
               autoComplete="off"
               required
             />
-            <VenueFields which="ceremony" draft={draft} update={update} errors={errors} />
+            <VenueFields
+              which="ceremony"
+              draft={draft}
+              update={update}
+              errors={errors}
+              geoStatus={geoStatus.ceremony}
+            />
           </>
         ) : null}
       </ScreenGroup>
@@ -154,9 +215,23 @@ export function StepProgram({ draft, update, errors, screen, mobile }: StepProps
               />
             ) : null}
             {sharesVenue ? null : (
-              <VenueFields which="reception" draft={draft} update={update} errors={errors} />
+              <VenueFields
+                which="reception"
+                draft={draft}
+                update={update}
+                errors={errors}
+                geoStatus={geoStatus.reception}
+              />
             )}
           </>
+        ) : null}
+        {ceremony.enabled || reception.enabled ? (
+          <ToggleField
+            label={t("wizard.map.enable")}
+            description={t("wizard.map.enableHint")}
+            checked={draft.showMap}
+            onCheckedChange={(showMap) => update((d) => ({ ...d, showMap }))}
+          />
         ) : null}
       </ScreenGroup>
 

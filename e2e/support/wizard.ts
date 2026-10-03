@@ -67,6 +67,7 @@ export async function fillOptionalSteps(page: Page): Promise<{ pin: string }> {
   await nextScreen(page);
   await page.getByLabel("Přidat hostinu").check();
   await page.getByLabel("Čas hostiny").fill("16:30");
+  await page.getByLabel("Ukázat mapu").check();
   await nextScreen(page);
   await page.getByRole("button", { name: "Přidat bod programu" }).click();
   await page.getByLabel("Název", { exact: true }).fill("První tanec");

@@ -285,6 +285,49 @@ describe("docToPublic: veřejný snímek a citlivá část", () => {
   });
 });
 
+describe("mapa místa", () => {
+  function located(): EditorDoc {
+    const doc = withBlocks(baseDoc(), (blocks) =>
+      enable(blocks, "venue", { venueIds: [ID(1), ID(2)], showMap: true }),
+    );
+    doc.venues[0] = { ...doc.venues[0], lat: 49.92556, lng: 14.27639 };
+    doc.venues[1] = { ...doc.venues[1], lat: 50.1, lng: 14.1 };
+    return doc;
+  }
+
+  it("souřadnice jen u veřejného místa, soukromé je nemá ani v citlivé části; volba mapy v bloku", () => {
+    const { content, sensitive } = docToPublic(located(), { slug: "klara-a-matej" })!;
+    expect(content.venues.find((v) => v.id === ID(1))).toMatchObject({
+      lat: 49.92556,
+      lng: 14.27639,
+    });
+    expect(content.venues.find((v) => v.id === ID(2))).toMatchObject({ lat: null, lng: null });
+    expect(JSON.stringify(content)).not.toContain("50.1");
+    expect(JSON.stringify(sensitive)).not.toContain("50.1");
+    const block = content.blocks.find((b) => b.type === "venue");
+    expect(block?.type === "venue" && block.data.showMap).toBe(true);
+  });
+
+  it("vrácení verze zachová souřadnice veřejného místa a volbu mapy", () => {
+    const { content, sensitive } = docToPublic(located(), { slug: "klara-a-matej" })!;
+    const back = publicToDoc(content, sensitive);
+    expect(back.venues.find((v) => v.id === ID(1))).toMatchObject({ lat: 49.92556, lng: 14.27639 });
+    const block = back.blocks.find((b) => b.type === "venue");
+    expect(block?.type === "venue" && block.data.showMap).toBe(true);
+  });
+
+  it("zapnutá mapa bez nalezeného veřejného místa je upozornění", () => {
+    const ready = { guestPinReady: true };
+    expect(validateDoc(located(), ready).some((i) => i.code === "venueNoCoords")).toBe(false);
+    const doc = located();
+    doc.venues[0] = { ...doc.venues[0], lat: null, lng: null };
+    expect(validateDoc(doc, ready).find((i) => i.code === "venueNoCoords")).toMatchObject({
+      severity: "warning",
+      area: "venue",
+    });
+  });
+});
+
 describe("publicToDoc: vrácení verze", () => {
   it("snímek se sestavením a vrácením nemění obsah", () => {
     const doc = withBlocks(baseDoc(), (blocks) =>

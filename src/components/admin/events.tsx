@@ -6,6 +6,7 @@ import { newId, type EditorEvent, type EditorVenue } from "@/admin/site/doc";
 import { normalizeUrl } from "@/admin/site/normalize";
 import { isoParts, joinParts } from "@/admin/site/time";
 import { todayIn, zonedIso } from "@/wizard/zoned";
+import { useGeocode } from "@/components/wizard/use-geocode";
 import type { EditorContext } from "./blocks";
 import { AddButton, ItemCard, LocalizedField, Note, SelectField } from "./fields";
 import { useAdminT } from "./i18n";
@@ -150,8 +151,34 @@ export function EventsEditor({ ctx }: { ctx: EditorContext }) {
   );
 }
 
-/** Místa konání: textová adresa je vždy, mapa je jen doplněk (FR-WEB-1); soukromé místo je za PINem. */
-export function VenuesEditor({ ctx }: { ctx: EditorContext }) {
+/**
+ * Souřadnice místa pro mapu (blok Místo s `showMap`): po změně adresy se hledají znovu (na serveru,
+ * Nominatim). Stav hledání je hláška pod adresou; soukromé místo na mapě není, nehledá se.
+ */
+function VenueGeo({ venue, ctx }: { venue: EditorVenue; ctx: EditorContext }) {
+  const t = useAdminT();
+  const address = venue.address.trim();
+  const located = venue.lat !== null && venue.lng !== null;
+  const status = useGeocode(address !== "" && !located ? address : null, (hit) =>
+    ctx.update((d) => ({
+      ...d,
+      venues: d.venues.map((v) =>
+        v.id === venue.id && v.address.trim() === address
+          ? { ...v, lat: hit.lat, lng: hit.lng }
+          : v,
+      ),
+    })),
+  );
+  if (address === "") return null;
+  return (
+    <p role="status" className="text-muted text-sm">
+      {located ? t("admin.venue.geo.found") : t(`admin.venue.geo.${status ?? "searching"}`)}
+    </p>
+  );
+}
+
+/** Místa konání: textová adresa je vždy, mapa je doplněk (FR-WEB-1); soukromé místo je za PINem. */
+export function VenuesEditor({ ctx, showMap = false }: { ctx: EditorContext; showMap?: boolean }) {
   const t = useAdminT();
   const { doc } = ctx;
   const setVenues = (next: EditorVenue[]) =>
@@ -204,8 +231,10 @@ export function VenuesEditor({ ctx }: { ctx: EditorContext }) {
               autoComplete="off"
               value={venue.address}
               maxLength={250}
-              onChange={(e) => patch(venue.id, { address: e.target.value })}
+              // Souřadnice patří k adrese: po úpravě se zahodí a mapa je hledá znovu.
+              onChange={(e) => patch(venue.id, { address: e.target.value, lat: null, lng: null })}
             />
+            {showMap && !venue.isPrivate ? <VenueGeo venue={venue} ctx={ctx} /> : null}
             <Checkbox
               label={t("admin.venue.private")}
               checked={venue.isPrivate}
@@ -248,6 +277,8 @@ export function VenuesEditor({ ctx }: { ctx: EditorContext }) {
                 isPrivate: false,
                 directions: null,
                 mapUrl: null,
+                lat: null,
+                lng: null,
               },
             ])
           }

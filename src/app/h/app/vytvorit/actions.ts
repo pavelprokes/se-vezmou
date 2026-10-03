@@ -27,6 +27,7 @@ import {
   VERIFIED_SECONDS,
   type SlugCheckResult,
 } from "@/wizard/server/flow";
+import { geocodeAddress, type GeocodeResult } from "@/site/map/server";
 import { previewUrl, siteUrl, displayHost } from "@/wizard/urls";
 import { authSessionContext } from "@/lib/db/rpc";
 import type { WizardSlugStatus } from "@/lib/db/rpc-wizard";
@@ -86,6 +87,27 @@ export async function checkSlugAction(rawSlug: unknown): Promise<CheckSlugResult
     return await checkSlugAvailability(rawSlug, await getClientIp());
   } catch (error) {
     logFailure("kontrola adresy", error);
+    return { status: "error" };
+  }
+}
+
+// --- souřadnice adresy pro mapu ---------------------------------------------------------------
+
+export type GeocodeActionResult = GeocodeResult | { status: "error" };
+
+/**
+ * Souřadnice adresy místa pro mapu (průvodce i editor webu). Anonymní jako kontrola adresy webu:
+ * průvodce nemá relaci před prvním uložením; omezení podle IP a společné pro Nominatim je v `geocodeAddress`.
+ */
+export async function geocodeAddressAction(rawAddress: unknown): Promise<GeocodeActionResult> {
+  const address = typeof rawAddress === "string" ? rawAddress.trim() : "";
+  if (!(await originAllowed()) || address.length < 3 || address.length > 250) {
+    return { status: "error" };
+  }
+  try {
+    return await geocodeAddress(address, await getClientIp());
+  } catch (error) {
+    logFailure("hledání adresy na mapě", error);
     return { status: "error" };
   }
 }

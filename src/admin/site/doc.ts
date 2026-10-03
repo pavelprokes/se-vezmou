@@ -87,6 +87,7 @@ const dataSchemas = {
   venue: z.object({
     venueIds: z.array(uuid).max(LIMITS.venues).default([]),
     intro: optionalText(),
+    showMap: z.boolean().default(false),
   }),
   lodging: z.object({
     items: z
@@ -160,6 +161,9 @@ export const editorVenueSchema = z.object({
   isPrivate: z.boolean().default(false),
   directions: optionalText(),
   mapUrl: z.string().max(500).nullable().default(null),
+  /** Souřadnice adresy pro mapu (hledá je editor po změně adresy); po úpravě adresy se mažou. */
+  lat: z.number().min(-90).max(90).nullable().default(null),
+  lng: z.number().min(-180).max(180).nullable().default(null),
 });
 export type EditorVenue = z.infer<typeof editorVenueSchema>;
 
@@ -344,6 +348,8 @@ const loadSchema = z.object({
       is_private: z.boolean(),
       directions: z.unknown(),
       map_url: z.string().nullable(),
+      lat: z.number().nullable().optional(),
+      lng: z.number().nullable().optional(),
     }),
   ),
   events: z.array(
@@ -439,6 +445,8 @@ export function parseLoaded(raw: unknown): LoadedSite | null {
       isPrivate: v.is_private,
       directions: v.directions ?? null,
       mapUrl: v.map_url,
+      lat: v.lat ?? null,
+      lng: v.lng ?? null,
     })),
     events: events.map((e) => ({
       id: e.id,
@@ -564,6 +572,7 @@ export type IssueCode =
   | "venueName"
   | "venueUrl"
   | "venueNone"
+  | "venueNoCoords"
   | "eventTitle"
   | "eventTime"
   | "eventVenue"
@@ -740,6 +749,9 @@ export function validateDoc(doc: EditorDoc, context: ValidateContext): Issue[] {
       case "venue": {
         const shown = doc.venues.filter((v) => block.data.venueIds.includes(v.id));
         if (shown.length === 0) add({ code: "venueNone", severity: "warning", area: "venue" });
+        if (block.data.showMap && !shown.some((v) => !v.isPrivate && v.lat !== null)) {
+          add({ code: "venueNoCoords", severity: "warning", area: "venue" });
+        }
         break;
       }
       case "dresscode":
@@ -990,8 +1002,11 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
         isPrivate: true,
         directions: null,
         mapUrl: null,
+        lat: null,
+        lng: null,
       };
     }
+    const located = venue.lat !== null && venue.lng !== null;
     return {
       id: venue.id,
       name: venue.name,
@@ -999,6 +1014,8 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
       isPrivate: false,
       directions: venue.directions,
       mapUrl,
+      lat: located ? venue.lat : null,
+      lng: located ? venue.lng : null,
     };
   });
 
@@ -1106,6 +1123,7 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
           data: {
             venueIds: block.data.venueIds.filter((id) => venues.some((v) => v.id === id)),
             intro: cleanText(block.data.intro),
+            showMap: block.data.showMap,
           },
         };
       case "lodging":
@@ -1241,6 +1259,8 @@ export function publicToDoc(content: PublicContent, sensitive: SensitiveContent)
       isPrivate: venue.isPrivate,
       directions: secret?.directions ?? venue.directions,
       mapUrl: secret?.mapUrl ?? venue.mapUrl,
+      lat: venue.lat,
+      lng: venue.lng,
     };
   });
   const blocks = content.blocks.map((block): unknown => {

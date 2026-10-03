@@ -8,6 +8,7 @@
  *  - `STORAGE_DRIVER=memory`      fotografie v paměti místo Cloudflare R2,
  *  - `ENABLE_UI_CATALOG=1`        vývojářské stránky (katalog UI, náhled šablon) v produkčním sestavení,
  *  - `OG_FETCH_TEST_HOST=…`       falešný cílový server pro karty externí galerie,
+ *  - `MAP_STUB=1`                 mapa bez sítě (pevné souřadnice adresy, šedé dlaždice),
  *  - `HOST_PRESET` + `PREVIEW_TENANT_SLUG` předvolba hostitele (viz `hostPresetAllowed`).
  *
  * Pravidlo: vrátka fungují jen tehdy, když sestavení NENÍ „produkční“ (`NODE_ENV!==production`, tedy
@@ -63,6 +64,7 @@ export function activeTestHatches(env: EnvSource = process.env): string[] {
   if (env.STORAGE_DRIVER === "memory") active.push("STORAGE_DRIVER=memory");
   if (env.ENABLE_UI_CATALOG === "1") active.push("ENABLE_UI_CATALOG");
   if (env.OG_FETCH_TEST_HOST) active.push("OG_FETCH_TEST_HOST");
+  if (env.MAP_STUB === "1") active.push("MAP_STUB");
   if (env.HOST_PRESET && NON_MARKETING_PRESETS.includes(env.HOST_PRESET)) {
     active.push(`HOST_PRESET=${env.HOST_PRESET}`);
   }

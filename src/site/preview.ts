@@ -58,6 +58,9 @@ const previewSchema = z.object({
       address: z.string().nullable(),
       /** Odkaz na mapu veřejného místa (M7a); starší odpověď ho nemá. */
       map_url: z.string().nullable().optional(),
+      /** Souřadnice pro mapu; starší odpověď je nemá. */
+      lat: z.number().nullable().optional(),
+      lng: z.number().nullable().optional(),
     }),
   ),
 });
@@ -97,6 +100,8 @@ export function previewToPublicContent(
         address: venue.address,
         directions: venue.directions ?? null,
         mapUrl: venue.map_url ?? null,
+        lat: venue.lat ?? null,
+        lng: venue.lng ?? null,
       })),
     events: events.map((event) => ({
       id: event.id,

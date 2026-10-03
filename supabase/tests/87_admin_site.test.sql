@@ -444,4 +444,37 @@ begin
 end
 $$;
 
+-- ---------------------------------------------------------------------------
+-- Souřadnice místa pro mapu: uložení, načtení, rozsah
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  r record;
+  j jsonb;
+  v_rev integer := (select site_rev from se_vezmou.weddings where id = tap.wa());
+  v_work jsonb := jsonb_set(jsonb_set(tap.as_work('Mapa'), '{venues,0,lat}', '49.92556'), '{venues,0,lng}', '14.27639');
+begin
+  perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
+  select * into r from se_vezmou.admin_site_save(v_rev, v_work);
+  j := se_vezmou.admin_site_load();
+  perform tap.reset();
+  perform tap.ok(r.ok, 'souřadnice: uložení projde');
+  perform tap.ok(exists (select 1 from se_vezmou.venues where id = tap.u('as:venue1') and lat = 49.92556 and lng = 14.27639),
+    'souřadnice: zapsané do místa');
+  perform tap.ok((select v ->> 'lat' from jsonb_array_elements(j -> 'venues') v where v ->> 'id' = tap.u('as:venue1')::text) = '49.92556',
+    'souřadnice: načtení je vrací editoru');
+
+  perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
+  select * into r from se_vezmou.admin_site_save(v_rev + 1, tap.as_work('Mapa'));
+  perform tap.reset();
+  perform tap.ok(exists (select 1 from se_vezmou.venues where id = tap.u('as:venue1') and lat is null and lng is null),
+    'souřadnice: payload bez nich je smaže (změna adresy)');
+
+  perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
+  perform tap.throws(format('select * from se_vezmou.admin_site_save(%s, %L::jsonb)', v_rev + 2,
+    jsonb_set(tap.as_work('Mapa'), '{venues,0,lat}', '91')), '23514', 'souřadnice: mimo rozsah odmítne kontrola tabulky');
+  perform tap.reset();
+end
+$$;
+
 rollback;

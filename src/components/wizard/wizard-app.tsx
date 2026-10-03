@@ -37,7 +37,7 @@ import { StepDate } from "./steps/date";
 import { StepFinish } from "./steps/finish";
 import { StepInfo } from "./steps/info";
 import { StepNames } from "./steps/names";
-import { StepProgram } from "./steps/program";
+import { StepProgram, useDraftGeocode } from "./steps/program";
 import { StepReview } from "./steps/review";
 import { StepRsvp } from "./steps/rsvp";
 import { StepTemplate } from "./steps/template";
@@ -199,6 +199,9 @@ function Wizard(props: WizardAppProps) {
       return next;
     });
   }, []);
+
+  // Souřadnice míst pro mapu: hledání běží nezávisle na tom, na kterém kroku pár je.
+  const geoStatus = useDraftGeocode(draft, update);
 
   // Průběžné ukládání do prohlížeče (FR-WZ-3): krátká prodleva a vždy při opuštění stránky.
   useEffect(() => {
@@ -611,7 +614,7 @@ function Wizard(props: WizardAppProps) {
                 />
               ) : null}
               {step === 3 ? <StepTemplate {...stepProps} /> : null}
-              {step === 4 ? <StepProgram {...stepProps} /> : null}
+              {step === 4 ? <StepProgram {...stepProps} geoStatus={geoStatus} /> : null}
               {step === 5 ? <StepInfo {...stepProps} /> : null}
               {step === 6 ? <StepRsvp {...stepProps} /> : null}
               {step === 7 ? <StepAccess {...stepProps} /> : null}

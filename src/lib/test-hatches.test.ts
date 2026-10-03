@@ -18,6 +18,7 @@ const HATCHES = {
   STORAGE_DRIVER: "memory",
   ENABLE_UI_CATALOG: "1",
   OG_FETCH_TEST_HOST: "fotky-test.example=127.0.0.1:4555",
+  MAP_STUB: "1",
   HOST_PRESET: "admin",
 };
 
@@ -79,7 +80,7 @@ describe("hostPresetAllowed", () => {
 
 describe("assertTestHatchesSafe: nastavená vrátka nejsou tiše ignorována", () => {
   it("vypíše všechna aktivní vrátka", () => {
-    expect(activeTestHatches(HATCHES)).toHaveLength(6);
+    expect(activeTestHatches(HATCHES)).toHaveLength(7);
     expect(activeTestHatches({ HOST_PRESET: "marketing", EMAIL_TRANSPORT: "ses" })).toEqual([]);
   });
 

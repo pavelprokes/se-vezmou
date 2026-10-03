@@ -57,6 +57,19 @@ const place = z.object({
   venueName: z.string().max(120).default(""),
   venueAddress: z.string().max(250).default(""),
   directions: localized(1000),
+  /**
+   * Souřadnice adresy pro mapu (hledání na serveru, Nominatim). Platí jen pro adresu v `query`:
+   * po úpravě adresy se nepoužijí a průvodce hledá znovu.
+   */
+  geo: z
+    .object({
+      query: z.string().max(250),
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180),
+      label: z.string().max(300),
+    })
+    .nullable()
+    .default(null),
 });
 
 const idsSchema = z.object({
@@ -99,6 +112,8 @@ export const wizardDraftSchema = z.object({
   // 4. Program a místo
   ceremony: place,
   reception: place.extend({ sameVenue: z.boolean().default(true) }),
+  /** Statická mapa místa konání na webu (odkazy na Google Maps a Mapy.cz k ní). */
+  showMap: z.boolean().default(false),
   extraEvents: z
     .array(
       z.object({
@@ -212,6 +227,7 @@ export function createDraft(options: CreateDraftOptions): WizardDraft {
     venueName: "",
     venueAddress: "",
     directions: {},
+    geo: null,
   });
   return {
     version: WIZARD_VERSION,
@@ -241,6 +257,7 @@ export function createDraft(options: CreateDraftOptions): WizardDraft {
     palette: templates[template].defaultPalette,
     ceremony: emptyPlace(),
     reception: { ...emptyPlace(), sameVenue: true },
+    showMap: false,
     extraEvents: [],
     dressCode: {},
     lodging: [],

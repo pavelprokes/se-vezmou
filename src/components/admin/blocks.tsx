@@ -122,7 +122,15 @@ function VenueBlockEditor({ block, ctx }: Props<"venue">) {
   return (
     <>
       <IntroEditor block={block} ctx={ctx} label={t("admin.block.intro")} />
-      <VenuesEditor ctx={ctx} />
+      <div className="flex flex-col gap-1">
+        <Checkbox
+          label={t("admin.venue.showMap")}
+          checked={block.data.showMap}
+          onChange={(event) => patchBlock(ctx, block.id, { showMap: event.target.checked })}
+        />
+        <p className="text-muted ps-9 text-sm">{t("admin.venue.showMapHint")}</p>
+      </div>
+      <VenuesEditor ctx={ctx} showMap={block.data.showMap} />
       {ctx.doc.venues.length > 0 ? (
         <fieldset className="flex flex-col gap-1">
           <legend className="text-ink mb-1 font-medium">{t("admin.venue.shown")}</legend>

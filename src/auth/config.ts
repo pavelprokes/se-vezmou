@@ -44,6 +44,12 @@ export const RATE_RULES = {
   waitlistIp: { limit: 10, windowSeconds: HOUR },
   /** Živá kontrola adresy v průvodci podle IP (informativní, přísná, bez prozrazení; FR-WZ-4). */
   slugCheckIp: { limit: 60, windowSeconds: 10 * MINUTE },
+  /** Hledání souřadnic adresy pro mapu (průvodce i správa) podle IP; volá Nominatim, proto přísně. */
+  geocodeIp: { limit: 30, windowSeconds: 10 * MINUTE },
+  /** Nominatim dovoluje nejvýš jeden dotaz za sekundu za celou aplikaci (pravidla OSMF). */
+  nominatimGlobal: { limit: 1, windowSeconds: 1 },
+  /** Dlaždice mapy z `/api/map-tile` podle IP; počítají se jen dotazy mimo mezipaměť CDN. Jedna stránka ≈ 30 dlaždic. */
+  mapTileIp: { limit: 1000, windowSeconds: 10 * MINUTE },
   /** Vyžádání kódu při prvním uložení v průvodci podle IP a podle e-mailu. */
   wizardCodeIp: { limit: 10, windowSeconds: HOUR },
   wizardCodeEmail: { limit: 5, windowSeconds: HOUR },

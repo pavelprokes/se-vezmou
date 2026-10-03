@@ -73,6 +73,26 @@ test.describe("web páru na hostiteli webu páru", () => {
     await expect(page.locator("iframe")).toHaveCount(0);
   });
 
+  test("mapa místa je z dlaždic vlastního původu, odkazy vedou do Google Maps a Mapy.cz", async ({
+    page,
+  }) => {
+    await page.goto(pageUrl(HOSTS.tenant, "/"));
+    const venue = page.locator("#misto");
+    await expect(venue.getByRole("img", { name: /Mapa místa konání/ })).toBeVisible();
+    const src = await venue.locator(".site-map img").first().getAttribute("src");
+    expect(src).toMatch(/^\/api\/map-tile\/\d+\/\d+\/\d+$/);
+    const tile = await page.request.get(new URL(src!, page.url()).toString());
+    expect(tile.status()).toBe(200);
+    expect(tile.headers()["content-type"]).toBe("image/png");
+    expect(tile.headers()["cache-control"]).toContain("s-maxage");
+    const invalid = await page.request.get(new URL("/api/map-tile/17/0/0", page.url()).toString());
+    expect(invalid.status()).toBe(404);
+    await expect(venue.getByRole("link", { name: /Mapy\.cz/ }).first()).toHaveAttribute(
+      "href",
+      /^https:\/\//,
+    );
+  });
+
   test("mapa je jen odkaz, textová adresa je vždy", async ({ page }) => {
     await page.goto(pageUrl(HOSTS.tenant, "/"));
     const venue = page.locator("#misto");

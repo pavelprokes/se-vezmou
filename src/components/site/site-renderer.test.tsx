@@ -107,6 +107,42 @@ describe("SiteRenderer: bloky a struktura", () => {
     expect(within(venue).getAllByRole("link", { name: /mapě/ })).toHaveLength(1);
   });
 
+  it("mapa místa: dlaždice z vlastního původu, jen veřejná místa, odkazy do Google Maps a Mapy.cz", () => {
+    const { container } = renderSite(eukalyptusFixture);
+    const venue = screen.getByRole("region", { name: "Místo konání" });
+    const map = within(venue).getByRole("img", { name: /^Mapa místa konání/ });
+    expect(map.getAttribute("aria-label")).toContain("Zámecká kaple");
+    expect(map.getAttribute("aria-label")).not.toContain("Soukromý altán");
+    const tiles = [...container.querySelectorAll(".site-map img")];
+    expect(tiles.length).toBeGreaterThan(0);
+    for (const tile of tiles)
+      expect(tile.getAttribute("src")).toMatch(/^\/api\/map-tile\/\d+\/\d+\/\d+$/);
+    for (const name of ["Google Maps", "Mapy.cz"]) {
+      const links = within(venue).getAllByRole("link", { name: new RegExp(name) });
+      // dvě veřejná místa se souřadnicemi, soukromé odkazy nemá
+      expect(links).toHaveLength(2);
+      for (const link of links) {
+        expect(link).toHaveAttribute("href", expect.stringMatching(/^https:\/\//));
+        expect(link).toHaveAttribute("rel", "noopener noreferrer");
+      }
+    }
+    expect(within(venue).getByRole("link", { name: /OpenStreetMap/ })).toHaveAttribute(
+      "href",
+      "https://www.openstreetmap.org/copyright",
+    );
+  });
+
+  it("bez volby mapy nebo bez souřadnic se mapa ani odkazy nevykreslí", () => {
+    const { container, unmount } = renderSite(editorialFixture);
+    expect(container.querySelector(".site-map")).toBeNull();
+    expect(screen.queryByRole("link", { name: /Google Maps/ })).toBeNull();
+    unmount();
+    const noCoords = structuredClone(eukalyptusFixture);
+    for (const venue of noCoords.venues) Object.assign(venue, { lat: null, lng: null });
+    const second = renderSite(noCoords);
+    expect(second.container.querySelector(".site-map")).toBeNull();
+  });
+
   it("FAQ je přístupné: nativní details a summary, bez vlastního skriptu", () => {
     const { container } = renderSite(eukalyptusFixture);
     const faq = screen.getByRole("region", { name: "Časté otázky" });

@@ -46,6 +46,8 @@ const venues = [
       en: "Parking is available in the castle courtyard. It is a ten minute walk from the station.",
     },
     mapUrl: "https://www.openstreetmap.org/search?query=Dob%C5%99ichovice%20z%C3%A1mek",
+    lat: 49.92556,
+    lng: 14.27639,
   },
   {
     id: "v2",
@@ -53,6 +55,8 @@ const venues = [
     address: "Zámecká 1, 252 01 Dobřichovice",
     directions: null,
     mapUrl: null,
+    lat: 49.92556,
+    lng: 14.27639,
   },
   {
     // Soukromé místo: adresa je jen za PINem hostů (`sensitiveRaw.venues`), ne ve snímku.
@@ -171,7 +175,7 @@ const eukalyptusRaw = {
       enabled: true,
       position: 4,
       sensitive: false,
-      data: { venueIds: ["v1", "v2", "v3"], intro: null },
+      data: { venueIds: ["v1", "v2", "v3"], intro: null, showMap: true },
     },
     {
       id: "b5",

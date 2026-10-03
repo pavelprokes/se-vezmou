@@ -151,7 +151,14 @@ describe("validateDraft", () => {
 
   it("kroky 4 až 7 jsou nepovinné, ale rozepsaná položka musí být úplná", () => {
     const draft = complete({
-      ceremony: { enabled: true, time: "", venueName: "Kaple", venueAddress: "", directions: {} },
+      ceremony: {
+        enabled: true,
+        time: "",
+        venueName: "Kaple",
+        venueAddress: "",
+        directions: {},
+        geo: null,
+      },
       extraEvents: [{ id: newId(), title: {}, time: "25:00" }],
       lodging: [{ id: newId(), name: "", description: {}, url: "javascript:alert(1)" }],
       contacts: [{ id: newId(), name: "", email: "neni-email", phone: "abc" }],
@@ -191,6 +198,7 @@ describe("validateDraft", () => {
         venueName: "Kaple",
         venueAddress: "Zámecká 1",
         directions: {},
+        geo: null,
       },
       reception: {
         enabled: true,
@@ -198,6 +206,7 @@ describe("validateDraft", () => {
         venueName: "",
         venueAddress: "",
         directions: {},
+        geo: null,
         sameVenue: true,
       },
     });

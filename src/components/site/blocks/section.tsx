@@ -9,10 +9,12 @@ export interface SectionProps {
   /** Střídání podkladu `bg` a `surface` pro rytmus dlouhé stránky. */
   tone: "bg" | "surface";
   children: ReactNode;
+  /** Obsah přes celou šířku za textem sekce (mimo `.site-wrap`), např. mapa místa konání. */
+  after?: ReactNode;
 }
 
 /** Společný obal bloku: kotva, nadpis druhé úrovně a oddělovač podle šablony. */
-export function Section({ block, ctx, tone, children }: SectionProps) {
+export function Section({ block, ctx, tone, children, after }: SectionProps) {
   const headingId = `${block.anchor}-nadpis`;
   return (
     <section
@@ -29,6 +31,7 @@ export function Section({ block, ctx, tone, children }: SectionProps) {
         <Divider template={ctx.content.template} />
         {children}
       </div>
+      {after}
     </section>
   );
 }

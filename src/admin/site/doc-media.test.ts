@@ -364,6 +364,25 @@ describe("fotka v úvodu", () => {
     expect(content.media.map((m) => m.id)).toEqual([ID(7)]);
   });
 
+  it("fotografie z galerie chráněné PINem se jako fotka úvodu nezveřejní", () => {
+    const doc = withHeroPhoto(ID(7));
+    const guarded = {
+      ...doc,
+      blocks: doc.blocks.map((b) =>
+        b.type === "gallery"
+          ? ({
+              ...b,
+              enabled: true,
+              data: { ...b.data, mediaIds: [ID(7)], photosProtected: true },
+            } as EditorBlock)
+          : b,
+      ),
+    };
+    const { content } = build(guarded, [photo(7)]);
+    expect(heroOf(content).data.photoMediaId).toBeNull();
+    expect(content.media).toEqual([]);
+  });
+
   it("fotografie bez popisku, nehotová nebo obrázek karty se nezveřejní (úvod bez fotky)", () => {
     for (const item of [
       photo(7, { alt: null }),

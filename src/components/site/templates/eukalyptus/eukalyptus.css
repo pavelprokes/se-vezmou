@@ -1284,15 +1284,14 @@
   pointer-events: auto;
   box-shadow: var(--eu-shadow);
 }
+/* Schované tlačítko jen odjede dolů: bez změny průhlednosti, aby kontrast textu platil i během přechodu. */
 .eu-sticky[data-hidden="true"] {
   visibility: hidden;
-  opacity: 0;
-  transform: translateY(1rem);
+  transform: translateY(calc(100% + 1rem));
 }
 @media (prefers-reduced-motion: no-preference) {
   .eu-sticky {
     transition:
-      opacity 0.2s ease,
       transform 0.2s ease,
       visibility 0.2s;
   }

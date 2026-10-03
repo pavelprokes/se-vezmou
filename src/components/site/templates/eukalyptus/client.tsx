@@ -52,9 +52,15 @@ export function EuNav({
       .map((item) => document.getElementById(item.anchor))
       .filter((el): el is HTMLElement => el !== null);
     if (targets.length === 0 || typeof IntersectionObserver === "undefined") return;
+    // Sekce v pásu aktivity; mimo všechny (např. zpět v úvodu) není aktivní žádná.
+    const inBand = new Set<string>();
     const observer = new IntersectionObserver(
       (entries) => {
-        for (const entry of entries) if (entry.isIntersecting) setActive(entry.target.id);
+        for (const entry of entries) {
+          if (entry.isIntersecting) inBand.add(entry.target.id);
+          else inBand.delete(entry.target.id);
+        }
+        setActive(items.find((item) => inBand.has(item.anchor))?.anchor ?? null);
       },
       { rootMargin: ACTIVE_MARGIN },
     );

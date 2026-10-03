@@ -698,6 +698,17 @@ export function reconcileGalleryMedia(doc: EditorDoc, media: readonly MediaItem[
  * Fotografie se smí zveřejnit, když má popisek aspoň v jednom jazyce, nebo je dekorativní (prázdný `alt`).
  * Chybějící překlad zveřejnění nebrání (zobrazí se dostupný jazyk a správce se o tom dozví).
  */
+/** Fotografie ze zapnuté galerie chráněné PINem hostů (nesmějí na veřejný web jinou cestou, např. jako fotka úvodu). */
+export function protectedPhotoIds(blocks: readonly EditorBlock[]): Set<string> {
+  return new Set(
+    blocks.flatMap((block) =>
+      block.type === "gallery" && block.enabled && block.data.photosProtected
+        ? block.data.mediaIds
+        : [],
+    ),
+  );
+}
+
 export function publishable(item: MediaItem): boolean {
   return item.decorative || anyFilled(item.alt);
 }
@@ -1039,6 +1050,9 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
     if (!target.some((m) => m.id === item.id)) target.push(toPublicMedia(item));
   };
 
+  // Fotografie galerie chráněné PINem: nesmí se dostat na veřejný web ani jako fotka úvodu.
+  const protectedPhotos = protectedPhotoIds(clean.blocks);
+
   const blocks = normalizeBlocks(clean.blocks).map((block) => {
     const base = {
       id: block.id,
@@ -1121,7 +1135,8 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
           mediaGiven && block.data.photoMediaId
             ? mediaById.get(block.data.photoMediaId)
             : undefined;
-        const usable = image && image.kind === "photo" && publishable(image);
+        const usable =
+          image && image.kind === "photo" && publishable(image) && !protectedPhotos.has(image.id);
         if (usable) addMedia(publicMedia, image);
         return {
           ...base,

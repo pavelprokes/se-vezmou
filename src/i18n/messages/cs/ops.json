@@ -405,5 +405,6 @@
   "blog.saved": "Článek je uložený. Nezapomeňte změnu poslat commitem.",
   "error.blogInvalid": "Hodnota nesplňuje pravidla. Zkontrolujte délku a formát podle nápovědy u pole.",
   "error.blogExists": "Článek s tímto identifikátorem už existuje.",
+  "error.blogSlugTaken": "Tuto adresu už má jiný článek. Zvolte jinou.",
   "error.blogReadOnly": "Tady články ukládat nejde. Upravujte je v lokálním vývoji."
 }

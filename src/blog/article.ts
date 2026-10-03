@@ -26,9 +26,12 @@ export const articleTranslationSchema = z.object({
   body: z.string().trim().min(200),
 });
 
+/** Identifikátor vyhrazený pro stránku „nový článek“ v administraci (`/blog/novy`). */
+export const NEW_ARTICLE_ID = "novy";
+
 export const articleSchema = z.object({
   /** Stálý identifikátor a název souboru; nemění se ani při změně adres. */
-  id: slug,
+  id: slug.refine((id) => id !== NEW_ARTICLE_ID, `id „${NEW_ARTICLE_ID}“ je vyhrazené`),
   /** Koncept se nikde nezobrazí (ani v mapě webu), vidí ho jen administrace. */
   status: z.enum(["draft", "published"]),
   publishedAt: z.iso.date(),

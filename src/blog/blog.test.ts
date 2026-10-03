@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { locales } from "@/i18n/config";
 import { localizedPath } from "@/i18n/pathnames";
 import { findTypoViolations } from "@/i18n/typo";
-import { articlePath } from "./article";
+import { articlePath, articleSchema, NEW_ARTICLE_ID } from "./article";
 import { anchorId, parseBlocks, parseInline, plainText } from "./markdown";
 import { allArticles } from "./store";
 
@@ -42,6 +42,11 @@ describe("zápis textu článku", () => {
 describe("články v content/blog", () => {
   const articles = allArticles();
   const published = articles.filter((a) => a.status === "published");
+
+  it("identifikátor stránky „nový článek“ je vyhrazený", () => {
+    const ok = articleSchema.safeParse({ ...articles[0], id: NEW_ARTICLE_ID });
+    expect(ok.success).toBe(false);
+  });
 
   it("aspoň tři zveřejněné články", () => {
     expect(published.length).toBeGreaterThanOrEqual(3);

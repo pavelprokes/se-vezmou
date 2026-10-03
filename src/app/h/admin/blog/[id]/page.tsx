@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { NEW_ARTICLE_ID as NEW } from "@/blog/article";
 import { canWriteArticles, findArticle } from "@/blog/store";
 import { localePath } from "@/i18n/config";
 import { getOpsTranslator } from "@/ops/i18n";
@@ -8,8 +9,6 @@ import { BlogArticleForm } from "@/ops/ui/blog-form";
 import { OpsShell } from "@/ops/ui/shell";
 
 /** `/blog/novy` zakládá nový článek, jinak se upravuje článek podle identifikátoru. */
-const NEW = "novy";
-
 export async function generateMetadata({
   params,
 }: PageProps<"/h/admin/blog/[id]">): Promise<Metadata> {
@@ -57,6 +56,7 @@ export default async function BlogArticleAdminPage({ params }: PageProps<"/h/adm
             notFound: t("ops.error.notFound"),
             blogInvalid: t("ops.error.blogInvalid"),
             blogExists: t("ops.error.blogExists"),
+            blogSlugTaken: t("ops.error.blogSlugTaken"),
             blogReadOnly: t("ops.error.blogReadOnly"),
             generic: t("ops.error.generic"),
           }}

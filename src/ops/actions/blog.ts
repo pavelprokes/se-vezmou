@@ -1,9 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getUiLocale } from "@/auth/request";
 import { articleSchema } from "@/blog/article";
-import { canWriteArticles, findArticle, writeArticle } from "@/blog/store";
+import { allArticles, canWriteArticles, writeArticle } from "@/blog/store";
 import { localePath, locales } from "@/i18n/config";
 import { authorizeOperator } from "../session";
 import type { ActionState } from "../ui/action-form";
@@ -58,16 +59,28 @@ export async function saveArticleAction(
     return { error: "blogInvalid", field: path || undefined, values };
   }
 
+  const article = parsed.data;
   const creating = values.mode === "create";
-  const existing = findArticle(parsed.data.id);
+  const articles = allArticles();
+  const existing = articles.find((a) => a.id === article.id);
   if (creating && existing) return { error: "blogExists", field: "id", values };
   if (!creating && !existing) return { error: "notFound", values };
+  // Adresa musí být v každém jazyce jedinečná, jinak by druhý článek nebyl na webu dostupný.
+  for (const locale of locales) {
+    const slug = article.translations[locale].slug;
+    if (articles.some((a) => a.id !== article.id && a.translations[locale].slug === slug)) {
+      return { error: "blogSlugTaken", field: `${locale}.slug`, values };
+    }
+  }
 
   try {
-    writeArticle(parsed.data);
+    writeArticle(article);
   } catch {
     return { error: "generic", values };
   }
-  if (creating) redirect(localePath(`/blog/${parsed.data.id}`, await getUiLocale()));
-  return { ok: true };
+  revalidatePath("/h/admin/blog");
+  revalidatePath(`/h/admin/blog/${article.id}`);
+  if (creating) redirect(localePath(`/blog/${article.id}`, await getUiLocale()));
+  // React po akci vrátí pole formuláře na výchozí hodnoty; uložené hodnoty je drží aktuální.
+  return { ok: true, values };
 }

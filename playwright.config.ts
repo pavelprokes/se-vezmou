@@ -91,6 +91,8 @@ export default defineConfig({
       // Fotografie (M7c): bez R2 běží úložiště v paměti (nahrání i doručení přes `/api/dev-storage`), takže se
       // celý tok projde bez Cloudflare. Produkční sestavení ho jinak nezapne (src/lib/storage/index.ts).
       STORAGE_DRIVER: "memory",
+      // Mapa místa konání: bez sítě (Nominatim ani dlaždice OSM se nevolají), src/site/map/server.ts.
+      MAP_STUB: "1",
       // Adresa průvodce pro tlačítka a pole jmen: lokální hostitel `app.` (zástupná stránka).
       NEXT_PUBLIC_APP_URL: `http://app.localhost:${PORT}`,
     },

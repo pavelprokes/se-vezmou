@@ -168,7 +168,7 @@ Tabulka je pracovní kopie pro editor. Hosté ji nikdy nečtou, čtou zveřejně
 | `rsvp_enabled`                     | bool        | událost je cílem pozvání a větvení RSVP (obřad a hostina zvlášť, FR-RSVP-3) |
 | `position`                         | int         |                                                                             |
 
-**`venues`**: `id`, `wedding_id`, `name i18n_text`, `address text` (textová adresa vždy, FR-WEB-1), `directions i18n_text null`, `lat`, `lng` (null, mapa je jen doplněk), `is_private bool` (adresa jde do `site_version_sensitive`).
+**`venues`**: `id`, `wedding_id`, `name i18n_text`, `address text` (textová adresa vždy, FR-WEB-1), `directions i18n_text null`, `lat`, `lng` (null; souřadnice z adresy pro statickou mapu, hledá je server přes Nominatim po zadání adresy v průvodci nebo editoru, po změně adresy se mažou; ve veřejném snímku jen u veřejných míst), `map_url` (vlastní odkaz páru), `is_private bool` (adresa jde do `site_version_sensitive`).
 
 **`media`**: `id`, `wedding_id`, `kind` (`photo`, `card`), `status` (`pending`, `processing`, `ready`, `failed`), `failure_code`, `storage_path`, `mime`, `width`, `height`, `bytes`, `alt i18n_text null`, `decorative bool default false`, `deleted_at`. Popisek (`alt`) může chybět: fotografie bez popisku a bez příznaku `decorative` se **nezveřejní** (kontrola při sestavení snímku v aplikaci, upozornění v rozhraní; M7c, kontrola `media_alt_required` odpadla). Obrázek karty externí galerie (`card`) je vždy dekorativní. Zpracování obrázků a umístění souborů určuje ADR 0006; model drží metadata a klíče.
 

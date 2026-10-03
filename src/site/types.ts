@@ -65,8 +65,18 @@ const venueSchema = z
     address: z.string().min(1).nullable().default(null),
     isPrivate: z.boolean().default(false),
     directions: i18nTextSchema.nullable().default(null),
-    /** Jen odkaz na mapu; web nevkládá žádnou mapu ani skripty třetích stran. */
+    /** Vlastní odkaz na mapu od páru (volitelný). */
     mapUrl: httpUrl.nullable().default(null),
+    /**
+     * Souřadnice z adresy (Nominatim) pro statickou mapu z dlaždic vlastního původu (`showMap` bloku místa).
+     * Soukromé místo je ve veřejném snímku nikdy nemá.
+     */
+    lat: z.number().min(-90).max(90).nullable().default(null),
+    lng: z.number().min(-180).max(180).nullable().default(null),
+  })
+  .refine((venue) => (venue.lat === null) === (venue.lng === null), {
+    message: "Souřadnice místa jsou obě, nebo žádná",
+    path: ["lat"],
   })
   .refine((venue) => venue.isPrivate || venue.address !== null, {
     message: "Veřejné místo musí mít textovou adresu",
@@ -75,9 +85,13 @@ const venueSchema = z
   .refine(
     (venue) =>
       !venue.isPrivate ||
-      (venue.address === null && venue.mapUrl === null && venue.directions === null),
+      (venue.address === null &&
+        venue.mapUrl === null &&
+        venue.directions === null &&
+        venue.lat === null),
     {
-      message: "Soukromé místo nesmí mít adresu, mapu ani popis cesty ve veřejném snímku",
+      message:
+        "Soukromé místo nesmí mít adresu, mapu, souřadnice ani popis cesty ve veřejném snímku",
       path: ["address"],
     },
   );
@@ -114,6 +128,8 @@ export const programData = z.object({ intro: i18nTextSchema.nullable().default(n
 export const venueData = z.object({
   venueIds: z.array(z.string()),
   intro: i18nTextSchema.nullable().default(null),
+  /** Statická mapa veřejných míst se souřadnicemi přes celou šířku (volba v průvodci). */
+  showMap: z.boolean().default(false),
 });
 export const lodgingData = z.object({
   items: z.array(

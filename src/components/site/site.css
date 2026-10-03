@@ -391,6 +391,203 @@ html:has(.site-root[data-sticky="true"]) {
 .site-address address {
   font-style: normal;
 }
+
+/*
+ * Mapa místa konání: pás přes celou šířku na konci sekce. Dlaždice OpenStreetMap jsou z vlastního
+ * původu (`/api/map-tile`), šedé a tónované barvou palety (`--s-map-tint`, `--s-map-blend`), aby
+ * zapadly do šablony; špendlík a popisek nesou barvy palety. Bez JavaScriptu a bez animace.
+ */
+.site-map {
+  --s-map-tint: var(--s-bg);
+  --s-map-blend: multiply;
+  --s-map-filter: grayscale(1) contrast(0.95);
+  position: relative;
+  margin: 2.5rem 0 calc(-1 * var(--s-section-pad));
+}
+.site-map-view {
+  position: relative;
+  overflow: hidden;
+  height: clamp(16rem, 32vw, 26rem);
+  background: var(--s-surface);
+}
+.site-map-canvas {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+}
+.site-map-canvas img {
+  position: absolute;
+  display: block;
+  max-width: none;
+  width: 256px;
+  height: 256px;
+  filter: var(--s-map-filter);
+  user-select: none;
+}
+.site-map-canvas::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: var(--s-map-tint);
+  mix-blend-mode: var(--s-map-blend);
+}
+/* Špendlík: nulový bod na místě, kresba (`::before`) a popisek (`::after`) kolem něj. */
+.site-map-pin {
+  position: absolute;
+  z-index: 2;
+  width: 0;
+  height: 0;
+}
+.site-map-pin::before {
+  content: "";
+  position: absolute;
+  /* kapka otočená hrotem dolů: střed čtverce 1,24rem nad bodem, hrot přesně v bodě */
+  left: -0.875rem;
+  top: -2.115rem;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 3px solid var(--s-bg);
+  border-radius: 50% 50% 50% 0;
+  background: var(--s-accent);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.3);
+  transform: rotate(-45deg);
+}
+.site-map-pin::after {
+  content: attr(data-label);
+  position: absolute;
+  bottom: 2.75rem;
+  left: 0;
+  max-width: min(22rem, 80vw);
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--s-bg);
+  color: var(--s-text);
+  padding: 0.2rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.2);
+  transform: translateX(-50%);
+}
+.site-map-credit {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  background: var(--s-bg);
+  padding: 0 0.5rem;
+  font-size: 0.75rem;
+}
+.site-map-credit-link {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  color: var(--s-text);
+  text-decoration: underline;
+}
+.site-map-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 1.25rem;
+}
+
+/* Eukalyptus: měkký přechod ze sekce do mapy a tón zeleného podkladu. */
+.site-root[data-template="eukalyptus"] .site-map {
+  --s-map-tint: var(--s-surface);
+}
+.site-root[data-template="eukalyptus"] .site-map-view {
+  mask-image: linear-gradient(to bottom, transparent, #000 3rem);
+}
+
+/* Editorial: vlasová linka, malý kulatý bod a hranatý popisek. */
+.site-root[data-template="editorial"] .site-map-view {
+  border-top: 1px solid var(--s-border);
+}
+.site-root[data-template="editorial"] .site-map-pin::before {
+  left: -0.5rem;
+  top: -0.5rem;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  transform: none;
+}
+.site-root[data-template="editorial"] .site-map-pin::after {
+  bottom: 1rem;
+  border-radius: 0;
+  letter-spacing: 0.02em;
+}
+
+/* Chateau: teplý tisk, dvojitá linka v barvě ornamentu a kosočtverec jako oddělovač. */
+.site-root[data-template="chateau"] .site-map {
+  --s-map-filter: grayscale(1) sepia(0.35) contrast(0.95);
+}
+.site-root[data-template="chateau"] .site-map-view {
+  border-block: 3px double var(--s-ornament);
+}
+.site-root[data-template="chateau"] .site-map-pin::before {
+  left: -0.65rem;
+  top: -0.65rem;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 0;
+  transform: rotate(45deg);
+}
+.site-root[data-template="chateau"] .site-map-pin::after {
+  bottom: 1.4rem;
+  border: 1px solid var(--s-ornament);
+  border-radius: var(--s-radius);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+}
+
+/* Modern: ostrý kontrast, silná linka a čtvercový bod jako u karet. */
+.site-root[data-template="modern"] .site-map {
+  --s-map-filter: grayscale(1) contrast(1.2);
+}
+.site-root[data-template="modern"] .site-map-view {
+  border-block: 3px solid var(--s-text);
+}
+.site-root[data-template="modern"] .site-map-pin::before {
+  left: -0.75rem;
+  top: -0.75rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-color: var(--s-text);
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+}
+.site-root[data-template="modern"] .site-map-pin::after {
+  bottom: 1.4rem;
+  border: 3px solid var(--s-text);
+  border-radius: 0;
+  box-shadow: none;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+/* Tmavá paleta: obrácená šedá mapa v tónu pozadí (násobení by ji zčernalo). Přebíjí i filtr šablony. */
+.site-root .site-map[data-dark="true"] {
+  --s-map-filter: grayscale(1) invert(1) contrast(0.85) brightness(0.9);
+  --s-map-blend: color;
+}
+
+@media (forced-colors: active) {
+  .site-map-canvas::after {
+    display: none;
+  }
+  .site-map-pin::before,
+  .site-map-pin::after {
+    forced-color-adjust: none;
+    border-color: Canvas;
+    background: CanvasText;
+    color: Canvas;
+  }
+}
 .site-list {
   display: grid;
   gap: 1rem;

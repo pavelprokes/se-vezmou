@@ -307,6 +307,27 @@ begin
 end
 $$;
 
+-- ---------------------------------------------------------------------------
+-- Souřadnice místa pro mapu (pracovní sada z průvodce)
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_w uuid := (select wedding_id from se_vezmou.venues where id = tap.u('wiz:venue1'));
+begin
+  set local role service_role;
+  perform se_vezmou.wizard_save(v_w, null, tap.wz_draft('Lenka', 'Tomáš'),
+    jsonb_set(jsonb_set(tap.wz_work('Lenka', 'Tomáš'), '{venues,0,lat}', '49.92556'), '{venues,0,lng}', '14.27639'));
+  perform tap.reset();
+  perform tap.ok(exists (select 1 from se_vezmou.venues where id = tap.u('wiz:venue1') and wedding_id = v_w
+                           and lat = 49.92556 and lng = 14.27639), 'průvodce: souřadnice místa se uloží');
+  set local role service_role;
+  perform se_vezmou.wizard_save(v_w, null, tap.wz_draft('Lenka', 'Tomáš'), tap.wz_work('Lenka', 'Tomáš'));
+  perform tap.reset();
+  perform tap.ok(exists (select 1 from se_vezmou.venues where id = tap.u('wiz:venue1') and wedding_id = v_w
+                           and lat is null and lng is null), 'průvodce: bez souřadnic se smažou');
+end
+$$;
+
 -- Aktivita prodlužuje rezervaci (nejvýše jednou za activity_touch_minutes)
 do $$
 declare

@@ -83,6 +83,10 @@ test.describe("E2E-01: průvodce od jmen po zveřejnění", () => {
     const preview = page.frameLocator('[data-testid="preview-frame"]');
     await expect(preview.getByRole("heading", { level: 1 })).toContainText("Klára");
     await expect(preview.getByText("Zámecká kaple").first()).toBeVisible();
+    // Mapa: adresa se najde na serveru (MAP_STUB), náhled vykreslí dlaždice z vlastního původu.
+    await expect(
+      preview.getByRole("img", { name: /Mapa místa konání: Zámecká kaple/ }),
+    ).toBeAttached();
     if (isCompact(page)) await page.getByRole("button", { name: "Zavřít náhled" }).click();
 
     await next(page);
@@ -147,6 +151,19 @@ test.describe("E2E-01: průvodce od jmen po zveřejnění", () => {
     await expect(guest.getByText("Zámecká kaple").first()).toBeVisible();
     await expect(guest.getByText("Penzion U Řeky")).toBeVisible();
     await expect(guest.getByText("Slavnostní, bez bílé.")).toBeVisible();
+    // Souřadnice prošly zveřejněním: mapa a odkazy do Google Maps a Mapy.cz.
+    const venue = guest.locator("#misto");
+    await expect(
+      venue.getByRole("img", { name: /Mapa místa konání: Zámecká kaple/ }),
+    ).toBeVisible();
+    await expect(venue.getByRole("link", { name: /Mapy\.cz/ })).toHaveAttribute(
+      "href",
+      /^https:\/\/mapy\.cz\/fnc\/v1\/showmap\?/,
+    );
+    await expect(venue.getByRole("link", { name: /Google Maps/ })).toHaveAttribute(
+      "href",
+      /^https:\/\/www\.google\.com\/maps\/search\//,
+    );
     await guest.context().close();
 
     // PDF oznámení k tisku: jedna stránka, titulek s jmény, platný soubor.

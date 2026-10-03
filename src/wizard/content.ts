@@ -93,6 +93,9 @@ function resolvePlaces(draft: WizardDraft, date: string): Resolved {
       isPrivate: false,
       directions: text(part.directions),
       mapUrl: null,
+      // Souřadnice jen k adrese, ke které se hledaly (po úpravě adresy neplatí).
+      lat: part.geo?.query === address ? part.geo.lat : null,
+      lng: part.geo?.query === address ? part.geo.lng : null,
     });
     return id;
   };
@@ -185,7 +188,11 @@ function buildBlocks(draft: WizardDraft, resolved: Resolved): Block[] {
       type: "venue",
       anchor: "misto",
       position: next(),
-      data: { venueIds: resolved.venues.map((venue) => venue.id), intro: null },
+      data: {
+        venueIds: resolved.venues.map((venue) => venue.id),
+        intro: null,
+        showMap: draft.showMap,
+      },
     });
   }
 
@@ -311,7 +318,14 @@ export interface WorkingSet {
     palette: string;
     guestPinEnabled: boolean;
   };
-  venues: { id: string; name: I18nText; address: string; directions: I18nText | null }[];
+  venues: {
+    id: string;
+    name: I18nText;
+    address: string;
+    directions: I18nText | null;
+    lat: number | null;
+    lng: number | null;
+  }[];
   events: {
     id: string;
     kind: string;
@@ -362,6 +376,8 @@ export function toWorkingSet(draft: WizardDraft, now: Date = new Date()): Workin
       // Průvodce zakládá jen veřejná místa, tedy s adresou.
       address: venue.address ?? "",
       directions: venue.directions,
+      lat: venue.lat,
+      lng: venue.lng,
     })),
     events: content.events.map((event) => ({
       id: event.id,

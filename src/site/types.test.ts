@@ -37,6 +37,32 @@ describe("schéma PublicContent", () => {
     expect(publicContentSchema.safeParse(bad).success).toBe(false);
   });
 
+  it("souřadnice: obě nebo žádná, soukromé místo je ve snímku nemá", () => {
+    const half = structuredClone(eukalyptusFixture);
+    half.venues[0].lng = null;
+    expect(publicContentSchema.safeParse(half).success).toBe(false);
+    const leaked = structuredClone(eukalyptusFixture);
+    const secret = leaked.venues.find((v) => v.isPrivate)!;
+    Object.assign(secret, { lat: 50, lng: 14 });
+    expect(publicContentSchema.safeParse(leaked).success).toBe(false);
+  });
+
+  it("starší snímek bez souřadnic a bez volby mapy projde, mapa je vypnutá", () => {
+    const old = structuredClone(eukalyptusFixture) as unknown as {
+      venues: Record<string, unknown>[];
+      blocks: { type: string; data: Record<string, unknown> }[];
+    };
+    for (const venue of old.venues) {
+      delete venue.lat;
+      delete venue.lng;
+    }
+    delete old.blocks.find((b) => b.type === "venue")!.data.showMap;
+    const parsed = publicContentSchema.parse(old);
+    expect(parsed.venues[0].lat).toBeNull();
+    const venue = parsed.blocks.find((b) => b.type === "venue");
+    expect(venue?.type === "venue" && venue.data.showMap).toBe(false);
+  });
+
   it("odmítne výchozí jazyk mimo jazyky webu, neznámou šablonu a neplatnou kotvu", () => {
     expect(
       publicContentSchema.safeParse({ ...eukalyptusFixture, locales: ["en"], defaultLocale: "cs" })

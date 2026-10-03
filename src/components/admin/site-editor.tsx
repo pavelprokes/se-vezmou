@@ -82,6 +82,7 @@ const ISSUE_TEXT: Record<IssueCode, AdminKey> = {
   venueName: "admin.issue.venueName",
   venueUrl: "admin.issue.venueUrl",
   venueNone: "admin.issue.venueNone",
+  venueNoCoords: "admin.issue.venueNoCoords",
   eventTitle: "admin.issue.eventTitle",
   eventTime: "admin.issue.eventTime",
   eventVenue: "admin.issue.eventVenue",

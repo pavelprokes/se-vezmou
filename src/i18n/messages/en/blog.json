@@ -1,0 +1,17 @@
+{
+  "index.eyebrow": "Blog",
+  "index.title": "Wedding planning advice",
+  "index.lead": "Practical guides to wedding websites, invitations and guest RSVPs. Written to save you time and a good few phone calls.",
+  "index.metaTitle": "Blog: wedding planning and wedding website advice | Se vezmou",
+  "index.metaDescription": "Guides and templates for planning your wedding: what to put on a wedding website, how to word your invitations and how to collect RSVPs from guests.",
+  "index.empty": "There are no articles yet. We’ll add some soon.",
+  "index.listLabel": "Articles",
+  "breadcrumb": "Blog",
+  "readMore": "Read the article",
+  "readMoreLabel": "Read the article {title}",
+  "meta": "{date} · {minutes} min read",
+  "updated": "Updated {date}",
+  "toc": "In this article",
+  "back": "All articles",
+  "more": "More articles"
+}

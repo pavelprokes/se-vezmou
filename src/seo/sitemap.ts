@@ -1,11 +1,17 @@
 import { locales } from "@/i18n/config";
-import { languageUrls, type RouteName } from "@/i18n/pathnames";
+import { languageUrls, type PageRef, type RouteName } from "@/i18n/pathnames";
 
 /**
  * Stránky v mapě webu. Právní podstránky jsou zatím zástupné (`noindex`), takže v mapě nejsou;
  * po doplnění textů se přidají sem a ve `generateMetadata` se jim zruší `noindex`.
  */
-export const indexableRoutes: readonly RouteName[] = ["home", "pricing", "templates", "bilingual"];
+export const indexableRoutes: readonly RouteName[] = [
+  "home",
+  "pricing",
+  "templates",
+  "bilingual",
+  "blog",
+];
 
 function escapeXml(value: string): string {
   return value
@@ -18,12 +24,12 @@ function escapeXml(value: string): string {
 /**
  * `sitemap.xml` úvodní stránky: každá jazyková verze je samostatný záznam
  * a nese všechny alternativy (`xhtml:link`). Weby párů, průvodce a správa v mapě nejsou.
+ * `pages` jsou stránky z tabulky cest nebo adresy článků blogu (`articlePaths`).
  */
-export function buildSitemap(siteUrl: string, routes?: readonly RouteName[]): string {
-  const names = routes ?? indexableRoutes;
+export function buildSitemap(siteUrl: string, pages: readonly PageRef[] = indexableRoutes): string {
   const entries: string[] = [];
-  for (const route of names) {
-    const urls = languageUrls(route, siteUrl);
+  for (const page of pages) {
+    const urls = languageUrls(page, siteUrl);
     const alternates = Object.entries(urls)
       .map(
         ([hreflang, href]) =>

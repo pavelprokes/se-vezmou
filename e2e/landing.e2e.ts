@@ -291,7 +291,7 @@ for (const locale of locales) {
       }
       await openMenuIfCollapsed(page, isMobile);
       const nav = page.getByRole("navigation", { name: /Hlavní navigace|Main navigation/ });
-      await expect(nav.getByRole("link")).toHaveCount(4);
+      await expect(nav.getByRole("link")).toHaveCount(5);
       await nav.getByRole("link").nth(3).click();
       await expect(page).toHaveURL(/#faq$/);
       await expect(page.locator("#faq")).toBeInViewport();
@@ -299,6 +299,10 @@ for (const locale of locales) {
       await openMenuIfCollapsed(page, isMobile);
       await nav.getByRole("link").nth(2).click();
       await expect(page).toHaveURL(locale.code === "cs" ? /\/cenik$/ : /\/en\/pricing$/);
+      // Poslední odkaz vede na blog.
+      await openMenuIfCollapsed(page, isMobile);
+      await nav.getByRole("link").nth(4).click();
+      await expect(page).toHaveURL(locale.code === "cs" ? /\/blog$/ : /\/en\/blog$/);
     });
 
     test("přepínač jazyka vede na druhou verzi stránky", async ({ page, isMobile }) => {

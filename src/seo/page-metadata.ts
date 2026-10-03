@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { locales, type Locale } from "@/i18n/config";
-import { hreflangAlternates, localizedPath, type RouteName } from "@/i18n/pathnames";
+import { hreflangAlternates, type PageRef } from "@/i18n/pathnames";
 
 /** Obrázek pro sdílení (1200 × 630). Statické soubory ve `public/og`, zvlášť pro každý jazyk. */
 export const OG_IMAGE_SIZE = { width: 1200, height: 630 } as const;
@@ -13,7 +13,8 @@ export function ogImagePath(locale: Locale): string {
 const ogLocale: Record<Locale, string> = { cs: "cs_CZ", en: "en_GB" };
 
 export interface PageMetadataInput {
-  route: RouteName;
+  /** Stránka z tabulky cest, nebo rovnou adresy všech jazykových verzí (článek blogu). */
+  route: PageRef;
   locale: Locale;
   siteUrl: string;
   title: string;
@@ -22,6 +23,8 @@ export interface PageMetadataInput {
   imageAlt: string;
   /** Zástupné stránky: nechat mimo vyhledávače, odkazy ale sledovat. */
   noindex?: boolean;
+  /** Článek: Open Graph typu `article` s daty vydání a úpravy (`YYYY-MM-DD`). */
+  article?: { publishedTime: string; modifiedTime: string };
 }
 
 /**
@@ -29,8 +32,10 @@ export interface PageMetadataInput {
  * (cs, en, x-default), Open Graph a Twitter karta. Jediné místo, takže se stránky nerozejdou.
  */
 export function pageMetadata(input: PageMetadataInput): Metadata {
-  const { route, locale, siteUrl, title, description, siteName, imageAlt, noindex } = input;
-  const url = new URL(localizedPath(route, locale), siteUrl).toString();
+  const { route, locale, siteUrl, title, description, siteName, imageAlt, noindex, article } =
+    input;
+  const links = hreflangAlternates(route, locale, siteUrl);
+  const url = links.canonical;
   const image = {
     url: ogImagePath(locale),
     ...OG_IMAGE_SIZE,
@@ -39,10 +44,10 @@ export function pageMetadata(input: PageMetadataInput): Metadata {
   return {
     title,
     description,
-    alternates: hreflangAlternates(route, locale, siteUrl),
+    alternates: links,
     ...(noindex ? { robots: { index: false, follow: true } } : {}),
     openGraph: {
-      type: "website",
+      ...(article ? { type: "article", ...article } : { type: "website" }),
       url,
       siteName,
       title,

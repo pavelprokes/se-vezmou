@@ -107,8 +107,11 @@ const nextConfig: NextConfig = {
     ];
   },
   // PDF oznámení (M5) čte písma z repozitáře za běhu; do nasazení je musí přidat sledování souborů.
+  // Administrace blogu čte články za běhu (stránky blogu a mapa webu je čtou jen při sestavení).
   outputFileTracingIncludes: {
     "/h/app/vytvorit/oznameni": ["./src/wizard/pdf/fonts/**/*"],
+    "/h/admin/blog": ["./content/blog/*.json"],
+    "/h/admin/blog/[id]": ["./content/blog/*.json"],
   },
 };
 

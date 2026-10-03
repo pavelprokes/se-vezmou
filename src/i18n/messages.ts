@@ -11,6 +11,7 @@ import type { MessageValue } from "./format";
 import type admin from "./messages/cs/admin.json";
 import type adminGuests from "./messages/cs/admin.guests.json";
 import type auth from "./messages/cs/auth.json";
+import type blog from "./messages/cs/blog.json";
 import type catalog from "./messages/cs/catalog.json";
 import type common from "./messages/cs/common.json";
 import type errors from "./messages/cs/errors.json";
@@ -29,6 +30,7 @@ import type wizard from "./messages/cs/wizard.json";
  * - `common`: sdílený rámec každé stránky (značka, odkaz na obsah, popisek přepínače jazyka),
  * - `errors`: stránka 404 a chyba aplikace,
  * - `marketing` (metadata úvodní stránky), `landing` (sekce úvodní stránky), `legal` (právní stránky),
+ *   `blog` (rámec blogu; samotné články jsou v `content/blog`),
  * - `auth` (přihlášení správců), `wizard` (průvodce), `admin` a `admin.guests` (správa),
  * - `site` a `rsvp` (web páru), `ops` (provozní administrace),
  * - `catalog` a `placeholder` (vývojářský katalog a ukázky, mimo produkci).
@@ -37,6 +39,7 @@ export const namespaces = [
   "admin",
   "admin.guests",
   "auth",
+  "blog",
   "catalog",
   "common",
   "errors",
@@ -56,6 +59,7 @@ type CatalogFiles = {
   admin: typeof admin;
   "admin.guests": typeof adminGuests;
   auth: typeof auth;
+  blog: typeof blog;
   catalog: typeof catalog;
   common: typeof common;
   errors: typeof errors;

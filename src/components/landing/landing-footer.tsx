@@ -1,12 +1,13 @@
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { operator } from "@/config/operator";
 import type { Locale } from "@/i18n/config";
-import { localizedPath, localizedPaths, type RouteName } from "@/i18n/pathnames";
+import { localizedPath, localizedPaths, type PageRef } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
 
 export interface LandingFooterProps {
   locale: Locale;
-  route: RouteName;
+  /** Stránka z tabulky cest, nebo adresy článku blogu v každém jazyce. */
+  route: PageRef;
 }
 
 /** Patička: provozovatel a kontakt ze zástupné konfigurace, odkazy na sekce a právní stránky. */
@@ -18,6 +19,7 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
     { href: localizedPath("templates", locale), label: t("landing.nav.templates") },
     { href: localizedPath("pricing", locale), label: t("landing.nav.pricing") },
     { href: `${home}#faq`, label: t("landing.nav.faq") },
+    { href: localizedPath("blog", locale), label: t("landing.nav.blog") },
   ];
   const legal = [
     { href: localizedPath("privacy", locale), label: t("landing.footer.privacy") },
@@ -65,7 +67,7 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
         </nav>
         <LanguageSwitcher
           current={locale}
-          hrefs={localizedPaths(route)}
+          hrefs={typeof route === "string" ? localizedPaths(route) : route}
           label={t("landing.footer.language")}
           short
           className="md:justify-self-end"

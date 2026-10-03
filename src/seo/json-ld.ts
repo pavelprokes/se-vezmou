@@ -126,6 +126,38 @@ export function faqPageLd(entries: readonly FaqEntry[]): JsonLdNode {
   };
 }
 
+export interface BlogPostingInput {
+  siteUrl: string;
+  url: string;
+  headline: string;
+  description: string;
+  locale: Locale;
+  /** `YYYY-MM-DD`. */
+  datePublished: string;
+  dateModified: string;
+  imageUrl: string;
+}
+
+/** Článek blogu; autorem i vydavatelem je provozovatel (`Organization` ze stejného grafu). */
+export function blogPostingLd(input: BlogPostingInput): JsonLdNode {
+  const organization = { "@id": idOf(input.siteUrl, "organization") };
+  return {
+    "@type": "BlogPosting",
+    "@id": `${input.url}#article`,
+    mainEntityOfPage: input.url,
+    url: input.url,
+    headline: plain(input.headline),
+    description: plain(input.description),
+    inLanguage: htmlLang[input.locale],
+    datePublished: input.datePublished,
+    dateModified: input.dateModified,
+    image: input.imageUrl,
+    author: organization,
+    publisher: organization,
+    isPartOf: { "@id": idOf(input.siteUrl, "website") },
+  };
+}
+
 export interface Crumb {
   name: string;
   url: string;

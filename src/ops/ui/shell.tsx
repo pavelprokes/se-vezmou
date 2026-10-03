@@ -9,7 +9,8 @@ import { getOpsTranslator } from "../i18n";
 import { can, type OperatorAction } from "../roles";
 import type { OperatorSession } from "../session";
 
-export type NavKey = "overview" | "weddings" | "retention" | "audit" | "operators" | "account";
+export type NavKey =
+  "overview" | "weddings" | "retention" | "audit" | "operators" | "blog" | "account";
 
 const NAV: { key: NavKey; href: string; action: OperatorAction; label: NamespaceKey<"ops"> }[] = [
   { key: "overview", href: "/", action: "view", label: "ops.nav.overview" },
@@ -17,6 +18,7 @@ const NAV: { key: NavKey; href: string; action: OperatorAction; label: Namespace
   { key: "retention", href: "/retence", action: "view", label: "ops.nav.retention" },
   { key: "audit", href: "/audit", action: "audit", label: "ops.nav.audit" },
   { key: "operators", href: "/operatori", action: "manage_operators", label: "ops.nav.operators" },
+  { key: "blog", href: "/blog", action: "blog", label: "ops.nav.blog" },
   { key: "account", href: "/ucet", action: "view", label: "ops.nav.account" },
 ];
 

@@ -100,6 +100,7 @@ describe("role operátorů", () => {
       "restore",
       "audit",
       "manage_operators",
+      "blog",
     ] as const) {
       expect(can("support", action)).toBe(false);
     }

@@ -24,6 +24,8 @@ export const OPERATOR_ACTIONS = [
   "restore",
   "audit",
   "manage_operators",
+  /** Úpravy článků blogu (jen soubory v repozitáři, do databáze nesahá). */
+  "blog",
 ] as const;
 
 export type OperatorAction = (typeof OPERATOR_ACTIONS)[number];

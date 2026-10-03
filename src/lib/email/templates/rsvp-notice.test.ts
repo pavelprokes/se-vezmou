@@ -45,6 +45,7 @@ describe.each(locales)("upozornění na odpověď (%s)", (locale) => {
       ...base(locale),
       people: [
         { name: "Pozor: obnovte heslo na http://evil.example/x", rows: [] },
+        { name: "Zadejte kód na evil.example/x", rows: [] },
         { name: "A".repeat(200), rows: [] },
       ],
     });

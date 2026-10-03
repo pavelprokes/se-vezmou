@@ -54,11 +54,15 @@ const COPY = {
  * omezí, aby z upozornění nešla udělat návnada na cizí stránku.
  */
 function safeName(name: string): string {
-  return name
-    .replace(/(?:https?:\/\/|www\.)\S+/gi, "…")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 80);
+  return (
+    name
+      // odkazy se schématem, `www.` i holé domény (`evil.example/x`)
+      .replace(/(?:https?:\/\/|www\.)\S+/gi, "…")
+      .replace(/\b[a-z0-9-]{2,}(?:\.[a-z0-9-]+)*\.[a-z]{2,}\b(?:\/\S*)?/gi, "…")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 80)
+  );
 }
 
 export function renderRsvpNotice({

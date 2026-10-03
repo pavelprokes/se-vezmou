@@ -128,10 +128,28 @@ export function venueEntries(block: BlockOf<"venue">, ctx: SiteCtx) {
           : null,
     };
   });
-  const points: MapPoint[] = entries.flatMap((entry) =>
-    entry.point ? [{ ...entry.point, label: ctx.text(entry.venue.name) }] : [],
-  );
+  const points: MapPoint[] = [
+    ...entries.flatMap((entry) =>
+      entry.point ? [{ ...entry.point, label: ctx.text(entry.venue.name) }] : [],
+    ),
+    ...lodgingPoints(ctx),
+  ];
   return { entries, points };
+}
+
+/**
+ * Ubytování na mapě místa konání: položky zapnutého bloku Ubytování se zaškrtnutou volbou mapy a nalezenými
+ * souřadnicemi (ne vypnutý blok, ne ubytování bez adresy).
+ */
+export function lodgingPoints(ctx: SiteCtx): MapPoint[] {
+  const block = ctx.content.blocks.find(
+    (b): b is BlockOf<"lodging"> => b.type === "lodging" && b.enabled,
+  );
+  return (block?.data.items ?? []).flatMap((item) =>
+    item.showOnMap && item.lat !== null && item.lng !== null
+      ? [{ lat: item.lat, lng: item.lng, label: ctx.text(item.name), kind: "lodging" as const }]
+      : [],
+  );
 }
 
 /** Fotografie s popiskem pro galerii a prohlížeč (bez popisku a nedekorativní se nevykreslí, WCAG 1.1.1). */

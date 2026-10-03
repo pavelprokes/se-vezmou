@@ -135,12 +135,23 @@ export const venueData = z.object({
 });
 export const lodgingData = z.object({
   items: z.array(
-    z.object({
-      id: z.string(),
-      name: i18nTextSchema,
-      description: i18nTextSchema.nullable().default(null),
-      url: httpUrl.nullable().default(null),
-    }),
+    z
+      .object({
+        id: z.string(),
+        name: i18nTextSchema,
+        description: i18nTextSchema.nullable().default(null),
+        url: httpUrl.nullable().default(null),
+        /** Adresa ubytování (nepovinná); starší snímky ji nemají. */
+        address: z.string().min(1).max(250).nullable().default(null),
+        /** Ubytování se ukáže i na mapě místa konání (jen s nalezenými souřadnicemi). */
+        showOnMap: z.boolean().default(false),
+        lat: z.number().min(-90).max(90).nullable().default(null),
+        lng: z.number().min(-180).max(180).nullable().default(null),
+      })
+      .refine((item) => (item.lat === null) === (item.lng === null), {
+        message: "Souřadnice ubytování jsou obě, nebo žádná",
+        path: ["lat"],
+      }),
   ),
   transport: i18nTextSchema.nullable().default(null),
 });

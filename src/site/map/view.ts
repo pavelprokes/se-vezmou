@@ -20,10 +20,15 @@ const FIT = { width: 220, height: 90 } as const;
 /** Mez zeměpisné šířky Web Mercatoru. */
 const MAX_LAT = 85.05112878;
 
+/** Druh bodu: místo konání (obřad, hostina) nebo ubytování; na mapě se liší tvarem špendlíku. */
+export type MapPointKind = "venue" | "lodging";
+
 export interface MapPoint {
   lat: number;
   lng: number;
   label: string;
+  /** Výchozí `venue`. */
+  kind?: MapPointKind;
 }
 
 export interface MapView {
@@ -33,7 +38,7 @@ export interface MapView {
   /** Dlaždice s polohou levého horního rohu na plátně. */
   tiles: { x: number; y: number; left: number; top: number }[];
   /** Špendlíky s polohou hrotu na plátně. */
-  pins: { left: number; top: number; label: string }[];
+  pins: { left: number; top: number; label: string; kind: MapPointKind }[];
 }
 
 /** Světové pixelové souřadnice bodu v daném přiblížení. */
@@ -47,15 +52,22 @@ export function project(lat: number, lng: number, zoom: number): { x: number; y:
   };
 }
 
-/** Body se shodnou polohou (obřad a hostina na jednom místě) jsou jeden špendlík se spojeným popiskem. */
-function mergePoints(points: readonly MapPoint[]): MapPoint[] {
-  const merged = new Map<string, MapPoint>();
+/**
+ * Body se shodnou polohou (obřad a hostina na jednom místě, ubytování v místě konání) jsou jeden špendlík se
+ * spojeným popiskem; společný špendlík místa konání a ubytování je špendlík místa konání.
+ */
+function mergePoints(points: readonly MapPoint[]): Required<MapPoint>[] {
+  const merged = new Map<string, Required<MapPoint>>();
   for (const point of points) {
     const key = `${point.lat.toFixed(5)},${point.lng.toFixed(5)}`;
+    const kind = point.kind ?? "venue";
     const existing = merged.get(key);
-    if (!existing) merged.set(key, { ...point });
-    else if (!existing.label.split(" · ").includes(point.label)) {
-      existing.label = `${existing.label} · ${point.label}`;
+    if (!existing) merged.set(key, { ...point, kind });
+    else {
+      if (!existing.label.split(" · ").includes(point.label)) {
+        existing.label = `${existing.label} · ${point.label}`;
+      }
+      if (kind === "venue") existing.kind = "venue";
     }
   }
   return [...merged.values()];
@@ -85,7 +97,11 @@ export function mapView(input: readonly MapPoint[]): MapView | null {
   const points = mergePoints(input);
   if (points.length === 0) return null;
   const zoom = fitZoom(points);
-  const projected = points.map((p) => ({ ...project(p.lat, p.lng, zoom), label: p.label }));
+  const projected = points.map((p) => ({
+    ...project(p.lat, p.lng, zoom),
+    label: p.label,
+    kind: p.kind,
+  }));
   const xs = projected.map((p) => p.x);
   const ys = projected.map((p) => p.y);
   const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
@@ -112,6 +128,7 @@ export function mapView(input: readonly MapPoint[]): MapView | null {
     left: Math.round(p.x - left0),
     top: Math.round(p.y - top0),
     label: p.label,
+    kind: p.kind,
   }));
   return { zoom, width, height, tiles, pins };
 }

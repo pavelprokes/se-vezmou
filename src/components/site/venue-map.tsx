@@ -17,11 +17,24 @@ export function VenueMap({ points, ctx }: { points: MapPoint[]; ctx: SiteCtx }) 
   const { t, content } = ctx;
   const bg = getPalette(content.template, content.palette).colors.bg;
   const dark = luminance(parseColor(bg)) < DARK_BG;
-  const places = view.pins.map((pin) => pin.label).join(", ");
+  const places = view.pins
+    .filter((pin) => pin.kind === "venue")
+    .map((pin) => pin.label)
+    .join(", ");
+  const lodging = view.pins
+    .filter((pin) => pin.kind === "lodging")
+    .map((pin) => pin.label)
+    .join(", ");
+  const label =
+    lodging === ""
+      ? t("site.venue.mapLabel", { places })
+      : places === ""
+        ? t("site.venue.mapLabelLodgingOnly", { lodging })
+        : t("site.venue.mapLabelWithLodging", { places, lodging });
 
   return (
     <figure className="site-map" data-dark={dark ? "true" : undefined}>
-      <div className="site-map-view" role="img" aria-label={t("site.venue.mapLabel", { places })}>
+      <div className="site-map-view" role="img" aria-label={label}>
         <div
           className="site-map-canvas"
           style={{
@@ -49,6 +62,7 @@ export function VenueMap({ points, ctx }: { points: MapPoint[]; ctx: SiteCtx }) 
             <span
               key={index}
               className="site-map-pin"
+              data-kind={pin.kind}
               data-label={pin.label}
               style={{ left: pin.left, top: pin.top }}
             />
@@ -56,6 +70,17 @@ export function VenueMap({ points, ctx }: { points: MapPoint[]; ctx: SiteCtx }) 
         </div>
       </div>
       <figcaption className="site-map-credit">
+        {lodging !== "" && places !== "" ? (
+          // Legenda: místo konání a ubytování se liší tvarem špendlíku (ne jen barvou)
+          <span className="site-map-legend" aria-hidden="true">
+            <span className="site-map-legend-item" data-kind="venue">
+              {t("site.venue.legendVenue")}
+            </span>
+            <span className="site-map-legend-item" data-kind="lodging">
+              {t("site.venue.legendLodging")}
+            </span>
+          </span>
+        ) : null}
         <a
           href="https://www.openstreetmap.org/copyright"
           rel="noopener noreferrer"

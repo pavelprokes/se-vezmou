@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/choice";
 import { Field } from "@/components/ui/field";
 import { QrCode } from "@/components/wizard/qr-code";
+import { useGeocode } from "@/components/wizard/use-geocode";
 import type { Locale } from "@/i18n/config";
 import { buildSpayd } from "@/site/payment";
 import type { MediaActions } from "@/lib/media/action-types";
@@ -205,10 +206,39 @@ function VenueBlockEditor({ block, ctx }: Props<"venue">) {
   );
 }
 
+type LodgingItem = EditorBlockOf<"lodging">["data"]["items"][number];
+
+/**
+ * Souřadnice ubytování pro mapu místa konání: hledají se jen se zapnutou volbou mapy a po změně adresy znovu
+ * (na serveru, Nominatim), stejně jako u míst konání. Stav hledání je hláška pod adresou.
+ */
+function LodgingGeo({
+  item,
+  onFound,
+}: {
+  item: LodgingItem;
+  onFound: (lat: number, lng: number, address: string) => void;
+}) {
+  const t = useAdminT();
+  const address = (item.address ?? "").trim();
+  const located = item.lat !== null && item.lng !== null;
+  const status = useGeocode(address !== "" && !located ? address : null, (hit) =>
+    onFound(hit.lat, hit.lng, address),
+  );
+  if (address === "") return <Note tone="info">{t("admin.lodging.mapNeedsAddress")}</Note>;
+  return (
+    <p role="status" className="text-muted text-sm">
+      {located ? t("admin.venue.geo.found") : t(`admin.venue.geo.${status ?? "searching"}`)}
+    </p>
+  );
+}
+
 function LodgingEditor({ block, ctx }: Props<"lodging">) {
   const t = useAdminT();
   const items = block.data.items;
   const setItems = (next: typeof items) => patchBlock(ctx, block.id, { items: next });
+  const patchItem = (id: string, change: Partial<LodgingItem>) =>
+    setItems(items.map((x) => (x.id === id ? { ...x, ...change } : x)));
   return (
     <>
       <div className="flex flex-col gap-4">
@@ -255,13 +285,67 @@ function LodgingEditor({ block, ctx }: Props<"lodging">) {
                   )
                 }
               />
+              <Field
+                label={t("admin.lodging.address")}
+                hint={t("admin.lodging.addressHint")}
+                autoComplete="off"
+                maxLength={250}
+                value={item.address ?? ""}
+                // Souřadnice patří k adrese: po úpravě se zahodí a hledají znovu.
+                onChange={(event) =>
+                  patchItem(item.id, { address: event.target.value || null, lat: null, lng: null })
+                }
+              />
+              <Checkbox
+                label={t("admin.lodging.showOnMap")}
+                checked={item.showOnMap}
+                onChange={(event) => patchItem(item.id, { showOnMap: event.target.checked })}
+              />
+              {item.showOnMap ? (
+                <LodgingGeo
+                  item={item}
+                  onFound={(lat, lng, address) =>
+                    // Jen pokud se adresa mezitím nezměnila (výsledek pro starou adresu se zahodí)
+                    ctx.update((d) => ({
+                      ...d,
+                      blocks: d.blocks.map((b) =>
+                        b.id === block.id && b.type === "lodging"
+                          ? {
+                              ...b,
+                              data: {
+                                ...b.data,
+                                items: b.data.items.map((x) =>
+                                  x.id === item.id && (x.address ?? "").trim() === address
+                                    ? { ...x, lat, lng }
+                                    : x,
+                                ),
+                              },
+                            }
+                          : b,
+                      ),
+                    }))
+                  }
+                />
+              ) : null}
             </ItemCard>
           );
         })}
         <div>
           <AddButton
             onClick={() =>
-              setItems([...items, { id: newId(), name: {}, description: null, url: null }])
+              setItems([
+                ...items,
+                {
+                  id: newId(),
+                  name: {},
+                  description: null,
+                  url: null,
+                  address: null,
+                  showOnMap: false,
+                  lat: null,
+                  lng: null,
+                },
+              ])
             }
           >
             {t("admin.lodging.add")}

@@ -308,6 +308,34 @@ describe("mapa místa", () => {
     expect(block?.type === "venue" && block.data.showMap).toBe(true);
   });
 
+  it("ubytování: souřadnice do webu jen s adresou a zaškrtnutou mapou", () => {
+    const item = (n: number, extra: Record<string, unknown>) => ({
+      id: ID(n),
+      name: { cs: `Ubytování ${n}` },
+      description: null,
+      url: null,
+      address: "Říční 5, Dobřichovice",
+      showOnMap: true,
+      lat: 49.9,
+      lng: 14.2,
+      ...extra,
+    });
+    const doc = withBlocks(baseDoc(), (blocks) =>
+      enable(blocks, "lodging", {
+        items: [item(31, {}), item(32, { showOnMap: false }), item(33, { address: "  " })],
+        transport: null,
+      }),
+    );
+    const { content } = docToPublic(doc, { slug: "klara-a-matej" })!;
+    const block = content.blocks.find((b) => b.type === "lodging");
+    if (block?.type !== "lodging") throw new Error("ubytování");
+    expect(block.data.items.map((i) => [i.address, i.showOnMap, i.lat, i.lng])).toEqual([
+      ["Říční 5, Dobřichovice", true, 49.9, 14.2],
+      ["Říční 5, Dobřichovice", false, null, null],
+      [null, false, null, null],
+    ]);
+  });
+
   it("soukromé místo nemá souřadnice ani v pracovní kopii", () => {
     const work = docToWork(located()) as { venues: { id: string; lat: number | null }[] };
     expect(work.venues.find((v) => v.id === ID(1))?.lat).toBe(49.92556);

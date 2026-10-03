@@ -203,6 +203,11 @@ function buildBlocks(draft: WizardDraft, resolved: Resolved): Block[] {
       name: inDefault(item.name, defaultLocale),
       description: text(item.description),
       url: normalizeUrl(item.url),
+      // Adresu a mapu ubytování nastavuje až správa webu
+      address: null,
+      showOnMap: false,
+      lat: null,
+      lng: null,
     }));
   const transport = text(draft.transport);
   if (items.length > 0 || transport) {

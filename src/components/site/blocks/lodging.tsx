@@ -1,5 +1,6 @@
 import { BedDouble, Bus, ExternalLink, Shirt } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
+import { googleMapsUrl, mapyCzUrl } from "@/site/map/view";
 import type { BlockOf } from "@/site/types";
 import type { SiteCtx } from "../context";
 import { Paragraphs, Section } from "./section";
@@ -40,7 +41,29 @@ export function Lodging({
                       ctx.text(item.name)
                     )}
                   </p>
+                  {item.address ? <address className="site-muted">{item.address}</address> : null}
                   <Paragraphs value={item.description} ctx={ctx} className="site-muted" />
+                  {item.lat !== null && item.lng !== null ? (
+                    <p className="site-map-links">
+                      <a
+                        href={mapyCzUrl(item.lat, item.lng)}
+                        rel="noopener noreferrer"
+                        className="site-link"
+                      >
+                        {t("site.venue.mapyCz")}
+                        <Icon icon={ExternalLink} size={16} />
+                      </a>
+                      <a
+                        href={googleMapsUrl(item.lat, item.lng)}
+                        rel="noopener noreferrer"
+                        className="site-link"
+                      >
+                        {t("site.venue.googleMaps")}
+                        <Icon icon={ExternalLink} size={16} />
+                      </a>
+                      <span className="site-muted site-hint">{t("site.venue.mapHint")}</span>
+                    </p>
+                  ) : null}
                 </li>
               ))}
             </ul>

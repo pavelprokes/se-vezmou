@@ -102,6 +102,10 @@ const dataSchemas = {
           name: text(LIMITS.short),
           description: optionalText(),
           url: z.string().max(500).nullable().default(null),
+          address: z.string().max(250).nullable().default(null),
+          showOnMap: z.boolean().default(false),
+          lat: z.number().min(-90).max(90).nullable().default(null),
+          lng: z.number().min(-180).max(180).nullable().default(null),
         }),
       )
       .max(LIMITS.lodging)
@@ -1168,12 +1172,22 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
           data: {
             items: block.data.items
               .filter((item) => anyFilled(item.name))
-              .map((item) => ({
-                id: item.id,
-                name: cleanText(item.name) ?? {},
-                description: cleanText(item.description),
-                url: item.url ? normalizeUrl(item.url) : null,
-              })),
+              .map((item) => {
+                const address = item.address?.trim() || null;
+                // Souřadnice jen s adresou a volbou mapy (a obě, nebo žádná)
+                const located =
+                  item.showOnMap && address !== null && item.lat !== null && item.lng !== null;
+                return {
+                  id: item.id,
+                  name: cleanText(item.name) ?? {},
+                  description: cleanText(item.description),
+                  url: item.url ? normalizeUrl(item.url) : null,
+                  address,
+                  showOnMap: item.showOnMap && address !== null,
+                  lat: located ? item.lat : null,
+                  lng: located ? item.lng : null,
+                };
+              }),
             transport: cleanText(block.data.transport),
           },
         };

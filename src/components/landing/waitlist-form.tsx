@@ -1,10 +1,10 @@
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { WaitlistFormClient } from "./waitlist-form-client";
 
 /** Čekací listina: server přeloží všechny texty, klientský formulář je jen zobrazí. */
-export function WaitlistForm({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function WaitlistForm({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
   return (
     <section
       id="waitlist"

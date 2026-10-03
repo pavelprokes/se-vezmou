@@ -1,29 +1,32 @@
+import { localHref } from "@/auth/local-href";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cookieSpec } from "@/auth/cookie";
 import { getHost } from "@/auth/request";
 import { buttonVariants } from "@/components/ui/button";
-import { createTranslator } from "@/i18n/translator";
 import { openOperatorPending } from "@/ops/login";
 import { getOperatorSession, pendingFactorPath } from "@/ops/session";
 import { OpsAuthShell } from "@/ops/ui/auth-shell";
 import { OperatorCodeForm } from "@/ops/ui/login-forms";
+import { getOpsTranslator } from "@/ops/i18n";
 
-const t = createTranslator("cs");
-
-export const metadata: Metadata = { title: t("ops.code.title") };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getOpsTranslator();
+  return { title: t("ops.code.title") };
+}
 
 export default async function OperatorCodePage() {
+  const t = await getOpsTranslator();
   const session = await getOperatorSession();
-  if (session) redirect(session.aal2 ? "/" : pendingFactorPath(session));
+  if (session) redirect(await localHref(session.aal2 ? "/" : pendingFactorPath(session)));
 
   // Kód se zadává jen v prohlížeči, který ho vyžádal; jinak zpět na e-mail.
   const pending = (await cookies()).get(cookieSpec("operatorPending", await getHost()).name)?.value;
-  if (!pending || !openOperatorPending(pending)) redirect("/prihlaseni");
+  if (!pending || !openOperatorPending(pending)) redirect(await localHref("/prihlaseni"));
 
   return (
-    <OpsAuthShell title={t("ops.code.title")} intro={t("ops.code.intro")}>
+    <OpsAuthShell path="/prihlaseni/kod" title={t("ops.code.title")} intro={t("ops.code.intro")}>
       <OperatorCodeForm
         labels={{
           code: t("ops.code.label"),

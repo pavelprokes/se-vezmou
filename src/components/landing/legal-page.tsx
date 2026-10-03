@@ -4,7 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { isLocale, type Locale } from "@/i18n/config";
 import type { MessageKey } from "@/i18n/messages";
 import { localizedPath } from "@/i18n/pathnames";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { siteUrl } from "@/lib/site";
 import { pageMetadata } from "@/seo/page-metadata";
 import { LandingFooter } from "./landing-footer";
@@ -40,10 +40,14 @@ function legalLocale(route: LegalRoute, segment: string, localeParam: string): L
   return last === segment ? localeParam : null;
 }
 
-export function legalMetadata(route: LegalRoute, segment: string, localeParam: string): Metadata {
+export async function legalMetadata(
+  route: LegalRoute,
+  segment: string,
+  localeParam: string,
+): Promise<Metadata> {
   const locale = legalLocale(route, segment, localeParam);
   if (!locale) return {};
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["common", "legal", "marketing"]);
   return pageMetadata({
     route,
     locale,
@@ -56,7 +60,7 @@ export function legalMetadata(route: LegalRoute, segment: string, localeParam: s
   });
 }
 
-export function LegalPage({
+export async function LegalPage({
   route,
   segment,
   localeParam,
@@ -67,7 +71,7 @@ export function LegalPage({
 }) {
   const locale = legalLocale(route, segment, localeParam);
   if (!locale) notFound();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["common", "legal", "marketing"]);
   const home = new URL(localizedPath("home", locale), siteUrl).toString();
   const url = new URL(localizedPath(route, locale), siteUrl).toString();
 

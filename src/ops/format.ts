@@ -1,33 +1,34 @@
+import { defaultLocale, intlLocale, type Locale } from "@/i18n/config";
 import { typo } from "@/i18n/typo";
 
 /**
- * Formátování pro operátorskou administraci (jen česky, pražský čas). Datum bez času (`2027-06-12`) se
- * bere jako kalendářní den bez posunu pásma; okamžiky se ukazují v pásmu Europe/Prague.
+ * Formátování pro operátorskou administraci (v jazyce rozhraní, pražský čas). Datum bez času
+ * (`2027-06-12`) se bere jako kalendářní den bez posunu pásma; okamžiky se ukazují v pásmu Europe/Prague.
  */
 
 const TIME_ZONE = "Europe/Prague";
 
-const dayFormat = new Intl.DateTimeFormat("cs-CZ", {
+const DAY: Intl.DateTimeFormatOptions = {
   day: "numeric",
   month: "numeric",
   year: "numeric",
   timeZone: TIME_ZONE,
-});
+};
 
-const momentFormat = new Intl.DateTimeFormat("cs-CZ", {
+const MOMENT: Intl.DateTimeFormatOptions = {
   day: "numeric",
   month: "numeric",
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
   timeZone: TIME_ZONE,
-});
+};
 
-const monthFormat = new Intl.DateTimeFormat("cs-CZ", {
-  month: "long",
-  year: "numeric",
-  timeZone: "UTC",
-});
+const MONTH: Intl.DateTimeFormatOptions = { month: "long", year: "numeric", timeZone: "UTC" };
+
+function format(options: Intl.DateTimeFormatOptions, value: Date, locale: Locale): string {
+  return typo(new Intl.DateTimeFormat(intlLocale[locale], options).format(value), locale);
+}
 
 function toDate(value: string | Date): Date {
   if (value instanceof Date) return value;
@@ -36,18 +37,26 @@ function toDate(value: string | Date): Date {
 }
 
 /** `12. 6. 2027`, nebo `fallback`, když hodnota chybí. */
-export function formatDay(value: string | Date | null | undefined, fallback: string): string {
-  return value ? typo(dayFormat.format(toDate(value)), "cs") : fallback;
+export function formatDay(
+  value: string | Date | null | undefined,
+  fallback: string,
+  locale: Locale = defaultLocale,
+): string {
+  return value ? format(DAY, toDate(value), locale) : fallback;
 }
 
 /** `2. 10. 2026 14:05` v pražském čase. */
-export function formatMoment(value: string | Date | null | undefined, fallback: string): string {
-  return value ? typo(momentFormat.format(toDate(value)), "cs") : fallback;
+export function formatMoment(
+  value: string | Date | null | undefined,
+  fallback: string,
+  locale: Locale = defaultLocale,
+): string {
+  return value ? format(MOMENT, toDate(value), locale) : fallback;
 }
 
 /** `2027-06` -> `červen 2027`. */
-export function formatMonth(value: string): string {
-  return typo(monthFormat.format(new Date(`${value}-15T12:00:00Z`)), "cs");
+export function formatMonth(value: string, locale: Locale = defaultLocale): string {
+  return format(MONTH, new Date(`${value}-15T12:00:00Z`), locale);
 }
 
 /** Jména páru pro nadpis a odkazy: `Klára a Matěj`. */

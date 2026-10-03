@@ -1,14 +1,14 @@
 import { Accordion } from "@/components/ui/accordion";
 import { operator } from "@/config/operator";
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { getFaqItems } from "./faq";
 import { Section } from "./section";
 
 /** FAQ: šest otázek v rozbalovacím seznamu; celý text je v HTML i bez JavaScriptu. */
-export function FaqSection({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
-  const items = getFaqItems(locale);
+export async function FaqSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
+  const items = await getFaqItems(locale);
 
   return (
     <Section id="faq" headingId="faq-title">

@@ -1,12 +1,19 @@
 import type { CSSProperties } from "react";
 import { Info } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
-import { locales, type Locale } from "@/i18n/config";
+import { localePath, locales, type Locale } from "@/i18n/config";
 import type { RsvpSiteState } from "@/lib/rsvp/form";
 import { formatDateRange } from "@/site/format";
 import { getPalette } from "@/site/themes/palettes";
 import type { Block, PublicContent, SensitiveContent } from "@/site/types";
-import { createSiteCtx, BLOCK_NAV, renderableBlocks, rsvpIsOpen, type SiteCtx } from "./context";
+import {
+  createSiteCtx,
+  BLOCK_NAV,
+  renderableBlocks,
+  rsvpIsOpen,
+  type SiteCtx,
+  type SiteTranslator,
+} from "./context";
 import { Contact } from "./blocks/contact";
 import { Faq } from "./blocks/faq";
 import { Gallery } from "./blocks/gallery";
@@ -22,7 +29,8 @@ import "./site.css";
 
 export interface SiteRendererProps {
   content: PublicContent;
-  locale: Locale;
+  /** Překlady jmenných prostorů webu v jazyce stránky (`getTranslator(locale, SITE_NAMESPACES)`). */
+  t: SiteTranslator;
   /** Adresa téže stránky v jazycích webu (pro přepínač jazyka). */
   localeHrefs?: Partial<Record<Locale, string>>;
   /** Aktuální okamžik pro odpočet; testy ho předávají pevně. */
@@ -77,21 +85,21 @@ function renderBlock(block: Block, ctx: SiteCtx, tone: "bg" | "surface") {
  */
 export function SiteRenderer({
   content,
-  locale,
+  t,
   localeHrefs,
   now,
   sensitiveUnlocked = false,
   sensitive = null,
   rsvp = null,
 }: SiteRendererProps) {
-  const ctx = createSiteCtx(content, locale, { now, sensitiveUnlocked, sensitive, rsvp });
-  const { t } = ctx;
+  const ctx = createSiteCtx(content, t, { now, sensitiveUnlocked, sensitive, rsvp });
+  const { locale } = ctx;
   const blocks = renderableBlocks(ctx);
   const rsvpBlock = blocks.find((block) => block.type === "rsvp");
   const sticky = rsvpIsOpen(content) && rsvpBlock !== undefined;
   const notice = ctx.text(content.quickNotice);
   const hrefs = Object.fromEntries(
-    locales.map((l) => [l, localeHrefs?.[l] ?? (l === "cs" ? "/" : `/${l}`)]),
+    locales.map((l) => [l, localeHrefs?.[l] ?? localePath("/", l)]),
   ) as Record<Locale, string>;
   const navBlocks = blocks.filter(
     (block): block is Exclude<Block, { type: "hero" }> => block.type !== "hero",

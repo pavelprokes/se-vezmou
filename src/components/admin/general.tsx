@@ -83,7 +83,7 @@ export function GeneralPanel({
         {locales.map((locale) => (
           <Checkbox
             key={locale}
-            label={locale === "cs" ? t("admin.lang.cs") : t("admin.lang.en")}
+            label={t(`admin.lang.${locale}`)}
             checked={w.locales.includes(locale)}
             disabled={w.locales.length === 1 && w.locales.includes(locale)}
             onChange={(event) => toggleLocale(locale, event.target.checked)}
@@ -98,7 +98,7 @@ export function GeneralPanel({
             <Radio
               key={locale}
               name="default-locale"
-              label={locale === "cs" ? t("admin.lang.cs") : t("admin.lang.en")}
+              label={t(`admin.lang.${locale}`)}
               checked={w.defaultLocale === locale}
               onChange={() => setW({ defaultLocale: locale })}
             />

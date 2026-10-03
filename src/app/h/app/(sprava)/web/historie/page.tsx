@@ -10,18 +10,18 @@ import { AdminI18nProvider } from "@/components/admin/i18n";
 import { pickAdminMessages } from "@/components/admin/messages";
 import { buttonVariants } from "@/components/ui/button";
 import { intlLocale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { restoreVersionAction } from "../actions";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("admin.history.title") };
+  return { title: (await getTranslator(await getUiLocale(), ["admin"]))("admin.history.title") };
 }
 
 /** Historie verzí webu (FR-ADM-2): zveřejněné verze, body pro vrácení a vrácení verze jako konceptu. */
 export default async function HistoryPage() {
   const session = await requireSession();
   const locale = await getUiLocale();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["admin"]);
 
   const loaded = await loadSite(session);
   if (!loaded) notFound();
@@ -34,7 +34,7 @@ export default async function HistoryPage() {
   });
 
   return (
-    <AdminI18nProvider locale={locale} messages={pickAdminMessages(locale)}>
+    <AdminI18nProvider locale={locale} messages={await pickAdminMessages(locale)}>
       <AdminFrame
         locale={locale}
         path={ADMIN_PATHS.history}

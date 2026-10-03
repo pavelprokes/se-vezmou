@@ -1,20 +1,23 @@
+import { localHref } from "@/auth/local-href";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { createTranslator } from "@/i18n/translator";
 import { getOperatorSession, pendingFactorPath } from "@/ops/session";
 import { OpsAuthShell } from "@/ops/ui/auth-shell";
 import { OperatorEmailForm } from "@/ops/ui/login-forms";
+import { getOpsTranslator } from "@/ops/i18n";
 
-const t = createTranslator("cs");
-
-export const metadata: Metadata = { title: t("ops.login.title") };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getOpsTranslator();
+  return { title: t("ops.login.title") };
+}
 
 export default async function OperatorLoginPage() {
+  const t = await getOpsTranslator();
   const session = await getOperatorSession();
-  if (session) redirect(session.aal2 ? "/" : pendingFactorPath(session));
+  if (session) redirect(await localHref(session.aal2 ? "/" : pendingFactorPath(session)));
 
   return (
-    <OpsAuthShell title={t("ops.login.title")} intro={t("ops.login.intro")}>
+    <OpsAuthShell path="/prihlaseni" title={t("ops.login.title")} intro={t("ops.login.intro")}>
       <OperatorEmailForm
         labels={{
           email: t("ops.login.email.label"),

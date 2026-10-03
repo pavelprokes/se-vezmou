@@ -1,10 +1,10 @@
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { Section, SectionHeading } from "./section";
 
 /** Soukromí a přístupnost: tmavá sekce se třemi sliby. */
-export function TrustSection({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function TrustSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
   const items = [
     { title: t("landing.trust.hidden.title"), text: t("landing.trust.hidden.text") },
     { title: t("landing.trust.pin.title"), text: t("landing.trust.pin.text") },

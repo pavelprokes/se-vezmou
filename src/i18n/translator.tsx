@@ -1,42 +1,65 @@
 import { Fragment, type ReactNode } from "react";
-import { defaultLocale, intlLocale, locales, type Locale } from "./config";
+import { defaultLocale, intlLocale, type Locale } from "./config";
 import { parseRich, renderText, selectForm, type MessageValue, type Params } from "./format";
-import { catalogs, type MessageKey } from "./messages";
+import type { Namespace, NamespaceKey, NamespaceMessages } from "./messages";
 import { typo } from "./typo";
 
 export type RichTags = Record<string, (children: ReactNode) => ReactNode>;
 
-export interface Translator {
-  (key: MessageKey, params?: Params): string;
+/** `t()` nad jmennými prostory `N`; klíč z jiného jmenného prostoru neprojde kontrolou typů. */
+export interface Translator<N extends Namespace = Namespace> {
+  (key: NamespaceKey<N>, params?: Params): string;
   /** Zpráva s povolenými značkami (`<b>`, `<i>`, `<a>`), které se mapují na komponenty. */
-  rich(key: MessageKey, tags: RichTags, params?: Params): ReactNode;
+  rich(key: NamespaceKey<N>, tags: RichTags, params?: Params): ReactNode;
   readonly locale: Locale;
 }
 
-/**
- * Najde zprávu v jazyce, jinak v druhém jazyce. Klíč se uživateli nikdy nezobrazí;
- * chyba se zaloguje bez osobních údajů (jen klíč a jazyk).
- */
-function lookup(locale: Locale, key: MessageKey): MessageValue {
-  const direct = catalogs[locale].get(key);
-  if (direct !== undefined) return direct;
-  console.error(`[i18n] Chybí překlad ${key} pro jazyk ${locale}`);
-  for (const other of locales) {
-    if (other === locale) continue;
-    const fallback = catalogs[other].get(key);
-    if (fallback !== undefined) return fallback;
-  }
-  console.error(`[i18n] Klíč ${key} neexistuje v žádném jazyce`);
-  return "";
+/** Výsledek `loadMessages` (`src/i18n/load.ts`): zprávy jazyka a náhrada ve výchozím jazyce. */
+export interface LoadedMessages<N extends Namespace = Namespace> {
+  locale: Locale;
+  namespaces: readonly N[];
+  messages: Partial<Record<Namespace, NamespaceMessages>>;
+  /** Tytéž jmenné prostory ve výchozím jazyce; u výchozího jazyka chybí. */
+  fallback?: Partial<Record<Namespace, NamespaceMessages>>;
 }
 
-/** `t()` pro Server Components i klienta: `const t = createTranslator("cs")`. */
-export function createTranslator(locale: Locale = defaultLocale): Translator {
-  const t = ((key: MessageKey, params?: Params) =>
-    renderText(lookup(locale, key), locale, params)) as Translator;
+function flatten(source: Partial<Record<Namespace, NamespaceMessages>> | undefined) {
+  const flat = new Map<string, MessageValue>();
+  for (const [namespace, entries] of Object.entries(source ?? {})) {
+    for (const [key, value] of Object.entries(entries ?? {}))
+      flat.set(`${namespace}.${key}`, value);
+  }
+  return flat;
+}
+
+/**
+ * `t()` z načtených jmenných prostorů. Na serveru se získá přes `getTranslator(locale, [...])`
+ * (`src/i18n/load.ts`). Chybějící zprávu najde ve výchozím jazyce (požadovaný jazyk -> výchozí,
+ * nikdy jiný). Klíč se uživateli nikdy nezobrazí; chyba se zaloguje bez osobních údajů (jen klíč
+ * a jazyk).
+ */
+export function createTranslator<N extends Namespace>(loaded: LoadedMessages<N>): Translator<N> {
+  const { locale } = loaded;
+  const own = flatten(loaded.messages);
+  const fallback = flatten(loaded.fallback);
+
+  function lookup(key: string): MessageValue {
+    const direct = own.get(key);
+    if (direct !== undefined) return direct;
+    console.error(`[i18n] Chybí překlad ${key} pro jazyk ${locale}`);
+    if (locale !== defaultLocale) {
+      const value = fallback.get(key);
+      if (value !== undefined) return value;
+    }
+    console.error(`[i18n] Klíč ${key} neexistuje ve výchozím jazyce ${defaultLocale}`);
+    return "";
+  }
+
+  const t = ((key: NamespaceKey<N>, params?: Params) =>
+    renderText(lookup(key), locale, params)) as Translator<N>;
 
   t.rich = (key, tags, params) => {
-    const value = lookup(locale, key);
+    const value = lookup(key);
     const parts = parseRich(selectForm(value, locale, params));
     return parts.map((part, index) => {
       if (typeof part === "string") {

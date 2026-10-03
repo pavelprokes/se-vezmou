@@ -5,7 +5,6 @@ import { z } from "zod";
 import { currentHostConfig } from "@/auth/app-origin";
 import { getHost } from "@/auth/request";
 import { Card } from "@/components/ui/card";
-import { createTranslator } from "@/i18n/translator";
 import { WEDDING_STATUSES } from "@/lib/db/types";
 import { coupleNames, formatDay, formatMoment } from "@/ops/format";
 import {
@@ -33,12 +32,13 @@ import {
   StatusForm,
 } from "@/ops/ui/wedding-forms";
 import { OpsShell, SectionTitle, TableRegion, tableClass, tdClass, thClass } from "@/ops/ui/shell";
-
-const t = createTranslator("cs");
+import { getOpsTranslator } from "@/ops/i18n";
+import { localePath } from "@/i18n/config";
 
 export async function generateMetadata({
   params,
 }: PageProps<"/h/admin/zakazky/[id]">): Promise<Metadata> {
+  const t = await getOpsTranslator();
   const session = await requireOperator("view");
   const { id } = await params;
   const detail = z.uuid().safeParse(id).success
@@ -54,7 +54,8 @@ export async function generateMetadata({
 }
 
 /** Všechna chybová hlášení formulářů zásahů (klíč = `state.error`). */
-function errorTexts(): Record<string, string> {
+async function errorTexts(): Promise<Record<string, string>> {
+  const t = await getOpsTranslator();
   return {
     forbidden: t("ops.error.forbidden"),
     session: t("ops.error.session"),
@@ -104,6 +105,7 @@ export default async function WeddingDetailPage({
   params,
   searchParams,
 }: PageProps<"/h/admin/zakazky/[id]">) {
+  const t = await getOpsTranslator();
   const session = await requireOperator("view");
   const { id } = await params;
   const result = (await searchParams).vysledek;
@@ -119,7 +121,7 @@ export default async function WeddingDetailPage({
   const none = t("ops.none");
   const names = coupleNames(w.partner_a_name, w.partner_b_name);
   const status = w.status;
-  const errors = errorTexts();
+  const errors = await errorTexts();
   const activeAdmins = detail.admins.filter((a) => !a.removed_at);
   const deleted = status === "deleted";
   const restorable = w.restorable;
@@ -148,7 +150,7 @@ export default async function WeddingDetailPage({
       {resultKey ? <ResultBanner>{t(resultKey)}</ResultBanner> : null}
       <p className="mb-6">
         <a
-          href="/zakazky"
+          href={localePath("/zakazky", t.locale)}
           className="text-pine inline-flex min-h-[2.75rem] items-center underline underline-offset-4"
         >
           {t("ops.detail.back")}
@@ -175,12 +177,18 @@ export default async function WeddingDetailPage({
               {label(t, LOCALE_KEYS, w.default_locale)}
             </Row>
             <Row term={t("ops.detail.field.date")}>
-              {formatDay(w.starts_on, none)}
-              {w.ends_on && w.ends_on !== w.starts_on ? ` až ${formatDay(w.ends_on, none)}` : ""}
+              {formatDay(w.starts_on, none, t.locale)}
+              {w.ends_on && w.ends_on !== w.starts_on
+                ? ` až ${formatDay(w.ends_on, none, t.locale)}`
+                : ""}
             </Row>
             <Row term={t("ops.detail.field.timezone")}>{w.timezone}</Row>
-            <Row term={t("ops.detail.field.created")}>{formatMoment(w.created_at, none)}</Row>
-            <Row term={t("ops.detail.field.published")}>{formatMoment(w.published_at, none)}</Row>
+            <Row term={t("ops.detail.field.created")}>
+              {formatMoment(w.created_at, none, t.locale)}
+            </Row>
+            <Row term={t("ops.detail.field.published")}>
+              {formatMoment(w.published_at, none, t.locale)}
+            </Row>
             <Row term={t("ops.detail.field.phase")}>
               {w.phase_override ? label(t, PHASE_KEYS, w.phase_override) : none}
             </Row>
@@ -188,20 +196,26 @@ export default async function WeddingDetailPage({
               {w.published_version_no === null ? none : `#${w.published_version_no}`}
             </Row>
             <Row term={t("ops.detail.field.activity")}>
-              {formatMoment(w.last_activity_at, none)}
+              {formatMoment(w.last_activity_at, none, t.locale)}
             </Row>
             {detail.order ? (
               <>
                 <Row term={t("ops.detail.field.plan")}>{detail.order.plan_code}</Row>
                 <Row term={t("ops.detail.field.service")}>
-                  {formatDay(detail.order.service_ends_at, none)}
+                  {formatDay(detail.order.service_ends_at, none, t.locale)}
                 </Row>
               </>
             ) : null}
-            <Row term={t("ops.detail.field.healthPurge")}>{formatDay(w.health_purge_at, none)}</Row>
-            <Row term={t("ops.detail.field.guestPurge")}>{formatDay(w.guest_purge_at, none)}</Row>
+            <Row term={t("ops.detail.field.healthPurge")}>
+              {formatDay(w.health_purge_at, none, t.locale)}
+            </Row>
+            <Row term={t("ops.detail.field.guestPurge")}>
+              {formatDay(w.guest_purge_at, none, t.locale)}
+            </Row>
             {w.purge_at ? (
-              <Row term={t("ops.detail.field.purge")}>{formatMoment(w.purge_at, none)}</Row>
+              <Row term={t("ops.detail.field.purge")}>
+                {formatMoment(w.purge_at, none, t.locale)}
+              </Row>
             ) : null}
             <Row term={t("ops.detail.field.guests")}>{detail.counts.guests}</Row>
             <Row term={t("ops.detail.field.households")}>{detail.counts.households}</Row>
@@ -253,8 +267,8 @@ export default async function WeddingDetailPage({
                     <th scope="row" className={`${tdClass} font-normal break-all`}>
                       {admin.email}
                     </th>
-                    <td className={tdClass}>{formatDay(admin.added_at, none)}</td>
-                    <td className={tdClass}>{formatMoment(admin.last_login_at, none)}</td>
+                    <td className={tdClass}>{formatDay(admin.added_at, none, t.locale)}</td>
+                    <td className={tdClass}>{formatMoment(admin.last_login_at, none, t.locale)}</td>
                     <td className={tdClass}>
                       {admin.removed_at
                         ? t("ops.detail.admin.removed")
@@ -298,7 +312,7 @@ export default async function WeddingDetailPage({
                   {detail.history.map((row, index) => (
                     <tr key={`${row.created_at}-${index}`}>
                       <th scope="row" className={`${tdClass} font-normal`}>
-                        {formatMoment(row.created_at, none)}
+                        {formatMoment(row.created_at, none, t.locale)}
                       </th>
                       <td className={tdClass}>
                         {row.from_status ? label(t, STATUS_KEYS, row.from_status) : "–"}
@@ -326,7 +340,7 @@ export default async function WeddingDetailPage({
                   <p className="text-muted mt-2 text-sm">
                     {t("ops.detail.notes.meta", {
                       email: note.operator_email,
-                      when: formatMoment(note.created_at, none),
+                      when: formatMoment(note.created_at, none, t.locale),
                     })}
                   </p>
                 </li>
@@ -470,7 +484,7 @@ export default async function WeddingDetailPage({
                   {t("ops.action.restore.title")}
                 </h3>
                 <p className="mb-3">
-                  {t("ops.action.restore.intro", { date: formatDay(w.purge_at, none) })}
+                  {t("ops.action.restore.intro", { date: formatDay(w.purge_at, none, t.locale) })}
                 </p>
                 <RestoreForm
                   weddingId={w.id}
@@ -495,7 +509,7 @@ export default async function WeddingDetailPage({
             <p className="mb-4 font-medium">
               {detail.guest_access
                 ? t("ops.action.guests.consent.active", {
-                    until: formatMoment(detail.guest_access.expires_at, none),
+                    until: formatMoment(detail.guest_access.expires_at, none, t.locale),
                   })
                 : t("ops.action.guests.consent.none")}
             </p>

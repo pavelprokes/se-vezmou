@@ -12,11 +12,13 @@ import { pickAdminMessages } from "@/components/admin/messages";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { bulkInviteAction } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("admin.guests.nav.guests") };
+  return {
+    title: (await getTranslator(await getUiLocale(), ["admin.guests"]))("admin.guests.nav.guests"),
+  };
 }
 
 /**
@@ -26,13 +28,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function GuestsPage({ searchParams }: PageProps<"/h/app/hoste">) {
   const session = await requireSession();
   const locale = await getUiLocale();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["admin.guests"]);
   const params = await searchParams;
   const data = await loadGuests(session);
   const flag = params.ulozeno ? "saved" : params.smazano ? "deleted" : null;
 
   return (
-    <AdminI18nProvider locale={locale} messages={pickAdminMessages(locale)}>
+    <AdminI18nProvider locale={locale} messages={await pickAdminMessages(locale)}>
       <AdminFrame
         locale={locale}
         path={ADMIN_PATHS.guests}

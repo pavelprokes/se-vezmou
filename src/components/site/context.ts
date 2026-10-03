@@ -1,6 +1,6 @@
 import { htmlLang, type Locale } from "@/i18n/config";
-import type { MessageKey } from "@/i18n/messages";
-import { createTranslator, type Translator } from "@/i18n/translator";
+import type { NamespaceKey } from "@/i18n/messages";
+import type { Translator } from "@/i18n/translator";
 import { typo } from "@/i18n/typo";
 import type { RsvpSiteState } from "@/lib/rsvp/form";
 import { pick, resolvedLocale, type I18nText } from "@/site/i18n-text";
@@ -14,11 +14,20 @@ import type {
   SensitiveContent,
 } from "@/site/types";
 
+/**
+ * Jmenné prostory webu páru: jediné, které web páru (i živý náhled v prohlížeči) načítá. Zprávy
+ * předává volající jako hotový `t` (`getTranslator(locale, SITE_NAMESPACES)` na serveru).
+ */
+export const SITE_NAMESPACES = ["common", "site", "rsvp"] as const;
+export type SiteNamespace = (typeof SITE_NAMESPACES)[number];
+export type SiteTranslator = Translator<SiteNamespace>;
+type SiteKey = NamespaceKey<SiteNamespace>;
+
 /** Vše, co bloky potřebují k vykreslení jednoho webu v jednom jazyce. */
 export interface SiteCtx {
   content: PublicContent;
   locale: Locale;
-  t: Translator;
+  t: SiteTranslator;
   now: Date;
   sensitiveUnlocked: boolean;
   sensitive: SensitiveContent | null;
@@ -43,16 +52,17 @@ export interface SiteCtxOptions {
 
 export function createSiteCtx(
   content: PublicContent,
-  locale: Locale,
+  t: SiteTranslator,
   options: SiteCtxOptions = {},
 ): SiteCtx {
+  const locale: Locale = t.locale;
   const fallback = content.defaultLocale;
   const text = (value: I18nText | null | undefined) =>
     typo(pick(value, locale, fallback), resolvedLocale(value, locale, fallback) ?? locale);
   return {
     content,
     locale,
-    t: createTranslator(locale),
+    t,
     now: options.now ?? new Date(),
     sensitiveUnlocked: options.sensitiveUnlocked ?? false,
     sensitive: options.sensitive ?? null,
@@ -79,7 +89,7 @@ export function createSiteCtx(
 const HIDDEN_AFTER_WEDDING: readonly BlockType[] = ["rsvp", "gifts"];
 
 /** Titulky a odkazy navigace podle typu bloku (literály kvůli kontrole překladů). */
-export const BLOCK_TITLE: Record<Exclude<BlockType, "hero">, MessageKey> = {
+export const BLOCK_TITLE: Record<Exclude<BlockType, "hero">, SiteKey> = {
   program: "site.program.title",
   venue: "site.venue.title",
   lodging: "site.lodging.title",
@@ -92,7 +102,7 @@ export const BLOCK_TITLE: Record<Exclude<BlockType, "hero">, MessageKey> = {
   rsvp: "site.rsvp.title",
 };
 
-export const BLOCK_NAV: Record<Exclude<BlockType, "hero">, MessageKey> = {
+export const BLOCK_NAV: Record<Exclude<BlockType, "hero">, SiteKey> = {
   program: "site.nav.program",
   venue: "site.nav.venue",
   lodging: "site.nav.lodging",

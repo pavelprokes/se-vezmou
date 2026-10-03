@@ -1,4 +1,4 @@
-import { locales, type Locale } from "./config";
+import { defaultLocale, locales, type Locale } from "./config";
 import {
   ALLOWED_TAGS,
   REQUIRED_PLURAL_CATEGORIES,
@@ -26,13 +26,15 @@ function forms(value: MessageValue): [string, string][] {
 
 /**
  * Kontrola překladů a typografie (ADR 0003): parita klíčů, zástupných znaků a značek,
- * množná čísla, typografie zdrojových zpráv a nepoužité klíče (varování).
+ * množná čísla, typografie zdrojových zpráv a nepoužité klíče (varování). Každý jazyk se porovnává
+ * s výchozím jazykem (zdroj pravdy o klíčích).
  */
 export function checkMessages(catalogs: FlatCatalogs, usedKeys?: ReadonlySet<string>): CheckResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  const [first, ...rest] = locales;
+  const first = defaultLocale;
+  const rest = locales.filter((locale) => locale !== defaultLocale);
   for (const locale of rest) {
     for (const key of Object.keys(catalogs[first])) {
       if (!(key in catalogs[locale])) errors.push(`[${locale}] chybí klíč ${key} (je v ${first})`);

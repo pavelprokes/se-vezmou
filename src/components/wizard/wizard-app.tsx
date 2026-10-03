@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Icon } from "@/components/ui/icon";
-import type { Locale } from "@/i18n/config";
+import { intlLocale, type Locale } from "@/i18n/config";
 import {
   REQUIRED_STEPS,
   STEP_COUNT,
@@ -127,7 +127,7 @@ function SaveStatusLine({ status, signedIn }: { status: SaveStatus; signedIn: bo
       break;
     case "saved":
       text = t("wizard.status.saved", {
-        time: new Intl.DateTimeFormat(t.locale === "cs" ? "cs-CZ" : "en-GB", {
+        time: new Intl.DateTimeFormat(intlLocale[t.locale], {
           hour: "2-digit",
           minute: "2-digit",
         }).format(status.at),

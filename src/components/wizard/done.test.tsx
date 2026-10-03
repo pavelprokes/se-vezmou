@@ -5,9 +5,11 @@ import { Done } from "./done";
 import { WizardI18nProvider } from "./i18n";
 import { pickWizardMessages } from "./messages";
 
+const wizardMessages = await pickWizardMessages("cs");
+
 function renderDone(pin: string | null) {
   return render(
-    <WizardI18nProvider locale="cs" messages={pickWizardMessages("cs")}>
+    <WizardI18nProvider locale="cs" messages={wizardMessages}>
       <Done
         uiLocale="cs"
         info={{

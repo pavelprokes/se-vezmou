@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { cn } from "@/lib/utils";
 import { Section, SectionHeading } from "./section";
 
@@ -21,8 +21,8 @@ interface Feature {
 }
 
 /** Co web umí: sedm funkcí a pruh o režimu po svatbě. Náhledy jsou dekorace, text nese význam. */
-export function FeaturesSection({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function FeaturesSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
   const programRows = [
     [t("landing.features.program.time1"), t("landing.features.program.what1")],
     [t("landing.features.program.time2"), t("landing.features.program.what2")],

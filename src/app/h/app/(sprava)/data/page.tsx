@@ -11,11 +11,13 @@ import { AdminI18nProvider } from "@/components/admin/i18n";
 import { pickAdminMessages } from "@/components/admin/messages";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { deleteSiteAction } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("admin.guests.nav.data") };
+  return {
+    title: (await getTranslator(await getUiLocale(), ["admin.guests"]))("admin.guests.nav.data"),
+  };
 }
 
 /**
@@ -26,11 +28,11 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function DataPage() {
   const session = await requireSession();
   const locale = await getUiLocale();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["admin.guests"]);
   const view = await loadAccess(session);
 
   return (
-    <AdminI18nProvider locale={locale} messages={pickAdminMessages(locale)}>
+    <AdminI18nProvider locale={locale} messages={await pickAdminMessages(locale)}>
       <AdminFrame
         locale={locale}
         path={ADMIN_PATHS.data}

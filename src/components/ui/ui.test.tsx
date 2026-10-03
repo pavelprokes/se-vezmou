@@ -10,6 +10,7 @@ import { Checkbox, Radio } from "./choice";
 import { Field, Fieldset } from "./field";
 import { FormAlert } from "./form-alert";
 import { Icon } from "./icon";
+import { localeNames, localeShortNames, locales, type Locale } from "@/i18n/config";
 import { LanguageSwitcher } from "./language-switcher";
 import { SkipLink } from "./skip-link";
 
@@ -204,7 +205,6 @@ describe("LanguageSwitcher", () => {
     current: "cs" as const,
     hrefs: { cs: "/", en: "/en" },
     label: "Jazyk",
-    names: { cs: "Čeština", en: "English" },
   };
 
   it("je navigace s odkazy bez automatického přesměrování", () => {
@@ -220,6 +220,24 @@ describe("LanguageSwitcher", () => {
     render(<LanguageSwitcher {...props} />);
     expect(screen.getByRole("link", { name: "Čeština" })).toHaveAttribute("aria-current", "true");
     expect(screen.getByRole("link", { name: "English" })).not.toHaveAttribute("aria-current");
+  });
+
+  it("nabízí každý jazyk z konfigurace jeho vlastním názvem, zkratky mají celý přístupný název", () => {
+    const hrefs = Object.fromEntries(locales.map((l) => [l, `/${l}`])) as Record<Locale, string>;
+    const { rerender } = render(<LanguageSwitcher current="cs" hrefs={hrefs} label="Jazyk" />);
+    for (const locale of locales) {
+      expect(screen.getByRole("link", { name: localeNames[locale] })).toHaveAttribute(
+        "href",
+        `/${locale}`,
+      );
+    }
+    rerender(<LanguageSwitcher current="cs" hrefs={hrefs} label="Jazyk" short />);
+    for (const locale of locales) {
+      const link = screen.getByRole("link", {
+        name: `${localeShortNames[locale]}, ${localeNames[locale]}`,
+      });
+      expect(link).toHaveTextContent(localeShortNames[locale]);
+    }
   });
 });
 

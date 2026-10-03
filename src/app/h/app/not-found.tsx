@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { getUiLocale } from "@/auth/request";
 import { NotFoundContent, notFoundMetadata } from "@/components/not-found-content";
 
-export function generateMetadata(): Metadata {
-  return notFoundMetadata("cs");
+export async function generateMetadata(): Promise<Metadata> {
+  return notFoundMetadata(await getUiLocale());
 }
 
-export default function AppNotFound() {
-  return <NotFoundContent locale="cs" />;
+export default async function AppNotFound() {
+  return <NotFoundContent locale={await getUiLocale()} />;
 }

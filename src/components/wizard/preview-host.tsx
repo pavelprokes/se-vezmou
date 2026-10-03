@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { SiteNamespace } from "@/components/site/context";
 import { SiteRenderer } from "@/components/site/site-renderer";
 import { htmlLang, isLocale, type Locale } from "@/i18n/config";
+import { createTranslator, type LoadedMessages } from "@/i18n/translator";
 import {
   publicContentSchema,
   sensitiveContentSchema,
@@ -24,9 +26,22 @@ interface Received {
  * obsahem ignoruje, takže rámec nejde zneužít k vykreslení cizích dat. Obsah prochází stejným
  * schématem jako zveřejněný snímek. Správa webu posílá navíc citlivé údaje, které sama zadala
  * (číslo účtu, soukromé adresy); rámec je ukáže odemčené, jen v prohlížeči správce.
+ *
+ * Překlady webu (`common`, `site`, `rsvp`) pošle server pro každý jazyk, protože web páru může mít
+ * jiné jazyky než rozhraní; jiné jmenné prostory se do prohlížeče nedostanou.
  */
-export function PreviewHost({ waiting }: { waiting: string }) {
+export function PreviewHost({
+  waiting,
+  messages,
+}: {
+  waiting: string;
+  messages: Record<Locale, LoadedMessages<SiteNamespace>>;
+}) {
   const [received, setReceived] = useState<Received | null>(null);
+  const t = useMemo(
+    () => (received ? createTranslator(messages[received.locale]) : null),
+    [messages, received],
+  );
 
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
@@ -54,7 +69,7 @@ export function PreviewHost({ waiting }: { waiting: string }) {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
-  if (!received) {
+  if (!received || !t) {
     return (
       <p role="status" className="p-6">
         {waiting}
@@ -65,7 +80,7 @@ export function PreviewHost({ waiting }: { waiting: string }) {
     <div lang={htmlLang[received.locale]} data-testid="preview-site">
       <SiteRenderer
         content={received.content}
-        locale={received.locale}
+        t={t}
         now={received.now}
         sensitiveUnlocked={received.sensitive !== null}
         sensitive={received.sensitive}

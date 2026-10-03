@@ -14,12 +14,14 @@ import { WeddingPicker } from "@/components/admin/wedding-picker";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { quickNoticeAction } from "./web/actions";
 import { switchWeddingAction } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("admin.overview.title") };
+  return {
+    title: (await getTranslator(await getUiLocale(), ["common", "admin"]))("admin.overview.title"),
+  };
 }
 
 /**
@@ -29,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function OverviewPage() {
   const session = await requireSession();
   const locale = await getUiLocale();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["common", "admin"]);
 
   const [loaded, weddings] = await Promise.all([peekSite(session), listMyWeddings(session)]);
   if (!loaded) notFound();
@@ -49,7 +51,7 @@ export default async function OverviewPage() {
       : t("admin.overview.status.draft");
 
   return (
-    <AdminI18nProvider locale={locale} messages={pickAdminMessages(locale)}>
+    <AdminI18nProvider locale={locale} messages={await pickAdminMessages(locale)}>
       <AdminFrame
         locale={locale}
         path={ADMIN_PATHS.overview}

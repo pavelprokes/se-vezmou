@@ -4,7 +4,7 @@ import { logoutAction } from "@/app/h/app/prihlaseni/actions";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { locales, type Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { cn } from "@/lib/utils";
 import { HelpBox, type HelpTopic } from "./help";
 
@@ -17,7 +17,7 @@ export type NavItem =
  * vpravo a stručná nápověda k obrazovce je hned pod nadpisem. Pořadí a poloha se mezi obrazovkami
  * nemění.
  */
-export function AdminFrame({
+export async function AdminFrame({
   locale,
   path,
   active,
@@ -37,7 +37,7 @@ export function AdminFrame({
   wide?: boolean;
   children: ReactNode;
 }) {
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["common", "admin", "admin.guests"]);
   const items: { key: NavItem; label: string; href: string }[] = [
     {
       key: "overview",
@@ -100,12 +100,7 @@ export function AdminFrame({
             </ul>
           </nav>
           <div className="flex flex-wrap items-center gap-2">
-            <LanguageSwitcher
-              current={locale}
-              hrefs={hrefs}
-              label={t("admin.frame.language")}
-              names={{ cs: t("common.language.cs"), en: t("common.language.en") }}
-            />
+            <LanguageSwitcher current={locale} hrefs={hrefs} label={t("admin.frame.language")} />
             <form action={logoutAction}>
               <Button type="submit" variant="text">
                 {t("admin.nav.logout")}

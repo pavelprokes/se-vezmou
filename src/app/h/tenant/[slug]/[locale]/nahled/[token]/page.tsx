@@ -3,9 +3,10 @@ import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Eye } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
+import { SITE_NAMESPACES } from "@/components/site/context";
 import { SiteRenderer } from "@/components/site/site-renderer";
-import { isLocale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { isLocale, toLocale } from "@/i18n/config";
+import { getTranslator } from "@/i18n/load";
 import { getPreviewContent } from "@/site/content";
 
 type Props = PageProps<"/h/tenant/[slug]/[locale]/nahled/[token]">;
@@ -13,7 +14,7 @@ type Props = PageProps<"/h/tenant/[slug]/[locale]/nahled/[token]">;
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { locale } = await params;
   return {
-    title: createTranslator(isLocale(locale) ? locale : "cs")("wizard.preview.meta"),
+    title: (await getTranslator(toLocale(locale), ["wizard"]))("wizard.preview.meta"),
     // Koncept se nesmí indexovat ani sdílet jako odkaz s náhledem (FR-WZ-5).
     robots: { index: false, follow: false },
   };
@@ -32,7 +33,8 @@ export default async function PreviewPage({ params }: Props) {
   const content = await getPreviewContent(slug, token);
   if (!content || !content.locales.includes(locale)) notFound();
 
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["wizard"]);
+  const siteT = await getTranslator(locale, SITE_NAMESPACES);
   return (
     <>
       <p
@@ -42,7 +44,7 @@ export default async function PreviewPage({ params }: Props) {
         <Icon icon={Eye} size={18} />
         <span>{t("wizard.preview.banner")}</span>
       </p>
-      <SiteRenderer content={content} locale={locale} now={new Date()} />
+      <SiteRenderer content={content} t={siteT} now={new Date()} />
     </>
   );
 }

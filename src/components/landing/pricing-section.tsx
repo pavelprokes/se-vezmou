@@ -1,15 +1,16 @@
 import { buttonVariants } from "@/components/ui/button";
 import { pricing } from "@/config/pricing";
 import type { Locale } from "@/i18n/config";
-import { createTranslator, formatCurrency } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
+import { formatCurrency } from "@/i18n/translator";
 import { appUrl } from "@/lib/site";
 import { buildWizardUrl } from "@/lib/wizard-link";
 import { cn } from "@/lib/utils";
 import { Section, SectionHeading } from "./section";
 
 /** Cena: dvě karty, obě 0 Kč po dobu zaváděcího provozu. Hodnoty jsou v `config/pricing.ts`. */
-export function PricingSection({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function PricingSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
   const conditions = pricing.conditionsPlaceholder;
 
   const cards = {

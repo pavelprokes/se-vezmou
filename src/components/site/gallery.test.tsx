@@ -13,6 +13,9 @@ vi.mock("./actions", () => ({
 
 import { eukalyptusFixture } from "@/site/fixtures/klara-a-matej";
 import type { PublicContent, PublicMedia, SensitiveContent } from "@/site/types";
+import { locales, type Locale } from "@/i18n/config";
+import { getTranslator } from "@/i18n/load";
+import { SITE_NAMESPACES, type SiteTranslator } from "./context";
 import { SiteRenderer } from "./site-renderer";
 
 /**
@@ -61,12 +64,19 @@ function withGallery(
   } as PublicContent;
 }
 
+/** Překlady webu páru v každém jazyce (stejně jako je stránka načte na serveru). */
+const translators = Object.fromEntries(
+  await Promise.all(
+    locales.map(async (locale) => [locale, await getTranslator(locale, SITE_NAMESPACES)] as const),
+  ),
+) as Record<Locale, SiteTranslator>;
+
 function renderSite(
   content: PublicContent,
-  locale: "cs" | "en" = "cs",
+  locale: Locale = "cs",
   extra: Partial<Parameters<typeof SiteRenderer>[0]> = {},
 ) {
-  return render(<SiteRenderer content={content} locale={locale} now={NOW} {...extra} />);
+  return render(<SiteRenderer content={content} t={translators[locale]} now={NOW} {...extra} />);
 }
 
 beforeAll(() => {

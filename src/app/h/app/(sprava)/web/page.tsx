@@ -12,7 +12,7 @@ import { pickAdminMessages } from "@/components/admin/messages";
 import { SiteEditor } from "@/components/admin/site-editor";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { listMedia, storageAvailable } from "@/lib/media/service";
 import {
   checkpointAction,
@@ -37,7 +37,7 @@ import {
 export const maxDuration = 60;
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("admin.nav.site") };
+  return { title: (await getTranslator(await getUiLocale(), ["admin"]))("admin.nav.site") };
 }
 
 /**
@@ -48,7 +48,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function EditSitePage() {
   const session = await requireSession();
   const locale = await getUiLocale();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["admin"]);
 
   const loaded = await loadSite(session);
   if (!loaded) notFound();
@@ -60,7 +60,7 @@ export default async function EditSitePage() {
 
   if (!isManaged(meta)) {
     return (
-      <AdminI18nProvider locale={locale} messages={pickAdminMessages(locale)}>
+      <AdminI18nProvider locale={locale} messages={await pickAdminMessages(locale)}>
         <AdminFrame
           locale={locale}
           path={ADMIN_PATHS.site}
@@ -82,7 +82,7 @@ export default async function EditSitePage() {
   }
 
   return (
-    <AdminI18nProvider locale={locale} messages={pickAdminMessages(locale)}>
+    <AdminI18nProvider locale={locale} messages={await pickAdminMessages(locale)}>
       <AdminFrame
         locale={locale}
         path={ADMIN_PATHS.site}

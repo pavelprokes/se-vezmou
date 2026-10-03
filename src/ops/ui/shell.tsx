@@ -1,15 +1,17 @@
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
-import type { MessageKey } from "@/i18n/messages";
-import { createTranslator } from "@/i18n/translator";
+import { LanguageSwitcher } from "@/components/ui/language-switcher";
+import { localePath, locales, type Locale } from "@/i18n/config";
+import type { NamespaceKey } from "@/i18n/messages";
 import { cn } from "@/lib/utils";
 import { logoutAction } from "../actions/login";
+import { getOpsTranslator } from "../i18n";
 import { can, type OperatorAction } from "../roles";
 import type { OperatorSession } from "../session";
 
 export type NavKey = "overview" | "weddings" | "retention" | "audit" | "operators" | "account";
 
-const NAV: { key: NavKey; href: string; action: OperatorAction; label: MessageKey }[] = [
+const NAV: { key: NavKey; href: string; action: OperatorAction; label: NamespaceKey<"ops"> }[] = [
   { key: "overview", href: "/", action: "view", label: "ops.nav.overview" },
   { key: "weddings", href: "/zakazky", action: "view", label: "ops.nav.weddings" },
   { key: "retention", href: "/retence", action: "view", label: "ops.nav.retention" },
@@ -20,20 +22,30 @@ const NAV: { key: NavKey; href: string; action: OperatorAction; label: MessageKe
 
 /**
  * Rámec přihlášených stránek administrace: hlavička s nabídkou (aktuální stránka je označená
- * `aria-current`), hlavní oblast s nadpisem první úrovně a odhlášení. Jazyk je jen česky.
+ * `aria-current`), hlavní oblast s nadpisem první úrovně, přepínač jazyka a odhlášení. Odkazy nesou
+ * jazyk stránky (výchozí bez předpony, ostatní pod `/<jazyk>`).
  */
-export function OpsShell({
+export async function OpsShell({
   session,
   current,
+  path,
   title,
   children,
 }: {
   session: OperatorSession;
   current: NavKey;
+  /** Cesta obrazovky bez předpony jazyka pro přepínač; výchozí je položka nabídky `current`. */
+  path?: string;
   title: string;
   children: ReactNode;
 }) {
-  const t = createTranslator("cs");
+  const t = await getOpsTranslator();
+  const { locale } = t;
+  const here = path ?? NAV.find((item) => item.key === current)?.href ?? "/";
+  const hrefs = Object.fromEntries(locales.map((l) => [l, localePath(here, l)])) as Record<
+    Locale,
+    string
+  >;
   return (
     <>
       <header className="border-hairline bg-warm border-b">
@@ -47,6 +59,7 @@ export function OpsShell({
                   role: t(session.role === "owner" ? "ops.role.owner" : "ops.role.support"),
                 })}
               </p>
+              <LanguageSwitcher current={locale} hrefs={hrefs} label={t("common.language.label")} />
               <form action={logoutAction}>
                 <Button type="submit" variant="secondary">
                   {t("ops.shell.logout")}
@@ -59,7 +72,7 @@ export function OpsShell({
               {NAV.filter((item) => can(session.role, item.action)).map((item) => (
                 <li key={item.key}>
                   <a
-                    href={item.href}
+                    href={localePath(item.href, locale)}
                     aria-current={item.key === current ? "page" : undefined}
                     className={cn(
                       "min-h-target rounded-button inline-flex items-center px-3 py-2 text-base font-medium underline-offset-4",

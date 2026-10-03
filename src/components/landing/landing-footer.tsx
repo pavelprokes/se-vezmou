@@ -1,8 +1,8 @@
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { operator } from "@/config/operator";
-import { locales, type Locale } from "@/i18n/config";
-import { localizedPath, type RouteName } from "@/i18n/pathnames";
-import { createTranslator } from "@/i18n/translator";
+import type { Locale } from "@/i18n/config";
+import { localizedPath, localizedPaths, type RouteName } from "@/i18n/pathnames";
+import { getTranslator } from "@/i18n/load";
 
 export interface LandingFooterProps {
   locale: Locale;
@@ -10,13 +10,9 @@ export interface LandingFooterProps {
 }
 
 /** Patička: provozovatel a kontakt ze zástupné konfigurace, odkazy na sekce a právní stránky. */
-export function LandingFooter({ locale, route }: LandingFooterProps) {
-  const t = createTranslator(locale);
+export async function LandingFooter({ locale, route }: LandingFooterProps) {
+  const t = await getTranslator(locale, ["common", "landing"]);
   const home = localizedPath("home", locale);
-  const hrefs = Object.fromEntries(locales.map((l) => [l, localizedPath(route, l)])) as Record<
-    Locale,
-    string
-  >;
   const product = [
     { href: `${home}#how`, label: t("landing.nav.how") },
     { href: `${home}#templates`, label: t("landing.nav.templates") },
@@ -69,10 +65,9 @@ export function LandingFooter({ locale, route }: LandingFooterProps) {
         </nav>
         <LanguageSwitcher
           current={locale}
-          hrefs={hrefs}
+          hrefs={localizedPaths(route)}
           label={t("landing.footer.language")}
-          names={{ cs: t("common.language.cs"), en: t("common.language.en") }}
-          shortNames={{ cs: t("common.language.csShort"), en: t("common.language.enShort") }}
+          short
           className="md:justify-self-end"
         />
       </div>

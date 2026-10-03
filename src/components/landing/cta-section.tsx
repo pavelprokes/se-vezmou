@@ -1,11 +1,11 @@
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { LocalizedNameForm } from "./name-form-section";
 import { Section } from "./section";
 
 /** Závěrečná výzva: pole jmen, která předvyplní průvodce. */
-export function CtaSection({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function CtaSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
   return (
     <Section id="start" headingId="cta-title" tone="cinnamon">
       <div className="mx-auto max-w-3xl text-center">

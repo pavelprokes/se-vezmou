@@ -3,7 +3,7 @@ import { getUiLocale } from "@/auth/request";
 import { Document } from "@/components/document";
 import { SkipLink } from "@/components/ui/skip-link";
 import { htmlLang } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 
 export const metadata: Metadata = {
   title: { default: "Se vezmou", template: "%s | Se vezmou" },
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
  */
 export default async function AppLayout({ children }: LayoutProps<"/h/app">) {
   const locale = await getUiLocale();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["common"]);
   return (
     <Document lang={htmlLang[locale]}>
       <SkipLink target="#obsah">{t("common.skipToContent")}</SkipLink>

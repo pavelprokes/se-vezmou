@@ -1,11 +1,11 @@
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { LocalizedNameForm } from "./name-form-section";
 import { Section } from "./section";
 
 /** Co je služba: odpovědní blok (definice) a pole jmen s živým náhledem adresy. */
-export function IntroSection({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function IntroSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
   return (
     <Section headingId="intro-title" tone="warm">
       <div className="grid items-center gap-10 md:grid-cols-2 md:gap-16">

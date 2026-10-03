@@ -4,20 +4,25 @@ import { getUiLocale } from "@/auth/request";
 import { localHref } from "@/auth/local-href";
 import { getSession } from "@/auth/session";
 import { buttonVariants } from "@/components/ui/button";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { AuthShell } from "../shell";
 import { EmailForm } from "./forms";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("auth.login.title") };
+  return { title: (await getTranslator(await getUiLocale(), ["auth"]))("auth.login.title") };
 }
 
 export default async function LoginPage() {
   if (await getSession()) redirect(await localHref("/"));
-  const t = createTranslator(await getUiLocale());
+  const t = await getTranslator(await getUiLocale(), ["auth"]);
   const pinHref = await localHref("/prihlaseni/pin");
   return (
-    <AuthShell title={t("auth.login.title")} intro={t("auth.login.intro")}>
+    <AuthShell
+      locale={t.locale}
+      path="/prihlaseni"
+      title={t("auth.login.title")}
+      intro={t("auth.login.intro")}
+    >
       <EmailForm
         labels={{
           email: t("auth.login.email.label"),

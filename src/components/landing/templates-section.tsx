@@ -1,5 +1,5 @@
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { Section, SectionHeading } from "./section";
 import {
   ChateauPreview,
@@ -9,8 +9,8 @@ import {
 } from "./template-previews";
 
 /** Šablony: čtyři živé ukázky s ukázkovými jmény Klára a Matěj. */
-export function TemplatesSection({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function TemplatesSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
   const templates = [
     {
       name: t("landing.templates.editorial.name"),

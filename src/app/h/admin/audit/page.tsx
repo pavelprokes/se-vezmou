@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { z } from "zod";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
-import { createTranslator } from "@/i18n/translator";
 import { opListAudit, opListOperators } from "@/lib/db/rpc-ops";
 import { AUDIT_PAGE_SIZE } from "@/ops/config";
 import { formatMoment, isIsoDay, pragueDayStart } from "@/ops/format";
@@ -10,10 +9,13 @@ import { ACTOR_KEYS, label } from "@/ops/labels";
 import { requireOperator } from "@/ops/session";
 import { SelectField } from "@/ops/ui/select-field";
 import { OpsShell, TableRegion, tableClass, tdClass, thClass } from "@/ops/ui/shell";
+import { getOpsTranslator } from "@/ops/i18n";
+import { localePath, type Locale } from "@/i18n/config";
 
-const t = createTranslator("cs");
-
-export const metadata: Metadata = { title: t("ops.audit.title") };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getOpsTranslator();
+  return { title: t("ops.audit.title") };
+}
 
 type Raw = Record<string, string | string[] | undefined>;
 
@@ -47,7 +49,7 @@ function nextDay(day: string): string {
   return date.toISOString().slice(0, 10);
 }
 
-function href(filters: ReturnType<typeof parse>, page: number): string {
+function href(filters: ReturnType<typeof parse>, page: number, locale: Locale): string {
   const params = new URLSearchParams();
   if (filters.action) params.set("akce", filters.action);
   if (filters.weddingId) params.set("zakazka", filters.weddingId);
@@ -56,10 +58,11 @@ function href(filters: ReturnType<typeof parse>, page: number): string {
   if (filters.to) params.set("do", filters.to);
   if (page > 1) params.set("strana", String(page));
   const search = params.toString();
-  return search ? `/audit?${search}` : "/audit";
+  return localePath(search ? `/audit?${search}` : "/audit", locale);
 }
 
 export default async function AuditPage({ searchParams }: PageProps<"/h/admin/audit">) {
+  const t = await getOpsTranslator();
   const session = await requireOperator("audit");
   const filters = parse(await searchParams);
   const weddingInvalid = filters.weddingRaw !== "" && !filters.weddingId;
@@ -85,7 +88,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/h/admin/au
       <p className="mb-6 max-w-prose">{t("ops.audit.intro")}</p>
 
       <form
-        action="/audit"
+        action={localePath("/audit", t.locale)}
         method="get"
         role="search"
         className="border-hairline bg-warm mb-6 grid gap-4 rounded-2xl border p-4 sm:grid-cols-2 lg:grid-cols-3"
@@ -136,7 +139,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/h/admin/au
         />
         <div className="flex flex-wrap items-end gap-3">
           <Button type="submit">{t("ops.audit.filter.submit")}</Button>
-          <a href="/audit" className={buttonVariants({ variant: "text" })}>
+          <a href={localePath("/audit", t.locale)} className={buttonVariants({ variant: "text" })}>
             {t("ops.audit.filter.reset")}
           </a>
         </div>
@@ -178,7 +181,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/h/admin/au
               {rows.map((row) => (
                 <tr key={row.id}>
                   <th scope="row" className={`${tdClass} font-normal`}>
-                    {formatMoment(row.at, none)}
+                    {formatMoment(row.at, none, t.locale)}
                   </th>
                   <td className={`${tdClass} break-all`}>
                     {row.actorEmail ?? label(t, ACTOR_KEYS, row.actorType)}
@@ -187,7 +190,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/h/admin/au
                   <td className={tdClass}>
                     {row.weddingId ? (
                       <a
-                        href={`/zakazky/${row.weddingId}`}
+                        href={localePath(`/zakazky/${row.weddingId}`, t.locale)}
                         className="text-pine inline-flex min-h-[2.75rem] items-center font-mono text-sm break-all underline underline-offset-4"
                       >
                         {row.weddingId.slice(0, 8)}
@@ -214,7 +217,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/h/admin/au
         >
           {filters.page > 1 ? (
             <a
-              href={href(filters, filters.page - 1)}
+              href={href(filters, filters.page - 1, t.locale)}
               className={buttonVariants({ variant: "secondary" })}
               rel="prev"
             >
@@ -224,7 +227,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/h/admin/au
           <p>{t("ops.pagination.page", { page: filters.page, pages })}</p>
           {filters.page < pages ? (
             <a
-              href={href(filters, filters.page + 1)}
+              href={href(filters, filters.page + 1, t.locale)}
               className={buttonVariants({ variant: "secondary" })}
               rel="next"
             >

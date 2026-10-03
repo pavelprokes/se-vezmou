@@ -66,7 +66,7 @@ export function LocalizedField({
       </legend>
       {hint ? <p className="text-muted text-sm">{hint}</p> : null}
       {locales.map((locale, position) => {
-        const name = locale === "cs" ? t("admin.lang.cs") : t("admin.lang.en");
+        const name = t(`admin.lang.${locale}`);
         const common = {
           label: name,
           lang: locale,
@@ -92,9 +92,7 @@ export function LocalizedField({
             <Icon icon={Languages} size={18} className="mt-0.5" />
             <span>
               {t("admin.translation.inline", {
-                languages: missing
-                  .map((locale) => (locale === "cs" ? t("admin.lang.cs") : t("admin.lang.en")))
-                  .join(", "),
+                languages: missing.map((locale) => t(`admin.lang.${locale}`)).join(", "),
               })}
             </span>
           </p>

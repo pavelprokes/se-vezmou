@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { SITE_NAMESPACES } from "@/components/site/context";
 import { SiteRenderer } from "@/components/site/site-renderer";
-import { isLocale, locales, type Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { isLocale, localePath, locales, type Locale } from "@/i18n/config";
+import { getTranslator } from "@/i18n/load";
 import { pick } from "@/site/i18n-text";
 import { devPagesEnabled } from "@/site/dev-gate";
 import { fixtures, sensitiveFixture, type FixtureKey } from "@/site/fixtures/klara-a-matej";
@@ -112,7 +113,7 @@ export default async function SitePreview({
   const { locale: localeParam } = await params;
   if (!isLocale(localeParam)) notFound();
   const locale: Locale = localeParam;
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, SITE_NAMESPACES);
   const state = readState(await searchParams);
 
   const content: PublicContent = {
@@ -122,9 +123,9 @@ export default async function SitePreview({
     phase: state.phase,
   };
   const search = query(state, {});
-  const base = locale === "cs" ? "/site-preview" : "/en/site-preview";
+  const base = localePath("/site-preview", locale);
   const localeHrefs = Object.fromEntries(
-    locales.map((l) => [l, `${l === "cs" ? "/site-preview" : "/en/site-preview"}${search}`]),
+    locales.map((l) => [l, `${localePath("/site-preview", l)}${search}`]),
   ) as Record<Locale, string>;
 
   return (
@@ -183,7 +184,7 @@ export default async function SitePreview({
       </nav>
       <SiteRenderer
         content={content}
-        locale={locale}
+        t={t}
         localeHrefs={localeHrefs}
         now={new Date("2026-10-02T10:00:00+02:00")}
         sensitiveUnlocked={state.unlocked}

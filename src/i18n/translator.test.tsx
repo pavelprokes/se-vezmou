@@ -1,17 +1,51 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { checkMessages, type FlatCatalogs } from "./check";
-import { locales } from "./config";
+import { defaultLocale, locales } from "./config";
 import { parseRich } from "./format";
-import { catalogs } from "./messages";
-import { createTranslator, formatCurrency, formatDate, formatNumber } from "./translator";
+import { getTranslator, loadMessages } from "./load";
+import { namespaces, type NamespaceKey } from "./messages";
+import {
+  createTranslator,
+  formatCurrency,
+  formatDate,
+  formatNumber,
+  type LoadedMessages,
+} from "./translator";
 import { NBSP } from "./typo";
-import type { MessageKey } from "./messages";
+
+/** Všechny zprávy každého jazyka (bez náhrady z výchozího jazyka), plochě. */
+const loaded = Object.fromEntries(
+  await Promise.all(
+    locales.map(async (locale) => {
+      const { messages } = await loadMessages(locale, namespaces);
+      const out: Record<string, unknown> = {};
+      for (const [namespace, entries] of Object.entries(messages)) {
+        for (const [key, value] of Object.entries(entries ?? {}))
+          out[`${namespace}.${key}`] = value;
+      }
+      return [locale, out] as const;
+    }),
+  ),
+);
 
 function flat(): FlatCatalogs {
-  return Object.fromEntries(
-    locales.map((l) => [l, Object.fromEntries(catalogs[l])]),
-  ) as FlatCatalogs;
+  return structuredClone(loaded) as FlatCatalogs;
+}
+
+/** Translator nad ručně zadanými zprávami (bez souborů). */
+function fromMessages(
+  locale: (typeof locales)[number],
+  own: Record<string, string>,
+  fallback?: Record<string, string>,
+) {
+  const input: LoadedMessages<"common"> = {
+    locale,
+    namespaces: ["common"],
+    messages: { common: own },
+    fallback: fallback ? { common: fallback } : undefined,
+  };
+  return createTranslator(input);
 }
 
 describe("překladové soubory", () => {
@@ -72,55 +106,59 @@ describe("překladové soubory", () => {
 });
 
 describe("t()", () => {
-  it("vrací text v jazyce a aplikuje typografii", () => {
-    const cs = createTranslator("cs");
+  it("vrací text v jazyce a aplikuje typografii", async () => {
+    const cs = await getTranslator("cs", ["landing"]);
     expect(cs("landing.hero.lead")).toContain(`i${NBSP}praktické`);
-    expect(createTranslator("en")("common.skipToContent")).toBe("Skip to content");
+    expect((await getTranslator("en", ["common"]))("common.skipToContent")).toBe("Skip to content");
   });
 
-  it("množná čísla češtiny mají čtyři tvary přes Intl.PluralRules", () => {
-    const t = createTranslator("cs");
+  it("množná čísla češtiny mají čtyři tvary přes Intl.PluralRules", async () => {
+    const t = await getTranslator("cs", ["catalog"]);
     expect(t("catalog.guests", { count: 1 })).toBe(`1${NBSP}host`);
     expect(t("catalog.guests", { count: 3 })).toBe(`3${NBSP}hosté`);
     expect(t("catalog.guests", { count: 1.5 })).toBe(`1,5${NBSP}hosta`);
     expect(t("catalog.guests", { count: 60 })).toBe(`60${NBSP}hostů`);
   });
 
-  it("množná čísla angličtiny", () => {
-    const t = createTranslator("en");
+  it("množná čísla angličtiny", async () => {
+    const t = await getTranslator("en", ["catalog"]);
     expect(t("catalog.guests", { count: 1 })).toBe(`1${NBSP}guest`);
     expect(t("catalog.guests", { count: 2 })).toBe(`2${NBSP}guests`);
   });
 
-  it("nikdy nezobrazí klíč: chybějící překlad padá na druhý jazyk", () => {
+  it("nikdy nezobrazí klíč: chybějící překlad padá na výchozí jazyk (zalogovaný)", () => {
     const error = vi.spyOn(console, "error").mockImplementation(() => {});
-    const key = "common.onlyCs" as MessageKey;
-    catalogs.cs.set(key, "Jen česky");
-    try {
-      expect(createTranslator("en")(key)).toBe("Jen česky");
-      expect(error).toHaveBeenCalled();
-    } finally {
-      catalogs.cs.delete(key);
+    const key = "common.onlyCs" as NamespaceKey<"common">;
+    for (const locale of locales.filter((l) => l !== defaultLocale)) {
+      expect(fromMessages(locale, {}, { onlyCs: "Jen česky" })(key)).toBe("Jen česky");
     }
+    expect(error).toHaveBeenCalledWith(expect.stringContaining("common.onlyCs"));
   });
 
-  it("neznámý klíč vrací prázdný text, ne klíč", () => {
+  it("výchozí jazyk nepadá na jiný jazyk: chybějící klíč je prázdný text", () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
-    expect(createTranslator("cs")("common.neexistuje" as MessageKey)).toBe("");
+    const t = fromMessages(defaultLocale, {}, { onlyCs: "Jinde" });
+    expect(t("common.onlyCs" as NamespaceKey<"common">)).toBe("");
+  });
+
+  it("neznámý klíč vrací prázdný text, ne klíč", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const t = await getTranslator("cs", ["common"]);
+    expect(t("common.neexistuje" as NamespaceKey<"common">)).toBe("");
   });
 
   it("rich mapuje jen povolené značky na komponenty a hodnoty parametrů nevytvářejí značky", () => {
-    const key = "common.rich" as MessageKey;
-    catalogs.cs.set(key, "Ahoj <b>{name}</b> a <i>ahoj</i>");
-    try {
-      const t = createTranslator("cs");
-      const html = renderToStaticMarkup(
-        <p>{t.rich(key, { b: (c) => <strong>{c}</strong> }, { name: "<script>" })}</p>,
-      );
-      expect(html).toBe(`<p>Ahoj <strong>&lt;script&gt;</strong> a${NBSP}ahoj</p>`);
-    } finally {
-      catalogs.cs.delete(key);
-    }
+    const t = fromMessages("cs", { rich: "Ahoj <b>{name}</b> a <i>ahoj</i>" });
+    const html = renderToStaticMarkup(
+      <p>
+        {t.rich(
+          "common.rich" as NamespaceKey<"common">,
+          { b: (c) => <strong>{c}</strong> },
+          { name: "<script>" },
+        )}
+      </p>,
+    );
+    expect(html).toBe(`<p>Ahoj <strong>&lt;script&gt;</strong> a${NBSP}ahoj</p>`);
   });
 });
 

@@ -6,9 +6,11 @@ import { ConfirmButton } from "./confirm-button";
 import { AdminI18nProvider } from "./i18n";
 import { pickAdminMessages } from "./messages";
 
+const adminMessages = await pickAdminMessages("cs");
+
 function renderButton(onConfirm = vi.fn(), disabled = false) {
   render(
-    <AdminI18nProvider locale="cs" messages={pickAdminMessages("cs")}>
+    <AdminI18nProvider locale="cs" messages={adminMessages}>
       <ConfirmButton
         label="Smazat"
         question="Opravdu smazat?"

@@ -5,12 +5,12 @@ import { getUiLocale } from "@/auth/request";
 import { localHref } from "@/auth/local-href";
 import { getSession } from "@/auth/session";
 import { buttonVariants } from "@/components/ui/button";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { AuthShell } from "../../shell";
 import { LinkConfirmForm } from "../forms";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("auth.link.title") };
+  return { title: (await getTranslator(await getUiLocale(), ["auth"]))("auth.link.title") };
 }
 
 /**
@@ -19,14 +19,19 @@ export async function generateMetadata(): Promise<Metadata> {
  */
 export default async function LinkPage({ searchParams }: PageProps<"/h/app/prihlaseni/odkaz">) {
   if (await getSession()) redirect(await localHref("/"));
-  const t = createTranslator(await getUiLocale());
+  const t = await getTranslator(await getUiLocale(), ["auth"]);
   const loginHref = await localHref("/prihlaseni");
   const raw = (await searchParams).t;
   const token = typeof raw === "string" ? raw : null;
 
   if (!token || !openLoginLink(token)) {
     return (
-      <AuthShell title={t("auth.link.invalid.title")} intro={t("auth.link.invalid.body")}>
+      <AuthShell
+        locale={t.locale}
+        path="/prihlaseni/odkaz"
+        title={t("auth.link.invalid.title")}
+        intro={t("auth.link.invalid.body")}
+      >
         <a href={loginHref} className={buttonVariants({ fullWidth: true })}>
           {t("auth.link.invalid.action")}
         </a>
@@ -35,7 +40,12 @@ export default async function LinkPage({ searchParams }: PageProps<"/h/app/prihl
   }
 
   return (
-    <AuthShell title={t("auth.link.title")} intro={t("auth.link.body")}>
+    <AuthShell
+      locale={t.locale}
+      path={`/prihlaseni/odkaz?t=${encodeURIComponent(token)}`}
+      title={t("auth.link.title")}
+      intro={t("auth.link.body")}
+    >
       <LinkConfirmForm
         token={token}
         labels={{

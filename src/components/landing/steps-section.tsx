@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { Section, SectionHeading } from "./section";
 
 /** Dekorativní náhled kroku: čtečky ho přeskočí, text kroku je vždy v popisu nad ním. */
@@ -21,8 +21,8 @@ function MockField({ children }: { children: ReactNode }) {
 }
 
 /** Jak se web sestavuje: čtyři kroky (číslovaný seznam). */
-export function StepsSection({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function StepsSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
 
   const steps: { title: string; text: string; mock: ReactNode }[] = [
     {

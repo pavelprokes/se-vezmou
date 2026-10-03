@@ -1,16 +1,18 @@
 import type { Metadata } from "next";
 import { Card } from "@/components/ui/card";
-import { createTranslator } from "@/i18n/translator";
 import { authOperatorBackupCodesLeft } from "@/lib/db/rpc-ops";
 import { requireOperator } from "@/ops/session";
 import { RegenerateCodesForm } from "@/ops/ui/login-forms";
 import { OpsShell } from "@/ops/ui/shell";
+import { getOpsTranslator } from "@/ops/i18n";
 
-const t = createTranslator("cs");
-
-export const metadata: Metadata = { title: t("ops.account.title") };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getOpsTranslator();
+  return { title: t("ops.account.title") };
+}
 
 export default async function AccountPage() {
+  const t = await getOpsTranslator();
   const session = await requireOperator("view");
   const left = await authOperatorBackupCodesLeft(session.operatorId);
 

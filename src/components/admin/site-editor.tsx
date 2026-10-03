@@ -33,7 +33,7 @@ import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/choice";
 import { Field } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
-import type { Locale } from "@/i18n/config";
+import { intlLocale, type Locale } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 import { phaseFromDates } from "@/site/phase";
 import type { BlockType } from "@/site/types";
@@ -534,7 +534,7 @@ export function SiteEditor({
                   ? t("admin.save.closed")
                   : savedAt
                     ? t("admin.save.savedAt", {
-                        time: new Intl.DateTimeFormat(uiLocale === "cs" ? "cs-CZ" : "en-GB", {
+                        time: new Intl.DateTimeFormat(intlLocale[uiLocale], {
                           hour: "2-digit",
                           minute: "2-digit",
                         }).format(savedAt),
@@ -862,7 +862,7 @@ export function SiteEditor({
                       <span>
                         {t("admin.translation.gap", {
                           area: gapArea(t, gap.area),
-                          language: gap.locale === "cs" ? t("admin.lang.cs") : t("admin.lang.en"),
+                          language: t(`admin.lang.${gap.locale}`),
                           count: gap.count,
                         })}
                       </span>

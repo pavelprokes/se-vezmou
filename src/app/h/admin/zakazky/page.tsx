@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Field } from "@/components/ui/field";
-import { createTranslator } from "@/i18n/translator";
 import { opListWeddings } from "@/lib/db/rpc-ops";
 import { WEDDING_STATUSES } from "@/lib/db/types";
 import { PAGE_SIZE } from "@/ops/config";
@@ -11,12 +10,16 @@ import { LOCALES, TEMPLATES, listHref, parseListQuery, toFilters } from "@/ops/l
 import { requireOperator } from "@/ops/session";
 import { SelectField } from "@/ops/ui/select-field";
 import { OpsShell, TableRegion, tableClass, tdClass, thClass } from "@/ops/ui/shell";
+import { getOpsTranslator } from "@/ops/i18n";
+import { localePath } from "@/i18n/config";
 
-const t = createTranslator("cs");
-
-export const metadata: Metadata = { title: t("ops.weddings.title") };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getOpsTranslator();
+  return { title: t("ops.weddings.title") };
+}
 
 export default async function WeddingsPage({ searchParams }: PageProps<"/h/admin/zakazky">) {
+  const t = await getOpsTranslator();
   const session = await requireOperator("view");
   const query = parseListQuery(await searchParams);
   const { rows, total } = await opListWeddings(session.operatorId, toFilters(query));
@@ -26,7 +29,7 @@ export default async function WeddingsPage({ searchParams }: PageProps<"/h/admin
   return (
     <OpsShell session={session} current="weddings" title={t("ops.weddings.title")}>
       <form
-        action="/zakazky"
+        action={localePath("/zakazky", t.locale)}
         method="get"
         role="search"
         className="border-hairline bg-warm mb-6 grid gap-4 rounded-2xl border p-4 sm:grid-cols-2 lg:grid-cols-3"
@@ -83,7 +86,10 @@ export default async function WeddingsPage({ searchParams }: PageProps<"/h/admin
         />
         <div className="flex flex-wrap items-end gap-3 sm:col-span-2 lg:col-span-3">
           <Button type="submit">{t("ops.weddings.filter.submit")}</Button>
-          <a href="/zakazky" className={buttonVariants({ variant: "text" })}>
+          <a
+            href={localePath("/zakazky", t.locale)}
+            className={buttonVariants({ variant: "text" })}
+          >
             {t("ops.weddings.filter.reset")}
           </a>
         </div>
@@ -132,7 +138,7 @@ export default async function WeddingsPage({ searchParams }: PageProps<"/h/admin
                 <tr key={row.id}>
                   <th scope="row" className={`${tdClass} font-medium`}>
                     <a
-                      href={`/zakazky/${row.id}`}
+                      href={localePath(`/zakazky/${row.id}`, t.locale)}
                       className="text-pine inline-flex min-h-[2.75rem] items-center underline underline-offset-4"
                     >
                       {coupleNames(row.partnerAName, row.partnerBName)}
@@ -161,7 +167,7 @@ export default async function WeddingsPage({ searchParams }: PageProps<"/h/admin
         >
           {query.page > 1 ? (
             <a
-              href={listHref(query, query.page - 1)}
+              href={listHref(query, query.page - 1, t.locale)}
               className={buttonVariants({ variant: "secondary" })}
               rel="prev"
             >
@@ -171,7 +177,7 @@ export default async function WeddingsPage({ searchParams }: PageProps<"/h/admin
           <p>{t("ops.pagination.page", { page: query.page, pages })}</p>
           {query.page < pages ? (
             <a
-              href={listHref(query, query.page + 1)}
+              href={listHref(query, query.page + 1, t.locale)}
               className={buttonVariants({ variant: "secondary" })}
               rel="next"
             >

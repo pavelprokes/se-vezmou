@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { getFaqItems } from "@/components/landing/faq";
 import { pricing } from "@/config/pricing";
+import { locales } from "@/i18n/config";
 import { NBSP } from "@/i18n/typo";
 import {
   breadcrumbLd,
@@ -121,9 +122,9 @@ describe("SoftwareApplication", () => {
 });
 
 describe("FAQPage", () => {
-  for (const locale of ["cs", "en"] as const) {
-    it(`${locale}: šest otázek se stejným textem jako viditelné FAQ`, () => {
-      const items = getFaqItems(locale);
+  for (const locale of locales) {
+    it(`${locale}: šest otázek se stejným textem jako viditelné FAQ`, async () => {
+      const items = await getFaqItems(locale);
       expect(items).toHaveLength(6);
       const node = faqPageLd(items.map((i) => ({ question: i.question, answer: i.answer })));
       const entities = node.mainEntity as { name: string; acceptedAnswer: { text: string } }[];
@@ -132,8 +133,8 @@ describe("FAQPage", () => {
       for (const entity of entities) expect(entity.acceptedAnswer.text).not.toContain(NBSP);
     });
 
-    it(`${locale}: odpověď o ceně obsahuje zástupný text podmínek, ne „navždy“`, () => {
-      const [price] = getFaqItems(locale);
+    it(`${locale}: odpověď o ceně obsahuje zástupný text podmínek, ne „navždy“`, async () => {
+      const [price] = await getFaqItems(locale);
       expect(price.answer).toContain("[PODMÍNKY]");
       expect(price.answer).not.toMatch(/navždy|forever/i);
     });

@@ -7,12 +7,12 @@ import { getHost, getUiLocale } from "@/auth/request";
 import { localHref } from "@/auth/local-href";
 import { getSession } from "@/auth/session";
 import { buttonVariants } from "@/components/ui/button";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { AuthShell } from "../../shell";
 import { CodeForm } from "../forms";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("auth.code.title") };
+  return { title: (await getTranslator(await getUiLocale(), ["auth"]))("auth.code.title") };
 }
 
 export default async function CodePage() {
@@ -22,10 +22,15 @@ export default async function CodePage() {
   const pending = (await cookies()).get(cookieSpec("pending", await getHost()).name)?.value;
   if (!pending || !openPendingLogin(pending)) redirect(await localHref("/prihlaseni"));
 
-  const t = createTranslator(await getUiLocale());
+  const t = await getTranslator(await getUiLocale(), ["auth"]);
   const loginHref = await localHref("/prihlaseni");
   return (
-    <AuthShell title={t("auth.code.title")} intro={t("auth.code.intro")}>
+    <AuthShell
+      locale={t.locale}
+      path="/prihlaseni/kod"
+      title={t("auth.code.title")}
+      intro={t("auth.code.intro")}
+    >
       <CodeForm
         labels={{
           code: t("auth.code.label"),

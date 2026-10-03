@@ -12,7 +12,7 @@ const actions = vi.hoisted(() => ({
 }));
 vi.mock("../actions", () => actions);
 
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { buildListedModel, buildUnlistedModel, type RsvpState } from "@/lib/rsvp/form";
 import {
   E_HOSTINA,
@@ -25,8 +25,8 @@ import {
 import { rsvpLabels } from "./labels";
 import { RsvpForm } from "./rsvp-form";
 
-const labels = rsvpLabels(createTranslator("cs"));
-const enLabels = rsvpLabels(createTranslator("en"));
+const labels = rsvpLabels(await getTranslator("cs", ["common", "site", "rsvp"]));
+const enLabels = rsvpLabels(await getTranslator("en", ["common", "site", "rsvp"]));
 
 const listedState = (overrides = {}): RsvpState => ({
   stage: "form",

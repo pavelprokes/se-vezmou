@@ -1,32 +1,31 @@
-import { locales, type Locale } from "@/i18n/config";
+import { localeNames, localeShortNames, locales, type Locale } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 
 export interface LanguageSwitcherProps {
   current: Locale;
-  /** Adresa téže stránky v každém jazyce (z `localizedPath`). */
+  /** Adresa téže stránky v každém jazyce (`localizedPaths`, `localeHrefs`). */
   hrefs: Record<Locale, string>;
   /** Přeložený název navigace (`t("common.language.label")`). */
   label: string;
-  /** Názvy jazyků každý ve svém jazyce (`Čeština`, `English`). */
-  names: Record<Locale, string>;
   /**
-   * Zkratky pro těsná místa (`CS`, `EN`). Přístupný název pak je „CS, Čeština“,
-   * aby viditelný text byl součástí názvu (WCAG 2.5.3).
+   * Zkratky pro těsná místa (`CS`, `EN`, `localeShortNames`). Přístupný název pak je
+   * „CS, Čeština“, aby viditelný text byl součástí názvu (WCAG 2.5.3).
    */
-  shortNames?: Record<Locale, string>;
+  short?: boolean;
   className?: string;
 }
 
 /**
- * Přepínač jazyka jako obyčejné odkazy: žádné automatické přesměrování, bez JavaScriptu.
+ * Přepínač jazyka jako obyčejné odkazy, funguje bez JavaScriptu. Názvy jazyků jsou každý ve svém
+ * jazyce (`localeNames`). Klik na odkaz je výslovná volba: proxy ji pozná podle navigace z vlastního
+ * webu, nepřesměruje a zapamatuje v cookie `NEXT_LOCALE` (ADR 0013).
  * Odkaz nese `lang` a `hreflang` (WCAG 3.1.2), aktuální jazyk `aria-current` a není označen jen barvou.
  */
 export function LanguageSwitcher({
   current,
   hrefs,
   label,
-  names,
-  shortNames,
+  short = false,
   className,
 }: LanguageSwitcherProps) {
   return (
@@ -40,7 +39,9 @@ export function LanguageSwitcher({
                 href={hrefs[locale]}
                 lang={locale}
                 hrefLang={locale}
-                aria-label={shortNames ? `${shortNames[locale]}, ${names[locale]}` : undefined}
+                aria-label={
+                  short ? `${localeShortNames[locale]}, ${localeNames[locale]}` : undefined
+                }
                 aria-current={active ? "true" : undefined}
                 className={cn(
                   "min-h-target min-w-target rounded-button inline-flex items-center justify-center px-3 text-base",
@@ -49,7 +50,7 @@ export function LanguageSwitcher({
                     : "text-pine hover:bg-linen",
                 )}
               >
-                {shortNames ? shortNames[locale] : names[locale]}
+                {short ? localeShortNames[locale] : localeNames[locale]}
               </a>
             </li>
           );

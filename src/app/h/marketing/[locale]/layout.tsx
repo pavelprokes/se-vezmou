@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Document } from "@/components/document";
 import { SkipLink } from "@/components/ui/skip-link";
 import { htmlLang, isLocale, locales } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { siteUrl } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -25,7 +25,7 @@ export default async function MarketingLayout({
 }: LayoutProps<"/h/marketing/[locale]">) {
   const { locale } = await params;
   if (!isLocale(locale)) return null;
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["common"]);
 
   return (
     <Document lang={htmlLang[locale]}>

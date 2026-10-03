@@ -7,6 +7,8 @@ import type { MediaActions } from "@/lib/media/action-types";
 import type { MediaItem } from "@/lib/media/types";
 import { AdminI18nProvider } from "./i18n";
 import { pickAdminMessages } from "./messages";
+
+const adminMessages = await pickAdminMessages("cs");
 import { PhotosPanel, orderedPhotos } from "./photos";
 
 /**
@@ -76,7 +78,7 @@ function Harness({
   const [ids, setIds] = useState(initial.map((m) => m.id));
   const [protectedPhotos, setProtected] = useState(false);
   return (
-    <AdminI18nProvider locale="cs" messages={pickAdminMessages("cs")}>
+    <AdminI18nProvider locale="cs" messages={adminMessages}>
       <PhotosPanel
         ids={ids}
         media={media}

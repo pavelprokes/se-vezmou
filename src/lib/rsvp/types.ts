@@ -54,6 +54,8 @@ const dbPersonSchema = z.object({
   attendance: z.array(z.object({ event_id: z.string(), attending: z.boolean() })),
   diet: z.string().nullable(),
   allergies: z.string().nullable(),
+  /** Host (`rsvp_get`): dřívější odpověď má dietu nebo alergie, hodnoty se mu ale neposílají. */
+  has_health: z.boolean().optional(),
 });
 
 /** `rsvp_get` a `admin_rsvp_household`: domácnost, její pozvání a dřívější odpověď. */
@@ -76,6 +78,8 @@ export const rsvpViewSchema = z.object({
     .object({
       answers: z.record(z.string(), z.unknown()),
       contact_email: z.string().nullable(),
+      /** Host (`rsvp_get`): e-mail je uložený, adresa se mu ale neposílá. */
+      has_email: z.boolean().optional(),
       entered_by: z.enum(["guest", "admin"]),
       people: z.array(dbPersonSchema),
     })
@@ -111,12 +115,16 @@ export interface PayloadPerson {
   age?: number | null;
   diet?: string | null;
   allergies?: string | null;
+  /** Ponechat dřívější dietu a alergie, které host neviděl (bez nových hodnot). */
+  keep_health?: boolean;
   attendance: { event_id: string; attending: boolean }[];
 }
 
 /** Obsah pro `rsvp_submit`, `rsvp_submit_unlisted` a `admin_rsvp_enter`. */
 export interface SubmitPayload {
   contact_email?: string | null;
+  /** Ponechat dřívější e-mail pro potvrzení, který host neviděl (bez nového e-mailu). */
+  keep_email?: boolean;
   answers: Record<string, string | boolean>;
   people: PayloadPerson[];
   /** Idempotenční klíč odpovědi hosta mimo seznam (UUID z prohlížeče); databáze ho vynucuje jako unikátní. */

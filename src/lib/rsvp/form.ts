@@ -73,6 +73,8 @@ export interface FormExtra {
   attendance: Record<string, Attendance>;
   diet: string;
   allergies: string;
+  /** Dřívější odpověď má uložené zdravotní údaje, které host nevidí (ponechají se, pokud je nezmění). */
+  savedHealth?: boolean;
 }
 
 export interface FormValues {
@@ -85,6 +87,10 @@ export interface FormValues {
   /** `<klíč otázky>` -> text, `yes` | `no` u ano/ne, hodnota možnosti u výběru. */
   answers: Record<string, string>;
   email: string;
+  /** `g.<hostId>` -> dřívější odpověď má uložené zdravotní údaje, které host nevidí. */
+  savedHealth?: Record<string, boolean>;
+  /** Dřívější odpověď má uložený e-mail, který host nevidí. */
+  savedEmail?: boolean;
 }
 
 export interface RsvpFormModel {
@@ -278,6 +284,7 @@ export function buildListedModel(view: RsvpView, locale: Locale): RsvpFormModel 
         }
         if (person.diet) values.diet[key] = person.diet;
         if (person.allergies) values.allergies[key] = person.allergies;
+        if (person.has_health) values.savedHealth = { ...values.savedHealth, [key]: true };
       } else {
         values.extras.push({
           kind: person.is_child ? "child" : "adult",
@@ -288,6 +295,7 @@ export function buildListedModel(view: RsvpView, locale: Locale): RsvpFormModel 
           ),
           diet: person.diet ?? "",
           allergies: person.allergies ?? "",
+          ...(person.has_health ? { savedHealth: true } : {}),
         });
       }
     }
@@ -296,6 +304,7 @@ export function buildListedModel(view: RsvpView, locale: Locale): RsvpFormModel 
       if (asText !== null) values.answers[key] = asText;
     }
     values.email = response.contact_email ?? "";
+    if (response.has_email) values.savedEmail = true;
   }
 
   return {

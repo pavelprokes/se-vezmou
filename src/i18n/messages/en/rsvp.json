@@ -86,5 +86,8 @@
   "done.summary": "Summary of your reply",
   "done.attending": "attending",
   "done.declining": "not attending",
-  "honeypot.label": "Leave this field empty"
+  "honeypot.label": "Leave this field empty",
+  "health.saved": "We have the diet and allergy details from your earlier reply on file but do not show them here to protect your privacy. Leave the fields empty to keep them, or fill them in to replace them.",
+  "health.clear": "Delete the saved diet and allergy details",
+  "email.saved": "We have the email from your earlier reply on file but do not show it here to protect your privacy. Leave the field empty to keep it."
 }

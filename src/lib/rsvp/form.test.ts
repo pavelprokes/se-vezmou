@@ -82,6 +82,37 @@ describe("model formuláře domácnosti (FR-RSVP-2, FR-RSVP-3)", () => {
     expect(en.events[0].titleLang).toBeUndefined();
   });
 
+  it("host bez hodnot zdravotních údajů a e-mailu dostane jen příznaky, že jsou uložené", () => {
+    const person = (guestId: string | null, name: string) => ({
+      guest_id: guestId,
+      person_name: name,
+      is_plus_one: guestId === null,
+      is_child: false,
+      age: null,
+      attendance: [{ event_id: E_OBRAD, attending: true }],
+      diet: null,
+      allergies: null,
+      has_health: true,
+    });
+    const model = buildListedModel(
+      householdView({
+        response: {
+          answers: {},
+          contact_email: null,
+          has_email: true,
+          entered_by: "guest",
+          people: [person(G_JAN, "Jan Novák"), person(null, "Tereza Doprovodová")],
+        },
+      }),
+      "cs",
+    );
+    expect(model.values.diet[guestField(G_JAN)]).toBeUndefined();
+    expect(model.values.savedHealth).toEqual({ [guestField(G_JAN)]: true });
+    expect(model.values.extras[0].savedHealth).toBe(true);
+    expect(model.values.email).toBe("");
+    expect(model.values.savedEmail).toBe(true);
+  });
+
   it("předvyplní dřívější odpověď včetně doprovodu, dítěte, otázek a e-mailu", () => {
     const model = buildListedModel(
       householdView({

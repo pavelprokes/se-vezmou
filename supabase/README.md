@@ -42,6 +42,8 @@ Migrace:
 20. `retention_gaps`: nová nastavení `abandoned_draft_days`, `archived_delete_days_after_guest_purge`, `waitlist_retention_months`; `housekeeping` (úklid `lockouts`, opuštěné koncepty, čekací listina), `lifecycle_delete_archived`, `op_erase_waitlist`, `retention_claim`, `retention_release`, záloha v `retention_due_weddings`, `op_restore_wedding` odmítne web převzatý k mazání.
 21. `indexes`: zrušené nepoužívané trigramové indexy `weddings`, nový `rsvp_people_guest_idx`.
 22. `guest_order`: `guests.created_at` má výchozí `clock_timestamp()`, takže pořadí hostů v domácnosti odpovídá pořadí vložení (dřív ho v rámci jedné transakce určovalo náhodné `id`).
+23. `rsvp_guest_privacy` (oprava po revizi): host ověřený jen jménem (`rsvp_get`) nedostane dietu, alergie ani kontaktní e-mail z dřívější odpovědi, jen příznaky `has_health` a `has_email` (`rsvp_guest_view`); `rsvp_submit` s `keep_health` / `keep_email` uložené údaje ponechá, když host pole nechá prázdná. Správce (`admin_rsvp_household`) vidí dál vše.
+24. `draft_activity` (oprava po revizi): aktivitou konceptu je i práce na hostech a nastavení RSVP a přihlášení správce; opuštěný koncept dostane běžnou lhůtu pro obnovení (`deleted_site_restore_days`) a koncept obnovený operátorem se před uplynutím lhůty nečinnosti znovu nesmaže.
 
 Matice rolí operátorů (každá `op_*` si roli ověřuje sama, `assert_operator`): čtení, poznámky, poslání přihlašovacího odkazu, nahlédnutí do údajů hostů se souhlasem páru a zablokování webu smí `owner` i `support`; ostatní změny stavu, změnu adresy, prodloužení lhůt, obnovu, audit a správu operátorů jen `owner`. Žádná z nich nevrací jména ani údaje hostů; k nim vede jediná cesta `op_view_guest_data` s aktivním `data_access_grants`, důvodem a auditem.
 

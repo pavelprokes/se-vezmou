@@ -107,6 +107,44 @@ describe("odeslání domácnosti: obsah pro databázi", () => {
     expect(tooLong).toEqual({ ok: false, errors: { [`g.${G_JAN}.diet`]: "too_long" } });
   });
 
+  it("uložené zdravotní údaje, které host nevidí: prázdná pole je ponechají, zaškrtnutí je smaže", () => {
+    const saved: [string, string][] = [[`g.${G_JAN}.savedHealth`, "1"]];
+    const keep = parseSubmission(formOf([...everyone, ...saved]), listed());
+    expect(keep.ok && keep.payload.people[0]).toMatchObject({ keep_health: true });
+    expect(keep.ok && "diet" in keep.payload.people[0]).toBe(false);
+
+    const replaced = parseSubmission(
+      formOf([...everyone, ...saved, [`g.${G_JAN}.diet`, "vegan"]]),
+      listed(),
+    );
+    expect(replaced.ok && replaced.payload.people[0]).toMatchObject({ diet: "vegan" });
+    expect(replaced.ok && "keep_health" in replaced.payload.people[0]).toBe(false);
+
+    const cleared = parseSubmission(
+      formOf([...everyone, ...saved, [`g.${G_JAN}.clearHealth`, "1"]]),
+      listed(),
+    );
+    expect(cleared.ok && "keep_health" in cleared.payload.people[0]).toBe(false);
+
+    // bez příznaku uložených údajů se nic neponechává
+    const plain = parseSubmission(formOf(everyone), listed());
+    expect(plain.ok && "keep_health" in plain.payload.people[0]).toBe(false);
+  });
+
+  it("uložený e-mail, který host nevidí: prázdné pole ho ponechá, nový ho nahradí", () => {
+    const on = listed({
+      settings: { enabled_questions: { diet: true }, email_confirmation: true },
+    });
+    const keep = parseSubmission(formOf([...everyone, ["emailSaved", "1"]]), on);
+    expect(keep.ok && keep.payload).toMatchObject({ contact_email: null, keep_email: true });
+    const replaced = parseSubmission(
+      formOf([...everyone, ["emailSaved", "1"], ["email", "jan@example.test"]]),
+      on,
+    );
+    expect(replaced.ok && replaced.payload.contact_email).toBe("jan@example.test");
+    expect(replaced.ok && "keep_email" in replaced.payload).toBe(false);
+  });
+
   it("zdravotní údaje nejsou v souhrnu pro potvrzení (ten jde i do e-mailu)", () => {
     const result = parseSubmission(
       formOf([...everyone, [`g.${G_JAN}.diet`, "bezlepková"], [`g.${G_JAN}.allergies`, "ořechy"]]),

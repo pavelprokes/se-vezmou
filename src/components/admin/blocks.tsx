@@ -225,11 +225,17 @@ function LodgingGeo({
   const status = useGeocode(address !== "" && !located ? address : null, (hit) =>
     onFound(hit.lat, hit.lng, address),
   );
-  if (address === "") return <Note tone="info">{t("admin.lodging.mapNeedsAddress")}</Note>;
+  // Stavová oblast je v DOM pořád, mění se jen obsah (čtečky hlásí změny, ne nově vložený text)
   return (
-    <p role="status" className="text-muted text-sm">
-      {located ? t("admin.venue.geo.found") : t(`admin.venue.geo.${status ?? "searching"}`)}
-    </p>
+    <div role="status">
+      {address === "" ? (
+        <Note tone="info">{t("admin.lodging.mapNeedsAddress")}</Note>
+      ) : (
+        <p className="text-muted text-sm">
+          {located ? t("admin.venue.geo.found") : t(`admin.venue.geo.${status ?? "searching"}`)}
+        </p>
+      )}
+    </div>
   );
 }
 

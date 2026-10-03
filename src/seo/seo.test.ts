@@ -32,8 +32,11 @@ describe("sitemap.xml", () => {
   it("obsahuje obě jazykové verze s alternativami", () => {
     expect(xml).toContain("<loc>https://se-vezmou.cz/</loc>");
     expect(xml).toContain("<loc>https://se-vezmou.cz/en</loc>");
-    expect(xml.match(/hreflang="cs"/g)).toHaveLength(2);
-    expect(xml.match(/hreflang="en"/g)).toHaveLength(2);
+    expect(xml).toContain("<loc>https://se-vezmou.cz/blog</loc>");
+    expect(xml).toContain("<loc>https://se-vezmou.cz/en/blog</loc>");
+    // Úvod a blog: dva záznamy po dvou alternativách.
+    expect(xml.match(/hreflang="cs"/g)).toHaveLength(4);
+    expect(xml.match(/hreflang="en"/g)).toHaveLength(4);
     expect(xml.match(/hreflang="x-default" href="https:\/\/se-vezmou.cz\/"/g)).toHaveLength(2);
   });
 
@@ -44,7 +47,17 @@ describe("sitemap.xml", () => {
 
   it("neobsahuje zástupné právní podstránky (noindex)", () => {
     expect(xml).not.toMatch(/soukromi|privacy|podminky|terms|dostupnost|accessibility/);
-    expect(indexableRoutes).toEqual(["home"]);
+    expect(indexableRoutes).toEqual(["home", "blog"]);
+  });
+
+  it("článek blogu se přidá s adresami v každém jazyce", () => {
+    const withArticle = buildSitemap("https://se-vezmou.cz", [
+      { cs: "/blog/svatebni-web", en: "/en/blog/wedding-website" },
+    ]);
+    expect(withArticle).toContain("<loc>https://se-vezmou.cz/blog/svatebni-web</loc>");
+    expect(withArticle).toContain(
+      '<xhtml:link rel="alternate" hreflang="en" href="https://se-vezmou.cz/en/blog/wedding-website" />',
+    );
   });
 
   it("šlo by do mapy přidat další stránku po doplnění textu", () => {

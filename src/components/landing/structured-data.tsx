@@ -13,6 +13,7 @@ import {
   softwareApplicationLd,
   websiteLd,
   type Crumb,
+  type JsonLdNode,
 } from "@/seo/json-ld";
 import { getFaqItems } from "./faq";
 
@@ -50,13 +51,15 @@ export async function HomeStructuredData({ locale }: { locale: Locale }) {
   );
 }
 
-/** Podstránky: Organization, WebSite a drobečková navigace Úvod > stránka. */
+/** Podstránky: Organization, WebSite, drobečková navigace Úvod > stránka a případně další uzly (článek). */
 export async function SubpageStructuredData({
   locale,
   crumbs,
+  extra = [],
 }: {
   locale: Locale;
   crumbs: readonly Crumb[];
+  extra?: readonly JsonLdNode[];
 }) {
   const t = await getTranslator(locale, ["common", "landing", "marketing"]);
   const name = t("common.brand");
@@ -73,6 +76,7 @@ export async function SubpageStructuredData({
         }),
         websiteLd({ siteUrl, name, description, locale }),
         breadcrumbLd(crumbs),
+        ...extra,
       )}
     />
   );

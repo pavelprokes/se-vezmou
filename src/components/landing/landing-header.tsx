@@ -1,7 +1,7 @@
 import { buttonVariants } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import type { Locale } from "@/i18n/config";
-import { localizedPath, localizedPaths, type RouteName } from "@/i18n/pathnames";
+import { localizedPath, localizedPaths, type PageRef } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
 import { appUrl } from "@/lib/site";
 import { buildWizardUrl } from "@/lib/wizard-link";
@@ -10,7 +10,7 @@ import { HeaderMenu } from "./header-menu";
 export interface LandingHeaderProps {
   locale: Locale;
   /** Stránka, na které hlavička stojí; přepínač odkazuje na její druhou jazykovou verzi. */
-  route: RouteName;
+  route: PageRef;
 }
 
 /** Hlavička úvodní stránky a právních podstránek: značka, kotvy sekcí, přepínač jazyka a výzva. */
@@ -22,6 +22,7 @@ export async function LandingHeader({ locale, route }: LandingHeaderProps) {
     { href: `${home}#templates`, label: t("landing.nav.templates") },
     { href: `${home}#pricing`, label: t("landing.nav.pricing") },
     { href: `${home}#faq`, label: t("landing.nav.faq") },
+    { href: localizedPath("blog", locale), label: t("landing.nav.blog") },
   ];
 
   return (
@@ -51,7 +52,7 @@ export async function LandingHeader({ locale, route }: LandingHeaderProps) {
           </nav>
           <LanguageSwitcher
             current={locale}
-            hrefs={localizedPaths(route)}
+            hrefs={typeof route === "string" ? localizedPaths(route) : route}
             label={t("common.language.label")}
             short
           />

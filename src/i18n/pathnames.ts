@@ -13,6 +13,7 @@ import { defaultLocale, localePath, locales, type Locale } from "./config";
  */
 const routes = {
   home: "/",
+  blog: "/blog",
   privacy: { cs: "/soukromi", en: "/privacy" },
   terms: { cs: "/podminky", en: "/terms" },
   accessibility: { cs: "/dostupnost", en: "/accessibility" },
@@ -46,11 +47,15 @@ export function localizedPaths(route: RouteName): Record<Locale, string> {
   return { ...pathnames[route] };
 }
 
+/** Stránka z tabulky, nebo rovnou její adresy v každém jazyce (článek blogu, `articlePaths`). */
+export type PageRef = RouteName | Readonly<Record<Locale, string>>;
+
 /** Absolutní adresy všech jazykových verzí stránky a `x-default` (výchozí jazyk). */
-export function languageUrls(route: RouteName, siteUrl: string): Record<string, string> {
+export function languageUrls(page: PageRef, siteUrl: string): Record<string, string> {
+  const paths = typeof page === "string" ? pathnames[page] : page;
   const urls: Record<string, string> = {};
   for (const locale of locales) {
-    urls[locale] = new URL(localizedPath(route, locale), siteUrl).toString();
+    urls[locale] = new URL(paths[locale], siteUrl).toString();
   }
   urls["x-default"] = urls[defaultLocale];
   return urls;
@@ -60,8 +65,8 @@ export function languageUrls(route: RouteName, siteUrl: string): Record<string, 
  * Pomocník pro `generateMetadata`: `canonical` na sebe a `hreflang` všech verzí
  * (každý jazyk a `x-default`). Používá se jen na marketingovém hostiteli.
  */
-export function hreflangAlternates(route: RouteName, locale: Locale, siteUrl: string) {
-  const languages = languageUrls(route, siteUrl);
+export function hreflangAlternates(page: PageRef, locale: Locale, siteUrl: string) {
+  const languages = languageUrls(page, siteUrl);
   return { canonical: languages[locale], languages };
 }
 

@@ -1,0 +1,17 @@
+{
+  "index.eyebrow": "Blog",
+  "index.title": "Rady k přípravě svatby",
+  "index.lead": "Praktické návody k svatebnímu webu, oznámení a potvrzení účasti hostů. Píšeme je tak, aby vám ušetřily čas i telefonáty.",
+  "index.metaTitle": "Blog: rady k přípravě svatby a svatebnímu webu | Se vezmou",
+  "index.metaDescription": "Návody a vzory k přípravě svatby: co patří na svatební web, jak napsat svatební oznámení a jak si nechat od hostů potvrdit účast.",
+  "index.empty": "Zatím tu nejsou žádné články. Brzy je doplníme.",
+  "index.listLabel": "Články",
+  "breadcrumb": "Blog",
+  "readMore": "Číst článek",
+  "readMoreLabel": "Číst článek {title}",
+  "meta": "{date} · {minutes} min čtení",
+  "updated": "Aktualizováno {date}",
+  "toc": "Obsah článku",
+  "back": "Všechny články",
+  "more": "Další články"
+}

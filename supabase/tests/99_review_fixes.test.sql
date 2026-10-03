@@ -258,4 +258,60 @@ begin
 end
 $$;
 
+-- ---------------------------------------------------------------------------
+-- Upozornění: uvízlé odesílání se převezme nejvýš třikrát; poslední upozornění má okno 2 dny
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_stuck uuid;
+  v_retry uuid;
+  v_ids uuid[];
+begin
+  perform tap.ok(se_vezmou.setting_int('retention_final_notice_days_before', 1) = 2,
+    'poslední upozornění má výchozí okno 2 dny');
+
+  insert into se_vezmou.lifecycle_notices (wedding_id, kind, stage, event_at, status, attempts, locked_at)
+  values (tap.wb(), 'guest_purge', 'done', now() + interval '30 days', 'sending', 3, now() - interval '1 hour')
+  returning id into v_stuck;
+  insert into se_vezmou.lifecycle_notices (wedding_id, kind, stage, event_at, status, attempts, locked_at)
+  values (tap.wb(), 'health_purge', 'done', now() + interval '30 days', 'sending', 1, now() - interval '1 hour')
+  returning id into v_retry;
+
+  set local role service_role;
+  select array_agg(notice_id) into v_ids from se_vezmou.lifecycle_notices_claim(now(), 50, tap.wb());
+  perform tap.reset();
+  perform tap.ok(not (v_stuck = any(coalesce(v_ids, '{}'))), 'uvízlé odesílání po třetím pokusu se nepřebere');
+  perform tap.ok((select status from se_vezmou.lifecycle_notices where id = v_stuck) = 'failed',
+    'uvízlé odesílání po třetím pokusu skončí jako failed');
+  perform tap.ok(v_retry = any(coalesce(v_ids, '{}')), 'uvízlé odesílání před třetím pokusem se převezme znovu');
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Ověření kódem TOTP mimo přihlášení: posune časový krok, ale nezapíše přihlášení
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_session uuid;
+  v_logins bigint;
+begin
+  update se_vezmou.operators set totp_secret_enc = 'sifrovany-klic', totp_confirmed_at = now(), totp_last_step = 100
+   where id = tap.u('operator:owner');
+  set local role service_role;
+  v_session := se_vezmou.auth_operator_create_session(tap.u('operator:owner'), sha256(convert_to('op-step', 'UTF8')), 1800, 28800);
+  perform tap.reset();
+  perform tap.ok(not se_vezmou.auth_operator_totp_step(tap.u('operator:owner'), v_session, 101),
+    'relace bez druhého faktoru krok neposune');
+  update se_vezmou.operator_sessions set aal2_verified_at = now() where id = v_session;
+  select count(*) into v_logins from se_vezmou.audit_log where action = 'operator.login';
+
+  set local role service_role;
+  perform tap.ok(se_vezmou.auth_operator_totp_step(tap.u('operator:owner'), v_session, 101), 'nový krok projde');
+  perform tap.ok(not se_vezmou.auth_operator_totp_step(tap.u('operator:owner'), v_session, 101), 'stejný krok podruhé neprojde');
+  perform tap.reset();
+  perform tap.eq((select count(*) from se_vezmou.audit_log where action = 'operator.login'), v_logins,
+    'ověření mimo přihlášení se nezapíše jako přihlášení');
+end
+$$;
+
 rollback;

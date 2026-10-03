@@ -4,6 +4,7 @@ import { uniqueTag, withDb } from "./support/db";
 import { expect, test } from "./support/fixtures";
 import {
   admin,
+  freshTotp,
   grantGuestAccess,
   loginAsOperator,
   passFirstFactor,
@@ -156,6 +157,7 @@ test.describe("axe: přehled a seznam zakázek", () => {
     await expectNoViolations(page);
 
     await page.goto(admin("/ucet"));
+    await page.getByLabel("Kód z aplikace pro ověřování").fill(await freshTotp(operator));
     await page.getByRole("button", { name: "Vytvořit nové kódy" }).click();
     await expect(page.getByRole("heading", { name: "Nové záložní kódy" })).toBeVisible();
     await expectNoViolations(page);

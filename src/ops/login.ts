@@ -15,6 +15,7 @@ import {
 import {
   authOperatorFind,
   authOperatorMfaAccept,
+  authOperatorTotpStep,
   authOperatorMfaBegin,
   authOperatorMfaConfirm,
   authOperatorMfaGet,
@@ -377,7 +378,7 @@ export async function regenerateBackupCodes(input: {
   const step = verifyTotp(secret, code, input.now ?? Date.now(), mfa.lastStep);
   const accepted =
     step !== null &&
-    (await authOperatorMfaAccept({
+    (await authOperatorTotpStep({
       operatorId: input.session.operatorId,
       sessionId: input.session.sessionId,
       step,

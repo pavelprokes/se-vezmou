@@ -527,7 +527,7 @@ describe("zápis druhého faktoru", () => {
     const db = fakeDb({
       ...gate,
       auth_operator_mfa_get: () => [{ secret_enc: enc, confirmed: true, last_step: null }],
-      auth_operator_mfa_accept: () => true,
+      auth_operator_totp_step: () => true,
       auth_operator_regenerate_backup_codes: () => 10,
     });
     const d = deferred();
@@ -539,6 +539,9 @@ describe("zápis druhého faktoru", () => {
       now: NOW,
     });
     expect(result.status === "ok" && result.backupCodes).toHaveLength(10);
+    // ověření kódem se nezapisuje jako přihlášení (jen posune použitý časový krok)
+    expect(db.names()).toContain("auth_operator_totp_step");
+    expect(db.names()).not.toContain("auth_operator_mfa_accept");
     const stored = db.calls.find((c) => c.fn === "auth_operator_regenerate_backup_codes")!;
     expect((stored.args.p_backup_hashes as Buffer[]).every((hash) => hash.length === 32)).toBe(
       true,

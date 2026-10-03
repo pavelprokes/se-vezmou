@@ -42,10 +42,12 @@ describe("config/pricing", () => {
 });
 
 describe("config/operator", () => {
-  it("provozovatel a kontakt jsou zástupné, dokud je nedodá majitel", () => {
-    expect(operator.nameAndId).toBe("[PROVOZOVATEL, IČO]");
+  it("provozovatel je doplněný, kontakt je zástupný, dokud ho nedodá majitel", () => {
+    expect(operator.nameAndId).toBe("Pavel Prokeš, IČO 87877601");
+    expect(operator.address).toBe("Křižíkova 424/127, Praha 8");
     expect(operator.contact).toBe("[KONTAKT]");
-    expect(isPlaceholder(operator.nameAndId)).toBe(true);
+    expect(isPlaceholder(operator.nameAndId)).toBe(false);
+    expect(isPlaceholder(operator.contact)).toBe(true);
     expect(isPlaceholder("Novák s.r.o., 12345678")).toBe(false);
   });
 });

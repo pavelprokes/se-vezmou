@@ -1,10 +1,12 @@
 /**
- * Údaje o provozovateli a kontakt na jednom místě. Dokud je nedodá majitel, jsou to zástupné
- * texty (žádné vymyšlené údaje). Používá je patička, FAQ, právní stránky i strukturovaná data.
+ * Údaje o provozovateli a kontakt na jednom místě. Provozovatel je doplněný (Pavel Prokeš, svatební
+ * fotograf; IČO ověřeno v ARES), kontakt je zatím zástupný text (žádné vymyšlené údaje). Používá je patička, FAQ, právní stránky i strukturovaná data.
  */
 export const operator = {
   /** Obchodní jméno a IČO provozovatele. */
-  nameAndId: "[PROVOZOVATEL, IČO]",
+  nameAndId: "Pavel Prokeš, IČO 87877601",
+  /** Sídlo provozovatele (ARES, 3. 10. 2026). */
+  address: "Křižíkova 424/127, Praha 8",
   /** Kontaktní e-mail nebo formulář. */
   contact: "[KONTAKT]",
 } as const;

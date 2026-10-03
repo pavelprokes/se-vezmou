@@ -373,6 +373,33 @@ describe("loginWithPin", () => {
     );
   });
 
+  it("nepotvrzená záložní adresa (databáze vrací null): přihlášení ani pauza nic neposílají", async () => {
+    const unconfirmed = () => [
+      { wedding_id: WEDDING, admin_id: ADMIN, pin_hash: pinHash, backup_email: null },
+    ];
+    const db = fakeDb({
+      rate_limit_hit: allow,
+      auth_lockout_state: notLocked,
+      auth_pin_get: unconfirmed,
+      auth_lockout_reset: () => null,
+      auth_lockout_failure: () => [
+        { locked: true, retry_after: 900, level: 1, newly_locked: true },
+      ],
+      ...logHandlers,
+    });
+    const ok = deferred();
+    expect(await loginWithPin({ ...pinInput, defer: ok.defer })).toMatchObject({ status: "ok" });
+    const locked = deferred();
+    expect(await loginWithPin({ ...pinInput, pin: "482916", defer: locked.defer })).toEqual({
+      status: "locked",
+      retryAfter: 900,
+    });
+    expect(ok.tasks).toHaveLength(0);
+    expect(locked.tasks).toHaveLength(0);
+    expect(sendMock).not.toHaveBeenCalled();
+    expect(db.names()).not.toContain("email_log_insert");
+  });
+
   it("klíč pauzy i limitu je HMAC, ne slug ani IP", async () => {
     const db = fakeDb({
       rate_limit_hit: allow,
@@ -564,6 +591,21 @@ describe("setPin", () => {
     const message = sendMock.mock.calls[0][0];
     expect(message.to).toBe("zaloha@example.cz");
     expect(message.subject).toMatch(/Změna PINu/);
+  });
+
+  it("nepotvrzená záložní adresa (auth_pin_set vrací null): změna PINu nic neposílá", async () => {
+    const db = fakeDb({
+      auth_pin_other_hash: () => null,
+      auth_pin_set: () => null,
+      ...logHandlers,
+    });
+    const d = deferred();
+    expect(await setPin({ ...input, pin: "482915", defer: d.defer })).toEqual({
+      status: "ok",
+      backupEmail: null,
+    });
+    expect(d.tasks).toHaveLength(0);
+    expect(db.names()).not.toContain("email_log_insert");
   });
 
   it("PIN hostů se porovnává s hashem PINu správy", async () => {

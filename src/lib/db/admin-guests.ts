@@ -38,7 +38,7 @@ export async function adminHouseholdDelete(
 export function adminGuestsImport(
   session: AdminIdentity,
   payload: unknown,
-): Promise<{ households: number; guests: number }> {
+): Promise<{ households: number; guests: number; skipped: number; duplicate: boolean }> {
   return tenantRpc(identity(session), "admin_guests_import", { p_payload: payload });
 }
 

@@ -171,6 +171,7 @@ function fakeDb(
     fail?: Record<string, DbError>;
     versionGet?: unknown;
     media?: unknown;
+    publish?: unknown;
   } = {},
 ) {
   const calls: Call[] = [];
@@ -189,7 +190,9 @@ function fakeDb(
         case "admin_site_save":
           return [options.save ?? { ok: true, conflict: false, rev: 5 }];
         case "admin_site_publish":
-          return [{ version_no: 3, slug: "klara-a-matej" }];
+          return [
+            options.publish ?? { ok: true, conflict: false, version_no: 3, slug: "klara-a-matej" },
+          ];
         case "admin_site_checkpoint":
           return [{ version_no: 4 }];
         case "admin_site_unpublish":
@@ -285,6 +288,8 @@ describe("publishSiteVersion", () => {
     expect(JSON.stringify(publish.args.p_public)).not.toContain("19-2000145399");
     expect(JSON.stringify(publish.args.p_sensitive)).toContain("19-2000145399/0800");
     expect(publish.args.p_note).toBe("Nový program");
+    // snímek je vázaný na revizi pracovní kopie, ze které vznikl (rawLoad: rev 4)
+    expect(publish.args.p_base_rev).toBe(4);
     expect(calls.find((c) => c.fn === "analytics_record")?.args).toEqual({
       p_event: "site_published",
       p_locale: "cs",
@@ -335,6 +340,26 @@ describe("publishSiteVersion", () => {
       fail: { admin_site_publish: new DbError("admin_site_publish", "55000", "guest_pin_missing") },
     });
     expect(await publishSiteVersion(SESSION)).toMatchObject({ status: "invalid" });
+  });
+
+  it("zastaralé okno: revize z editoru se liší od uložené, nic se nezveřejní", async () => {
+    const calls = fakeDb({ raw: rawLoad(baseDoc(), { rev: 7 }) });
+    expect(await publishSiteVersion(SESSION, null, { baseRev: 6 })).toEqual({
+      status: "conflict",
+    });
+    expect(calls.some((c) => c.fn === "admin_site_publish")).toBe(false);
+    // shodná revize projde a jde do databáze
+    const ok = fakeDb({ raw: rawLoad(baseDoc(), { rev: 7 }) });
+    expect(await publishSiteVersion(SESSION, null, { baseRev: 7 })).toMatchObject({
+      status: "published",
+    });
+    expect(ok.find((c) => c.fn === "admin_site_publish")!.args.p_base_rev).toBe(7);
+  });
+
+  it("souběžná změna mezi načtením a zveřejněním: konflikt z databáze se hlásí a neměří", async () => {
+    const calls = fakeDb({ publish: { ok: false, conflict: true, version_no: null, slug: null } });
+    expect(await publishSiteVersion(SESSION)).toEqual({ status: "conflict" });
+    expect(calls.some((c) => c.fn === "analytics_record")).toBe(false);
   });
 
   it("limit zveřejnění", async () => {
@@ -435,6 +460,43 @@ describe("restoreVersion: vrácení verze jako konceptu", () => {
     expect(calls2.some((c) => c.fn === "admin_site_save")).toBe(false);
   });
 
+  it("selhání nebo omezení bodu pro vrácení vrácení zastaví (koncept se nepřepíše bez návratu)", async () => {
+    const versions = [
+      {
+        id: VERSION,
+        version_no: 1,
+        kind: "publish",
+        note: null,
+        created_at: "2026-10-01T10:00:00Z",
+        is_published: false,
+        by_me: true,
+      },
+    ];
+    const failing = fakeDb({
+      raw: rawLoad(baseDoc(), {}, versions),
+      versionGet: oldVersion(),
+      fail: { admin_site_checkpoint: new DbError("admin_site_checkpoint", undefined, "spojení") },
+    });
+    await expect(restoreVersion(SESSION, VERSION)).rejects.toBeInstanceOf(DbError);
+    expect(failing.some((c) => c.fn === "admin_site_save")).toBe(false);
+
+    // druhé volání omezení počtu požadavků (po prvním v restoreVersion) selže
+    let hits = 0;
+    setTransport({
+      async call(fn, args) {
+        if (fn === "rate_limit_hit") {
+          hits += 1;
+          return [{ allowed: hits < 2, retry_after: 55 }];
+        }
+        if (fn === "admin_site_load") return rawLoad(baseDoc(), {}, versions);
+        if (fn === "admin_site_version_get") return oldVersion();
+        if (fn === "admin_media_list") return [];
+        throw new Error(`Neočekávané volání ${fn} ${JSON.stringify(args)}`);
+      },
+    });
+    expect(await restoreVersion(SESSION, VERSION)).toEqual({ status: "limited", retryAfter: 55 });
+  });
+
   it("konflikt při uložení se hlásí", async () => {
     const versions = [
       {
@@ -457,7 +519,7 @@ describe("restoreVersion: vrácení verze jako konceptu", () => {
 });
 
 describe("loadSite: pracovní kopie z publikace", () => {
-  it("web zveřejněný bez pracovní kopie se naplní ze zveřejněné verze", async () => {
+  it("web zveřejněný bez pracovní kopie se naplní ze zveřejněné verze jen v paměti: nic se nezapisuje a revize zůstává", async () => {
     const versions = [
       {
         id: "44444444-4444-4444-8444-444444444444",
@@ -475,12 +537,9 @@ describe("loadSite: pracovní kopie z publikace", () => {
       versionGet: { public_content: built.content, sensitive_content: built.sensitive },
     });
     const loaded = await loadSite(SESSION);
-    expect(loaded).not.toBeNull();
-    const save = calls.find((c) => c.fn === "admin_site_save");
-    expect(save).toBeDefined();
-    const work = save!.args.p_work as { blocks: { type: string; data: Record<string, unknown> }[] };
-    const gifts = work.blocks.find((b) => b.type === "gifts");
-    expect(gifts?.data.account).toBe("19-2000145399/0800");
+    expect(calls.some((c) => c.fn === "admin_site_save")).toBe(false);
+    expect(loaded!.doc.blocks.length).toBeGreaterThan(0);
+    expect(loaded!.meta.rev).toBe(4);
   });
 
   it("web s pracovní kopií se znovu nepřepisuje", async () => {

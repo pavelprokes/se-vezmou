@@ -80,6 +80,23 @@ describe("readTable", () => {
     expect(await readTable(bomb)).toEqual({ ok: false, reason: "unpacked_too_large" });
   });
 
+  it("zip bomba s podvrženými velikostmi v hlavičkách se odmítne podle skutečně rozbalených bajtů", async () => {
+    const bomb = zipSync(
+      { "xl/worksheets/sheet1.xml": new Uint8Array(IMPORT_LIMITS.unpackedBytes + 1024) },
+      { level: 9 },
+    );
+    forgeSizes(bomb, 100);
+    const started = performance.now();
+    expect(await readTable(bomb)).toEqual({ ok: false, reason: "unpacked_too_large" });
+    expect(performance.now() - started).toBeLessThan(2000);
+  });
+
+  it("archiv s příliš mnoha položkami se odmítne", async () => {
+    const files: Record<string, Uint8Array> = {};
+    for (let i = 0; i < 200; i++) files[`xl/f${i}.xml`] = new Uint8Array([1, 2, 3]);
+    expect(await readTable(zipSync(files))).toEqual({ ok: false, reason: "unpacked_too_large" });
+  });
+
   it("hodnota začínající vzorcem zůstane obyčejný text (nic se nevyhodnocuje)", async () => {
     const result = await readTable(
       new Uint8Array(
@@ -93,3 +110,13 @@ describe("readTable", () => {
     expect(result.ok && result.table[1][0]).toBe('=HYPERLINK("http://example.test";"x")');
   });
 });
+
+/** Přepíše velikosti rozbaleného obsahu v místních hlavičkách i v adresáři archivu (útočník je smí lhát). */
+function forgeSizes(zip: Uint8Array, size: number): void {
+  const view = new DataView(zip.buffer, zip.byteOffset, zip.byteLength);
+  for (let i = 0; i + 4 <= zip.length; i++) {
+    const signature = view.getUint32(i, true);
+    if (signature === 0x04034b50 && i + 26 <= zip.length) view.setUint32(i + 22, size, true);
+    if (signature === 0x02014b50 && i + 28 <= zip.length) view.setUint32(i + 24, size, true);
+  }
+}

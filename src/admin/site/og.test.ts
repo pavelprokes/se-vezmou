@@ -215,6 +215,52 @@ function fakeDeps(
 
 const HTML = `<html><head><meta property="og:title" content="Galerie"></head><body></body></html>`;
 
+describe("parseOgCard: odolnost proti zlému vstupu (ReDoS)", () => {
+  const url = new URL("https://fotky.example/a");
+  const LIMIT_MS = 500;
+
+  function timed(html: string) {
+    const started = performance.now();
+    const card = parseOgCard(html, url, NOW);
+    return { card, ms: performance.now() - started };
+  }
+
+  it.each([
+    ["dlouhé slovo za <meta", "<meta " + "a".repeat(80_000)],
+    ["mnoho neuzavřených <meta", "<meta ".repeat(13_000)],
+    ["atributy bez hodnot", "<meta " + "a ".repeat(40_000) + ">"],
+    ["neuzavřená uvozovka", '<meta content="' + "x".repeat(80_000)],
+    ["mnoho znaků = a mezer", "<meta " + "a = ".repeat(20_000)],
+    ["mnoho <title bez konce", "<title>".repeat(10_000)],
+    ["</head se samými mezerami", "</head" + " ".repeat(80_000)],
+    ["mnoho <meta a > uvnitř hodnot", '<meta content="' + "<meta ".repeat(10_000)],
+  ])("%s skončí za zlomek sekundy", (_name, html) => {
+    const { ms } = timed(html);
+    expect(ms).toBeLessThan(LIMIT_MS);
+  });
+
+  it("platné značky za zlým začátkem se dál přečtou, ale nejvýše 200 značek meta", () => {
+    const good = '<meta property="og:title" content="Fotky z oslavy">';
+    expect(parseOgCard(`<head>${good}</head>`, url, NOW)?.title).toBe("Fotky z oslavy");
+    const flood = '<meta name="x" content="y">'.repeat(200);
+    expect(parseOgCard(`<head>${flood}${good}</head>`, url, NOW)).toBeNull();
+  });
+
+  it("zvládne > uvnitř uvozovek, jednoduché uvozovky a atributy bez uvozovek", () => {
+    const card = parseOgCard(
+      `<head><META PROPERTY=og:title CONTENT='a > b'><meta name="description" content=popis></head>`,
+      url,
+      NOW,
+    );
+    expect(card?.title).toBe("a > b");
+    expect(card?.description).toBe("popis");
+  });
+
+  it("čtení hlavičky je omezeno na 64 kB", () => {
+    expect(OG_LIMITS.maxBytes).toBe(64 * 1024);
+  });
+});
+
 describe("fetchOgCard: ochrana před SSRF", () => {
   it("načte kartu a spojí se na ověřenou adresu", async () => {
     const { deps, requests } = fakeDeps({ "https://fotky.example/a": { body: HTML } });
@@ -402,6 +448,21 @@ describe("fetchOgCard: ochrana před SSRF", () => {
 });
 
 describe("parseTestHost: výjimka jen pro loopback", () => {
+  it("v produkčním sestavení funguje jen s ALLOW_TEST_HATCHES=1, v ostré produkci nikdy", () => {
+    const value = "fotky-test.example=127.0.0.1:4555";
+    expect(parseTestHost(value, { NODE_ENV: "production" })).toBeNull();
+    expect(
+      parseTestHost(value, { NODE_ENV: "production", ALLOW_TEST_HATCHES: "1" }),
+    ).not.toBeNull();
+    expect(
+      parseTestHost(value, {
+        NODE_ENV: "production",
+        VERCEL_ENV: "production",
+        ALLOW_TEST_HATCHES: "1",
+      }),
+    ).toBeNull();
+  });
+
   it("přijme jméno=127.0.0.1:port, jiný cíl ignoruje", () => {
     expect(parseTestHost("fotky-test.example=127.0.0.1:4555")).toEqual({
       hostname: "fotky-test.example",

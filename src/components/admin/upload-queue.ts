@@ -117,6 +117,8 @@ let counter = 0;
 export class UploadQueue {
   private entries: QueueEntry[] = [];
   private files = new Map<string, File>();
+  /** Připravený (zmenšený) soubor podle položky; stejný přes všechna opakování. */
+  private blobs = new Map<string, Blob>();
   private running = false;
   private closed = false;
 
@@ -191,10 +193,12 @@ export class UploadQueue {
     if (!entry || entry.status === "uploading" || entry.status === "processing") return;
     this.entries = this.entries.filter((e) => e.key !== key);
     this.files.delete(key);
+    this.blobs.delete(key);
     if (!this.closed) this.deps.onChange(this.entries);
   }
 
   clearFinished(): void {
+    for (const e of this.entries) if (e.status === "done") this.blobs.delete(e.key);
     this.entries = this.entries.filter((e) => e.status !== "done");
     if (!this.closed) this.deps.onChange(this.entries);
   }
@@ -219,11 +223,16 @@ export class UploadQueue {
     const current = () => this.entries.find((e) => e.key === key)!;
 
     this.update(key, { status: "preparing", attempt: current().attempt + 1 });
-    let blob: Blob;
-    try {
-      blob = await this.deps.prepare(file);
-    } catch {
-      blob = file;
+    // Zmenšený soubor se při opakování znovu nepočítá: podepsaná adresa nese přesnou velikost, kterou server
+    // schválil při založení fotografie, a PUT musí poslat přesně tolik bajtů.
+    let blob = this.blobs.get(key);
+    if (!blob) {
+      try {
+        blob = await this.deps.prepare(file);
+      } catch {
+        blob = file;
+      }
+      this.blobs.set(key, blob);
     }
     const mime = blob.type && isAcceptedMime(blob.type) ? blob.type : declaredMime(file);
     if (blob.size > MEDIA_LIMITS.maxBytes) return this.fail(key, "too_large");
@@ -294,6 +303,7 @@ export class UploadQueue {
       }
       if (result.status === "ok") {
         const entry = this.update(key, { status: "done", progress: 100 });
+        this.blobs.delete(key);
         if (entry) {
           this.deps.announce?.(entry);
           this.deps.onDone(result.item, entry);

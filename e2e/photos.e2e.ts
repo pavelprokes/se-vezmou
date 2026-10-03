@@ -114,11 +114,15 @@ test.describe("nahrání, zpracování a zveřejnění", () => {
       .poll(() => img.evaluate((el) => (el as HTMLImageElement).naturalWidth))
       .toBeGreaterThan(0);
 
-    // doručení: přesměrování na podepsanou adresu s krátkou cache a bez indexace
+    // doručení: přesměrování na podepsanou adresu, veřejné médium bez cookie smí do sdílené mezipaměti
     const redirect = await visitorGet(request, site.slug, `/media/${row.id}/1280?f=avif`);
     expect(redirect.status()).toBe(302);
     expect(redirect.headers()["location"]).toMatch(/^\/api\/dev-storage\?key=/);
-    expect(redirect.headers()["cache-control"]).toBe("private, max-age=300");
+    expect(redirect.headers()["cache-control"]).toBe(
+      "public, max-age=300, s-maxage=300, stale-while-revalidate=600",
+    );
+    // Next přidává k `Vary` i své záhlaví RSC; podstatné je, že `Cookie` je mezi nimi
+    expect(redirect.headers()["vary"]).toContain("Cookie");
     expect(redirect.headers()["x-robots-tag"]).toContain("noindex");
     const served = await request.get(`http://127.0.0.1:${PORT}${redirect.headers()["location"]}`);
     expect(served.status()).toBe(200);

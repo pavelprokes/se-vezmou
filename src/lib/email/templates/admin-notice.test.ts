@@ -9,6 +9,7 @@ const KINDS: AdminNoticeKind[] = [
   "admin_removed_others",
   "backup_changed_old",
   "backup_changed",
+  "backup_added",
   "operator_access_granted",
   "operator_access_revoked",
   "guest_data_viewed",

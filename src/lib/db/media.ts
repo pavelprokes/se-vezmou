@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { ANONYMOUS_SUB } from "./types";
-import { tenantRpc } from "./rpc";
+import { READ_ONLY, tenantRpc } from "./rpc";
 import type { TenantIdentity } from "./transport";
 import type { AdminIdentity } from "./admin-site";
 
@@ -147,6 +147,7 @@ export async function getPublicMedia(
       "get_public_media",
       { p_media_id: input.mediaId, p_width: input.width, p_format: input.format },
       "table",
+      READ_ONLY,
     ),
   );
   return rows[0] ? { key: rows[0].storage_key, bytes: rows[0].bytes } : null;
@@ -154,6 +155,6 @@ export async function getPublicMedia(
 
 /** Hotová média svatby (web podle nich vyřadí fotografie, které pár mezitím smazal). */
 export async function publicMediaIds(identity: TenantIdentity): Promise<string[]> {
-  const raw = await tenantRpc<unknown>(identity, "public_media_ids");
+  const raw = await tenantRpc<unknown>(identity, "public_media_ids", {}, "scalar", READ_ONLY);
   return z.array(z.guid()).parse(raw ?? []);
 }

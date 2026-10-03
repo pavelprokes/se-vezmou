@@ -102,11 +102,43 @@ describe("nastavení R2 z prostředí", () => {
   });
 });
 
+describe("časový limit požadavků", () => {
+  it("každý požadavek na R2 má limit 10 s", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const storage = createR2Storage(config);
+    responder = (call) =>
+      call.method === "GET" && call.url.searchParams.has("list-type")
+        ? new Response("<ListBucketResult><IsTruncated>false</IsTruncated></ListBucketResult>")
+        : new Response("x", { status: 200, headers: { "content-length": "1" } });
+    await storage.headObject(incomingKey(A, M));
+    await storage.getObject(incomingKey(A, M), { maxBytes: 100 });
+    await storage.putObject(variantKey(A, M, 640, "webp"), Buffer.from("x"), {
+      contentType: "image/webp",
+    });
+    await storage.deleteObjects([incomingKey(A, M)]);
+    await storage.listPrefix(A);
+    expect(calls.length).toBe(5);
+    expect(timeout).toHaveBeenCalledTimes(5);
+    for (const call of timeout.mock.calls) expect(call).toEqual([10_000]);
+  });
+
+  it("vypršený limit skončí srozumitelnou chybou úložiště", async () => {
+    const storage = createR2Storage(config);
+    responder = () => {
+      throw new DOMException("The operation timed out", "TimeoutError");
+    };
+    await expect(storage.headObject(incomingKey(A, M))).rejects.toMatchObject({
+      code: "storage_failed",
+    });
+  });
+});
+
 describe("podepsané adresy", () => {
   it("nahrávání: PUT do karantény s platností v adrese a bez prozrazení tajné hodnoty", async () => {
     const storage = createR2Storage(config);
     const target = await storage.presignPut(incomingKey(A, M), {
       contentType: "image/jpeg",
+      bytes: 1234,
       expiresInSeconds: 600,
     });
     const url = new URL(target.url);
@@ -117,7 +149,8 @@ describe("podepsané adresy", () => {
     expect(url.searchParams.get("X-Amz-Credential")).toMatch(
       /^AKIDEXAMPLE\/\d{8}\/auto\/s3\/aws4_request$/,
     );
-    expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("host");
+    // přesná délka těla je podepsaná: R2 odmítne PUT s jiným počtem bajtů
+    expect(url.searchParams.get("X-Amz-SignedHeaders")).toBe("content-length;host");
     expect(url.searchParams.get("X-Amz-Signature")).toMatch(/^[0-9a-f]{64}$/);
     expect(target.url).not.toContain("super-secret-value");
     expect(target.method).toBe("PUT");
@@ -125,16 +158,32 @@ describe("podepsané adresy", () => {
     expect(target.expiresInSeconds).toBe(600);
   });
 
+  it("jiná deklarovaná velikost dá jiný podpis a neplatná velikost se odmítne", async () => {
+    const storage = createR2Storage(config);
+    const at = (bytes: number) =>
+      storage
+        .presignPut(incomingKey(A, M), { contentType: "image/jpeg", bytes, expiresInSeconds: 600 })
+        .then((target) => new URL(target.url).searchParams.get("X-Amz-Signature"));
+    expect(await at(1000)).not.toBe(await at(1001));
+    await expect(at(0)).rejects.toThrow();
+    await expect(at(1.5)).rejects.toThrow();
+  });
+
   it("nahrávat lze jen do karantény, nikdy do předpony svatby", async () => {
     const storage = createR2Storage(config);
     await expect(
       storage.presignPut(variantKey(A, M, 640, "webp"), {
         contentType: "image/webp",
+        bytes: 10,
         expiresInSeconds: 60,
       }),
     ).rejects.toThrow();
     await expect(
-      storage.presignPut(`${A}/../${B}/x`, { contentType: "image/webp", expiresInSeconds: 60 }),
+      storage.presignPut(`${A}/../${B}/x`, {
+        contentType: "image/webp",
+        bytes: 10,
+        expiresInSeconds: 60,
+      }),
     ).rejects.toThrow();
   });
 

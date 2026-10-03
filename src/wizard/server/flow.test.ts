@@ -291,6 +291,40 @@ describe("firstSave", () => {
     expect(JSON.stringify(db.calls)).not.toContain(result.previewToken);
   });
 
+  it("záložní adresa dostane jedinou neutrální zprávu a žádný přihlašovací údaj", async () => {
+    fakeDb();
+    mail.sent.length = 0;
+    const tasks: (() => Promise<unknown>)[] = [];
+    const result = await firstSave({
+      emails,
+      draft: draft({ guestPin: { enabled: true, pin: "482915" } }),
+      ip: "1.1.1.1",
+      backupNotice: { locale: "cs", defer: (task) => tasks.push(task) },
+    });
+    expect(result.status).toBe("created");
+    expect(tasks).toHaveLength(1);
+    await tasks[0]();
+    expect(mail.sent).toHaveLength(1);
+    expect(mail.sent[0].to).toBe("zaloha@example.test");
+    expect(mail.sent[0].text).toMatch(/někdo uvedl/);
+    expect(mail.sent[0].text).toMatch(/ignorujte/);
+    expect(mail.sent[0].text).not.toContain("482915");
+    expect(mail.sent[0].text).not.toContain("klara@example.test");
+    expect(mail.sent[0].text).not.toMatch(/https?:\/\//);
+  });
+
+  it("při kolizi adresy se záložní adrese nepíše", async () => {
+    fakeDb({ create: { ok: false, variants: ["x"] } });
+    const tasks: (() => Promise<unknown>)[] = [];
+    await firstSave({
+      emails,
+      draft: draft(),
+      ip: "1.1.1.1",
+      backupNotice: { locale: "cs", defer: (task) => tasks.push(task) },
+    });
+    expect(tasks).toHaveLength(0);
+  });
+
   it("kolize adresy: nic se nezaloží, žádný odkaz na náhled, vrátí varianty", async () => {
     const db = fakeDb({
       create: { ok: false, variants: ["klara-a-matej-2027", "klara-a-matej-obec"] },

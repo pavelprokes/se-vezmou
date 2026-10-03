@@ -152,7 +152,7 @@ export async function seedManagedSite(options: SeedOptions = {}): Promise<Manage
       [adminId, weddingId, adminEmail],
     );
     await db.query(
-      "insert into se_vezmou.wedding_auth (wedding_id, backup_email, admin_pin_hash, guest_pin_hash) values ($1, $2, $3, $4)",
+      "insert into se_vezmou.wedding_auth (wedding_id, backup_email, admin_pin_hash, guest_pin_hash, backup_email_confirmed_at) values ($1, $2, $3, $4, now())",
       [weddingId, `zaloha-${slug}@example.test`, adminPin, guestHash],
     );
     await db.query(

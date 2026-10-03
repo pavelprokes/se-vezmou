@@ -155,6 +155,46 @@ describe("hostConfigFromEnv", () => {
     expect(resolveHost("se-vezmou-abc.vercel.app", config)).toEqual({ kind: "invalid" });
   });
 
+  it("v produkčním sestavení (náhled Vercelu) nikdy nepovolí předvolbu app ani admin", () => {
+    for (const preset of ["app", "admin"]) {
+      for (const optIn of [undefined, "1"]) {
+        const config = hostConfigFromEnv({
+          NODE_ENV: "production",
+          VERCEL_ENV: "preview",
+          HOST_PRESET: preset,
+          ALLOW_TEST_HATCHES: optIn,
+        });
+        expect(config.preset).toBeUndefined();
+      }
+    }
+  });
+
+  it("předvolba marketing dál funguje na náhledu *.vercel.app, v ostré produkci ne", () => {
+    const preview = hostConfigFromEnv({
+      NODE_ENV: "production",
+      VERCEL_ENV: "preview",
+      HOST_PRESET: "marketing",
+    });
+    expect(resolveHost("se-vezmou-git-x.vercel.app", preview)).toEqual({ kind: "marketing" });
+    const prod = hostConfigFromEnv({
+      NODE_ENV: "production",
+      VERCEL_ENV: "production",
+      HOST_PRESET: "marketing",
+    });
+    expect(prod.preset).toBeUndefined();
+  });
+
+  it("předvolba tenant v produkčním sestavení jen s ALLOW_TEST_HATCHES=1", () => {
+    const base = {
+      NODE_ENV: "production",
+      VERCEL_ENV: "preview",
+      HOST_PRESET: "tenant",
+      PREVIEW_TENANT_SLUG: "klara-a-matej",
+    };
+    expect(hostConfigFromEnv(base).preset).toBeUndefined();
+    expect(hostConfigFromEnv({ ...base, ALLOW_TEST_HATCHES: "1" }).preset).toBe("tenant");
+  });
+
   it("neplatná předvolba se ignoruje", () => {
     const config = hostConfigFromEnv({ VERCEL_ENV: "preview", HOST_PRESET: "operator" });
     expect(config.preset).toBeUndefined();

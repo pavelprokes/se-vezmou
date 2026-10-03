@@ -1,7 +1,6 @@
 import "server-only";
-import { RATE_RULES, type RateRule } from "@/auth/config";
-import { rateKey } from "@/auth/rate-limit";
-import { requireEnv } from "@/env";
+import { limited, reasonOf } from "@/lib/rate-guard";
+import { RATE_RULES } from "@/auth/config";
 import {
   adminMyWeddings,
   adminQuickNoticeSet,
@@ -14,7 +13,6 @@ import {
   type AdminIdentity,
   type MyWedding,
 } from "@/lib/db/admin-site";
-import { rateLimitHit } from "@/lib/db/rpc";
 import { analyticsRecord } from "@/lib/db/rpc-wizard";
 import { DbError } from "@/lib/db/transport";
 import {
@@ -46,25 +44,10 @@ import { z } from "zod";
 
 export type { AdminIdentity };
 
-async function limited(scope: string, weddingId: string, rule: RateRule): Promise<number | null> {
-  const result = await rateLimitHit(
-    rateKey(requireEnv("RATE_LIMIT_SECRET"), scope, weddingId),
-    rule.limit,
-    rule.windowSeconds,
-  );
-  return result.allowed ? null : result.retryAfter;
-}
-
-function reasonOf(error: unknown): string | undefined {
-  return error instanceof DbError ? error.reason : undefined;
-}
-
 /** Svatba je po prvním zveřejnění pod správou (jinak ji drží průvodce). */
 export function isManaged(meta: SiteMeta): boolean {
   return meta.publishedVersionNo !== null || meta.status === "published";
 }
-
-const FIRST_VERSION_SAVE = "site_not_editable";
 
 /** Poslední verze je starší než půl hodiny: při otevření editoru se uloží bod pro vrácení. */
 const CHECKPOINT_AFTER_MS = 30 * 60 * 1000;
@@ -85,26 +68,23 @@ export async function peekSite(session: AdminIdentity): Promise<LoadedSite | nul
 }
 
 /**
- * Načte web pro editor. Pracovní kopie bez bloků (svatba zveřejněná mimo průvodce) se jednorázově
- * naplní ze zveřejněné verze, aby editor nikdy nezačínal prázdný nad zveřejněným webem.
+ * Načte web. Pracovní kopie bez bloků (svatba zveřejněná mimo průvodce) se naplní ze zveřejněné verze, aby
+ * editor nikdy nezačínal prázdný nad zveřejněným webem. Nic se přitom NEZAPISUJE: obsah ze zveřejněné verze se
+ * doplní jen do vrácené kopie v paměti a se stejnou revizí. Dřív se kopie zapisovala do databáze už při
+ * vykreslení stránky (GET, předběžné načtení, dvě záložky naráz) a zápis zvyšoval revizi pod rukama editoru, což
+ * vedlo k falešným konfliktům. Do databáze ji zapíše až první uložení editoru (s revizí, kterou editor viděl),
+ * zveřejnění a vrácení verze pracují se stejným snímkem v paměti.
  */
 export async function loadSite(session: AdminIdentity): Promise<LoadedSite | null> {
   const raw = await adminSiteLoad(session);
   const rawBlocks = (raw as { blocks?: unknown[] } | null)?.blocks;
-  let loaded = parseLoaded(raw);
+  const loaded = parseLoaded(raw);
   if (!loaded) return null;
 
   const published = loaded.versions.find((version) => version.isPublished);
   if (published && Array.isArray(rawBlocks) && rawBlocks.length === 0) {
     const restored = await docFromVersion(session, published.id, loaded.meta.slug);
-    if (restored) {
-      try {
-        await adminSiteSave(session, loaded.meta.rev, docToWork(restored), { touch: false });
-        loaded = parseLoaded(await adminSiteLoad(session)) ?? loaded;
-      } catch (error) {
-        if (reasonOf(error) !== FIRST_VERSION_SAVE) throw error;
-      }
-    }
+    if (restored) return { ...loaded, doc: restored };
   }
   return loaded;
 }
@@ -183,16 +163,23 @@ export type PublishResult =
   | { status: "published"; versionNo: number; slug: string; warnings: Issue[] }
   | { status: "invalid"; issues: Issue[] }
   | { status: "not_publishable" }
+  /** Pracovní kopie se mezitím změnila (druhé okno, druhý správce): nic se nezveřejnilo. */
+  | { status: "conflict" }
   | { status: "limited"; retryAfter: number };
 
 /**
  * Zveřejní uloženou pracovní kopii (ne to, co pošle klient): snímek se sestaví z databáze, projde
  * kontrolou obsahu (včetně `validatePalette`) a schématem veřejného snímku. Chybějící překlad
  * zveřejnění nebrání, jen se hlásí (FR-WEB-2).
+ *
+ * Zveřejnění je vázané na revizi (`site_rev`): databáze zveřejní jen snímek sestavený z té revize, kterou
+ * funkce načetla. `options.baseRev` je revize, kterou vidí editor v prohlížeči; liší-li se od uložené, jde
+ * o zastaralé okno a výsledek je `conflict` (nic se nezveřejní).
  */
 export async function publishSiteVersion(
   session: AdminIdentity,
   note?: string | null,
+  options: { baseRev?: number } = {},
 ): Promise<PublishResult> {
   const retry = await limited(
     "site-version-wedding",
@@ -203,6 +190,10 @@ export async function publishSiteVersion(
 
   const loaded = await loadSite(session);
   if (!loaded || !loaded.meta.slug) return { status: "not_publishable" };
+  // Revize, kterou vidí editor v prohlížeči, se musí shodovat se skutečnou: zastaralé okno nesmí zveřejnit nic.
+  if (options.baseRev !== undefined && loaded.meta.rev !== options.baseRev) {
+    return { status: "conflict" };
+  }
   // Fotografie: do snímku jdou jen hotové a popsané (nebo dekorativní), ostatní se vynechají a nahlásí jako upozornění
   const media = await listMedia(session);
   const doc = reconcileGalleryMedia(loaded.doc, media);
@@ -223,7 +214,10 @@ export async function publishSiteVersion(
       publicContent: built.content,
       sensitive: built.sensitive,
       note: note?.trim().slice(0, 200) || null,
+      // revize, ze které je snímek sestaven
+      baseRev: loaded.meta.rev,
     });
+    if (result.conflict) return { status: "conflict" };
     try {
       await analyticsRecord({
         event: "site_published",
@@ -340,10 +334,17 @@ export async function restoreVersion(
   const doc = await docFromVersion(session, versionId, loaded.meta.slug);
   if (!doc) return { status: "not_found" };
 
-  // Zachytit současný stav (když je platný); nehotový koncept se při vrácení přepíše bez bodu.
-  await createCheckpoint(session, `Před vrácením verze ${version.versionNo}`, loaded).catch(
-    () => undefined,
+  // Zachytit současný stav. Selhání (výjimka) ani omezení počtu požadavků se nepřehlíží: vrácení by přepsalo
+  // koncept bez možnosti návratu, proto se zastaví. Jen nehotový (neplatný) koncept se zachytit nedá a přepíše se
+  // bez bodu (návrat k němu by stejně nešel zveřejnit).
+  const checkpoint = await createCheckpoint(
+    session,
+    `Před vrácením verze ${version.versionNo}`,
+    loaded,
   );
+  if (checkpoint.status === "limited") {
+    return { status: "limited", retryAfter: checkpoint.retryAfter };
+  }
 
   const reloaded = (await loadSite(session)) ?? loaded;
   try {

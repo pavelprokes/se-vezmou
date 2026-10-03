@@ -14,6 +14,8 @@ export const accessViewSchema = z.object({
     }),
   ),
   backup_email: z.string().nullable(),
+  /** Adresu potvrdil její vlastník; jen na potvrzenou chodí oznámení. */
+  backup_confirmed: z.boolean().default(false),
   has_admin_pin: z.boolean(),
   has_guest_pin: z.boolean(),
   guest_pin_enabled: z.boolean(),
@@ -52,7 +54,12 @@ export const removeAdminResultSchema = z.object({
 });
 export const backupResultSchema = z.discriminatedUnion("changed", [
   z.object({ changed: z.literal(false) }),
-  z.object({ changed: z.literal(true), old: z.string(), notify: z.array(z.string()) }),
+  z.object({
+    changed: z.literal(true),
+    /** Stará adresa, jen když byla potvrzená (jinak `null`: nepotvrzené adrese se oznámení neposílá). */
+    old: z.string().nullable(),
+    notify: z.array(z.string()),
+  }),
 ]);
 export const grantResultSchema = z.object({
   id: z.string(),

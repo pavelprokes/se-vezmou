@@ -395,7 +395,7 @@ export function SiteEditor({
         setResult({ kind: "error", text: t("admin.publish.notSaved") });
         return;
       }
-      const response = await actions.publish(note);
+      const response = await actions.publish(note, rev.current);
       if (response.status === "published") {
         setMeta((m) => ({
           ...m,
@@ -411,6 +411,11 @@ export function SiteEditor({
         });
       } else if (response.status === "invalid") {
         setResult({ kind: "error", text: t("admin.publish.invalid"), issues: response.issues });
+      } else if (response.status === "conflict") {
+        // stejné řešení jako při konfliktu uložení: zamknout editor a vyzvat k načtení aktuální verze
+        setSaveState("conflict");
+        setAnnounce("conflict");
+        setResult({ kind: "error", text: t("admin.save.conflict") });
       } else if (response.status === "limited") {
         setResult({ kind: "error", text: t("admin.error.limited") });
       } else if (response.status === "unauthorized") {

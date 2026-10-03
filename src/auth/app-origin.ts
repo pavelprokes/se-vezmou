@@ -1,3 +1,4 @@
+import { env } from "@/env";
 import { hostConfigFromEnv, resolveHost, type HostConfig } from "@/host/resolve";
 import { isLocalHost } from "./cookie";
 
@@ -20,5 +21,5 @@ export function siteHostname(slug: string, config: HostConfig): string {
 }
 
 export function currentHostConfig(): HostConfig {
-  return hostConfigFromEnv(process.env, { development: process.env.NODE_ENV !== "production" });
+  return hostConfigFromEnv(env, { development: env.NODE_ENV !== "production" });
 }

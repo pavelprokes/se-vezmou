@@ -29,7 +29,8 @@ export async function GET(
     const identity = guest ? guestIdentity(guest) : visitorIdentity(resolved.weddingId);
     const found = await getPublicMedia(identity, media);
     if (!found) return mediaNotFound();
-    return await mediaRedirect(found.key);
+    // bez relace hosta je výsledek veřejný a smí do sdílené mezipaměti; s relací (PIN) nikdy
+    return await mediaRedirect(found.key, { cache: guest ? "guest" : "shared" });
   } catch (error) {
     // Bez klíče, adresy a identifikátorů: jen druh chyby. Obrázek se prostě nezobrazí (alt text zůstane).
     console.error("[fotografie] doručení selhalo", error instanceof Error ? error.name : "");

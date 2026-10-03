@@ -37,19 +37,31 @@ export async function adminSiteSave(
   return row;
 }
 
+/**
+ * Zveřejnění snímku sestaveného z pracovní kopie ve verzi `baseRev`. Když se revize mezitím změnila (druhé okno,
+ * druhý správce), databáze nic nezveřejní a vrátí `conflict`.
+ */
 export async function adminSitePublish(
   session: AdminIdentity,
-  input: { publicContent: unknown; sensitive: unknown; note?: string | null },
-): Promise<{ versionNo: number; slug: string }> {
-  const rows = await tenantRpc<{ version_no: number; slug: string }[]>(
+  input: { publicContent: unknown; sensitive: unknown; note?: string | null; baseRev: number },
+): Promise<{ conflict: true } | { conflict: false; versionNo: number; slug: string }> {
+  const rows = await tenantRpc<
+    { ok: boolean; conflict: boolean; version_no: number | null; slug: string | null }[]
+  >(
     identity(session),
     "admin_site_publish",
-    { p_public: input.publicContent, p_sensitive: input.sensitive, p_note: input.note ?? null },
+    {
+      p_public: input.publicContent,
+      p_sensitive: input.sensitive,
+      p_note: input.note ?? null,
+      p_base_rev: input.baseRev,
+    },
     "table",
   );
   const row = rows[0];
   if (!row) throw new Error("admin_site_publish nevrátila řádek");
-  return { versionNo: row.version_no, slug: row.slug };
+  if (row.conflict || row.version_no === null || row.slug === null) return { conflict: true };
+  return { conflict: false, versionNo: row.version_no, slug: row.slug };
 }
 
 export async function adminSiteUnpublish(session: AdminIdentity): Promise<void> {

@@ -72,7 +72,8 @@ export async function loginWithPin(input: {
 
   if (!record || !record.adminId || !matches) {
     const failure = await lockoutFailure(lockKey, PIN_LOCKOUT);
-    if (failure.newlyLocked && record) {
+    // Oznámení jen na potvrzenou záložní adresu (nepotvrzená adresa může být cizí).
+    if (failure.newlyLocked && record?.backupEmail) {
       const config = currentHostConfig();
       const email = renderBackupLoginNotice({
         locale: input.locale,
@@ -85,7 +86,7 @@ export async function loginWithPin(input: {
       input.defer(() =>
         sendTemplatedEmail({
           type: "backup_login_notice",
-          to: record.backupEmail,
+          to: record.backupEmail as string,
           weddingId: record.weddingId,
           locale: input.locale,
           email,
@@ -100,28 +101,31 @@ export async function loginWithPin(input: {
 
   await lockoutReset(lockKey);
 
-  const email = renderBackupLoginNotice({
-    locale: input.locale,
-    event: "pin_login",
-    at: new Date(),
-    site: siteHostname(input.slug, currentHostConfig()),
-    loginUrl: `${input.origin}/prihlaseni`,
-  });
-  input.defer(() =>
-    sendTemplatedEmail({
-      type: "backup_login_notice",
-      to: record.backupEmail,
-      weddingId: record.weddingId,
+  const backupEmail = record.backupEmail;
+  if (backupEmail) {
+    const email = renderBackupLoginNotice({
       locale: input.locale,
-      email,
-      secret: authSecret,
-    }),
-  );
+      event: "pin_login",
+      at: new Date(),
+      site: siteHostname(input.slug, currentHostConfig()),
+      loginUrl: `${input.origin}/prihlaseni`,
+    });
+    input.defer(() =>
+      sendTemplatedEmail({
+        type: "backup_login_notice",
+        to: backupEmail,
+        weddingId: record.weddingId,
+        locale: input.locale,
+        email,
+        secret: authSecret,
+      }),
+    );
+  }
   return { status: "ok", weddingId: record.weddingId, adminId: record.adminId };
 }
 
 export type SetPinResult =
-  | { status: "ok"; backupEmail: string }
+  | { status: "ok"; backupEmail: string | null }
   | { status: "invalid"; problem: PinProblem | "same_as_other" };
 
 /**
@@ -160,23 +164,25 @@ export async function setPin(input: {
     keepSessionId: input.keepSessionId,
   });
 
-  const email = renderBackupLoginNotice({
-    locale: input.locale,
-    event: "pin_changed",
-    pinRole: input.role,
-    at: new Date(),
-    site: input.slug ? siteHostname(input.slug, currentHostConfig()) : undefined,
-    loginUrl: `${input.origin}/prihlaseni`,
-  });
-  input.defer(() =>
-    sendTemplatedEmail({
-      type: "backup_login_notice",
-      to: backupEmail,
-      weddingId: input.weddingId,
+  if (backupEmail) {
+    const email = renderBackupLoginNotice({
       locale: input.locale,
-      email,
-      secret: authSecret,
-    }),
-  );
+      event: "pin_changed",
+      pinRole: input.role,
+      at: new Date(),
+      site: input.slug ? siteHostname(input.slug, currentHostConfig()) : undefined,
+      loginUrl: `${input.origin}/prihlaseni`,
+    });
+    input.defer(() =>
+      sendTemplatedEmail({
+        type: "backup_login_notice",
+        to: backupEmail,
+        weddingId: input.weddingId,
+        locale: input.locale,
+        email,
+        secret: authSecret,
+      }),
+    );
+  }
   return { status: "ok", backupEmail };
 }

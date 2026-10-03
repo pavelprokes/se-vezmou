@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { cache } from "react";
 import { publicMediaIds, visitorIdentity } from "@/lib/db/media";
 import { resolveSlug } from "@/lib/db/rpc";
 import { getPublicSite, resolvePreview } from "@/lib/db/rpc-wizard";
@@ -28,7 +29,7 @@ export function hashPreviewToken(token: string): Buffer {
   return createHash("sha256").update(token, "utf8").digest();
 }
 
-export async function getPublicContent(slug: string): Promise<PublicContent | null> {
+async function getPublicContentUncached(slug: string): Promise<PublicContent | null> {
   if (!SLUG_PATTERN.test(slug)) return null;
   const resolved = await resolveSlug(slug);
   if (!resolved) return null;
@@ -55,6 +56,14 @@ export async function getPublicContent(slug: string): Promise<PublicContent | nu
   }
   return withLiveMedia(parsed.data, resolved.weddingId);
 }
+
+/**
+ * Zveřejněný obsah webu. `cache` z Reactu: `generateMetadata` a stránka v jednom požadavku sdílejí jeden výsledek
+ * (jeden `resolve_slug`, jeden `get_public_site`, jeden `public_media_ids`) místo dvou. Platí jen pro jedno
+ * vykreslení; mezi požadavky se nic nesdílí, takže zveřejnění nové verze se projeví hned (sdílenou mezipaměť
+ * snímku tenhle krok záměrně nezavádí, viz PR).
+ */
+export const getPublicContent = cache(getPublicContentUncached);
 
 /**
  * Smazaná fotografie zmizí z webu hned, i když zveřejněný snímek na ni ještě odkazuje: média, která už v databázi

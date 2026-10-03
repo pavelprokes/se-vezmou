@@ -1,7 +1,7 @@
 import "server-only";
-import { RATE_RULES, type RateRule } from "@/auth/config";
-import { rateKey } from "@/auth/rate-limit";
-import { requireEnv } from "@/env";
+import { limited, reasonOf } from "@/lib/rate-guard";
+import { randomUUID } from "node:crypto";
+import { RATE_RULES } from "@/auth/config";
 import {
   adminGuestsImport,
   adminHouseholdDelete,
@@ -11,8 +11,6 @@ import {
   adminRsvpSettingsSave,
   type AdminIdentity,
 } from "@/lib/db/admin-guests";
-import { rateLimitHit } from "@/lib/db/rpc";
-import { DbError } from "@/lib/db/transport";
 import { listGuests } from "@/lib/rsvp/admin";
 import type { GuestList } from "@/lib/rsvp/types";
 import { z } from "zod";
@@ -44,19 +42,6 @@ import {
  */
 
 export type { AdminIdentity };
-
-async function limited(scope: string, weddingId: string, rule: RateRule): Promise<number | null> {
-  const result = await rateLimitHit(
-    rateKey(requireEnv("RATE_LIMIT_SECRET"), scope, weddingId),
-    rule.limit,
-    rule.windowSeconds,
-  );
-  return result.allowed ? null : result.retryAfter;
-}
-
-function reasonOf(error: unknown): string | undefined {
-  return error instanceof DbError ? error.reason : undefined;
-}
 
 export type Limited = { status: "limited"; retryAfter: number };
 
@@ -178,10 +163,12 @@ const commitSchema = z.object({
   rows: z.array(importRowSchema).min(1).max(1000),
   includeDuplicates: z.boolean(),
   eventIds: z.array(z.uuid()).max(50),
+  /** Idempotenční klíč dávky (UUID z prohlížeče, platný pro jeden náhled); opakování vrátí výsledek první dávky. */
+  nonce: z.guid().optional(),
 });
 
 export type CommitImportResult =
-  | { status: "imported"; households: number; guests: number }
+  | { status: "imported"; households: number; guests: number; skipped: number; duplicate: boolean }
   | { status: "invalid" }
   | { status: "nothing" }
   | { status: "guest_limit" }
@@ -189,7 +176,9 @@ export type CommitImportResult =
 
 /**
  * Zápis po potvrzení náhledu. Řádky přicházejí z prohlížeče, proto se ověří znovu stejnými
- * pravidly jako v náhledu a duplicity se znovu porovnají s aktuálním seznamem hostů.
+ * pravidly jako v náhledu. Duplicity s existujícími hosty (a mezi řádky souboru) vyřazuje databáze pod
+ * zámkem svatby v okamžiku zápisu, ne aplikace z dřívějšího čtení seznamu; opakované odeslání téhož
+ * náhledu (stejný `nonce`) nic nezapíše podruhé a vrátí výsledek první dávky.
  */
 export async function commitImport(
   session: AdminIdentity,
@@ -206,18 +195,26 @@ export async function commitImport(
     name: row.name.replace(/\s+/g, " ").trim(),
     age: row.isChild ? row.age : null,
   }));
-  const existing = await listGuests(session);
-  const names = existing.households.flatMap((h) => h.guests.map((g) => g.display_name));
-  const checked = preview({ ok: true, rows, problems: checkRows(rows) }, names);
-  const households = toHouseholds(checked, parsed.data.includeDuplicates);
+  const checked = preview({ ok: true, rows, problems: checkRows(rows) }, []);
+  // všechny platné řádky; které jsou duplicitní, rozhoduje databáze (include_duplicates)
+  const households = toHouseholds(checked, true);
   if (households.length === 0) return { status: "nothing" };
 
   try {
     const result = await adminGuestsImport(session, {
+      nonce: parsed.data.nonce ?? randomUUID(),
+      include_duplicates: parsed.data.includeDuplicates,
       households,
       invited_event_ids: parsed.data.eventIds,
     });
-    return { status: "imported", households: result.households, guests: result.guests };
+    if (result.guests === 0) return { status: "nothing" };
+    return {
+      status: "imported",
+      households: result.households,
+      guests: result.guests,
+      skipped: result.skipped,
+      duplicate: result.duplicate,
+    };
   } catch (error) {
     const reason = reasonOf(error);
     if (reason === "guest_limit_exceeded") return { status: "guest_limit" };

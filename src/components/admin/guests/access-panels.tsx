@@ -285,6 +285,11 @@ export function BackupPanel({
       <p className="mt-3 font-medium" data-testid="backup-email">
         {t("admin.guests.access.backup.current", { email: view.backup_email ?? "–" })}
       </p>
+      {view.backup_email && !view.backup_confirmed ? (
+        <p className="text-muted mt-1 max-w-prose" data-testid="backup-unconfirmed">
+          {t("admin.guests.access.backup.unconfirmed")}
+        </p>
+      ) : null}
       <form onSubmit={ask} noValidate className="mt-4 flex flex-col gap-3">
         <Field
           id={`${id}-email`}

@@ -269,6 +269,31 @@ describe("UploadQueue", () => {
       expect(t.deps.actions.renewUpload).toHaveBeenCalledWith({ id: "id1", mime: "image/jpeg" });
     });
 
+    it("opakování pošle přesně stejný soubor (podepsaná délka se nemění) a zmenšení se nepočítá znovu", async () => {
+      let failing = true;
+      let call = 0;
+      const prepare = vi.fn(
+        async (f: File) => new Blob([new Uint8Array(50 + ++call)], { type: f.type }),
+      );
+      const t = setup({
+        prepare,
+        put: vi.fn(async (target, blob) => {
+          t.log.push(`size:${blob.size}`);
+          if (failing) throw new PutError(0);
+        }),
+      });
+      t.queue.add([file("a.jpg", "image/jpeg", 500)]);
+      await t.settle();
+      failing = false;
+      t.queue.retry(t.queue.snapshot()[0].key);
+      await t.settle();
+      expect(t.queue.snapshot()[0].status).toBe("done");
+      expect(prepare).toHaveBeenCalledTimes(1);
+      const sizes = new Set(t.log.filter((l) => l.startsWith("size:")));
+      expect(sizes).toEqual(new Set(["size:51"]));
+      expect(t.log).toContain("request:image/jpeg:51");
+    });
+
     it("opakování po chybě u fotografie, která už není čekající (renew vrátí not_found), nahraje novou", async () => {
       let failing = true;
       const renewUpload = vi.fn(async () => ({ status: "not_found" as const }));

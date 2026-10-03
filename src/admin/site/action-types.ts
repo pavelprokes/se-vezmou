@@ -20,6 +20,7 @@ export type PublishActionResult = Guarded<
   | { status: "published"; versionNo: number; slug: string; warnings: Issue[] }
   | { status: "invalid"; issues: Issue[] }
   | { status: "not_publishable" }
+  | { status: "conflict" }
   | { status: "limited"; retryAfter: number }
 >;
 
@@ -55,7 +56,8 @@ export type GalleryCardActionResult = Guarded<
 /** Akce, které editor dostává ze serverové stránky (Server Actions jako props). */
 export interface EditorActions {
   save(input: { doc: unknown; baseRev: number }): Promise<SaveActionResult>;
-  publish(note: string): Promise<PublishActionResult>;
+  /** `baseRev`: revize pracovní kopie, kterou editor vidí; zastaralé okno nic nezveřejní. */
+  publish(note: string, baseRev: number): Promise<PublishActionResult>;
   unpublish(): Promise<SimpleActionResult>;
   checkpoint(note: string): Promise<CheckpointActionResult>;
   quickNotice(input: unknown): Promise<QuickNoticeActionResult>;

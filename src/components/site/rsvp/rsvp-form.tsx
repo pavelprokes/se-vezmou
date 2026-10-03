@@ -11,6 +11,7 @@ import {
   type RefObject,
 } from "react";
 import { Icon } from "@/components/ui/icon";
+import { newNonce } from "@/lib/nonce";
 import {
   answerField,
   attendanceField,
@@ -406,6 +407,9 @@ function GuestForm({
   onOtherName: () => void;
 }) {
   const unlisted = model.mode === "unlisted";
+  // Idempotenční klíč tohoto formuláře: dvojklik i opakování po chybě sítě odešle týž klíč, takže server
+  // odpověď hosta mimo seznam nezaloží dvakrát. Po úspěchu formulář zmizí, nový formulář má nový klíč.
+  const nonce = useRef<string | null>(null);
   const eventById = new Map(model.events.map((event) => [event.id, event]));
   const adults = values.extras.filter((extra) => extra.kind === "adult");
   const hasPlusOne = !unlisted && adults.length > 0;
@@ -537,6 +541,8 @@ function GuestForm({
         if (pending) return;
         const formData = new FormData(event.currentTarget);
         formData.set("mode", model.mode);
+        nonce.current ??= newNonce();
+        formData.set("nonce", nonce.current);
         onSubmit(formData);
       }}
     >

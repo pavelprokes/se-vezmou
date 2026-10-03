@@ -21,6 +21,13 @@ export type RpcCaller = TenantIdentity;
 export type RpcKind = "table" | "scalar";
 
 /**
+ * Volitelné vlastnosti volání. `readOnly`: funkce jen čte (v databázi `stable`). Transakce je pak `read only`
+ * (zápis by selhal) a `commit` se neřadí před odpověď: výsledek se vrátí hned po dotazu, `commit` doběhne na
+ * pozadí a spojení se vrátí do poolu až po něm. Role ani claimy se tím nemění.
+ */
+export type RpcOptions = { readOnly?: boolean };
+
+/**
  * Totožnost volajícího pro funkce, které čtou claimy transakce (`se_vezmou.wedding_id()`, `se_vezmou.wedding_role()`):
  * návštěvník, host po PINu nebo správce jedné svatby. Bez ní se funkce volá jako service role.
  */
@@ -35,6 +42,7 @@ export interface RpcTransport {
     args: Record<string, unknown>,
     kind: RpcKind,
     as?: TenantIdentity,
+    options?: RpcOptions,
   ): Promise<unknown>;
 }
 
@@ -62,8 +70,26 @@ export class DbError extends Error {
 
 const IDENTIFIER = /^[a-z_][a-z0-9_]*$/;
 
+/**
+ * Textový literál pro příkaz s jednoduchým protokolem (stejně jako `escapeLiteral` v `pg`). Jde sem jen JSON
+ * claimů sestavený z ověřených hodnot (UUID a pevné řetězce), takže zpětná lomítka a uvozovky jsou jen pojistka.
+ */
+export function escapeLiteral(value: string): string {
+  let hasBackslash = false;
+  let escaped = "'";
+  for (const char of value) {
+    if (char === "'") escaped += "''";
+    else if (char === "\\") {
+      escaped += "\\\\";
+      hasBackslash = true;
+    } else escaped += char;
+  }
+  escaped += "'";
+  return hasBackslash ? ` E${escaped}` : escaped;
+}
+
 const pgTransport: RpcTransport = {
-  async call(fn, args, kind, as) {
+  async call(fn, args, kind, as, options) {
     if (!IDENTIFIER.test(fn)) throw new Error("Neplatný název funkce");
     const entries = Object.entries(args).filter(([, value]) => value !== undefined);
     for (const [key] of entries) {
@@ -77,21 +103,40 @@ const pgTransport: RpcTransport = {
     // Totožnost se ověří dřív, než se vezme spojení: chybný vstup se do databáze nedostane.
     const claims = as ? JSON.stringify(buildTenantClaims(as)) : undefined;
 
+    const readOnly = options?.readOnly === true;
     const client = await (await getPool()).connect();
     let broken = false;
+    let releaseLater = false;
     try {
-      // Role se mění uvnitř transakce (`set local`), takže přežije jen do commitu a spojení vrácené
-      // poolerem nemůže nést cizí totožnost. Dva příkazy v jednom jednoduchém dotazu šetří cestu sítí.
-      await client.query(`begin; set local role ${as ? "authenticated" : "service_role"}`);
-      if (claims) {
-        await client.query("select set_config('request.jwt.claims', $1, true)", [claims]);
-      }
+      // Role i claimy jsou lokální pro transakci (`set local`, `set_config(..., true)`), takže přežijí jen do
+      // commitu a spojení vrácené poolerem nemůže nést cizí totožnost. Začátek transakce, role a claimy jdou
+      // jedním jednoduchým dotazem (jedna cesta sítí), teprve potom volání funkce s parametry.
+      const setup = [
+        `begin${readOnly ? " read only" : ""}`,
+        `set local role ${as ? "authenticated" : "service_role"}`,
+        ...(claims
+          ? [`select set_config('request.jwt.claims', ${escapeLiteral(claims)}, true)`]
+          : []),
+      ].join("; ");
+      await client.query(setup);
       const result = await client.query(
         sql,
         entries.map(([, value]) => value),
       );
-      await client.query("commit");
-      return kind === "table" ? result.rows : (result.rows[0]?.v ?? null);
+      const value = kind === "table" ? result.rows : (result.rows[0]?.v ?? null);
+      if (readOnly) {
+        // Čtení nic nezapsalo: odpověď nečeká na commit, spojení se vrátí až po něm.
+        releaseLater = true;
+        void client
+          .query("commit")
+          .catch(() => {
+            broken = true;
+          })
+          .finally(() => client.release(broken));
+      } else {
+        await client.query("commit");
+      }
+      return value;
     } catch (error) {
       await client.query("rollback").catch(() => {
         broken = true;
@@ -105,7 +150,7 @@ const pgTransport: RpcTransport = {
       );
     } finally {
       // Spojení, na kterém selhal i rollback, se zahodí, ať se nevrátí do poolu v nejasném stavu.
-      client.release(broken);
+      if (!releaseLater) client.release(broken);
     }
   },
 };

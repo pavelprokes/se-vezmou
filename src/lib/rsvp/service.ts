@@ -1,4 +1,6 @@
 import "server-only";
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import { requireEnv } from "@/env";
 import type { Defer } from "@/auth/login";
 import { RATE_RULES, type RateRule } from "@/auth/config";
@@ -165,10 +167,13 @@ export async function submitStep(input: {
   const parsed = parseSubmission(input.form, model);
   if (!parsed.ok) return { state: { stage: "form", error: "invalid", errors: parsed.errors } };
 
+  // Odpověď hosta mimo seznam nese idempotenční klíč z prohlížeče (dvojklik, opakování po výpadku sítě);
+  // bez platného klíče (starší stránka) se vygeneruje nový, takže ochrana jen chybí, odpověď se neztratí.
+  const nonce = parseNonce(input.form.get("nonce")) ?? randomUUID();
   const outcome =
     input.mode === "listed"
       ? await submitHousehold(input.weddingId, input.ticket as string, parsed.payload)
-      : await submitUnlisted(input.weddingId, parsed.payload);
+      : await submitUnlisted(input.weddingId, { ...parsed.payload, nonce });
   if (!outcome.ok) {
     switch (outcome.reason) {
       case "closed":
@@ -182,11 +187,13 @@ export async function submitStep(input: {
     }
   }
 
-  if (firstResponse) input.defer(() => recordRsvpCompleted(input.locale));
+  // Opakované odeslání téhož formuláře: host vidí stejné potvrzení, ale nic se nepočítá ani neposílá podruhé.
+  const duplicate = outcome.duplicate;
+  if (firstResponse && !duplicate) input.defer(() => recordRsvpCompleted(input.locale));
 
   const email = parsed.payload.contact_email ?? null;
   const emailSent = email !== null && model.flags.emailConfirmation;
-  if (emailSent) {
+  if (emailSent && !duplicate) {
     input.defer(() =>
       sendConfirmation({
         weddingId: input.weddingId,
@@ -207,6 +214,10 @@ export async function submitStep(input: {
     }
   }
   return { state: { stage: "form", done } };
+}
+
+function parseNonce(value: FormDataEntryValue | null): string | null {
+  return typeof value === "string" && z.guid().safeParse(value).success ? value : null;
 }
 
 function expired(): StepResult {

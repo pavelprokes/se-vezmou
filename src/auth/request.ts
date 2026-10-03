@@ -1,5 +1,6 @@
 import "server-only";
 import { headers } from "next/headers";
+import { env } from "@/env";
 import { UI_LOCALE_HEADER } from "@/host/ui-locale";
 import type { Locale } from "@/i18n/config";
 import { clientIp, isSameOrigin, pickLocale } from "./request-info";
@@ -8,7 +9,7 @@ import { clientIp, isSameOrigin, pickLocale } from "./request-info";
 
 export async function getClientIp(): Promise<string> {
   const h = await headers();
-  return clientIp((name) => h.get(name), Boolean(process.env.VERCEL));
+  return clientIp((name) => h.get(name), Boolean(env.VERCEL));
 }
 
 export async function getHost(): Promise<string | null> {

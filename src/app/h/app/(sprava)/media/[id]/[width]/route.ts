@@ -16,7 +16,7 @@ export async function GET(request: Request, context: RouteContext<"/h/app/media/
     if (!session) return mediaNotFound();
     const key = await adminMediaVariant(session, media);
     if (!key) return mediaNotFound();
-    return await mediaRedirect(key);
+    return await mediaRedirect(key, { cache: "admin" });
   } catch (error) {
     console.error("[fotografie] náhled selhal", error instanceof Error ? error.name : "");
     return new Response(null, { status: 503, headers: { "Cache-Control": "private, no-store" } });

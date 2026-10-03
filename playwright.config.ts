@@ -72,7 +72,10 @@ export default defineConfig({
     reuseExistingServer: Boolean(process.env.E2E_REUSE_SERVER),
     timeout: 300_000,
     env: {
-      // Kořenová doména pro lokální hostitele a zapnutý vizuální katalog (mimo produkci).
+      // Testovací vrátka (e-mail do souborů, simulovaný čas cronu, úložiště v paměti, katalog UI, falešný cíl
+      // karet galerie) fungují v produkčním sestavení jen s tímto opt-in (src/lib/test-hatches.ts).
+      ALLOW_TEST_HATCHES: "1",
+      // Kořenová doména pro lokální hostitele a zapnutý vizuální katalog (jen s opt-in výše).
       ROOT_DOMAIN: "localhost",
       ENABLE_UI_CATALOG: "1",
       // Přihlášení (M4): přímé spojení s Postgresem jako se_vezmou_app, e-maily do souborů, testovací tajné hodnoty.

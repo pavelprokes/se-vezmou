@@ -218,7 +218,12 @@ export async function saveDraftAction(rawDraft: unknown): Promise<SaveDraftResul
     const emails = token ? openVerified(token) : null;
     if (!emails) return { status: "verify_required" };
 
-    const result = await firstSave({ emails, draft, ip: await getClientIp() });
+    const result = await firstSave({
+      emails,
+      draft,
+      ip: await getClientIp(),
+      backupNotice: { locale: await getUiLocale(), defer },
+    });
     if (result.status === "limited") return { status: "limited" };
     if (result.status !== "created") return result;
 

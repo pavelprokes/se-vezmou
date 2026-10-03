@@ -130,6 +130,9 @@ export function parseDeleteErrors(xml: string): string[] {
   );
 }
 
+/** Časový limit jednoho požadavku na R2. */
+export const REQUEST_TIMEOUT_MS = 10_000;
+
 const DELETE_BATCH = 1000;
 const LIST_PAGE = 1000;
 /** Pojistka proti nekonečnému stránkování (1000 stránek po 1000 klíčích je řádově víc, než svatba unese). */
@@ -154,7 +157,8 @@ export function createR2Storage(config: R2Config): PhotoStorage {
   ): Promise<Response> {
     let response: Response;
     try {
-      response = await aws.fetch(url, init);
+      // Každý požadavek má pevný časový limit (i čtení těla odpovědi), ať visící R2 nezdrží funkci na Vercelu.
+      response = await aws.fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
     } catch {
       throw new StorageError("storage_failed", `Úložiště nedostupné (${what})`);
     }
@@ -219,7 +223,13 @@ export function createR2Storage(config: R2Config): PhotoStorage {
   async function presign(
     key: string,
     method: "GET" | "PUT",
-    options: { expiresInSeconds: number; datetime?: string; query?: Record<string, string> },
+    options: {
+      expiresInSeconds: number;
+      datetime?: string;
+      query?: Record<string, string>;
+      /** Hlavičky, které se podepíšou (klient je musí poslat beze změny); např. `content-length`. */
+      signedHeaders?: Record<string, string>;
+    },
   ): Promise<string> {
     assertKey(key);
     const url = new URL(objectUrl(key));
@@ -229,7 +239,13 @@ export function createR2Storage(config: R2Config): PhotoStorage {
     url.searchParams.set("X-Amz-Expires", String(options.expiresInSeconds));
     const signed = await aws.sign(url.toString(), {
       method,
-      aws: { signQuery: true, ...(options.datetime ? { datetime: options.datetime } : {}) },
+      headers: options.signedHeaders,
+      aws: {
+        signQuery: true,
+        // `allHeaders`: aws4fetch jinak `content-length` z podpisu vynechává
+        ...(options.signedHeaders ? { allHeaders: true } : {}),
+        ...(options.datetime ? { datetime: options.datetime } : {}),
+      },
     });
     return signed.url;
   }
@@ -254,7 +270,15 @@ export function createR2Storage(config: R2Config): PhotoStorage {
       if (!parseKey(key)?.incoming) {
         throw new StorageError("invalid_key", "Nahrávat lze jen do karantény");
       }
-      const url = await presign(key, "PUT", { expiresInSeconds: options.expiresInSeconds });
+      if (!Number.isSafeInteger(options.bytes) || options.bytes < 1) {
+        throw new StorageError("invalid_key", "Chybná velikost nahrávaného souboru");
+      }
+      // Podepsaná je přesná délka těla (`content-length`): R2 odmítne PUT s jiným počtem bajtů, takže nahrávání
+      // nejde použít k uložení většího souboru, než jaký schválil server. Prohlížeč délku posílá sám.
+      const url = await presign(key, "PUT", {
+        expiresInSeconds: options.expiresInSeconds,
+        signedHeaders: { "content-length": String(options.bytes) },
+      });
       return {
         url,
         method: "PUT",

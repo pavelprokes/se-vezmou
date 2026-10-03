@@ -119,6 +119,8 @@ export interface SubmitPayload {
   contact_email?: string | null;
   answers: Record<string, string | boolean>;
   people: PayloadPerson[];
+  /** Idempotenční klíč odpovědi hosta mimo seznam (UUID z prohlížeče); databáze ho vynucuje jako unikátní. */
+  nonce?: string;
 }
 
 // --- 2. správcovská strana --------------------------------------------------------------

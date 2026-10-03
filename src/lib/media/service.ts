@@ -1,7 +1,6 @@
 import "server-only";
-import { RATE_RULES, type RateRule } from "@/auth/config";
-import { rateKey } from "@/auth/rate-limit";
-import { requireEnv } from "@/env";
+import { limited, reasonOf } from "@/lib/rate-guard";
+import { RATE_RULES } from "@/auth/config";
 import type { AdminIdentity } from "@/lib/db/admin-site";
 import {
   adminMediaBegin,
@@ -14,8 +13,6 @@ import {
   adminMediaUpdate,
   type VariantInput,
 } from "@/lib/db/media";
-import { rateLimitHit } from "@/lib/db/rpc";
-import { DbError } from "@/lib/db/transport";
 import {
   StorageError,
   StorageTooLargeError,
@@ -49,19 +46,6 @@ import { z } from "zod";
  * Každá funkce dostává relaci správce z volající Server Action; svatba je vždy ta z relace. Do logu se
  * nedostane obsah, jména souborů ani klíče, jen druh chyby.
  */
-
-async function limited(scope: string, weddingId: string, rule: RateRule): Promise<number | null> {
-  const result = await rateLimitHit(
-    rateKey(requireEnv("RATE_LIMIT_SECRET"), scope, weddingId),
-    rule.limit,
-    rule.windowSeconds,
-  );
-  return result.allowed ? null : result.retryAfter;
-}
-
-function reasonOf(error: unknown): string | undefined {
-  return error instanceof DbError ? error.reason : undefined;
-}
 
 /** Úložiště je k dispozici, nebo `null` (produkce bez R2: hlásí se jasně, ale jen tady, při použití fotografií). */
 function usableStorage(): PhotoStorage | null {
@@ -152,7 +136,7 @@ export async function requestUpload(
     throw error;
   }
   await sweepStale(storage, session.weddingId, created.stale);
-  return presignFor(session, storage, created.id, parsed.data.mime);
+  return presignFor(session, storage, created.id, parsed.data.mime, parsed.data.bytes);
 }
 
 async function presignFor(
@@ -160,10 +144,12 @@ async function presignFor(
   storage: PhotoStorage,
   id: string,
   mime: string,
+  bytes: number,
 ): Promise<RequestUploadResult> {
   try {
     const target = await storage.presignPut(incomingKey(session.weddingId, id), {
       contentType: mime,
+      bytes,
       expiresInSeconds: MEDIA_LIMITS.uploadUrlSeconds,
     });
     return {
@@ -206,8 +192,11 @@ export async function renewUpload(
   );
   if (retry !== null) return { status: "limited", retryAfter: retry };
   const row = mediaRowSchema.nullable().parse(await adminMediaGet(session, parsed.data.id));
-  if (!row || row.status !== "pending" || row.kind !== "photo") return { status: "not_found" };
-  return presignFor(session, storage, parsed.data.id, parsed.data.mime);
+  if (!row || row.status !== "pending" || row.kind !== "photo" || !row.bytes) {
+    return { status: "not_found" };
+  }
+  // Délka v podpisu je ta, kterou server při založení schválil (řádek v databázi), ne hodnota od klienta.
+  return presignFor(session, storage, parsed.data.id, parsed.data.mime, Number(row.bytes));
 }
 
 // --- zpracování ------------------------------------------------------------------------------
@@ -547,13 +536,11 @@ export async function exportPhotos(session: AdminIdentity): Promise<PhotoExportR
   const order = (await listMedia(session))
     .filter((item) => item.kind === "photo")
     .map((item) => item.id);
-  const rank = (id: string) => {
-    const index = order.indexOf(id);
-    return index === -1 ? Number.MAX_SAFE_INTEGER : index;
-  };
-  const files = [...plan.files]
-    .filter((file) => order.includes(file.mediaId))
-    .sort((a, b) => rank(a.mediaId) - rank(b.mediaId));
+  // Map místo indexOf/includes v řadicí funkci: O(n log n) místo O(n^2).
+  const rank = new Map(order.map((id, index) => [id, index]));
+  const files = plan.files
+    .filter((file) => rank.has(file.mediaId))
+    .sort((a, b) => rank.get(a.mediaId)! - rank.get(b.mediaId)!);
   if (files.length === 0) return { status: "empty" };
   const pad = String(files.length).length < 2 ? 2 : String(files.length).length;
   return {

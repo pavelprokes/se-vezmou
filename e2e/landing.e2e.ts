@@ -99,7 +99,8 @@ for (const locale of locales) {
       // Reference jsou zástupný text: žádné recenze ve strukturovaných datech.
       expect(JSON.stringify(documents)).not.toContain('"Review"');
       expect(JSON.stringify(documents)).not.toContain("AggregateRating");
-      // Zástupný kontakt se do značek nepíše.
+      // Kontakt provozovatele je ve značkách, zástupné texty ne.
+      expect(JSON.stringify(documents)).toContain("info@se-vezmou.cz");
       expect(JSON.stringify(documents)).not.toContain("[KONTAKT]");
     });
 
@@ -319,14 +320,14 @@ for (const locale of locales) {
       else expect(lead).toContain("practical");
     });
 
-    test("patička: provozovatel (svatební fotograf) a zástupný kontakt", async ({ page }) => {
+    test("patička: provozovatel (svatební fotograf) a kontakt", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       const footer = page.locator("footer");
       await expect(footer).toContainText("Pavel Prokeš, IČO 87877601");
       await expect(footer).toContainText(
         locale.code === "cs" ? "svatební fotograf" : "wedding photographer",
       );
-      await expect(footer).toContainText("[KONTAKT]");
+      await expect(footer).toContainText("info@se-vezmou.cz");
     });
   });
 

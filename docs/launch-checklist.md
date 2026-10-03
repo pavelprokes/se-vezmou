@@ -64,7 +64,7 @@ Postup krok za krokem je v `supabase/README.md`, kapitola Fotografie. Stručně:
 
 Dokud jsou zástupné, **nespouštějte veřejně**:
 
-- `[KONTAKT]` (provozovatel Pavel Prokeš, IČO 87877601 je doplněný) v `src/config/operator.ts` (patička, FAQ, právní stránky, strukturovaná data), OQ-21.
+- Provozovatel (Pavel Prokeš, IČO 87877601) a kontakt (info@se-vezmou.cz) jsou doplněné v `src/config/operator.ts` (patička, FAQ, právní stránky, strukturovaná data), OQ-21.
 - `[PODMÍNKY]` (konec zaváděcího provozu a podmínky po něm) v `src/config/pricing.ts`, OQ-11. Texty nikdy neslibují „zdarma navždy“.
 - Stránky `/soukromi`, `/podminky`, prohlášení o přístupnosti (`src/i18n/messages/*/legal.json`) jsou zástupné; zásady musí uvést dílčí zpracovatele (Vercel, Supabase, AWS SES, Cloudflare R2, případně Sentry), že prohlížeč hosta se připojuje k R2 (IP adresa), koncept průvodce v `localStorage` a pár jako správce údajů hostů (`docs/security-privacy.md` kap. 5).
 - Krátké sdělení u RSVP (`rsvp.privacy.notice`) a upozornění u zdravotních údajů (`rsvp.health.notice`, „30 dní“ napevno, OQ-61).

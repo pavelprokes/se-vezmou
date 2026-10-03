@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSpayd,
   czAccountToIban,
+  isValidBic,
   isValidCzAccount,
   isValidIban,
   parseCzAccount,
@@ -14,6 +15,13 @@ describe("QR platba (SPAYD)", () => {
     expect(isValidIban("CZ65 0800 0000 1920 0014 5399")).toBe(true);
     expect(isValidIban("CZ6508000000192000145398")).toBe(false);
     expect(isValidIban("neplatny")).toBe(false);
+  });
+
+  it("ověří tvar BIC (8 nebo 11 znaků, mezery a malá písmena se tolerují)", () => {
+    expect(isValidBic("GIBACZPX")).toBe(true);
+    expect(isValidBic("gibaczpx xxx")).toBe(true);
+    expect(isValidBic("GIBACZP")).toBe(false);
+    expect(isValidBic("1234CZPX")).toBe(false);
   });
 
   it("zpráva je bez diakritiky, velkými písmeny a nejvýše 60 znaků", () => {

@@ -1,0 +1,16 @@
+/*
+ * Plynulé prolnutí mezi stránkami úvodního webu. Stránky jsou běžné odkazy (celé načtení), proto jde
+ * o přechod mezi dokumenty (CSS `@view-transition`, Chromium 126+ a Safari 18.2+); prohlížeč bez podpory
+ * stránku jen přepne. Bez omezení pohybu (WCAG 2.3.3) a bez zachytávání kliknutí během animace.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+  ::view-transition-group(root) {
+    animation-duration: 200ms;
+  }
+}
+::view-transition {
+  pointer-events: none;
+}

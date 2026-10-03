@@ -47,6 +47,7 @@ export interface SettingsInitial {
   closesAt: string | null;
   allowUnlisted: boolean;
   emailConfirmation: boolean;
+  notifyCouple: boolean;
   enabledQuestions: Partial<Record<BuiltinQuestion, boolean>>;
   questions: {
     id: string;
@@ -112,6 +113,7 @@ export function RsvpSettings({
   const [close, setClose] = useState(parts(initial.closesAt));
   const [allowUnlisted, setAllowUnlisted] = useState(initial.allowUnlisted);
   const [emailConfirmation, setEmailConfirmation] = useState(initial.emailConfirmation);
+  const [notifyCouple, setNotifyCouple] = useState(initial.notifyCouple);
   const [flags, setFlags] = useState(initial.enabledQuestions);
   const nextKey = useRef(1000);
   const [questions, setQuestions] = useState<QuestionRow[]>(
@@ -220,6 +222,7 @@ export function RsvpSettings({
       closesAt: closesIso,
       allowUnlisted,
       emailConfirmation,
+      notifyCouple,
       enabledQuestions: Object.fromEntries(
         BUILTIN_QUESTIONS.map((key) => [key, flags[key] === true]),
       ),
@@ -352,6 +355,12 @@ export function RsvpSettings({
             onChange={(e) => setEmailConfirmation(e.target.checked)}
           />
           <p className="text-muted ml-9 text-sm">{t("admin.guests.rsvp.email.hint")}</p>
+          <Checkbox
+            label={t("admin.guests.rsvp.notify")}
+            checked={notifyCouple}
+            onChange={(e) => setNotifyCouple(e.target.checked)}
+          />
+          <p className="text-muted ml-9 text-sm">{t("admin.guests.rsvp.notify.hint")}</p>
         </div>
       </Card>
 

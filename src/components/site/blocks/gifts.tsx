@@ -7,6 +7,7 @@ import type { SiteCtx } from "../context";
 import { giftsModel } from "../models";
 import { PinGate, UnlockedRegion } from "../pin-gate";
 import { pinGateLabels } from "../pin-labels";
+import { ForeignPayment } from "./foreign-payment";
 import { Paragraphs, Section } from "./section";
 
 /** QR kód jako inline SVG (černá na bílé s tichou zónou, aby šel načíst v každé paletě). */
@@ -75,6 +76,7 @@ export function Gifts({
                   </div>
                 ) : null}
               </dl>
+              <ForeignPayment gifts={gifts} ctx={ctx} facts="site-facts" />
             </div>
             <figure className="site-qr-figure">
               <PaymentQr

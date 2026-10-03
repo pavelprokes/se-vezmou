@@ -1,6 +1,7 @@
 import { PDFDocument } from "pdf-lib";
 import { describe, expect, it } from "vitest";
-import { renderAnnouncementPdf, type AnnouncementInput } from "./announcement";
+import type { Block } from "@/site/types";
+import { pickGalleryUrl, renderAnnouncementPdf, type AnnouncementInput } from "./announcement";
 
 const input: AnnouncementInput = {
   locale: "cs",
@@ -65,5 +66,46 @@ describe("renderAnnouncementPdf", () => {
       }),
     );
     expect(pdf.getPageCount()).toBe(1);
+  });
+});
+
+describe("QR kód fotogalerie", () => {
+  const galleryUrl = "https://fotky.example/klara-a-matej";
+
+  it("s adresou galerie je pořád jedna stránka a PDF je větší o druhý kód", async () => {
+    const plain = await renderAnnouncementPdf(input);
+    for (const locale of ["cs", "en"] as const) {
+      const withGallery = await renderAnnouncementPdf({ ...input, locale, galleryUrl });
+      expect((await PDFDocument.load(withGallery)).getPageCount()).toBe(1);
+      expect(withGallery.byteLength).toBeLessThan(200_000);
+    }
+    const cs = await renderAnnouncementPdf({ ...input, galleryUrl });
+    expect(cs.byteLength).toBeGreaterThan(plain.byteLength);
+  });
+
+  it("bez PINu se vykreslí také a bez galerie je výstup jako dřív", async () => {
+    const bytes = await renderAnnouncementPdf({ ...input, pin: null, galleryUrl });
+    expect((await PDFDocument.load(bytes)).getPageCount()).toBe(1);
+    const nothing = await renderAnnouncementPdf({ ...input, galleryUrl: null });
+    expect((await PDFDocument.load(nothing)).getPageCount()).toBe(1);
+  });
+
+  it("pickGalleryUrl bere jen zapnutý blok s veřejným odkazem", () => {
+    const block = (enabled: boolean, link: unknown): Block =>
+      ({
+        id: "00000000-0000-4000-8000-000000000001",
+        type: "gallery",
+        anchor: "fotky",
+        enabled,
+        position: 0,
+        sensitive: false,
+        data: { mediaIds: [], photosProtected: false, link },
+      }) as Block;
+    const open = { url: galleryUrl, label: null, protected: false, card: null };
+    expect(pickGalleryUrl([block(true, open)])).toBe(galleryUrl);
+    expect(pickGalleryUrl([block(false, open)])).toBeNull();
+    expect(pickGalleryUrl([block(true, { ...open, url: null, protected: true })])).toBeNull();
+    expect(pickGalleryUrl([block(true, null)])).toBeNull();
+    expect(pickGalleryUrl([])).toBeNull();
   });
 });

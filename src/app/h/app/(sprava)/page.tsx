@@ -14,6 +14,7 @@ import { WeddingPicker } from "@/components/admin/wedding-picker";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
+import { ShareLinks } from "@/components/share-links";
 import { getTranslator } from "@/i18n/load";
 import { quickNoticeAction } from "./web/actions";
 import { switchWeddingAction } from "./actions";
@@ -123,6 +124,22 @@ export default async function OverviewPage() {
                 </a>
               ) : null}
             </div>
+            {site && published ? (
+              <div className="mt-5 flex flex-col gap-3">
+                <h3 className="text-lg font-medium">{t("admin.overview.share.title")}</h3>
+                <p className="text-muted text-sm">{t("admin.overview.share.body")}</p>
+                <ShareLinks
+                  labels={{
+                    whatsapp: t("admin.overview.share.whatsapp"),
+                    sms: t("admin.overview.share.sms"),
+                    email: t("admin.overview.share.email"),
+                    native: t("admin.overview.share.native"),
+                    subject: t("admin.overview.share.subject"),
+                    message: t("admin.overview.share.message", { url: site.url }),
+                  }}
+                />
+              </div>
+            ) : null}
           </Card>
 
           <Card as="section" aria-labelledby="quick-heading">
@@ -133,6 +150,7 @@ export default async function OverviewPage() {
               <QuickNotice
                 initial={{ notice: meta.quickNotice, enabled: meta.quickNoticeEnabled }}
                 locales={doc.wedding.locales}
+                weddingDate={{ startsOn: doc.wedding.startsOn, endsOn: doc.wedding.endsOn }}
                 action={quickNoticeAction}
                 published={published}
               />

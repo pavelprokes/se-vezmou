@@ -5,10 +5,13 @@ import { requireEnv } from "@/env";
 import type { Defer } from "@/auth/login";
 import { RATE_RULES, type RateRule } from "@/auth/config";
 import { rateKey } from "@/auth/rate-limit";
-import { type Locale, localePath } from "@/i18n/config";
+import { type Locale, localePath, toLocale } from "@/i18n/config";
+import { currentHostConfig } from "@/auth/app-origin";
+import { ADMIN_PATHS } from "@/admin/paths";
+import { rsvpNotifyRecipients } from "@/lib/db/admin-guests";
 import { authSessionContext, rateLimitHit } from "@/lib/db/rpc";
 import { sendTemplatedEmail } from "@/lib/email/send";
-import { renderRsvpConfirmation } from "@/lib/email/templates";
+import { renderRsvpConfirmation, renderRsvpNotice } from "@/lib/email/templates";
 import { recordRsvpCompleted } from "./analytics";
 import {
   fetchHouseholdView,
@@ -205,6 +208,15 @@ export async function submitStep(input: {
       }),
     );
   }
+  if (!duplicate) {
+    input.defer(() =>
+      notifyCouple({
+        weddingId: input.weddingId,
+        summary: parsed.summary,
+        kind: input.mode === "listed" && !firstResponse ? "changed" : "new",
+      }),
+    );
+  }
   const done: DoneSummary = { ...parsed.summary, emailSent };
 
   if (input.mode === "listed") {
@@ -250,4 +262,50 @@ async function sendConfirmation(input: {
     email,
     secret: requireEnv("AUTH_SECRET"),
   });
+}
+
+/**
+ * Upozornění páru na odpověď (jen když ho pár zapnul; adresy vrací databáze podle příznaku). Nese
+ * jen jména a účast, žádné zdravotní údaje. Nic z toho nesmí shodit odeslání odpovědi hosta: chyby se
+ * jen zalogují bez osobních údajů a nad limit za hodinu se upozornění tiše přeskočí.
+ */
+async function notifyCouple(input: {
+  weddingId: string;
+  summary: Omit<DoneSummary, "emailSent">;
+  kind: "new" | "changed";
+}): Promise<void> {
+  try {
+    const recipients = await rsvpNotifyRecipients(input.weddingId);
+    if (recipients.length === 0) return;
+    if (!(await allowed("rsvp-notify", input.weddingId, RATE_RULES.rsvpNotifyWedding))) return;
+    const context = await authSessionContext(input.weddingId);
+    if (!context) return;
+    const root = currentHostConfig().rootDomains[0];
+    const secret = requireEnv("AUTH_SECRET");
+    const seen = new Set<string>();
+    for (const row of recipients) {
+      const key = row.email.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      const locale = toLocale(row.locale);
+      const email = renderRsvpNotice({
+        locale,
+        partners: { a: context.partnerAName, b: context.partnerBName },
+        kind: input.kind,
+        unlisted: input.summary.unlisted,
+        people: input.summary.people,
+        manageUrl: `https://app.${root}${localePath(ADMIN_PATHS.responses, locale)}`,
+      });
+      await sendTemplatedEmail({
+        type: "rsvp_notice",
+        to: row.email,
+        weddingId: input.weddingId,
+        locale,
+        email,
+        secret,
+      });
+    }
+  } catch (error) {
+    console.error("[rsvp] upozornění páru selhalo", error instanceof Error ? error.name : "");
+  }
 }

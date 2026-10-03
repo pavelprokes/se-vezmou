@@ -5,6 +5,7 @@ import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import { intlLocale, type Locale } from "@/i18n/config";
 import { typo } from "@/i18n/typo";
+import type { Block } from "@/site/types";
 import { qrMatrix, QR_QUIET_ZONE } from "../qr";
 
 /**
@@ -35,6 +36,9 @@ const COPY = {
     kicker: "Svatební web",
     lead: "Všechny informace najdete na našem webu:",
     scan: "Naskenujte kód telefonem, nebo opište adresu.",
+    scanWeb: "Svatební web",
+    scanGallery: "Fotogalerie",
+    scanBoth: "Naskenujte kód telefonem.",
     qrAlt: "QR kód s adresou webu",
     pinLabel: "PIN pro hosty",
     pinNote: "Některé údaje uvidíte až po zadání PINu.",
@@ -46,6 +50,9 @@ const COPY = {
     kicker: "Wedding website",
     lead: "You will find all the details on our website:",
     scan: "Scan the code with your phone, or type the address.",
+    scanWeb: "Wedding website",
+    scanGallery: "Photo gallery",
+    scanBoth: "Scan the codes with your phone.",
     qrAlt: "QR code with the website address",
     pinLabel: "Guest PIN",
     pinNote: "Some details are shown only after you enter the PIN.",
@@ -80,6 +87,19 @@ export interface AnnouncementInput {
   url: string;
   /** PIN hostů v prostém tvaru; bez něj se pole na stránce vynechá. */
   pin: string | null;
+  /** Veřejná adresa fotogalerie pro hosty; s ní má stránka druhý QR kód vedle kódu webu. */
+  galleryUrl?: string | null;
+}
+
+/**
+ * Adresa galerie pro druhý QR kód: jen zapnutý blok s veřejným odkazem. Chráněný odkaz (`url = null`)
+ * se do tisku nedostane, protože patří za PIN a nemá být na papíře, který se předává dál.
+ */
+export function pickGalleryUrl(blocks: readonly Block[]): string | null {
+  for (const block of blocks) {
+    if (block.type === "gallery" && block.enabled) return block.data.link?.url ?? null;
+  }
+  return null;
 }
 
 /** Text jen ze znaků, které písmo umí (nezlomitelná mezera a pomlčky by jinak shodily vložení). */
@@ -116,11 +136,12 @@ function centered(
   y: number,
   color = INK,
   maxWidth = A4.width - 96,
+  cx = A4.width / 2,
 ): number {
   let fitted = size;
   while (font.widthOfTextAtSize(text, fitted) > maxWidth && fitted > 10) fitted -= 1;
   const width = font.widthOfTextAtSize(text, fitted);
-  page.drawText(text, { x: (A4.width - width) / 2, y, size: fitted, font, color });
+  page.drawText(text, { x: cx - width / 2, y, size: fitted, font, color });
   return fitted;
 }
 
@@ -200,11 +221,27 @@ export async function renderAnnouncementPdf(input: AnnouncementInput): Promise<U
   centered(page, printable(bold, input.host), bold, 26, y, INK);
   y -= 40;
 
-  const qrSize = 230;
-  drawQr(page, input.url, (A4.width - qrSize) / 2, y - qrSize, qrSize);
-  y -= qrSize + 28;
-  centered(page, printable(sans, typo(copy.scan, input.locale)), sans, 13, y, MUTED);
-  y -= 50;
+  if (input.galleryUrl) {
+    // Dva kódy vedle sebe (web a fotogalerie): menší, aby se vešel i PIN
+    const qrSize = 170;
+    const offset = 100;
+    const cx = A4.width / 2;
+    drawQr(page, input.url, cx - offset - qrSize / 2, y - qrSize, qrSize);
+    drawQr(page, input.galleryUrl, cx + offset - qrSize / 2, y - qrSize, qrSize);
+    y -= qrSize + 22;
+    const captionWidth = qrSize + 20;
+    centered(page, printable(bold, copy.scanWeb), bold, 13, y, INK, captionWidth, cx - offset);
+    centered(page, printable(bold, copy.scanGallery), bold, 13, y, INK, captionWidth, cx + offset);
+    y -= 26;
+    centered(page, printable(sans, typo(copy.scanBoth, input.locale)), sans, 13, y, MUTED);
+    y -= 44;
+  } else {
+    const qrSize = 230;
+    drawQr(page, input.url, (A4.width - qrSize) / 2, y - qrSize, qrSize);
+    y -= qrSize + 28;
+    centered(page, printable(sans, typo(copy.scan, input.locale)), sans, 13, y, MUTED);
+    y -= 50;
+  }
 
   if (input.pin) {
     const boxWidth = 300;

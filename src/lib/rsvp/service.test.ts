@@ -52,6 +52,7 @@ const TICKET = "a".repeat(64);
 const base = {
   email_log_insert: () => "55555555-5555-4555-8555-555555555555",
   email_log_set_status: () => true,
+  rsvp_notify_recipients: () => [],
   analytics_record: () => null,
   auth_session_context: () => [
     {
@@ -335,6 +336,106 @@ describe("submitStep: odeslání a úprava (FR-RSVP-5, FR-RSVP-6)", () => {
     );
     await off.run();
     expect(skipped.state.done?.emailSent).toBe(false);
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+
+  it("upozornění páru: jen s příznakem, bez zdravotních údajů a bez adresy v záznamu", async () => {
+    const db = fakeDb(
+      listedHandlers({
+        rsvp_notify_recipients: () => [
+          { email: "klara@example.test", locale: "cs" },
+          { email: "KLARA@example.test", locale: "cs" },
+          { email: "matej@example.test", locale: "en" },
+        ],
+      }),
+    );
+    const later = deferred();
+    await submitStep(
+      submitInput({
+        form: formOf([
+          ...complete,
+          [`g.${G_JAN}.diet`, "bezlepková"],
+          [`g.${G_JAN}.allergies`, "ořechy"],
+          ["email", "jan@example.test"],
+        ]),
+        defer: later.defer,
+      }),
+    );
+    await later.run();
+
+    const notices = vi
+      .mocked(sendEmail)
+      .mock.calls.map((c) => c[0])
+      .filter((m) => m.to.endsWith("@example.test") && m.to !== "jan@example.test");
+    // dvě různé adresy (duplicita bez ohledu na velikost písmen se sloučí), každá ve svém jazyce
+    expect(notices.map((m) => m.to)).toEqual(["klara@example.test", "matej@example.test"]);
+    expect(notices[0].subject).toBe("Nová odpověď na svatbu");
+    expect(notices[1].subject).toBe("New reply to your wedding");
+    for (const message of notices) {
+      for (const secret of ["bezlepková", "ořechy", "jan@example.test"]) {
+        expect(message.text).not.toContain(secret);
+        expect(message.html).not.toContain(secret);
+      }
+      expect(message.text).toContain("Jan Novák");
+      expect(message.text).toContain("https://app.");
+    }
+    const types = db.of("email_log_insert").map((c) => c.args.p_type);
+    expect(types.filter((type) => type === "rsvp_notice")).toHaveLength(2);
+    expect(JSON.stringify(db.of("email_log_insert"))).not.toContain("klara@");
+  });
+
+  it("upozornění páru: úprava hlásí změnu, bez příjemců, při duplicitě i nad limit se neposílá nic", async () => {
+    const recipients = () => [{ email: "klara@example.test", locale: "cs" }];
+
+    // úprava existující odpovědi
+    fakeDb(
+      listedHandlers({
+        rsvp_notify_recipients: recipients,
+        rsvp_get: () =>
+          householdView({
+            response: { answers: {}, contact_email: null, entered_by: "guest", people: [] },
+          }),
+      }),
+    );
+    const edit = deferred();
+    await submitStep(submitInput({ defer: edit.defer }));
+    await edit.run();
+    const changed = vi.mocked(sendEmail).mock.calls.map((c) => c[0]);
+    expect(changed.some((m) => m.subject === "Host změnil odpověď na svatbu")).toBe(true);
+
+    // vypnuto (databáze nevrací žádné adresy)
+    vi.mocked(sendEmail).mockClear();
+    fakeDb(listedHandlers());
+    const off = deferred();
+    await submitStep(submitInput({ defer: off.defer }));
+    await off.run();
+    expect(sendEmail).not.toHaveBeenCalled();
+
+    // nad limit upozornění za hodinu se tiše přeskočí a odpověď hosta projde
+    fakeDb(
+      listedHandlers({
+        rsvp_notify_recipients: recipients,
+        rate_limit_hit: (args) =>
+          String(args.p_bucket_key).startsWith("rsvp-notify:") ? deny(args) : allow(args),
+      }),
+    );
+    const limited = deferred();
+    const result = await submitStep(submitInput({ defer: limited.defer }));
+    await limited.run();
+    expect(result.state.stage).toBe("form");
+    expect(sendEmail).not.toHaveBeenCalled();
+
+    // chyba při hledání adres neshodí odeslání odpovědi
+    fakeDb(
+      listedHandlers({
+        rsvp_notify_recipients: () => {
+          throw new Error("databáze nedostupná");
+        },
+      }),
+    );
+    const broken = deferred();
+    await submitStep(submitInput({ defer: broken.defer }));
+    await expect(broken.run()).resolves.toBeUndefined();
     expect(sendEmail).not.toHaveBeenCalled();
   });
 

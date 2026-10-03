@@ -778,3 +778,35 @@ test.describe("zaměření, cíle dotyku a reflow", () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 });
+
+test.describe("přechody mezi stránkami", () => {
+  async function navigateToPricing(page: Page): Promise<"yes" | "no" | null> {
+    await page.addInitScript(() => {
+      window.addEventListener("pagereveal", (event) => {
+        sessionStorage.setItem(`vt-${location.pathname}`, event.viewTransition ? "yes" : "no");
+      });
+    });
+    await page.goto(pageUrl(HOSTS.marketing, "/"));
+    // Odkaz v hlavičce může být v mobilní variantě skrytý; přechod ověřujeme kliknutím v dokumentu
+    await page.evaluate(() =>
+      document.querySelector<HTMLAnchorElement>('a[href="/cenik"]')?.click(),
+    );
+    await page.waitForURL("**/cenik");
+    await expect(page.locator("h1")).toBeVisible();
+    return page.evaluate(() => sessionStorage.getItem("vt-/cenik") as "yes" | "no" | null);
+  }
+
+  test.describe("bez omezení pohybu", () => {
+    test.use({ reducedMotion: "no-preference", locale: "cs-CZ" });
+    test("přechod mezi dokumenty se spustí", async ({ page }) => {
+      expect(await navigateToPricing(page)).toBe("yes");
+    });
+  });
+
+  test.describe("s omezeným pohybem", () => {
+    test.use({ reducedMotion: "reduce", locale: "cs-CZ" });
+    test("bez animace (WCAG 2.3.3)", async ({ page }) => {
+      expect(await navigateToPricing(page)).toBe("no");
+    });
+  });
+});

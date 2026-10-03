@@ -433,6 +433,7 @@ const sensitiveRaw = {
     account: "19-2000145399/0800",
     iban: "CZ6508000000192000145399",
     holder: "Klára Ukázková",
+    bic: "GIBACZPX",
     paymentMessage: "Svatba Klára a Matěj",
   },
 };

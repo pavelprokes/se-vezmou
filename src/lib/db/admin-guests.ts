@@ -64,6 +64,15 @@ export function adminRsvpSettingsSave(session: AdminIdentity, payload: unknown):
   return tenantRpc<unknown>(identity(session), "admin_rsvp_settings_save", { p_payload: payload });
 }
 
+/** Příznak upozornění páru na odpovědi hostů (vlastní funkce, nepatří do uložení otázek). */
+export function adminRsvpNotifyGet(session: AdminIdentity): Promise<boolean> {
+  return tenantRpc<boolean>(identity(session), "admin_rsvp_notify_get");
+}
+
+export async function adminRsvpNotifySet(session: AdminIdentity, enabled: boolean): Promise<void> {
+  await tenantRpc(identity(session), "admin_rsvp_notify_set", { p_enabled: enabled });
+}
+
 // --- přístup --------------------------------------------------------------------------------
 
 export function adminAccessLoad(session: AdminIdentity): Promise<unknown> {
@@ -118,6 +127,17 @@ export async function guestDataNoticeRecipients(
 ): Promise<{ email: string; locale: string }[]> {
   return serviceRpc<{ email: string; locale: string }[]>(
     "guest_data_notice_recipients",
+    { p_wedding_id: weddingId },
+    "table",
+  );
+}
+
+/** Adresy správců pro upozornění na odpověď; prázdné, když má svatba upozornění vypnuté. */
+export async function rsvpNotifyRecipients(
+  weddingId: string,
+): Promise<{ email: string; locale: string }[]> {
+  return serviceRpc<{ email: string; locale: string }[]>(
+    "rsvp_notify_recipients",
     { p_wedding_id: weddingId },
     "table",
   );

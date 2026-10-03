@@ -612,6 +612,22 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
     expect(within(gifts).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
   });
 
+  it("anglická verze přidá příjemce, IBAN, BIC a zprávu jako text s tlačítkem Kopírovat", () => {
+    renderSite(eukalyptusFixture, "en", { sensitiveUnlocked: true, sensitive: sensitiveFixture });
+    const gifts = screen.getByRole("region", { name: "Gifts" });
+    expect(within(gifts).getByText("CZ65 0800 0000 1920 0014 5399")).toBeInTheDocument();
+    expect(within(gifts).getByText("GIBACZPX")).toBeInTheDocument();
+    expect(within(gifts).getAllByText("Klára Ukázková")).toHaveLength(2);
+    expect(within(gifts).getByRole("button", { name: "Copy IBAN" })).toBeInTheDocument();
+  });
+
+  it("česká verze text IBANu a tlačítko Kopírovat nevykresluje", () => {
+    renderSite(eukalyptusFixture, "cs", { sensitiveUnlocked: true, sensitive: sensitiveFixture });
+    const gifts = screen.getByRole("region", { name: "Dary" });
+    expect(within(gifts).queryByText("GIBACZPX")).toBeNull();
+    expect(within(gifts).queryByRole("button", { name: /Kopírovat/ })).toBeNull();
+  });
+
   it("s příznakem vykreslí číslo účtu a QR platbu s popiskem", () => {
     const { container } = renderSite(eukalyptusFixture, "cs", {
       sensitiveUnlocked: true,

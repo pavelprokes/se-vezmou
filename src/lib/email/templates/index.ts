@@ -21,3 +21,4 @@ export {
   type DeletionNoticeKind,
   type DeletionNoticeParams,
 } from "./deletion-notice";
+export { renderRsvpNotice, type RsvpNoticeParams } from "./rsvp-notice";

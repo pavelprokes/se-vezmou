@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { locales } from "@/i18n/config";
 import { i18nTextSchema } from "./i18n-text";
-import { isValidIban } from "./payment";
+import { isValidBic, isValidIban } from "./payment";
 import { templateKeys } from "./themes/palettes";
 
 /**
@@ -323,6 +323,8 @@ export const sensitiveContentSchema = z.object({
       account: z.string().min(1),
       iban: z.string().refine(isValidIban, "Neplatný IBAN"),
       holder: z.string().nullable().default(null),
+      /** BIC/SWIFT pro zahraniční hosty (anglická verze ho ukazuje jako text vedle IBANu). */
+      bic: z.string().refine(isValidBic, "Neplatný BIC").nullable().default(null),
       /** Zpráva pro příjemce v QR platbě (bez pevné částky). */
       paymentMessage: z.string().max(60).nullable().default(null),
     })

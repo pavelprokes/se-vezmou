@@ -400,6 +400,7 @@ export async function authSessionContext(weddingId: string): Promise<SessionCont
 export type EmailLogType =
   | "login_code"
   | "rsvp_confirmation"
+  | "rsvp_notice"
   | "admin_changed"
   | "backup_login_notice"
   | "expiry_notice"

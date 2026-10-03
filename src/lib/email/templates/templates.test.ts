@@ -6,6 +6,7 @@ import {
   renderLoginCode,
   renderWizardCode,
   renderRsvpConfirmation,
+  renderRsvpNotice,
   type RenderedEmail,
 } from "./index";
 
@@ -54,6 +55,29 @@ function allEmails(locale: Locale): Record<string, RenderedEmail> {
       people: [{ name: "Karel Cizí", rows: [] }],
       editUrl: LINK,
       unlisted: true,
+    }),
+    rsvpNotice: renderRsvpNotice({
+      locale,
+      partners: { a: "Klára", b: "Matěj" },
+      kind: "new",
+      unlisted: false,
+      people: [
+        {
+          name: "Jan Novák",
+          rows: [
+            { event: locale === "cs" ? "Svatební obřad" : "Wedding ceremony", attending: true },
+          ],
+        },
+      ],
+      manageUrl: LINK,
+    }),
+    rsvpNoticeChanged: renderRsvpNotice({
+      locale,
+      partners: { a: "Klára", b: "Matěj" },
+      kind: "changed",
+      unlisted: true,
+      people: [{ name: "Karel Cizí", rows: [] }],
+      manageUrl: LINK,
     }),
     pinChanged: renderBackupLoginNotice({
       locale,
@@ -167,7 +191,7 @@ describe.each(locales)("e-mailové šablony (%s)", (locale) => {
 
   it("předměty se mezi typy oznámení liší", () => {
     const subjects = Object.values(emails).map((email) => email.subject);
-    expect(new Set(subjects).size).toBe(6); // pinLogin a pinLoginNoSite, rsvpConfirmation a rsvpConfirmationUnlisted sdílejí předmět
+    expect(new Set(subjects).size).toBe(8); // pinLogin a pinLoginNoSite, rsvpConfirmation a rsvpConfirmationUnlisted sdílejí předmět
   });
 });
 

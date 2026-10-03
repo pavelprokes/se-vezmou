@@ -199,7 +199,7 @@ Normalizaci jmen zajišťuje jedna implementace v SQL (nemění se mezi aplikac�
 
 ### 3.5 RSVP
 
-**`rsvp_settings`**: `wedding_id` pk, `opens_at`, `closes_at` (null = bez omezení), `allow_unlisted bool` (FR-RSVP-7), `email_confirmation bool`, `enabled_questions jsonb` (zapnuté vestavěné otázky: doprovod, děti, dieta, ubytování, doprava, píseň).
+**`rsvp_settings`**: `wedding_id` pk, `opens_at`, `closes_at` (null = bez omezení), `allow_unlisted bool` (FR-RSVP-7), `email_confirmation bool`, `notify_couple bool` (upozornění správců e-mailem na odpověď hosta, výchozí vypnuto), `enabled_questions jsonb` (zapnuté vestavěné otázky: doprovod, děti, dieta, ubytování, doprava, píseň).
 
 **`rsvp_questions`** (vlastní otázky páru): `id`, `wedding_id`, `key`, `type` (`text`, `choice`, `bool`), `label i18n_text`, `options jsonb null` (u `choice`, texty jako `i18n_text`), `required`, `event_id null` (otázka jen pro událost), `position`, `enabled`.
 
@@ -253,7 +253,7 @@ Tabulka je append-only (kapitola 11).
 
 ### 3.7 E-maily a čekací listina
 
-**`email_log`**: `id`, `wedding_id null`, `type` (`login_code`, `rsvp_confirmation`, `admin_changed`, `backup_login_notice`, `expiry_notice`), `locale`, `recipient_hash bytea`, `recipient_domain text`, `status` (`queued`, `sent`, `delivered`, `bounced`, `complained`, `failed`), `provider_message_id`, `error_code`, `created_at`, `delivered_at`. Bez obsahu a bez celé adresy příjemce.
+**`email_log`**: `id`, `wedding_id null`, `type` (`login_code`, `rsvp_confirmation`, `admin_changed`, `backup_login_notice`, `expiry_notice`, `rsvp_notice`), `locale`, `recipient_hash bytea`, `recipient_domain text`, `status` (`queued`, `sent`, `delivered`, `bounced`, `complained`, `failed`), `provider_message_id`, `error_code`, `created_at`, `delivered_at`. Bez obsahu a bez celé adresy příjemce.
 
 **`waitlist`**: `id`, `email citext unique`, `locale`, `consent_at`, `consent_text_version`. Čekací listina je v MVP (zadání), potvrzení e-mailem (double opt-in) `[OTÁZKA]`, doporučení ano.
 
@@ -617,6 +617,7 @@ Zapsáno při implementaci RSVP hostů, PINu hostů a správcovské strany RSVP 
 **Potvrzení e-mailem (FR-RSVP-6)**
 
 - Odesílá se jen při `email_confirmation` a zadané adrese, po odpovědi (`after()`), šablona `rsvp-confirmation` cs/en bez zdravotních údajů; `email_log` nese jen typ `rsvp_confirmation`, jazyk, HMAC adresy a doménu. Adresa se ukládá do `rsvp_responses.contact_email` jen při zapnutém potvrzení (vynucuje databáze).
+- Upozornění páru (`notify_couple`, `admin_rsvp_notify_get/set`): po každé nové nebo změněné odpovědi (ne při duplicitě) jde správcům krátký e-mail (`rsvp-notice` cs/en, `email_log` typ `rsvp_notice`) se jmény a účastí, nikdy s dietou, alergiemi, kontaktním e-mailem hosta ani volnými odpověďmi. Adresy aktivních správců vrací `rsvp_notify_recipients` (service role, prázdné při vypnutém příznaku), jazyk je výchozí jazyk svatby. Odeslání je best effort po odpovědi (`after()`), s pojistkou 30 upozornění za hodinu a svatbu.
 
 ## 16. Odchylky a rozhodnutí implementace (M5, průvodce)
 

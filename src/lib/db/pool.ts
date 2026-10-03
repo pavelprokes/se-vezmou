@@ -41,12 +41,14 @@ function isLocalHost(host: string): boolean {
  * TLS spojení. Rozhoduje parametr `sslmode` v adrese (stejné názvy jako libpq), ostatní `ssl*`
  * parametry se ignorují, aby `pg` nevybralo jiné chování než zdokumentované:
  *  - `disable`: bez TLS, jen pro loopback a unixový socket (jinak chyba);
- *  - `require` (výchozí pro vzdálenou databázi): TLS bez ověření řetězu certifikátů. Pooler Supabase
- *    má certifikát podepsaný vlastní CA Supabase, kterou systémové úložiště nezná. Provoz je šifrovaný,
- *    ale nechrání proti aktivnímu útočníkovi v síti;
- *  - `verify-full`, nebo `require` s nastaveným `DATABASE_CA_CERT` (PEM kořenové CA Supabase):
- *    ověření řetězu i názvu serveru. DOPORUČENO po doplnění certifikátu (docs/open-questions.md).
- * Bez `sslmode` je výchozí `disable` pro loopback/socket a `require` jinak.
+ *  - `require` (výchozí pro vzdálenou databázi), `prefer`, `no-verify` s nastaveným `DATABASE_CA_CERT`
+ *    (PEM kořenové CA Supabase): ověření řetězu i názvu serveru (VÝCHOZÍ chování pro vzdálenou databázi);
+ *  - totéž BEZ `DATABASE_CA_CERT`: chyba nasazení s jasnou zprávou. Pooler Supabase má certifikát podepsaný
+ *    vlastní CA Supabase, kterou systémové úložiště nezná, a spojení bez ověření řetězu chrání jen před
+ *    odposlechem, ne před aktivním útočníkem v síti. Vědomě to jde povolit jen výslovnou proměnnou
+ *    `DATABASE_TLS_INSECURE=1` (TLS bez ověření řetězu; docs/open-questions.md, OQ-45);
+ *  - `verify-ca` a `verify-full`: vždy ověření (s `DATABASE_CA_CERT`, jinak se systémovými CA).
+ * Bez `sslmode` je výchozí `disable` pro loopback/socket (lokální vývoj, CI, e2e) a `require` jinak.
  */
 export function tlsFromUrl(url: URL, env: Env = process.env): PoolConfig["ssl"] {
   const host =
@@ -63,7 +65,13 @@ export function tlsFromUrl(url: URL, env: Env = process.env): PoolConfig["ssl"] 
     case "require":
     case "prefer":
     case "no-verify":
-      return ca ? { ca, rejectUnauthorized: true } : { rejectUnauthorized: false };
+      if (ca) return { ca, rejectUnauthorized: true };
+      if (env.DATABASE_TLS_INSECURE?.trim() === "1") return { rejectUnauthorized: false };
+      if (local) return { rejectUnauthorized: false };
+      throw new Error(
+        "DATABASE_URL: vzdálená databáze vyžaduje ověření certifikátu. Nastavte DATABASE_CA_CERT (PEM kořenové " +
+          "CA Supabase), nebo vědomě DATABASE_TLS_INSECURE=1 (TLS bez ověření řetězu, docs/open-questions.md OQ-45)",
+      );
     case "verify-ca":
     case "verify-full":
       return ca ? { ca, rejectUnauthorized: true } : { rejectUnauthorized: true };

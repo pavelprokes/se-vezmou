@@ -137,3 +137,38 @@ describe("přímý PostgreSQL: totožnost svatby jako claimy transakce", () => {
     expect((raw as Error).message).not.toContain("Jan Novák");
   });
 });
+
+describe("testovací hodina databáze (se_vezmou.clock_guard)", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("bez CRON_TEST_CLOCK se testovací hodina nezapíná", async () => {
+    vi.stubEnv("CRON_TEST_CLOCK", "");
+    const { getTransport } = await import("./transport");
+    await getTransport().call("housekeeping", {}, "scalar");
+    expect(queries.list[0]?.sql).toBe("begin; set local role service_role");
+  });
+
+  it("s CRON_TEST_CLOCK=1 ji zapne jen volání service role", async () => {
+    vi.stubEnv("CRON_TEST_CLOCK", "1");
+    vi.stubEnv("VERCEL_ENV", "preview");
+    const { getTransport } = await import("./transport");
+    await getTransport().call("purge_health_data", { p_batch: 1 }, "scalar");
+    expect(queries.list[0]?.sql).toBe(
+      "begin; set local role service_role; set local se_vezmou.test_clock = 'on'",
+    );
+    queries.list = [];
+    await getTransport().call("rsvp_match", {}, "table", {
+      weddingId: WEDDING,
+      weddingRole: "visitor",
+    });
+    expect(queries.list[0]?.sql).toBe("begin; set local role authenticated");
+  });
+
+  it("v ostré produkci ji nezapne ani s CRON_TEST_CLOCK=1", async () => {
+    vi.stubEnv("CRON_TEST_CLOCK", "1");
+    vi.stubEnv("VERCEL_ENV", "production");
+    const { getTransport } = await import("./transport");
+    await getTransport().call("housekeeping", {}, "scalar");
+    expect(queries.list[0]?.sql).toBe("begin; set local role service_role");
+  });
+});

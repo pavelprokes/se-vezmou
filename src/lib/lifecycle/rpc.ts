@@ -50,6 +50,16 @@ export function archiveDue(scope: Scope & { batch: number }): Promise<number> {
   });
 }
 
+/** Archivované weby po lhůtě za `guest_purge_at` přejdou do stavu deleted (ochranná lhůta, potom retence). */
+export function deleteArchived(scope: Scope & { batch: number }): Promise<number> {
+  return serviceRpc<number>("lifecycle_delete_archived", {
+    p_now: iso(scope.now),
+    p_batch: scope.batch,
+    p_wedding_id: scope.weddingId ?? null,
+    p_dry_run: scope.dryRun ?? false,
+  });
+}
+
 export function enqueueNotices(scope: Scope): Promise<{ first: number; final: number }> {
   return serviceRpc<{ first: number; final: number }>("lifecycle_enqueue_notices", {
     p_now: iso(scope.now),
@@ -146,6 +156,20 @@ export async function dueWeddings(scope: Scope & { batch: number }): Promise<Due
     { p_now: iso(scope.now), p_batch: scope.batch, p_wedding_id: scope.weddingId ?? null },
     "table",
   );
+}
+
+/**
+ * Čerstvá kontrola způsobilosti a převzetí webu těsně před mazáním souborů (pod zámkem řádku). `false`: web mezitím
+ * obnoven, prodloužen nebo ho už maže jiný běh, soubory se nemažou. Převzetí zároveň odmítne obnovu operátorem
+ * po dobu mazání (`purge_in_progress`).
+ */
+export function claimPurge(weddingId: string, now: Date): Promise<boolean> {
+  return serviceRpc<boolean>("retention_claim", { p_wedding_id: weddingId, p_now: iso(now) });
+}
+
+/** Uvolní převzetí po selhání; další pokus přijde až po záloze (počet pokusů zůstává). */
+export async function releasePurge(weddingId: string): Promise<void> {
+  await serviceRpc("retention_release", { p_wedding_id: weddingId });
 }
 
 export type PurgeWeddingResult = {

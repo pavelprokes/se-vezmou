@@ -245,6 +245,42 @@ for attempt in 1 2 3; do
 done
 [[ "$conc_ok" -eq 1 ]] || FAILED=$((FAILED + 1))
 
+# Souběžný test op_set_operator_disabled: dva majitelé se zakážou navzájem ve dvou paralelních transakcích.
+# Bez zámku by obě kontroly „zůstává jiný aktivní majitel“ prošly a nezůstal by žádný; se zámkem druhá skončí
+# chybou last_owner.
+log "Souběžný test posledního majitele"
+OWN1="$(sql -Atc "select gen_random_uuid()")"
+OWN2="$(sql -Atc "select gen_random_uuid()")"
+sql -c "insert into se_vezmou.operators (id, email, role) values ('$OWN1', 'souboj1-$$@example.test', 'owner'), ('$OWN2', 'souboj2-$$@example.test', 'owner')" >/dev/null
+# v databázi mohou být i jiní majitelé (zakázání by pak prošlo oběma): testujeme jen s dvojicí, ostatní dočasně zakážeme
+OTHERS="$(sql -Atc "select coalesce(string_agg(id::text, ','), '') from se_vezmou.operators where role = 'owner' and disabled_at is null and id not in ('$OWN1', '$OWN2')")"
+if [[ -n "$OTHERS" ]]; then
+  sql -c "update se_vezmou.operators set disabled_at = now() where id = any (string_to_array('$OTHERS', ',')::uuid[])" >/dev/null
+fi
+RC1="${DB_DIR:-${TMPDIR:-/tmp}}/own1.$$"
+RC2="${DB_DIR:-${TMPDIR:-/tmp}}/own2.$$"
+( rc=0; printf "begin;\nselect se_vezmou.op_set_operator_disabled('%s', '%s', true, 'souběh 1');\nselect pg_sleep(1.5);\ncommit;\n" "$OWN1" "$OWN2" \
+    | sql -At -f - >/dev/null 2>&1 || rc=$?; echo $rc > "$RC1" ) &
+P1=$!
+sleep 0.4
+( rc=0; printf "begin;\nselect se_vezmou.op_set_operator_disabled('%s', '%s', true, 'souběh 2');\ncommit;\n" "$OWN2" "$OWN1" \
+    | sql -At -f - >/dev/null 2>&1 || rc=$?; echo $rc > "$RC2" ) &
+P2=$!
+wait "$P1" "$P2"
+rc1="$(cat "$RC1")"; rc2="$(cat "$RC2")"; rm -f "$RC1" "$RC2"
+active="$(sql -Atc "select count(*) from se_vezmou.operators where id in ('$OWN1', '$OWN2') and disabled_at is null")"
+sql -c "delete from se_vezmou.operators where id in ('$OWN1', '$OWN2')" >/dev/null
+if [[ -n "$OTHERS" ]]; then
+  sql -c "update se_vezmou.operators set disabled_at = null where id = any (string_to_array('$OTHERS', ',')::uuid[])" >/dev/null
+fi
+if [[ "$active" -eq 1 && "$rc1" -eq 0 && "$rc2" -ne 0 ]]; then
+  log "  OK      zůstal právě jeden aktivní majitel, druhé zakázání skončilo chybou last_owner"
+  TOTAL_OK=$((TOTAL_OK + 1))
+else
+  log "  SELHALO aktivních majitelů: $active (čekáno 1), návratové kódy: $rc1 a $rc2 (čekáno 0 a nenulový)"
+  FAILED=$((FAILED + 1))
+fi
+
 log ""
 if [[ "$FAILED" -ne 0 ]]; then
   log "DB TESTY SELHALY: souborů/kontrol s chybou $FAILED, úspěšných kontrol $TOTAL_OK"

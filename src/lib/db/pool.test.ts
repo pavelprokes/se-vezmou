@@ -20,7 +20,7 @@ describe("adresa databáze", () => {
 
 describe("nastavení poolu", () => {
   it("pooler Supabase: malý max, timeouty, rozbalené heslo", () => {
-    const config = poolConfigFromUrl(POOLER, {});
+    const config = poolConfigFromUrl(POOLER, { DATABASE_CA_CERT: "PEM" });
     expect(config).toMatchObject({
       host: "aws-0-eu-central-1.pooler.supabase.com",
       port: 6543,
@@ -57,9 +57,28 @@ describe("nastavení poolu", () => {
 describe("TLS", () => {
   const tls = (url: string, env: Record<string, string> = {}) => tlsFromUrl(new URL(url), env);
 
-  it("vzdálená databáze: výchozí je TLS bez ověření řetězu (require)", () => {
-    expect(tls(POOLER)).toEqual({ rejectUnauthorized: false });
-    expect(tls(`${POOLER}?sslmode=require`)).toEqual({ rejectUnauthorized: false });
+  it("vzdálená databáze bez CA se odmítne s jasnou zprávou (DATABASE_CA_CERT je potřeba)", () => {
+    expect(() => tls(POOLER)).toThrow(/DATABASE_CA_CERT/);
+    expect(() => tls(`${POOLER}?sslmode=require`)).toThrow(/DATABASE_TLS_INSECURE/);
+    expect(() => tls(`${POOLER}?sslmode=no-verify`)).toThrow(/ověření certifikátu/);
+  });
+
+  it("výslovné DATABASE_TLS_INSECURE=1 povolí TLS bez ověření řetězu; jiná hodnota ne", () => {
+    expect(tls(POOLER, { DATABASE_TLS_INSECURE: "1" })).toEqual({ rejectUnauthorized: false });
+    expect(() => tls(POOLER, { DATABASE_TLS_INSECURE: "true" })).toThrow(/DATABASE_CA_CERT/);
+    // CA má přednost před opt-outem
+    expect(tls(POOLER, { DATABASE_CA_CERT: "PEM", DATABASE_TLS_INSECURE: "1" })).toEqual({
+      ca: "PEM",
+      rejectUnauthorized: true,
+    });
+  });
+
+  it("poolConfigFromUrl: vzdálená adresa bez CA selže, s CA ověřuje", () => {
+    expect(() => poolConfigFromUrl(POOLER, {})).toThrow(/DATABASE_CA_CERT/);
+    expect(poolConfigFromUrl(POOLER, { DATABASE_CA_CERT: "PEM" }).ssl).toEqual({
+      ca: "PEM",
+      rejectUnauthorized: true,
+    });
   });
 
   it("s DATABASE_CA_CERT se certifikát ověřuje", () => {

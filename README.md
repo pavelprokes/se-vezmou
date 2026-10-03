@@ -145,7 +145,7 @@ shodí `npm run i18n:check` (ADR 0003).
      `R2_BUCKET`, případně `R2_ENDPOINT` a `S3_REGION`; postup v `supabase/README.md`),
    - `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL`, `ROOT_DOMAIN`.
 
-   Doporučené: `DATABASE_CA_CERT` (ověření certifikátu databáze). Volitelné: Sentry (`NEXT_PUBLIC_SENTRY_DSN`,
+   Povinná: `DATABASE_CA_CERT` (PEM kořenové CA Supabase, ověření certifikátu databáze; bez ní vzdálená databáze selže, vědomé opt-out `DATABASE_TLS_INSECURE=1`). Volitelné: Sentry (`NEXT_PUBLIC_SENTRY_DSN`,
    `SENTRY_*`, rozhodnutí OQ-65). Proměnné jen pro testy (`EMAIL_TRANSPORT`, `STORAGE_DRIVER`,
    `CRON_TEST_CLOCK`, `OG_FETCH_TEST_HOST`, `ENABLE_UI_CATALOG`, `HOST_PRESET`) na Vercelu nenastavuj.
 

@@ -347,7 +347,14 @@ describe("obrázek karty externí galerie", () => {
 
   it("vykreslí kopii z vlastního úložiště jako dekorativní obrázek, cizí adresa se nikde neobjeví", () => {
     const image = media(9, { alt: null, decorative: true, widths: [640, 1280] });
-    const { container } = renderSite(withGallery([image], { mediaIds: [], link: card(ID(9)) }));
+    const chateau: PublicContent = {
+      ...eukalyptusFixture,
+      template: "chateau",
+      palette: "champagne",
+    };
+    const { container } = renderSite(
+      withGallery([image], { mediaIds: [], link: card(ID(9)) }, chateau),
+    );
     const link = screen.getByRole("link", { name: /Galerie Anny/ });
     const img = link.querySelector("img")!;
     expect(img).toHaveAttribute("alt", "");
@@ -358,6 +365,15 @@ describe("obrázek karty externí galerie", () => {
     expect(container.innerHTML).not.toContain("cdn.example");
     // název odkazu zůstává textem: obrázek ho nenahrazuje
     expect(link).toHaveTextContent("Galerie Anny");
+  });
+
+  it("Eukalyptus ukáže odkaz typograficky (doména, bez obrázku karty) a s textem o jiném webu", () => {
+    const image = media(9, { alt: null, decorative: true, widths: [640, 1280] });
+    renderSite(withGallery([image], { mediaIds: [], link: card(ID(9)) }));
+    const link = screen.getByRole("link", { name: /Galerie Anny/ });
+    expect(link.querySelector("img")).toBeNull();
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveTextContent("Odkaz se otevře na jiném webu");
   });
 
   it("bez kopie (úložiště není nastavené) zůstane karta bez obrázku", () => {

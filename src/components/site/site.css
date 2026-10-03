@@ -1,5 +1,6 @@
 /*
- * Web páru: společné bloky a čtyři šablony (editorial, eukalyptus, chateau, modern).
+ * Web páru: společné bloky a klasická kostra šablon (editorial, chateau, modern). Eukalyptus má vlastní
+ * kompozici (templates/eukalyptus/eukalyptus.css) a odsud používá jen sdílené prvky (formuláře, galerie, mapa).
  * Šablona mění jen tokeny (`--s-*`), typografii a kompozici; barvy dodává paleta jako
  * proměnné `--s-<role>` na `.site-root` (src/site/themes/palettes.ts) a každou dvojici hlídá
  * test kontrastu. Role `ornament`, `decor` a `decor2` jsou JEN dekor (linky, SVG listy): nikdy
@@ -1276,47 +1277,6 @@ html:has(dialog.site-lightbox[open]) {
 }
 
 /* Dekorace (jen SVG, vždy pod textem) */
-.site-leaves {
-  position: absolute;
-  top: 0;
-  z-index: 0;
-  width: 7rem;
-  height: auto;
-  pointer-events: none;
-}
-.site-leaves-a {
-  left: 0;
-}
-.site-leaves-b {
-  right: 0;
-}
-.site-leaf-stem {
-  stroke: var(--s-ornament);
-  stroke-width: 3;
-}
-.site-leaf-1 {
-  fill: var(--s-decor);
-}
-.site-leaf-2 {
-  fill: var(--s-ornament);
-}
-.site-leaf-3 {
-  fill: var(--s-decor2);
-}
-.site-root[data-template="eukalyptus"] .site-hero {
-  /* Pod listy na mobilu se nevejde text; ty zabírají horní okraj. */
-  padding-top: 9rem;
-}
-@media (min-width: 62rem) {
-  .site-leaves {
-    top: 1rem;
-    width: 13rem;
-  }
-  .site-root[data-template="eukalyptus"] .site-hero {
-    padding-top: clamp(3rem, 10vw, 7rem);
-  }
-}
-
 .site-monogram {
   width: 8rem;
   height: 8rem;

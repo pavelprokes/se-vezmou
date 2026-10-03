@@ -1,0 +1,1309 @@
+/*
+ * Eukalyptus 2.0: editoriální šablona s obří typografií a plnými plochami.
+ *
+ * Barvy: plochy palety přicházejí jako `--eu-<plocha>-<role>` na `.eu` (src/site/themes/palettes.ts, test
+ * kontrastu ve `validateSurfaces`). Každá sekce má `data-tone` a z něj si nastaví `--t-*` (text, akcent,
+ * tlačítko) i proměnné `--s-*`, které čtou sdílené prvky (formuláře RSVP a PINu, galerie, mapa).
+ * Dekor (`.eu-leaf-*`) je jen z dekorativních rolí palety. Animace jen bez `prefers-reduced-motion`.
+ */
+
+.eu {
+  --eu-gutter: 1.5rem;
+  --eu-pad: 5rem;
+  --eu-max: 105rem; /* 1680 px */
+  --eu-nav-h: 4rem;
+  --eu-shadow: 0 30px 60px -36px rgb(31 42 36 / 0.45);
+  --eu-serif: var(--font-newsreader), Georgia, serif;
+  --eu-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+
+  --s-font-display: var(--eu-serif);
+  --s-font-body: var(--eu-sans);
+  --s-radius: 0.25rem;
+
+  font-family: var(--eu-sans);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  background: var(--eu-paper-bg);
+  color: var(--eu-paper-text);
+}
+@media (min-width: 48rem) {
+  .eu {
+    --eu-gutter: 3rem;
+  }
+}
+@media (min-width: 80rem) {
+  .eu {
+    --eu-gutter: 6rem;
+    --eu-pad: 8rem;
+  }
+}
+
+/* Plochy: `--t-*` pro šablonu, `--s-*` pro sdílené prvky. */
+.eu [data-tone] {
+  --s-bg: var(--t-bg);
+  --s-surface: var(--t-bg);
+  --s-text: var(--t-text);
+  --s-muted: var(--t-muted);
+  --s-accent: var(--t-accent);
+  --s-onAccent: var(--t-onButton);
+  --s-display: var(--t-text);
+  --s-border: var(--eu-field);
+  --s-focus: var(--t-focus);
+  background: var(--t-bg);
+  color: var(--t-text);
+}
+.eu [data-tone="light"] {
+  --t-bg: var(--eu-light-bg);
+  --t-text: var(--eu-light-text);
+  --t-muted: var(--eu-light-muted);
+  --t-accent: var(--eu-light-accent);
+  --t-button: var(--eu-light-button);
+  --t-onButton: var(--eu-light-onButton);
+  --t-focus: var(--eu-light-focus);
+}
+.eu [data-tone="paper"] {
+  --t-bg: var(--eu-paper-bg);
+  --t-text: var(--eu-paper-text);
+  --t-muted: var(--eu-paper-muted);
+  --t-accent: var(--eu-paper-accent);
+  --t-button: var(--eu-paper-button);
+  --t-onButton: var(--eu-paper-onButton);
+  --t-focus: var(--eu-paper-focus);
+}
+.eu [data-tone="accent"] {
+  --t-bg: var(--eu-accent-bg);
+  --t-text: var(--eu-accent-text);
+  --t-muted: var(--eu-accent-muted);
+  --t-accent: var(--eu-accent-accent);
+  --t-button: var(--eu-accent-button);
+  --t-onButton: var(--eu-accent-onButton);
+  --t-focus: var(--eu-accent-focus);
+}
+.eu [data-tone="deep"] {
+  --t-bg: var(--eu-deep-bg);
+  --t-text: var(--eu-deep-text);
+  --t-muted: var(--eu-deep-muted);
+  --t-accent: var(--eu-deep-accent);
+  --t-button: var(--eu-deep-button);
+  --t-onButton: var(--eu-deep-onButton);
+  --t-focus: var(--eu-deep-focus);
+}
+.eu [data-tone="soft"] {
+  --t-bg: var(--eu-soft-bg);
+  --t-text: var(--eu-soft-text);
+  --t-muted: var(--eu-soft-muted);
+  --t-accent: var(--eu-soft-accent);
+  --t-button: var(--eu-soft-button);
+  --t-onButton: var(--eu-soft-onButton);
+  --t-focus: var(--eu-soft-focus);
+}
+.eu [data-tone="dark"] {
+  --t-bg: var(--eu-dark-bg);
+  --t-text: var(--eu-dark-text);
+  --t-muted: var(--eu-dark-muted);
+  --t-accent: var(--eu-dark-accent);
+  --t-button: var(--eu-dark-button);
+  --t-onButton: var(--eu-dark-onButton);
+  --t-focus: var(--eu-dark-focus);
+}
+
+.eu :where(a, button, input, select, textarea, summary, [tabindex="-1"]):focus-visible {
+  outline: 3px solid var(--t-focus, var(--s-focus));
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Textura papíru (SVG šum, žádný přechod). */
+.eu-paper {
+  position: relative;
+  isolation: isolate;
+}
+.eu-paper::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.4 0 0 0 0 0.32 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Dekor */
+.eu-stem {
+  stroke: var(--s-ornament);
+  stroke-width: 2;
+}
+.eu-leaf-1 {
+  fill: var(--s-ornament);
+}
+.eu-leaf-2 {
+  fill: var(--s-decor);
+}
+.eu-leaf-3 {
+  fill: var(--s-decor2);
+}
+.eu-sprig,
+.eu-wreath {
+  pointer-events: none;
+}
+
+/* Rozvržení */
+.eu-wrap {
+  position: relative;
+  width: 100%;
+  max-width: var(--eu-max);
+  margin-inline: auto;
+  padding-inline: var(--eu-gutter);
+}
+.eu-section {
+  position: relative;
+  overflow: hidden;
+  padding-block: var(--eu-pad);
+  scroll-margin-top: var(--eu-nav-h);
+}
+.eu-split {
+  display: grid;
+  /* minmax(0, …): dlouhé slovo nebo adresa sloupec nerozšíří za okraj */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3rem;
+}
+@media (min-width: 64rem) {
+  .eu-split {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 4rem 6rem;
+    align-items: start;
+  }
+  .eu-split-even {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .eu-sticky-head {
+    position: sticky;
+    top: 7rem;
+  }
+}
+
+/* Typografie */
+.eu-label {
+  margin: 0 0 1.25rem;
+  color: var(--t-accent);
+  font-family: var(--eu-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+.eu-label-sm {
+  margin: 0.75rem 0 0.25rem;
+}
+.eu .eu-h2 {
+  margin: 0;
+  color: var(--t-text);
+  font-family: var(--eu-serif);
+  font-size: clamp(4rem, 9vw, 8rem);
+  font-weight: 300;
+  letter-spacing: -0.035em;
+  line-height: 0.9;
+  overflow-wrap: anywhere;
+}
+.eu-em {
+  color: var(--t-accent);
+  font-style: italic;
+}
+.eu-head {
+  margin-bottom: 2.5rem;
+}
+.eu-lead {
+  max-width: 34rem;
+  margin: 1.5rem 0 0;
+  color: var(--t-text);
+  font-size: 1.1875rem;
+}
+.eu-muted {
+  color: var(--t-muted);
+}
+.eu-hint {
+  font-size: 0.875rem;
+}
+.eu-prose p {
+  margin: 0 0 1rem;
+}
+.eu-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--t-accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.25em;
+  overflow-wrap: anywhere;
+}
+.eu-link:hover {
+  text-decoration-thickness: 2px;
+}
+
+/* Tlačítka a pole (i ve sdílených formulářích) */
+.eu .site-btn,
+.eu-btn {
+  display: inline-flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--t-button);
+  border-radius: 999px;
+  background: var(--t-button);
+  color: var(--t-onButton);
+  padding: 0.75rem 2rem;
+  font-family: var(--eu-sans);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.eu .site-btn:hover,
+.eu-btn:hover {
+  border-color: var(--t-text);
+  background: var(--t-text);
+  color: var(--t-bg);
+}
+.eu .site-btn-secondary {
+  background: transparent;
+  color: var(--t-text);
+  border-color: var(--t-text);
+}
+.eu .site-input {
+  min-height: 4rem;
+  border: 1px solid var(--eu-field);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--eu-ink);
+  padding: 0.75rem 1rem;
+  font-size: 1.1875rem;
+}
+.eu .site-field-label,
+.eu .site-legend,
+.eu .site-pin-row .site-label {
+  color: var(--t-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+.eu .site-h3 {
+  font-family: var(--eu-serif);
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 400;
+  color: var(--t-text);
+}
+.eu .site-link {
+  color: var(--t-accent);
+}
+.eu .site-error {
+  color: var(--t-text);
+}
+.eu .site-person,
+.eu .site-card {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--t-bg) 70%, #fff);
+}
+.eu [data-tone="deep"] .site-person,
+.eu [data-tone="dark"] .site-person,
+.eu [data-tone="accent"] .site-person {
+  background: color-mix(in srgb, var(--t-bg) 85%, #fff);
+}
+@media (max-width: 47.99rem) {
+  .eu .site-form .site-btn,
+  .eu .site-pin .site-btn {
+    width: 100%;
+  }
+}
+
+/* Pruh rychlé změny */
+.eu-notice {
+  position: relative;
+  z-index: 41;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  background: var(--eu-accent-bg);
+  color: var(--eu-accent-text);
+  padding: 0.5rem var(--eu-gutter);
+}
+.eu-notice p {
+  margin: 0;
+  font-weight: 500;
+}
+.eu-notice-close {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.eu-notice-close:focus-visible {
+  outline-color: var(--eu-accent-focus);
+}
+
+/* Navigace */
+.eu-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: var(--eu-nav-h);
+  margin-bottom: calc(-1 * var(--eu-nav-h));
+  border-bottom: 1px solid transparent;
+  color: var(--eu-light-text);
+  --t-focus: var(--eu-light-focus);
+  --t-text: var(--eu-light-text);
+}
+.eu-nav[data-scrolled="true"] {
+  border-bottom-color: color-mix(in srgb, var(--eu-paper-text) 15%, transparent);
+  background: color-mix(in srgb, var(--eu-paper-bg) 95%, transparent);
+  color: var(--eu-paper-text);
+  backdrop-filter: blur(4px);
+}
+.eu-nav[data-on-photo="true"] {
+  color: #fff;
+  --t-focus: #fff;
+}
+.eu-nav-inner {
+  display: flex;
+  height: 100%;
+  max-width: var(--eu-max);
+  align-items: center;
+  gap: 1rem;
+  margin-inline: auto;
+  padding-inline: var(--eu-gutter);
+}
+.eu-monogram {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  font-family: var(--eu-serif);
+  font-size: 1.25rem;
+  font-style: italic;
+  text-decoration: none;
+}
+.eu-nav-links {
+  position: relative; /* offsetLeft odkazů se měří od pruhu */
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.eu-nav-links::-webkit-scrollbar {
+  display: none;
+}
+.eu-nav-links ul {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  white-space: nowrap;
+}
+@media (min-width: 64rem) {
+  .eu-nav-links ul {
+    /* Bezpečné centrování: při přetečení se seznam neořízne zleva. */
+    width: max-content;
+    margin-inline: auto;
+    gap: 0;
+  }
+  .eu-nav-link {
+    letter-spacing: 0.14em;
+  }
+}
+@media (min-width: 100rem) {
+  .eu-nav-links ul {
+    gap: 0.5rem;
+  }
+  .eu-nav-link {
+    letter-spacing: 0.2em;
+  }
+}
+.eu-nav-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding-inline: 0.5rem;
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.eu-nav-link:hover,
+.eu-nav-link[aria-current="location"] {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.5em;
+}
+.eu-nav .site-lang ul {
+  display: flex;
+  gap: 0.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.eu-nav .site-nav-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding-inline: 0.4rem;
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* Úvod */
+.eu-hero {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+  overflow: hidden;
+  padding-top: 7rem;
+  scroll-margin-top: var(--eu-nav-h);
+}
+.eu-hero-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  max-width: var(--eu-max);
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-inline: auto;
+  padding: 2rem var(--eu-gutter) 3rem;
+  text-align: center;
+}
+.eu-hero-eyebrow {
+  margin-bottom: 1.5rem;
+}
+.eu .eu-names {
+  /* Písmo podle délky nejdelšího řádku: vejde se do šířky okna, nahoře 264 px (zadání 7.1). */
+  --eu-chars: var(--eu-chars-stacked);
+  margin: 0;
+  color: var(--t-text);
+  font-family: var(--eu-serif);
+  font-size: min(
+    clamp(6.5rem, 18.5vw, 16.5rem),
+    calc((100vw - 2 * var(--eu-gutter)) / (var(--eu-chars) * 0.46))
+  );
+  font-weight: 300;
+  letter-spacing: -0.05em;
+  line-height: 0.82;
+  overflow-wrap: anywhere;
+}
+.eu-name {
+  display: block;
+}
+.eu-name-b {
+  padding-inline-start: 0.6em;
+}
+.eu-amp {
+  color: var(--t-accent);
+  font-size: 0.7em;
+  font-style: italic;
+}
+@media (min-width: 48rem) {
+  .eu .eu-names[data-layout="inline"] {
+    --eu-chars: var(--eu-chars-inline);
+  }
+  .eu-names[data-layout="inline"] .eu-name {
+    display: inline;
+  }
+  .eu-names[data-layout="inline"] .eu-name-b {
+    padding: 0;
+  }
+  .eu-names[data-layout="inline"] .eu-amp {
+    font-size: 0.62em;
+  }
+}
+.eu-hero-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 2.5rem;
+}
+@media (min-width: 48rem) {
+  .eu-hero-meta {
+    flex-direction: row;
+    gap: 1.5rem;
+  }
+}
+.eu-hero-date {
+  margin: 0;
+  font-family: var(--eu-serif);
+  font-size: clamp(1.625rem, 2.5vw, 2rem);
+}
+.eu-rule {
+  display: none;
+  width: 4rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.5;
+}
+@media (min-width: 48rem) {
+  .eu-rule {
+    display: block;
+  }
+}
+.eu-hero-place {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.eu-hero .eu-lead {
+  margin-inline: auto;
+}
+.eu-hero-bar {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  max-width: var(--eu-max);
+  align-items: center;
+  justify-content: space-between;
+  margin-inline: auto;
+  border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  padding: 0.5rem var(--eu-gutter);
+}
+.eu-hero-bar ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.eu-hero-bar-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+.eu-hero-bar-link:hover {
+  text-decoration: underline;
+}
+.eu-hero-next {
+  display: none;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+@media (min-width: 48rem) {
+  .eu-hero-next {
+    display: inline-flex;
+  }
+}
+@media (max-width: 47.99rem) {
+  .eu-hero-bar ul {
+    display: none;
+  }
+  .eu-hero-bar {
+    border: 0;
+  }
+}
+.eu-hero-sprig {
+  position: absolute;
+  z-index: 0;
+  width: 23.75rem;
+  height: auto;
+}
+.eu-hero-sprig-a {
+  top: -4rem;
+  left: -5rem;
+}
+.eu-hero-sprig-b {
+  right: -3rem;
+  bottom: -8rem;
+  width: 21.25rem;
+  transform: scaleX(-1) rotate(180deg);
+}
+@media (min-width: 64rem) {
+  .eu-hero-sprig-a {
+    top: -6rem;
+    left: -4rem;
+    width: 51.25rem;
+  }
+  .eu-hero-sprig-b {
+    right: -3rem;
+    bottom: -10rem;
+    width: 47.5rem;
+  }
+}
+@media (max-width: 47.99rem) {
+  .eu-hero-sprig {
+    opacity: 0.55;
+  }
+}
+
+/* Úvod s fotkou: fotka přes celou plochu, tmavý závoj, světlý text */
+.eu-hero-photo {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+.eu-hero-photo picture,
+.eu-hero-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.eu-hero-photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--eu-dark-bg) 60%, transparent);
+}
+.eu .eu-hero[data-photo] {
+  --t-text: var(--eu-dark-text);
+  --t-muted: var(--eu-dark-muted);
+  --t-accent: var(--eu-dark-accent);
+  --t-focus: var(--eu-dark-focus);
+  background: var(--eu-dark-bg);
+  color: var(--eu-dark-text);
+}
+.eu-hero[data-photo] .eu-hero-sprig-b {
+  opacity: 0.5;
+}
+
+/* Odpočet */
+.eu-countdown {
+  display: grid;
+  align-items: end;
+  gap: 1rem 3rem;
+}
+@media (min-width: 64rem) {
+  .eu-countdown {
+    grid-template-columns: auto 1fr auto;
+  }
+}
+.eu-countdown .eu-label {
+  margin: 0;
+  align-self: center;
+}
+.eu-count {
+  margin: 0;
+  font-family: var(--eu-serif);
+  font-weight: 300;
+  line-height: 0.85;
+}
+.eu-count-num {
+  font-size: clamp(7.5rem, 16vw, 13.75rem);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
+.eu-count-unit {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-style: italic;
+}
+.eu-count-today {
+  margin: 0;
+  font-family: var(--eu-serif);
+  font-size: clamp(3rem, 8vw, 7rem);
+  font-weight: 300;
+}
+.eu-count-date {
+  margin: 0;
+  color: var(--t-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* Program */
+.eu-section-sprig {
+  position: absolute;
+  right: -6rem;
+  bottom: -6rem;
+  width: 28rem;
+  height: auto;
+  opacity: 0.4;
+}
+.eu-program-day + .eu-program-day {
+  margin-top: 3rem;
+}
+.eu .eu-program-daylabel {
+  margin: 0 0 1rem;
+  color: var(--t-accent);
+  font-family: var(--eu-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.eu-program {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.eu-program-item {
+  display: grid;
+  gap: 0.5rem;
+  border-top: 1px solid color-mix(in srgb, var(--t-muted) 30%, transparent);
+  padding-block: 2rem;
+}
+@media (min-width: 64rem) {
+  .eu-program-item {
+    grid-template-columns: 16.25rem 1fr;
+    gap: 2rem;
+  }
+}
+.eu-program-time {
+  margin: 0;
+  color: var(--t-muted);
+  font-family: var(--eu-serif);
+  font-size: clamp(4rem, 7vw, 6.5rem);
+  font-variant-numeric: tabular-nums;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 0.9;
+}
+.eu-program-end {
+  display: block;
+  font-size: 0.3em;
+  letter-spacing: 0;
+}
+.eu .eu-program-title {
+  margin: 0;
+  color: var(--t-text);
+  font-family: var(--eu-serif);
+  font-size: clamp(1.75rem, 2.5vw, 2.25rem);
+  font-weight: 400;
+  line-height: 1.15;
+}
+.eu-program-place {
+  margin: 0.5rem 0 0;
+  color: var(--t-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.eu-program-body p.eu-muted {
+  margin: 0.75rem 0 0;
+}
+
+/* Místo konání */
+.eu-venues {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.eu-venue {
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr);
+  gap: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--t-text) 20%, transparent);
+  padding-block: 2rem;
+}
+.eu-venue-num {
+  margin: 0;
+  color: var(--t-accent);
+  font-family: var(--eu-serif);
+  font-size: 1.75rem;
+  font-style: italic;
+}
+.eu .eu-venue-name {
+  margin: 0 0 0.5rem;
+  font-family: var(--eu-serif);
+  font-size: 1.875rem;
+  font-weight: 400;
+  line-height: 1.15;
+}
+.eu-address {
+  font-style: normal;
+}
+.eu-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 1.25rem;
+  margin: 0.75rem 0 0;
+}
+.eu-links .eu-hint {
+  flex-basis: 100%;
+}
+.eu-venue-sprig {
+  display: none;
+}
+@media (min-width: 64rem) {
+  .eu-venue-sprig {
+    display: block;
+    width: 18rem;
+    height: auto;
+    margin-top: 3rem;
+  }
+}
+.eu .site-map {
+  margin-top: var(--eu-pad);
+  margin-bottom: calc(-1 * var(--eu-pad));
+}
+
+/* Potvrzení účasti */
+.eu-watermark {
+  position: absolute;
+  right: -2rem;
+  bottom: -4rem;
+  z-index: 0;
+  margin: 0;
+  color: color-mix(in srgb, var(--t-text) 5%, transparent);
+  font-family: var(--eu-serif);
+  font-size: clamp(12rem, 30vw, 32rem);
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1;
+  pointer-events: none;
+  user-select: none;
+}
+.eu-rsvp-form {
+  position: relative;
+  z-index: 1;
+  max-width: 36rem;
+}
+.eu-rsvp-form [data-testid="rsvp-privacy-notice"] {
+  margin-top: 2rem;
+  font-size: 0.875rem;
+}
+.eu-status {
+  font-family: var(--eu-serif);
+  font-size: 1.75rem;
+}
+
+/* Dary */
+.eu-gifts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 3rem;
+}
+@media (min-width: 64rem) {
+  .eu-gifts {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 6rem;
+  }
+}
+.eu-wreath-wrap {
+  position: relative;
+  display: grid;
+  width: min(100%, 18.75rem);
+  aspect-ratio: 1;
+  place-items: center;
+  margin-inline: auto;
+}
+@media (min-width: 64rem) {
+  .eu-wreath-wrap {
+    width: 32.5rem;
+  }
+}
+.eu-wreath-wrap .eu-wreath {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.eu .eu-wreath-title {
+  position: relative;
+  font-size: clamp(3.5rem, 7vw, 6rem);
+}
+.eu-gifts-body {
+  max-width: 34rem;
+}
+.eu-gate .site-pin .site-input {
+  font-family: var(--eu-serif);
+  font-size: 1.875rem;
+  letter-spacing: 0.4em;
+}
+.eu-gate {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.eu-facts {
+  margin: 2rem 0;
+}
+.eu-facts dt {
+  color: var(--t-accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+.eu-facts dd {
+  margin: 0.25rem 0 1.25rem;
+  font-family: var(--eu-serif);
+  font-size: 1.75rem;
+}
+.eu-account {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.eu-qr {
+  margin: 0;
+}
+.eu-qr .site-qr {
+  width: 11rem;
+  height: auto;
+  border-radius: 2px;
+}
+
+/* Fotografie: mozaika (varianta A) a typografický odkaz (varianta B) */
+.eu-mosaic .site-gallery {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, 1fr);
+  margin: 0 0 2rem;
+}
+.eu-mosaic .site-gallery > li:first-child {
+  grid-column: span 2;
+}
+.eu-mosaic .site-figure {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 2px;
+}
+.eu-mosaic .site-photo {
+  height: 100%;
+  border-radius: 2px;
+}
+.eu-mosaic .site-photo picture,
+.eu-mosaic .site-photo img {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+@media (min-width: 64rem) {
+  /* Mozaika 4 × 2 (první dlaždice 2 × 2, výška 620 px); s méně fotkami se dlaždice roztáhnou bez děr. */
+  .eu-mosaic .site-gallery {
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: 19rem;
+  }
+  .eu-mosaic .site-gallery > li:first-child {
+    grid-row: span 2;
+  }
+  .eu-mosaic[data-count="1"] .site-gallery > li:first-child {
+    grid-column: span 4;
+  }
+  .eu-mosaic[data-count="2"] .site-gallery > li {
+    grid-column: span 2;
+    grid-row: span 2;
+  }
+  .eu-mosaic[data-count="3"] .site-gallery > li:nth-child(n + 2),
+  .eu-mosaic[data-count="4"] .site-gallery > li:nth-child(2) {
+    grid-column: span 2;
+  }
+  .eu-mosaic .site-photo picture,
+  .eu-mosaic .site-photo img {
+    aspect-ratio: auto;
+  }
+}
+.eu-linkblock {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  gap: 0.75rem;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--eu-dark-bg);
+  color: var(--eu-dark-text);
+  padding: clamp(2rem, 5vw, 4rem);
+  text-decoration: none;
+  box-shadow: var(--eu-shadow);
+  --t-focus: var(--eu-dark-focus);
+}
+.eu-linkblock-sprig {
+  position: absolute;
+  right: -3rem;
+  bottom: -6rem;
+  z-index: -1;
+  width: 20rem;
+  height: auto;
+  opacity: 0.45;
+}
+.eu-linkblock-title {
+  font-family: var(--eu-serif);
+  font-size: clamp(2.25rem, 5vw, 4rem);
+  font-weight: 300;
+  line-height: 1;
+}
+.eu-linkblock-desc {
+  max-width: 40rem;
+  color: var(--eu-dark-muted);
+}
+.eu-linkblock-host {
+  font-family: var(--eu-serif);
+  font-size: 1.625rem;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+  overflow-wrap: anywhere;
+}
+.eu-linkblock-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--eu-dark-muted);
+  font-size: 0.875rem;
+}
+.eu-linkblock-arrow {
+  display: inline-flex;
+  width: 3.5rem;
+  height: 3.5rem;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--eu-dark-button);
+  color: var(--eu-dark-onButton);
+}
+
+/* Volitelné bloky */
+.eu-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 3rem;
+}
+@media (min-width: 64rem) {
+  .eu-columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6rem;
+  }
+}
+.eu-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.eu-rows > li {
+  border-top: 1px solid color-mix(in srgb, var(--t-text) 20%, transparent);
+  padding-block: 1.25rem;
+}
+.eu-row-title {
+  margin: 0;
+  font-family: var(--eu-serif);
+  font-size: 1.625rem;
+}
+.eu-quote {
+  font-family: var(--eu-serif);
+  font-size: clamp(1.75rem, 3.5vw, 3rem);
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.2;
+}
+.eu-quote p {
+  margin: 0 0 1rem;
+}
+.eu-faq-item {
+  border-top: 1px solid color-mix(in srgb, var(--t-text) 20%, transparent);
+}
+.eu-faq-item:last-child {
+  border-bottom: 1px solid color-mix(in srgb, var(--t-text) 20%, transparent);
+}
+.eu-faq-q {
+  display: flex;
+  min-height: 44px;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-block: 1.25rem;
+  font-family: var(--eu-serif);
+  font-size: clamp(1.375rem, 2.2vw, 1.75rem);
+  list-style: none;
+}
+.eu-faq-q::-webkit-details-marker {
+  display: none;
+}
+.eu-faq-q::after {
+  content: "+";
+  color: var(--t-accent);
+  font-size: 1.75rem;
+}
+.eu-faq-item[open] .eu-faq-q::after {
+  content: "–";
+}
+.eu-faq-a {
+  max-width: 40rem;
+  padding-bottom: 1.25rem;
+}
+.eu-faq-a p {
+  margin: 0 0 0.75rem;
+}
+.eu-people {
+  display: grid;
+  gap: 2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 48rem) {
+  .eu-people {
+    grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  }
+}
+.eu-person {
+  border-top: 1px solid color-mix(in srgb, var(--t-text) 30%, transparent);
+  padding-top: 1.5rem;
+}
+.eu-person p {
+  margin: 0;
+}
+.eu .eu-person-name {
+  margin: 0;
+  font-family: var(--eu-serif);
+  font-size: 1.875rem;
+  font-weight: 400;
+}
+.eu-story-text {
+  font-size: 1.1875rem;
+}
+.eu-story-figure {
+  margin: 0;
+}
+.eu-story-figure img {
+  width: 100%;
+  height: auto;
+  border-radius: 2px;
+  box-shadow: var(--eu-shadow);
+}
+.eu-story-sprig {
+  display: none;
+}
+@media (min-width: 64rem) {
+  .eu-story-sprig {
+    display: block;
+    width: 24rem;
+    height: auto;
+    justify-self: center;
+  }
+}
+
+/* Patička */
+.eu-footer {
+  padding-bottom: 7rem;
+}
+.eu-footer-top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.eu-footer-names {
+  margin: 0;
+  font-family: var(--eu-serif);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+}
+.eu-footer-date {
+  margin: 0;
+  color: var(--t-muted);
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.eu-footer-giant {
+  margin: 3rem 0 0;
+  padding-inline: var(--eu-gutter);
+  color: color-mix(in srgb, var(--t-muted) 25%, transparent);
+  font-family: var(--eu-serif);
+  font-size: clamp(7.5rem, 20vw, 18.75rem);
+  font-weight: 300;
+  letter-spacing: -0.05em;
+  line-height: 0.85;
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Ukotvené tlačítko „Potvrdit účast“ */
+.eu-sticky {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 30;
+  display: flex;
+  justify-content: center;
+  padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
+  pointer-events: none;
+  --t-button: var(--eu-accent-bg);
+  --t-onButton: var(--eu-accent-text);
+  --t-text: var(--eu-light-text);
+  --t-bg: var(--eu-light-bg);
+  --t-focus: var(--eu-light-focus);
+}
+.eu-btn-sticky {
+  width: 100%;
+  max-width: 24rem;
+  pointer-events: auto;
+  box-shadow: var(--eu-shadow);
+}
+.eu-sticky[data-hidden="true"] {
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(1rem);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .eu-sticky {
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease,
+      visibility 0.2s;
+  }
+  .eu-mosaic .site-photo img {
+    transition: transform 0.4s ease;
+  }
+  .eu-mosaic .site-photo:hover img {
+    transform: scale(1.03);
+  }
+  html:has(.eu) {
+    scroll-behavior: smooth;
+  }
+}
+html:has(.eu) {
+  scroll-padding-top: var(--eu-nav-h, 4rem);
+}
+
+@media (forced-colors: active) {
+  .eu-sprig,
+  .eu-wreath,
+  .eu-watermark,
+  .eu-footer-giant {
+    display: none;
+  }
+}

@@ -3,7 +3,7 @@ import type { TemplateKey } from "@/site/themes/palettes";
 import { ChateauSite } from "./chateau";
 import type { TemplateProps } from "./classic";
 import { EditorialSite } from "./editorial";
-import { EukalyptusSite } from "./eukalyptus";
+import { EukalyptusSite } from "./eukalyptus/index";
 import { ModernSite } from "./modern";
 
 export type { TemplateProps };

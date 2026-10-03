@@ -95,5 +95,24 @@
   "pin.error.limited": "Zkuste to prosím znovu později.",
   "pin.error.generic": "Něco se nepovedlo. Zkuste to prosím znovu.",
   "venue.private.title": "Adresa je chráněna PINem",
-  "venue.private.body": "Přesnou adresu uvidíte po zadání PINu z pozvánky."
+  "venue.private.body": "Přesnou adresu uvidíte po zadání PINu z pozvánky.",
+  "countdown.label": {
+    "one": "Do svatby zbývá",
+    "few": "Do svatby zbývají",
+    "many": "Do svatby zbývá",
+    "other": "Do svatby zbývá"
+  },
+  "countdown.unit": {
+    "one": "den",
+    "few": "dny",
+    "many": "dne",
+    "other": "dní"
+  },
+  "hero.next": "Přejít na obsah",
+  "nav.top": "Na začátek stránky",
+  "notice.close": "Zavřít oznámení",
+  "rsvp.watermark": "Ano",
+  "preview.heroPhoto": "Fotka v úvodu",
+  "preview.heroPhoto.on": "S fotkou",
+  "preview.heroPhoto.off": "Bez fotky"
 }

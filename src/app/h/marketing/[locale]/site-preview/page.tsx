@@ -28,6 +28,8 @@ interface State {
   palette: string;
   phase: Phase;
   unlocked: boolean;
+  /** Fotka v úvodu (první fotografie fixtury s popiskem). */
+  heroPhoto: boolean;
 }
 
 function readState(search: Search): State {
@@ -48,7 +50,14 @@ function readState(search: Search): State {
   const phase = (phases as readonly string[]).includes(phaseParam ?? "")
     ? (phaseParam as Phase)
     : base.phase;
-  return { fixture, template, palette, phase, unlocked: first(search.unlocked) === "1" };
+  return {
+    fixture,
+    template,
+    palette,
+    phase,
+    unlocked: first(search.unlocked) === "1",
+    heroPhoto: first(search.heroPhoto) === "1",
+  };
 }
 
 function query(state: State, change: Partial<State>): string {
@@ -64,6 +73,7 @@ function query(state: State, change: Partial<State>): string {
     phase: next.phase,
   });
   if (next.unlocked) params.set("unlocked", "1");
+  if (next.heroPhoto) params.set("heroPhoto", "1");
   return `?${params.toString()}`;
 }
 
@@ -116,11 +126,18 @@ export default async function SitePreview({
   const t = await getTranslator(locale, SITE_NAMESPACES);
   const state = readState(await searchParams);
 
+  const fixture = fixtures[state.fixture];
+  const photoId = fixture.media.find((m) => !m.decorative)?.id ?? null;
   const content: PublicContent = {
-    ...fixtures[state.fixture],
+    ...fixture,
     template: state.template,
     palette: state.palette,
     phase: state.phase,
+    blocks: fixture.blocks.map((block) =>
+      block.type === "hero" && state.heroPhoto
+        ? { ...block, data: { ...block.data, photoMediaId: photoId } }
+        : block,
+    ),
   };
   const search = query(state, {});
   const base = localePath("/site-preview", locale);
@@ -177,6 +194,21 @@ export default async function SitePreview({
                 text: t("site.preview.unlocked.on"),
                 href: `${base}${query(state, { unlocked: true })}`,
                 current: state.unlocked,
+              },
+            ]}
+          />
+          <Group
+            label={t("site.preview.heroPhoto")}
+            items={[
+              {
+                text: t("site.preview.heroPhoto.off"),
+                href: `${base}${query(state, { heroPhoto: false })}`,
+                current: !state.heroPhoto,
+              },
+              {
+                text: t("site.preview.heroPhoto.on"),
+                href: `${base}${query(state, { heroPhoto: true })}`,
+                current: state.heroPhoto,
               },
             ]}
           />

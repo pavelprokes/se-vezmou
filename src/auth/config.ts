@@ -104,7 +104,7 @@ export function pauseSeconds(level: number, lockout = PIN_LOCKOUT): number {
 /**
  * Relace hosta po PINu (docs/adr/0002, docs/security-privacy.md kap. 1.3): kratší než u správce,
  * protože PIN je na tištěném oznámení a jde zadat znovu. Nečinnost 6 hodin, absolutně 2 dny
- * (`[OTÁZKA]`, OQ-37). Odemyká jen citlivé bloky webu, nikdy správu.
+ * (`[OTÁZKA]`, OQ-41). Odemyká jen citlivé bloky webu, nikdy správu.
  */
 export const GUEST_SESSION = {
   idleSeconds: 6 * HOUR,

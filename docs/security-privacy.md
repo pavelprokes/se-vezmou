@@ -1,6 +1,6 @@
 # Bezpečnost a soukromí
 
-Stav: návrh k schválení. Právní části ověří skutečný právník (role JUDr. Alena Vaňková je fiktivní). Číselné hodnoty jsou výchozí návrh, pokud není psáno jinak. Související ADR: 0005 (e-mail), 0006 (fotografie), 0007 (analytika), 0008 (operátoři), 0009 (platby), 0010 (omezení požadavků). Ukázková jména: Klára a Matěj.
+Stav: návrh k schválení. Právní části ověří skutečný právník (role JUDr. Alena Vaňková je fiktivní). Číselné hodnoty jsou výchozí návrh, pokud není psáno jinak. Související ADR: 0005 (e-mail), 0006 (fotografie), 0007 (analytika), 0008 (operátoři), 0009 (platby), 0010 (omezení požadavků), 0011 (vyhrazené schéma a přímé spojení s databází), 0012 (přihlášení operátorů bez Supabase Auth). Ukázková jména: Klára a Matěj.
 
 ## 1. Přihlášení, kódy, PIN a relace
 
@@ -16,7 +16,7 @@ Stav: návrh k schválení. Právní části ověří skutečný právník (role
 - **Dvě oddělené hodnoty** s oddělenými hashi, čítači a pauzami. Stejná hodnota pro obě role se odmítne při nastavení (porovnání se provádí při zadání nového PINu proti hashi druhého PINu). PIN hostů odemyká jen bloky označené jako citlivé a nikdy ne správu.
 - **Délka:** nejméně šest číslic. Zakázat triviální hodnoty (`000000`, `123456`, opakování, datum svatby, kterou pár zadal) `[OTÁZKA]` zda zákaz data svatby, protože tištěné PINy se generují. Systém může PIN hostů vygenerovat náhodně.
 - **Hash:** **argon2id** (knihovna s předkompilovaným binárním balíčkem pro Node na Vercelu, například `@node-rs/argon2`, ověřit kompatibilitu před výběrem), unikátní sůl, parametry podle aktuálního doporučení OWASP a měření na cílovém prostředí. K tomu **pepper**: tajná hodnota mimo databázi, kterou se PIN před hashováním zpracuje (HMAC). Odůvodnění: argon2id je současné doporučené volba pro hesla, odolná proti paměťově náročným útokům. scrypt (vestavěný v `node:crypto`, bez závislosti) je přijatelný záložní kandidát, pokud by nativní modul na Vercelu dělal potíže. **Upřímné omezení:** šestimístný PIN má jen milion hodnot, takže při úniku databáze se dá hrubou silou odhalit rychle, ať je hash jakýkoli. Skutečnou ochranou je omezení pokusů (ADR 0010) a pepper mimo databázi. Proto PIN nikdy nestačí pro operátory.
-- **Chybné pokusy:** 5 chyb vede k pauze 15 minut, každá další série pauzu zdvojnásobí (30, 60, 120 min, s horní hranicí `[OTÁZKA]`). Po úspěchu se čítač nuluje. Počítá se podle svatby a podle IP. Pauza PINu správy nezablokuje přihlášení kódem z e-mailu (nezávislá cesta).
+- **Chybné pokusy:** 5 chyb vede k pauze 15 minut, každá další série pauzu zdvojnásobí (30, 60, 120 min a dál, **implementovaný strop je 24 hodin**, `src/auth/config.ts`). Po úspěchu se čítač nuluje. Počítá se podle svatby a podle IP. Pauza PINu správy nezablokuje přihlášení kódem z e-mailu (nezávislá cesta).
 - **Změna PINu** vyžaduje přihlášenou relaci správce a oznámí se na záložní e-mail. Při podezření (série chyb) se správce upozorní.
 
 ### 1.3 Relace
@@ -60,8 +60,32 @@ Hlavičky nastavuje proxy vrstva nebo konfigurace Next.js podle hostitele (mecha
 | `Cross-Origin-Opener-Policy` | `same-origin`                                                                                                                                                                          |                                                                                                                                                                                                                |
 
 - `robots.txt` podle hostitele: úvodní stránka otevřená vyhledávačům (podle rozhodnutí o robotech pro trénování: do rozhodnutí jen vyhledávací a odpovědní), ostatní hostitelé zavřeni.
-- CSP v režimu jen hlášení nejdřív (`Content-Security-Policy-Report-Only`), pak vynucení. Hlášení bez osobních údajů.
+- Původní záměr byl CSP nejdřív v režimu jen hlášení (`Content-Security-Policy-Report-Only`) a pak vynucení. **Neprovedlo se:** CSP se vynucuje od začátku a sběr hlášení není zapnutý (žádný `report-uri`). Skutečné nastavení a přijaté riziko popisuje kapitola 3.1; tabulka výše je původní návrh.
 - Výstup uživatelského obsahu (jména, texty) se vždy escapuje. Žádné `dangerouslySetInnerHTML` s uživatelskými daty. Uživatelský SVG se nepřijímá (ADR 0006). Adresy odkazů vložené uživatelem povolit jen `https:` a `mailto:`/`tel:`.
+
+### 3.1 Implementace (`next.config.ts`)
+
+Skutečně nasazená politika (vynucená, ne jen hlášení) je výchozí varianta **bez nonce**:
+
+| Direktiva         | Hodnota v produkci                                                                                                               |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `default-src`     | `'self'`                                                                                                                         |
+| `script-src`      | `'self' 'unsafe-inline'` (ve vývoji navíc `'unsafe-eval'` a `https://va.vercel-scripts.com`)                                     |
+| `style-src`       | `'self' 'unsafe-inline'`                                                                                                         |
+| `img-src`         | `'self' data: blob:` a původ R2 (jen když jsou nastaveny proměnné R2; obrázky jdou přesměrováním z `/media/…`)                   |
+| `font-src`        | `'self'` (písma hostuje aplikace)                                                                                                |
+| `connect-src`     | `'self'` a původ R2 (PUT originálu z prohlížeče správce); ve vývoji `ws:` a `wss:`                                               |
+| `worker-src`      | `'self' blob:`                                                                                                                   |
+| `object-src`      | `'none'`                                                                                                                         |
+| `base-uri`        | `'self'`                                                                                                                         |
+| `form-action`     | `'self'` a původ `app.` (formulář jmen na úvodní stránce se odesílá metodou GET na průvodce)                                     |
+| `frame-ancestors` | `'none'`; jen cesta živého náhledu `/vytvorit/nahled` (cs i en) má `'self'` a `X-Frame-Options: SAMEORIGIN` (vkládá ji průvodce) |
+
+Další hlavičky jsou v `next.config.ts` (`nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`, `X-Frame-Options: DENY`, COOP `same-origin`, HSTS s `includeSubDomains` bez `preload`) a v `src/proxy.ts` (`noindex`, `no-store`, `Referrer-Policy: no-referrer` mimo úvodní stránku).
+
+**Proč bez nonce.** Skripty Next.js jsou vložené do HTML, proto `'unsafe-inline'`. Přísná varianta s `'nonce-…'` a `'strict-dynamic'` vyžaduje dynamické vykreslování všech stránek (žádná statická ani částečně statická stránka), což by zhoršilo výkon a cenu úvodní stránky a zveřejněných webů.
+
+**Přijaté riziko.** S `'unsafe-inline'` CSP **nezastaví** vložený inline skript, takže při chybě escapování by neposkytla druhou obrannou vrstvu proti XSS. Zůstávají tyto vrstvy: React escapuje výstup, žádné `dangerouslySetInnerHTML` s uživatelskými daty, žádné SVG od uživatele, odkazy jen `https:`, `mailto:`, `tel:`, relační cookies `HttpOnly` a `__Host-`, žádný skript třetí strany na webech párů (ADR 0007) a CSP stále omezuje načítání z cizích zdrojů (`default-src 'self'`, `object-src 'none'`, `base-uri`, `form-action`, `frame-ancestors`), takže vynesení dat na cizí adresu skriptem je ztížené (`connect-src` a `img-src` jen vlastní původ a R2). Riziko je přijato do rozhodnutí majitele před betou (přechod na nonce, pokud se ukáže, že dynamické vykreslování je přijatelné). Mapa na webu páru zatím nemá externí zdroj; pokud přibude, doplní se jen tam.
 
 ## 4. Omezení požadavků
 
@@ -79,31 +103,45 @@ Implementace (M8, `docs/data-model.md` kap. 15):
 
 ### 5.1 Role
 
-| Subjekt                                                         | Role                                                                               | Pozn.                                                                                                     |
-| --------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Pár (Klára a Matěj)                                             | **správce** údajů hostů                                                            | Rozhoduje, koho pozve a co se ptá                                                                         |
-| Provozovatel služby `[PROVOZOVATEL, IČO]`                       | **zpracovatel** údajů hostů                                                        | Zpracovává na pokyn páru. Podmínky služby musí obsahovat zpracovatelská ujednání (čl. 28 GDPR) `[OTÁZKA]` |
-| Provozovatel služby                                             | **správce** u vlastních údajů: e-maily správců, operátoři, provozní záznamy, audit | Tuto dvojí roli právník potvrdí `[OTÁZKA]`                                                                |
-| Poskytovatelé (hosting, databáze a úložiště, e-mail, analytika) | **dílčí zpracovatelé**                                                             | Seznam dílčích zpracovatelů zveřejnit                                                                     |
+| Subjekt                                                                                 | Role                                                                               | Pozn.                                                                                                     |
+| --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Pár (Klára a Matěj)                                                                     | **správce** údajů hostů                                                            | Rozhoduje, koho pozve a co se ptá                                                                         |
+| Provozovatel služby `[PROVOZOVATEL, IČO]`                                               | **zpracovatel** údajů hostů                                                        | Zpracovává na pokyn páru. Podmínky služby musí obsahovat zpracovatelská ujednání (čl. 28 GDPR) `[OTÁZKA]` |
+| Provozovatel služby                                                                     | **správce** u vlastních údajů: e-maily správců, operátoři, provozní záznamy, audit | Tuto dvojí roli právník potvrdí `[OTÁZKA]`                                                                |
+| Poskytovatelé (hosting, databáze, úložiště fotografií, e-mail, analytika, hlášení chyb) | **dílčí zpracovatelé**                                                             | Seznam dílčích zpracovatelů zveřejnit                                                                     |
 
 ### 5.2 Smlouvy o zpracování (DPA) a umístění
 
-DPA a ověření umístění dat, přenosů mimo EU a záruk před spuštěním (brána A) u: Vercel (hosting, Web Analytics), Supabase (databáze, Auth, úložiště), AWS SES (e-mail), případně dalších. Poskytovatel databáze a úložiště v regionu EU, e-mail v `eu-central-1`. Detail přenosů a záruk `[OTÁZKA]` pro právníka. Dodržet i u ostatních uvedených možností, pokud se vymění.
+DPA a ověření umístění dat, přenosů mimo EU a záruk před spuštěním (brána A) u všech dílčích zpracovatelů. Seznam odpovídá skutečnému stavu kódu (po ADR 0011 a 0006):
+
+| Dílčí zpracovatel | K čemu                                                                                                  | Jaké údaje                                                                                                              | Umístění a poznámka                                                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vercel            | hosting aplikace, Web Analytics a Speed Insights (jen `se-vezmou.cz` a `app.`, ne weby párů a `admin.`) | přenášené požadavky (IP adresa v záznamech platformy), agregované návštěvnosti bez cookies                              | DPA a regiony funkcí ověřit `[OTÁZKA]`                                                                                                                     |
+| Supabase          | **jen databáze PostgreSQL** (schéma `se_vezmou`, přímé spojení `pg`)                                    | všechna data aplikace včetně údajů hostů; **Auth a Storage Supabase se nepoužívají** (ADR 0011, 0012, 0006)             | region EU, sdílený projekt; DPA a umístění záloh `[OTÁZKA]`                                                                                                |
+| AWS SES           | odesílání e-mailů (kódy, upozornění, potvrzení RSVP)                                                    | e-mailová adresa příjemce a obsah zprávy při odeslání; obsah v naší databázi není (jen záznam bez obsahu)               | `eu-central-1`; DKIM, produkční přístup (`docs/launch-checklist.md`)                                                                                       |
+| Cloudflare R2     | úložiště fotografií páru (privátní bucket, ADR 0006)                                                    | fotografie bez EXIF a GPS; **IP adresa a user agent hosta, jehož prohlížeč si obrázek stahuje** (viz kap. 5.5)          | jurisdikce EU; smlouva o zpracování a záloha `[OTÁZKA]` (OQ-56)                                                                                            |
+| Sentry            | hlášení chyb a výkonu (jen pokud je nastaveno `NEXT_PUBLIC_SENTRY_DSN`)                                 | typ chyby a zásobník; **bez adresy, cesty, query, těla požadavku, cookies, uživatele a drobečkové navigace** (kap. 5.5) | region a DPA podle zvoleného projektu Sentry (EU region) `[OTÁZKA]`; v prohlížeči jen na úvodní stránce; rozhodnutí o zapnutí v `docs/launch-checklist.md` |
+
+Detail přenosů mimo EU a záruk `[OTÁZKA]` pro právníka. Seznam dílčích zpracovatelů se zveřejní (kap. 11, bod 5). Dodržet i u ostatních možností, pokud se některý vymění.
 
 ### 5.3 Kategorie údajů
 
-| Kategorie                    | Příklady                                                        | Kdo je subjektem        | Citlivost                               | Retence (návrh)                     |
-| ---------------------------- | --------------------------------------------------------------- | ----------------------- | --------------------------------------- | ----------------------------------- |
-| Údaje správců                | e-mail, záložní e-mail, hash PINu                               | snoubenci, pomocníci    | běžná                                   | po dobu existence webu, poté smazat |
-| Údaje o svatbě               | jména páru, datum, místo, texty                                 | pár                     | běžná                                   | po dobu webu, pak podle stavu       |
-| Hosté a RSVP                 | jméno, účast, doprovod, děti s věkem, ubytování, doprava, píseň | hosté, děti             | běžná, u dětí zvýšená péče              | 12 měsíců po svatbě                 |
-| **Dietní a alergické údaje** | dieta, alergie                                                  | hosté                   | **zvláštní kategorie (zdravotní údaj)** | **30 dní po svatbě** (po exportu)   |
-| Fotografie                   | galerie páru                                                    | lidé na fotografiích    | běžná, může být citlivá podle obsahu    | jako web a svatba                   |
-| Číslo účtu darů              | IBAN                                                            | pár                     | běžná, za PINem                         | po dobu webu                        |
-| Provozní záznamy             | záznam e-mailu bez obsahu, audit, čítače                        | všichni                 | minimalizovaná                          | krátká, `[LHŮTY]`                   |
-| Analytika                    | události bez PII                                                | nikdo identifikovatelný | minimální                               | `[LHŮTY]`                           |
+| Kategorie                     | Příklady                                                        | Kdo je subjektem        | Citlivost                               | Retence (návrh)                                       |
+| ----------------------------- | --------------------------------------------------------------- | ----------------------- | --------------------------------------- | ----------------------------------------------------- |
+| Údaje správců                 | e-mail, záložní e-mail, hash PINu                               | snoubenci, pomocníci    | běžná                                   | po dobu existence webu, poté smazat                   |
+| Údaje o svatbě                | jména páru, datum, místo, texty                                 | pár                     | běžná                                   | po dobu webu, pak podle stavu                         |
+| Hosté a RSVP                  | jméno, účast, doprovod, děti s věkem, ubytování, doprava, píseň | hosté, děti             | běžná, u dětí zvýšená péče              | 12 měsíců po svatbě                                   |
+| **Dietní a alergické údaje**  | dieta, alergie                                                  | hosté                   | **zvláštní kategorie (zdravotní údaj)** | **30 dní po svatbě**, bez čekání na export (viz níže) |
+| Fotografie                    | galerie páru                                                    | lidé na fotografiích    | běžná, může být citlivá podle obsahu    | jako web a svatba                                     |
+| Číslo účtu darů               | IBAN                                                            | pár                     | běžná, za PINem                         | po dobu webu                                          |
+| Provozní záznamy              | záznam e-mailu bez obsahu, audit, čítače                        | všichni                 | minimalizovaná                          | krátká, `[LHŮTY]`                                     |
+| Analytika                     | události bez PII                                                | nikdo identifikovatelný | minimální                               | `[LHŮTY]`                                             |
+| Hlášení chyb (Sentry)         | typ chyby, zásobník, název šablony trasy (bez adresy)           | nikdo identifikovatelný | minimální                               | podle nastavení projektu Sentry `[LHŮTY]`             |
+| Koncept průvodce v prohlížeči | jména páru, datum svatby (kap. 5.6)                             | pár                     | běžná, jen v zařízení uživatele         | do smazání v prohlížeči; na serveru se neukládá       |
 
 Lhůty výše jsou výchozí návrh zadání (30 dní a 12 měsíců), **schvaluje právník**.
+
+**Smazání zdravotních údajů nečeká na export.** Retenční úloha smaže dietu a alergie v den splatnosti (výchozí 30 dní po svatbě, `app_settings.health_retention_days_after_wedding`), i když pár export nestáhl ani nepotvrdil. Pár před tím dostane upozornění s odkazem na export (M10), ale smazání na stažení nijak nečeká. Je to záměr (zdravotní údaj nemá zůstat déle jen proto, že pár nereaguje); případné čekání na export by vyžadovalo rozhodnutí právníka (kap. 11, bod 1) a změnu úlohy.
 
 ### 5.4 Zdravotní údaje (dieta, alergie)
 
@@ -111,22 +149,29 @@ Lhůty výše jsou výchozí návrh zadání (30 dní a 12 měsíců), **schvalu
 - Uložit **odděleně** od ostatních odpovědí RSVP (samostatná tabulka nebo sloupec s přísnější politikou přístupu), šifrování na úrovni pole zvážit `[OTÁZKA]`.
 - **Operátor je nevidí.** Dietní údaje se nezobrazují v seznamu zakázek ani ve výpisech podpory. Nahlédnutí jen s kroky v kapitole 7.
 - Nepřenášejí se do logů, e-mailů (potvrzení RSVP neopakuje dietu), analytiky ani chybových hlášení.
-- Smazání 30 dní po svatbě. Před smazáním pár dostane upozornění a možnost exportu. Právní základ (výslovný souhlas hosta nebo jiný titul páru jako správce) a text informace pro hosty `[OTÁZKA]` pro právníka, včetně toho, kdo hostům informaci poskytuje (pár) a jak ji služba zobrazí.
+- Smazání 30 dní po svatbě. Před smazáním pár dostane upozornění a možnost exportu, smazání ale na export nečeká (kap. 5.3). Znění informace v RSVP formuláři má lhůtu „30 dní“ napevno v překladu (`rsvp.health.notice`, `src/i18n/messages/*/rsvp.json`), zatímco skutečná lhůta je `health_retention_days_after_wedding`; funkce `rsvp_info` hodnotu nevrací, a proto se do textu nedosazuje. Změní-li se nastavení, musí se změnit i text (OQ-61). Je to právní text k ověření právníkem. Právní základ (výslovný souhlas hosta nebo jiný titul páru jako správce) a text informace pro hosty `[OTÁZKA]` pro právníka, včetně toho, kdo hostům informaci poskytuje (pár) a jak ji služba zobrazí.
 
 ### 5.5 Minimalizace
 
 - Web nemá domácí adresu snoubenců. Údaje nezletilých jen to, co pár zadá (jméno a věk dítěte jako součást domácnosti). Fotografie bez EXIF a GPS (ADR 0006).
 - **Údaje hostů operátor nevidí.** Agregované počty ano (počet hostů na svatbu bez jmen).
-- Záznamy (logy aplikace) neobsahují e-maily, jména, PINy, kódy, odpovědi RSVP ani IP v čitelné podobě. Chybová hlášení třetí strany bez těla požadavku.
-- Informace pro hosty o zpracování: krátké sdělení při RSVP s odkazem na zásady a na pár jako správce kontaktu `[KONTAKT]`. Znění `[OTÁZKA]` pro právníka.
+- Záznamy (logy aplikace) neobsahují e-maily, jména, PINy, kódy, odpovědi RSVP ani IP v čitelné podobě. Chybová hlášení (Sentry) bez adresy, cesty, query, těla požadavku, cookies, hlaviček, uživatele a drobečkové navigace: `src/lib/sentry-scrub.ts` je čistí před odesláním (testy `sentry-scrub.test.ts`), Sentry v prohlížeči je zapnutý **jen na hostiteli úvodní stránky**, nikdy na webech párů, `app.` ani `admin.` (ADR 0007: žádný skript třetí strany u hostů); adresa náhledu (`/nahled/<token>`) a slug tedy Sentry nikdy neopustí.
+- Informace pro hosty o zpracování: krátké sdělení při RSVP (`src/components/site/rsvp/privacy-notice.tsx`, klíč `rsvp.privacy.notice`, česky i anglicky) jmenuje **pár jako správce**, uvádí, že provozovatel údaje zpracovává na pokyn páru, a odkazuje na zásady zpracování. Zásady (`/soukromi`, `/en/privacy`) se obsluhují jen na hostiteli úvodní stránky, proto odkaz na webu páru míří na absolutní adresu `NEXT_PUBLIC_SITE_URL` a otevírá se v nové záložce (host nepřijde o rozepsanou odpověď). Kontakt na pár `[KONTAKT]` doplní pár do svého webu; stránka zásad je zatím zástupná (`[PROVOZOVATEL, IČO]`). Znění `[OTÁZKA]` pro právníka.
+- **Zásady pro hosty musí uvést Cloudflare R2 jako příjemce.** Obrázky na webu páru se doručují přesměrováním z `/media/…` na podepsanou adresu R2, takže **prohlížeč hosta se přímo připojí k Cloudflare R2** a ten vidí jeho IP adresu a user agent (stejně jako Vercel u samotného webu). Nastavení Cloudflare R2 nemá cookies; adresa je podepsaná a časově omezená. Právník posoudí, zda je to nutné uvést v krátkém sdělení, nebo jen v zásadách.
 - Cookies: jen technicky nutné (relace). Analytika bez cookies (ADR 0007). Posouzení nutnosti souhlasové lišty `[OTÁZKA]` pro právníka.
+
+### 5.6 Koncept průvodce v prohlížeči (localStorage)
+
+Rozpracovaný průvodce se ukládá **v prohlížeči** pod klíčem `sv-wizard-draft-v1` v `localStorage` (záložně v `sessionStorage`, když trvalé úložiště nejde, `src/components/wizard/storage.ts`). Obsahuje vše, co pár v průvodci vyplnil: **jména páru a datum svatby**, vybranou šablonu, program, místa a adresy, kontakty, texty, a pokud pár zapnul PIN hostů, i **PIN hostů v prostém tvaru** (na server se prostý PIN neukládá, v databázi je jen hash po zveřejnění, `serverDraft`). Neobsahuje e-mail ani údaje hostů. Koncept se maže, až když ho průvodce zveřejněním nebo zjištěním, že web už je zveřejněný jinde (`not_draft`), odstraní (`clearStoredDraft`), nebo když uživatel smaže data webu v prohlížeči; jinak v zařízení zůstává bez časového omezení.
+
+Je to osobní údaj uložený v zařízení uživatele (a na sdíleném počítači ho může vidět další uživatel). Zásady zpracování ho musí uvést (účel: nezmizí práce při obnovení stránky; doba: do smazání; nepřenáší se, dokud pár neuloží koncept na server). Zda je to striktně nutné a souhlas není potřeba, posoudí právník `[OTÁZKA]` (kap. 11, bod 21). Zvážit zkrácení doby (například mazání po neaktivitě) a neukládání prostého PINu do prohlížeče (OQ-64).
 
 ## 6. Mazání a právo na výmaz
 
 - **Automatické mazání podle retence:** dietní údaje 30 dní po svatbě, ostatní údaje hostů 12 měsíců po svatbě. Pár předem dostane e-mail s možností exportu hostů, RSVP a fotografií (FR-LC-2), včetně připomenutí. Lhůty upozornění `[LHŮTY]`.
 - **Denní úloha retence** (naplánovaná, idempotentní) vybírá weby podle data svatby a stavu, maže a zapisuje do auditu **bez osobních údajů** (identifikátor svatby, typ mazání, počet řádků, čas). Selhání úlohy se hlásí provozu.
 - **Smazání webu párem:** správce si web smaže sám. Nevratné smazání po krátké ochranné lhůtě, v níž ho operátor může obnovit na žádost `[OTÁZKA]` (délka lhůty pro právníka). Fotografie a řádky se smažou včetně prefixu v úložišti.
-- **Právo na výmaz hosta:** host se obrátí na pár (správce), který smaže záznam v správě. Pokud se host obrátí na provozovatele, ten ho **odkáže na pár** a na jeho pokyn pomůže. Lhůta odpovědi a postup `[LHŮTY]`. Každá žádost a její vyřízení se zapíše do auditu bez osobních údajů.
+- **Právo na výmaz hosta:** host se obrátí na pár (správce), který smaže záznam v správě. Pokud se host obrátí na provozovatele, ten ho **odkáže na pár** a na jeho pokyn pomůže. Lhůta odpovědi a postup `[LHŮTY]`. Každá žádost a její vyřízení se zapíše do auditu bez osobních údajů. **Stav implementace:** databázová funkce `erase_guest` (výmaz jednoho hosta, osob, účasti a zdravotních údajů s auditem) existuje a je testovaná, ale **žádná část aplikace ji nevolá** (není tlačítko ani akce). Zdokumentovaným způsobem výmazu jednoho hosta je dnes **smazání domácnosti** v seznamu hostů (`admin_household_delete`), které smaže všechny její členy; výmaz jediného člena domácnosti beze změny ostatních zatím nejde bez úpravy domácnosti (OQ-62).
 - **Zálohy:** doba uchování záloh databáze a úložiště musí být krátká a zdokumentovaná. Po obnově ze zálohy se **znovu provedou smazání** (seznam smazaných záznamů nebo opakování úlohy retence). `[OTÁZKA]` pro právníka: přijatelná délka uchování záloh.
 - **Adresy:** adresy zveřejněných webů se znovu nepřidělují (FR-PRIV-4), uchovává se jen záznam o použité adrese (slug a čas, bez osobních údajů) `[OTÁZKA]` zda by sama adresa vedená jménem páru nebyla osobním údajem a jak dlouho ji držet.
 - **Doklady a platby** mají vlastní zákonnou retenci a smazáním webu se nemažou (ADR 0009).
@@ -135,13 +180,14 @@ Lhůty výše jsou výchozí návrh zadání (30 dní a 12 měsíců), **schvalu
 
 - **Záznam auditu:** kdo (operátor nebo správce, identifikátor), kdy, co (typ akce), u které svatby, důvod (u nahlédnutí povinný), výsledek. Bez osobních údajů hostů a bez obsahu odpovědí.
 - **Co se zapisuje:** každý zásah operátora (FR-OPS-7), změna stavu, zablokování, obnova, poslání přihlašovacího odkazu, nahlédnutí do údajů hostů, změna správců, použití záložního kódu, změna PINu (bez hodnoty), mazání (retence a na žádost), export.
-- **Nahlédnutí operátora do údajů hostů:** jen **na žádost páru** (souhlas doložit, například potvrzení z e-mailu správce), s **uvedeným důvodem**, na **omezenou dobu**, s **auditem** a oznámením správcům. Bez souhlasu systém údaje hostů operátorovi **nevydá** (oprávnění vynucená v databázi a na serveru, ne jen skrytím v rozhraní). Role podpora i majitel jsou stejně omezeny.
+- **Nahlédnutí operátora do údajů hostů:** jen **na žádost páru** (souhlas doložit, například potvrzení z e-mailu správce), s **uvedeným důvodem**, na **omezenou dobu**, s **auditem** a oznámením správcům (**nejlepší úsilí**, viz níže). Bez souhlasu systém údaje hostů operátorovi **nevydá** (oprávnění vynucená v databázi a na serveru, ne jen skrytím v rozhraní). Role podpora i majitel jsou stejně omezeny.
+- **Oznámení správcům jsou nejlepší úsilí.** Audit se zapisuje v téže transakci jako zásah (vždy), ale e-mail páru o nahlédnutí provozovatele (OQ-53) se posílá **až po skutečném nahlédnutí a po odpovědi**, ne před ním. Selže-li odeslání (SES, síť, chyba aplikace), nahlédnutí už proběhlo a e-mail se znovu neposílá; pár ho vždy uvidí v přehledu přístupu (záznam z auditu), takže žádné nahlédnutí nezůstane bez stopy, ale upozornění do schránky není garantované (OQ-63). Totéž platí o oznámení o změně správců (kap. 13).
 - **Ochrana auditu:** jen přidávání (žádná úprava ani mazání operátorem), oddělená tabulka bez práva zápisu pro aplikační roli kromě vložení, retence `[LHŮTY]`. Správci páru vidí audit týkající se jejich webu.
 
 ## 8. Tajné hodnoty
 
 - Mimo repozitář. Zdrojem jsou proměnné prostředí ve Vercelu (oddělené pro Production, Preview a Development). Lokálně `.env.local` mimo git. Kontrola, že `.env*` je v `.gitignore` a že repozitář neobsahuje klíče (kontrola tajných hodnot v CI, například skenování před sloučením).
-- Přehled tajných hodnot: `DATABASE_URL` (heslo aplikační role `se_vezmou_app`; klíč `service_role` ani JWT secret sdíleného projektu aplikace nepoužívá a na Vercelu být nesmí), `MIGRATE_DATABASE_URL` (vlastník schématu, jen na počítači majitele při nasazení migrací, nikdy na Vercelu), pepper pro PINy, klíč HMAC pro omezení požadavků, přístup AWS pro SES (omezená IAM role jen na odesílání), tajemství pro podpis webhooků, klíče brány plateb později, tajný klíč relací nebo CSRF (pokud je potřeba).
+- Přehled tajných hodnot: `DATABASE_URL` (heslo aplikační role `se_vezmou_app`; klíč `service_role` ani JWT secret sdíleného projektu aplikace nepoužívá a na Vercelu být nesmí), `MIGRATE_DATABASE_URL` (vlastník schématu, jen na počítači majitele při nasazení migrací, nikdy na Vercelu), pepper pro PINy (`PIN_PEPPER`), klíč HMAC pro omezení požadavků (`RATE_LIMIT_SECRET`), `AUTH_SECRET`, `OPERATOR_MFA_KEY` (šifrování TOTP operátorů), `CRON_SECRET` (plánované úlohy), přístup k R2 (token omezený na jeden bucket), `SENTRY_AUTH_TOKEN` (jen sestavení), přístup AWS pro SES (omezená IAM role jen na odesílání), tajemství pro podpis webhooků, klíče brány plateb později, tajný klíč relací nebo CSRF (pokud je potřeba).
 - Proměnné s údaji pro prohlížeč (`NEXT_PUBLIC_*`) **nesmí** obsahovat tajné hodnoty. Server-only kód je označen balíčkem `server-only` (jako `src/lib/email/ses.ts`). Validace proměnných při startu (`@/env`).
 - **Rotace:** postup a termíny pro každou hodnotu. Rotace peppera vyžaduje strategii (starý a nový pepper po přechodné období, nebo vynucená změna PINu) `[OTÁZKA]`.
 - Minimální oprávnění: účet AWS jen pro SES, v Supabase oddělení rolí: aplikace se připojuje jako `se_vezmou_app` (bez práv, `set local role` v každé transakci), migrace aplikuje vlastník zvlášť. Přístup k řídicím panelům s dvoufázovým ověřením. Seznam osob s přístupem k produkci vede majitel.
@@ -184,7 +230,7 @@ Model hrozeb pro sdílený projekt Supabase (ADR 0011):
 | Zneužití odesílání e-mailů (spam ze služby) | pověst domény         | limity kódů, DMARC, potlačení odrazů, monitorování                                                                           | zneužití přes cizí adresy v kódu, proto limity podle IP a e-mailu                        |
 | Phishing pod naší doménou                   | hosté                 | rezervované a blokované názvy, hlášení zneužití, blokace                                                                     | rychlost reakce                                                                          |
 | Zneužití certifikátů a subdomén             | doména                | wildcard, aktivace až po založení svatby, ověření existence                                                                  | nové chování platformy                                                                   |
-| XSS ve vloženém obsahu                      | relace                | escapování, CSP s nonce, žádné SVG od uživatele, `HttpOnly`                                                                  | chyba v knihovně                                                                         |
+| XSS ve vloženém obsahu                      | relace                | escapování, CSP bez nonce (kap. 3.1), žádné SVG od uživatele, `HttpOnly`                                                     | chyba v knihovně; CSP s `'unsafe-inline'` vložený skript nezastaví                       |
 | CSRF                                        | zápisy                | `SameSite`, kontrola `Origin`, tokeny u citlivých akcí                                                                       | nová kombinace verze Next.js                                                             |
 | Škodlivé nebo příliš velké obrázky          | úložiště, výkon       | kontrola obsahu, limity, sharp, EXIF pryč                                                                                    | chyby v nativní knihovně, aktualizovat                                                   |
 | Únik tajných hodnot                         | vše                   | mimo repozitář, rotace, minimální oprávnění                                                                                  | lidská chyba                                                                             |
@@ -200,7 +246,7 @@ Model hrozeb pro sdílený projekt Supabase (ADR 0011):
 2. `[OTÁZKA]` Právní základ zpracování zdravotních údajů (dieta, alergie) a podoba souhlasu hosta, kdo ho vyžaduje (pár) a jak to služba technicky podporuje.
 3. `[OTÁZKA]` Vztah správce a zpracovatel mezi párem a provozovatelem. Zpracovatelské ujednání jako součást podmínek, jeho forma pro spotřebitele (pár jako fyzická osoba mimo podnikání: použije se GDPR i na domácí výjimku?).
 4. `[OTÁZKA]` Dvojí role provozovatele: správce u údajů správců a operátorů, zpracovatel u údajů hostů.
-5. `[OTÁZKA]` DPA a přenosy mimo EU u dodavatelů (Vercel, Supabase, AWS, případně další). Seznam dílčích zpracovatelů.
+5. `[OTÁZKA]` DPA a přenosy mimo EU u dodavatelů (Vercel, Supabase, AWS SES, Cloudflare R2, Sentry). Seznam dílčích zpracovatelů a zda zásady musí uvést, že prohlížeč hosta se připojuje k R2 (IP adresa).
 6. `[LHŮTY]` Doba odpovědi na žádost o výmaz a o export a postup, když se host obrátí na provozovatele.
 7. `[LHŮTY]` Doba uchování záloh a pravidlo pro obnovu a opakované smazání.
 8. `[LHŮTY]` Retence provozních záznamů: záznam e-mailu, audit, čítače omezení požadavků, analytické události.
@@ -214,6 +260,10 @@ Model hrozeb pro sdílený projekt Supabase (ADR 0011):
 16. `[OTÁZKA]` Doklady a platby po zaváděcím provozu: DPH, faktury, spotřebitelská práva, retence dokladů (ADR 0009), a střet s mazáním dat.
 17. `[OTÁZKA]` Hlášení porušení zabezpečení údajů (postup, lhůty pro úřad a subjekty, kdo hlásí). Připravit provozní postup po schválení.
 18. `[OTÁZKA]` Identifikace provozovatele a kontakt: `[PROVOZOVATEL, IČO]`, `[KONTAKT]`, zda je nutný pověřenec (předpoklad: ne, ověřit).
+19. `[OTÁZKA]` Krátké sdělení pro hosty při RSVP (`rsvp.privacy.notice`) a upozornění u zdravotních údajů (`rsvp.health.notice`, lhůta „30 dní“ napevno): znění, jazyk, zda stačí odkaz na zásady (OQ-61).
+20. `[LHŮTY]` Nové lhůty implementované v M10 a po něm: vypršení konceptu 14 dní, přechod archivovaného webu do smazání po 90 dnech od smazání dat hostů, čekací listina 12 měsíců (OQ-58 až OQ-60).
+21. `[OTÁZKA]` Koncept průvodce v `localStorage` (kap. 5.6), včetně prostého PINu hostů, a zda je nutný souhlas (OQ-64).
+22. `[OTÁZKA]` Výmaz jednoho hosta bez smazání celé domácnosti a doručení oznámení o nahlédnutí operátora jen nejlepším úsilím (OQ-62, OQ-63).
 
 ## 12. Načtení náhledu externí galerie (SSRF)
 
@@ -226,9 +276,9 @@ Správa webu umožňuje uvést odkaz na externí fotogalerii. Server k němu př
 - nedůvěryhodný text: titulek a popis se zbavují řídicích a směrových znaků, zkracují a na webu se vypisují jako text (React escapuje); adresa obrázku se ukládá jako zdroj a web ji nevykresluje (od M7c jen kopie ve vlastním úložišti), takže host nikdy nevolá cizí stránku;
 - omezení počtu načtení na svatbu (20/hod), selhání nic neblokuje (karta spadne na doménu a text odkazu);
 - chráněný odkaz (jen po PINu hostů) má chráněnou i kartu: ve veřejném snímku, v HTML ani v RSC payloadu bez odemčení není.
-- **Obrázek karty (M7c):** server stáhne i `og:image` stejným strážcem (jen https na 443, bez soukromých adres ani po přesměrování, časový limit 10 s), jen `image/jpeg`, `image/png` a `image/webp` (SVG ani nic jiného), bez komprese, nejvýše 5 MB (hlavička i skutečně přijaté bajty); obsah se nikdy nepodává dál tak, jak přišel: typ se ověří z obsahu a obrázek se překóduje přes `sharp` (limit 25 megapixelů, bez metadat) a uloží do vlastního úložiště. Web vykresluje jen tuto kopii (kap. 13).
+- **Obrázek karty (M7c):** server stáhne i `og:image` stejným strážcem (jen https na 443, bez soukromých adres ani po přesměrování, časový limit 10 s), jen `image/jpeg`, `image/png` a `image/webp` (SVG ani nic jiného), bez komprese, nejvýše 5 MB (hlavička i skutečně přijaté bajty); obsah se nikdy nepodává dál tak, jak přišel: typ se ověří z obsahu a obrázek se překóduje přes `sharp` (limit 25 megapixelů, bez metadat) a uloží do vlastního úložiště. Web vykresluje jen tuto kopii (kap. 14).
 
-Výjimka pro e2e testy: proměnná prostředí `OG_FETCH_TEST_HOST` (`jmeno=127.0.0.1:port`) spojí jedno jméno hostitele bez DNS a bez TLS s loopbackem. Cíl smí být jen `127.0.0.1`, ostatní pravidla (tvar adresy, přesměrování) platí dál. V produkci se proměnná **nenastavuje** (není v `.env.example` ani na Vercelu).
+Výjimka pro e2e testy: proměnná prostředí `OG_FETCH_TEST_HOST` (`jmeno=127.0.0.1:port`) spojí jedno jméno hostitele bez DNS a bez TLS s loopbackem. Cíl smí být jen `127.0.0.1`, ostatní pravidla (tvar adresy, přesměrování) platí dál. V produkci se proměnná **nenastavuje** (v `.env.example` je jen zakomentovaná s varováním a na Vercelu nesmí být).
 
 ## 13. Import souboru, správci a souhlas s nahlédnutím (M7b)
 

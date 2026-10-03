@@ -1,11 +1,32 @@
 # Plán implementace se-vezmou.cz
 
-Stav: návrh k schválení majitelem. Do schválení `technical-design.md` a tohoto plánu se nepíše produkční kód.
+Stav: plán schválen a implementuje se; M1 až M10 jsou hotové, M11 probíhá (přehled v kapitole 0). Text níže je původní plán z fáze 0 a odhady se nepřepisují; skutečný stav určuje tabulka stavu a kód.
 Zdroj požadavků: zadání projektu (identifikátory `FR-…`). Co zadání nezná, je označeno `[OTÁZKA]` a vede do `docs/open-questions.md`.
+
+## 0. Stav implementace
+
+Stav k 2. 10. 2026 podle sloučených pull requestů (`main`). Odkazy jsou čísla PR v repozitáři; odchylky od plánu jsou v `docs/data-model.md` (kapitoly 13 až 21) a v ADR.
+
+| Milník | Stav                   | PR                              | Poznámka                                                                                                                              |
+| ------ | ---------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| M0     | hotovo                 | #12                             | dokumentace fáze 0                                                                                                                    |
+| M1     | hotovo                 | #13                             | základ, i18n, směrování podle hostitele, UI primitiva, testy; navazuje #23 (`www` jako úvodní stránka)                                |
+| M2     | hotovo                 | #16                             | úvodní stránka cs/en; čekací listina je uložená v databázi (`src/lib/waitlist-db.ts`)                                                 |
+| M3     | hotovo                 | #14, #21                        | schéma, RLS, izolační testy; #21 přešlo na vyhrazené schéma `se_vezmou`, přímé `pg` a nástroj `db:migrate` (ADR 0011)                 |
+| M4     | hotovo                 | #17                             | relace, přihlášení kódem a PINem, e-maily                                                                                             |
+| M5     | hotovo                 | #18                             | průvodce, rezervace adresy, koncept, zveřejnění, PDF oznámení                                                                         |
+| M6     | hotovo                 | #15                             | vykreslení webu páru, čtyři šablony, kontrast palet                                                                                   |
+| M7     | hotovo (M7a, M7b, M7c) | #30 (M7a), #31 (M7b), #32 (M7c) | správa webu, hosté a přístup, fotografie na Cloudflare R2 (ADR 0006, #27)                                                             |
+| M8     | hotovo                 | #19                             | RSVP, PIN hostů, správcovská vrstva RSVP                                                                                              |
+| M9     | hotovo                 | #28                             | provozní administrace a přihlášení operátorů bez Supabase Auth (ADR 0012)                                                             |
+| M10    | hotovo                 | #29                             | životní cyklus, retence, mazání, upozornění a export (denní cron)                                                                     |
+| M11    | probíhá                | (tento a související PR)        | přístupnostní a bezpečnostní brána B, opravy z přezkumu (soukromí, dokumentace, přístupnost, bezpečnost); brána B ještě není uzavřena |
+
+Před spuštěním zbývá hlavně M11, právní texty a schválení právníkem (`docs/open-questions.md`) a provozní kroky majitele (`docs/launch-checklist.md`).
 
 ## 1. Vstupy a předpoklady
 
-- Repozitář už obsahuje základ Next.js 16.3 a závislosti, které zadání nezmiňuje: Supabase (klient a SSR), AWS SES, Sentry, Vercel Analytics a Speed Insights, react-hook-form, zod, Lucide. Berou se jako výchozí stav, ne jako schválená rozhodnutí. Každé potvrdí nebo změní ADR (databáze, e-maily, analytika). Sentry a analytika musí splnit „záznamy bez osobních údajů“.
+- Repozitář už obsahuje základ Next.js 16.3 a závislosti, které zadání nezmiňuje: Supabase (klient a SSR; `supabase-js` a `@supabase/ssr` se později odstranily, aplikace mluví s Postgresem přímo přes `pg`, ADR 0011), AWS SES, Sentry, Vercel Analytics a Speed Insights, react-hook-form, zod, Lucide. Berou se jako výchozí stav, ne jako schválená rozhodnutí. Každé potvrdí nebo změní ADR (databáze, e-maily, analytika). Sentry a analytika musí splnit „záznamy bez osobních údajů“.
 - V Next.js 16 se směrování podle hostitele řeší v souboru `proxy` (dokumentace v `node_modules/next/dist/docs/01-app/03-api-reference/03-file-conventions/proxy.md`). Před M1 ji znovu přečíst, API se liší od starších verzí.
 - Podklady z plátna (artboardy) nebyly při psaní plánu k dispozici. Plán vychází jen ze zadání. Před M2 a M5 je třeba export plátna `[OTÁZKA OQ-33]`.
 - Kapacita týmu zadání neuvádí `[OTÁZKA OQ-32]`. Odhady jsou proto v člověkodnech (čd), ne v kalendářních dnech.

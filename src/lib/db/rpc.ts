@@ -404,7 +404,8 @@ export type EmailLogType =
   | "backup_login_notice"
   | "expiry_notice"
   | "deletion_notice"
-  | "operator_notice";
+  | "operator_notice"
+  | "waitlist_confirm";
 
 export type EmailLogStatus = "queued" | "sent" | "delivered" | "bounced" | "complained" | "failed";
 

@@ -4,6 +4,7 @@ import { HOSTS, PORT, apiRequest, pageUrl } from "./hosts";
 // `test` z podpory přihlášení dává každému testu vlastní IP (čítače omezení se nesdílejí).
 import { uniqueTag, withDb } from "./support/db";
 import { expect, test } from "./support/fixtures";
+import { linkOf, waitForMail } from "./support/mail";
 
 /**
  * Úvodní stránka (M2) v češtině i angličtině. Běží v desktopovém i mobilním viewportu
@@ -336,7 +337,7 @@ for (const locale of locales) {
             email: "E-mail",
             submit: "Zapsat se",
             consent: /Souhlasím/,
-            success: /zapsali jsme vás/,
+            success: /zápis prosím potvrďte/,
             required: "Vyplňte e-mail.",
             invalid: /Zkontrolujte e-mail/,
             noConsent: /Bez souhlasu/,
@@ -345,7 +346,7 @@ for (const locale of locales) {
             email: "Email",
             submit: "Join the list",
             consent: /I agree/,
-            success: /you are on the list/,
+            success: /please confirm your signup/,
             required: "Enter your email.",
             invalid: /Check your email/,
             noConsent: /without your consent/,
@@ -405,6 +406,40 @@ for (const locale of locales) {
       const after = await rows();
       expect(after).toHaveLength(1);
       expect(after[0].consent_at).toEqual(stored.consent_at);
+    });
+
+    test("double opt-in: odkaz z e-mailu otevře stránku a zápis potvrdí až tlačítko", async ({
+      page,
+    }) => {
+      const address = `potvrzeni-${uniqueTag()}@example.test`;
+      await page.goto(pageUrl(HOSTS.marketing, locale.path));
+      const form = page.locator("#waitlist form");
+      await form.getByLabel(labels.email, { exact: true }).fill(address);
+      await form.getByLabel(labels.consent).check();
+      await form.getByRole("button", { name: labels.submit }).click();
+      await expect(form.getByRole("status")).toContainText(labels.success);
+
+      const link = new URL(linkOf(await waitForMail(address)));
+      const confirmed = async () =>
+        withDb(
+          async (db) =>
+            (
+              await db.query<{ confirmed: boolean }>(
+                "select confirmed_at is not null as confirmed from se_vezmou.waitlist where email = $1",
+                [address],
+              )
+            ).rows[0]?.confirmed,
+        );
+      // samotné otevření odkazu (jako skener pošty) nic nepotvrdí
+      await page.goto(pageUrl(HOSTS.marketing, `${link.pathname}${link.search}`));
+      expect(await confirmed()).toBe(false);
+      await page
+        .getByRole("button", { name: locale.code === "cs" ? "Potvrdit zápis" : "Confirm signup" })
+        .click();
+      await expect(page.getByRole("status")).toContainText(
+        locale.code === "cs" ? "zápis je potvrzený" : "your signup is confirmed",
+      );
+      expect(await confirmed()).toBe(true);
     });
 
     test("chybný e-mail a chybějící souhlas: chyby u polí s aria-invalid", async ({ page }) => {

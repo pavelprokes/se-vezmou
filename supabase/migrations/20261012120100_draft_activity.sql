@@ -110,8 +110,10 @@ begin
                   and j.status <> 'running'
                 returning 1)
       select count(*) into v_job_runs from d;
+    -- nepotvrzený zápis s prošlým odkazem (double opt-in, 20261012120800) se maže hned
     with d as (delete from se_vezmou.waitlist w
-                where w.consent_at < p_now - pg_catalog.make_interval(months => v_waitlist_months)
+                where (w.confirmed_at is null and w.confirm_token_hash is not null and w.confirm_expires_at < p_now)
+                   or w.consent_at < p_now - pg_catalog.make_interval(months => v_waitlist_months)
                 returning 1)
       select count(*) into v_waitlist from d;
 

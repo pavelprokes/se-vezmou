@@ -1,6 +1,12 @@
 "use server";
 
+import { RATE_RULES } from "@/auth/config";
+import { hashToken } from "@/auth/crypto";
+import { rateKey } from "@/auth/rate-limit";
 import { assertSameOrigin, getClientIp } from "@/auth/request";
+import { requireEnv } from "@/env";
+import { rateLimitHit } from "@/lib/db/rpc";
+import { waitlistConfirm } from "@/lib/db/rpc-wizard";
 import { dbWaitlistDeps } from "@/lib/waitlist-db";
 import { HONEYPOT_FIELD, submitWaitlist } from "@/lib/waitlist";
 import type { WaitlistFormState } from "./waitlist-state";
@@ -48,5 +54,40 @@ export async function joinWaitlist(
       return { status: "rateLimited", email: typeof email === "string" ? email : undefined };
     case "error":
       return { status: "error", email: typeof email === "string" ? email : undefined };
+  }
+}
+
+export type WaitlistConfirmState = { status: "idle" | "confirmed" | "invalid" | "error" };
+
+/**
+ * Potvrzení zápisu na čekací listinu tlačítkem na stránce z odkazu v e-mailu (ne samotným otevřením odkazu, to
+ * dělají i skenery pošty). Token je jednorázový a platí 7 dní; neplatný, prošlý a použitý odkaz dají stejnou
+ * odpověď. Omezení podle IP brání zkoušení tokenů (mají 256 bitů, jde spíš o šetrnost k databázi).
+ */
+export async function confirmWaitlistAction(
+  _previous: WaitlistConfirmState,
+  formData: FormData,
+): Promise<WaitlistConfirmState> {
+  try {
+    await assertSameOrigin();
+  } catch {
+    return { status: "error" };
+  }
+  const token = formData.get("t");
+  if (typeof token !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(token)) return { status: "invalid" };
+  try {
+    const rule = RATE_RULES.waitlistIp;
+    const limit = await rateLimitHit(
+      rateKey(requireEnv("RATE_LIMIT_SECRET"), "waitlist-confirm-ip", await getClientIp()),
+      rule.limit,
+      rule.windowSeconds,
+    );
+    if (!limit.allowed) return { status: "error" };
+    return (await waitlistConfirm(hashToken(token)))
+      ? { status: "confirmed" }
+      : { status: "invalid" };
+  } catch {
+    console.error("[waitlist] potvrzení selhalo");
+    return { status: "error" };
   }
 }

@@ -2,11 +2,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.hoisted(() => {
   process.env.RATE_LIMIT_SECRET = "rate-secret-rate-secret-rate-secret-1";
+  process.env.AUTH_SECRET = "auth-secret-auth-secret-auth-secret-1";
 });
 
 import { setTransport } from "@/lib/db/rpc";
 import type { RpcTransport } from "@/lib/db/transport";
-import { dbWaitlistDeps } from "./waitlist-db";
+import { dbWaitlistDeps as realDeps, waitlistConfirmLink } from "./waitlist-db";
 import { submitWaitlist, WAITLIST_CONSENT_VERSION } from "./waitlist";
 
 type Call = { fn: string; args: Record<string, unknown> };
@@ -42,6 +43,15 @@ afterEach(() => {
   setTransport(null);
 });
 
+/** Odložené úlohy (e-mail s odkazem) se jen sbírají; v testu se nic neposílá. */
+let deferred: (() => Promise<unknown>)[] = [];
+function dbWaitlistDeps() {
+  deferred = [];
+  return realDeps((task) => {
+    deferred.push(task);
+  });
+}
+
 const valid = { email: " Klara@Example.COM ", consent: "on", locale: "en" };
 
 describe("čekací listina nad databází", () => {
@@ -56,9 +66,24 @@ describe("čekací listina nad databází", () => {
           p_email: "klara@example.com",
           p_locale: "en",
           p_consent_text_version: WAITLIST_CONSENT_VERSION,
+          // v databázi je jen otisk jednorázového tokenu (SHA-256), ne token
+          p_token_hash: expect.any(Buffer),
         },
       },
     ]);
+  });
+
+  it("double opt-in: nový zápis odloží e-mail s odkazem, opakovaný bez nového odkazu ho nepošle", async () => {
+    const db = fakeDatabase();
+    await submitWaitlist(valid, dbWaitlistDeps());
+    expect(deferred).toHaveLength(1);
+    const hash = db.calls[0].args.p_token_hash as Buffer;
+    expect(hash).toHaveLength(32);
+    await submitWaitlist(valid, dbWaitlistDeps());
+    expect(deferred).toHaveLength(0);
+    // odkaz vede na stránku potvrzení v jazyce zápisu a nese token (ne jeho otisk)
+    const link = waitlistConfirmLink({ locale: "en" }, "a".repeat(43));
+    expect(link).toMatch(/\/en\/waitlist\/confirm\?t=a{43}$/);
   });
 
   it("stejný e-mail podruhé: stejná odpověď, žádné prozrazení, jediný záznam", async () => {

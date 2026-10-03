@@ -7,7 +7,6 @@
   "nav.cta": "Vytvořit web",
   "nav.menu": "Nabídka",
   "nav.home": "se-vezmou.cz, úvodní stránka",
-
   "hero.eyebrow": "Svatební web bez starostí",
   "hero.title": "Vaše svatba. Všechno důležité <b>na jednom místě.</b>",
   "hero.lead": "Program, místo, potvrzení účasti i praktické informace pro hosty. Vytvořte si vlastní web za jeden večer.",
@@ -24,19 +23,16 @@
   "hero.art.invite": "Zveme vás",
   "hero.art.chipTitle": "Potvrzení účasti",
   "hero.art.chipText": "Hosté odpovídají přímo na webu",
-
   "sample.first": "Klára",
   "sample.second": "Matěj",
   "sample.dateplace": "[DD. MM. RRRR] · [místo]",
   "sample.rsvp": "Potvrdit účast",
   "sample.names": "Klára a Matěj",
   "sample.monogram": "K&M",
-
   "intro.title": "Co je se-vezmou.cz",
   "intro.lead": "Se-vezmou.cz je česká služba na tvorbu svatebních webů. Pár si web složí z hotových šablon, hosté najdou program, místo a ubytování a účast potvrdí bez registrace.",
   "intro.more": "Každý pár dostane adresu ve tvaru jmeno-a-jmeno.se-vezmou.cz. Celá adresa se čte jako věta, takže se dobře píše na oznámení a snadno pamatuje.",
   "intro.formLabel": "Vyzkoušejte, jak bude vypadat vaše adresa",
-
   "form.first": "První jméno",
   "form.second": "Druhé jméno",
   "form.firstPlaceholder": "Klára",
@@ -44,7 +40,6 @@
   "form.address": "Adresa vašeho webu",
   "form.continue": "Pokračovat v průvodci",
   "form.ctaSubmit": "Vytvořit web zdarma",
-
   "problem.title": "Hosté se pořád ptají na totéž. <b>Web odpoví za vás.</b>",
   "problem.lead": "Většina zpráv před svatbou se týká stejných věcí: kam jet, kdy to začíná a co si vzít. Svatební web na ně odpoví dřív, než se hosté zeptají.",
   "problem.q1.title": "Kam mám jet?",
@@ -53,7 +48,6 @@
   "problem.q2.text": "Program po hodinách. Když se něco změní, upravíte to a všichni vidí aktuální verzi.",
   "problem.q3.title": "Co na sebe a kde budu spát?",
   "problem.q3.text": "Dress code, tipy na ubytování a potvrzení účasti s dietou přímo na webu.",
-
   "steps.title": "Jak se web sestavuje",
   "steps.lead": "Kroky 1 až 3 stačí k tomu, aby web existoval. Zbytek doplníte, když budete chtít.",
   "steps.1.title": "Jména a datum",
@@ -67,7 +61,6 @@
   "steps.save": "Uložit",
   "steps.publish": "Zveřejnit",
   "steps.list": "Čtyři kroky",
-
   "templates.title": "Šablony pro každý styl svatby",
   "templates.lead": "Každá šablona stojí na stejných blocích a je čitelná i pro starší hosty.",
   "templates.editorial.name": "Editorial",
@@ -79,7 +72,6 @@
   "templates.modern.name": "Modern",
   "templates.modern.text": "Velká typografie, výrazný akcent",
   "templates.preview": "Náhled šablony {name}: jména Klára a Matěj, datum a tlačítko Potvrdit účast",
-
   "features.title": "Co váš web umí",
   "features.lead": "Všechno, co hosté ke svatbě potřebují, najdou na jedné adrese a bez registrace.",
   "features.rsvp.title": "Potvrzení účasti",
@@ -109,7 +101,6 @@
   "features.edit.text": "Z mobilu i z počítače, přes e-mail nebo PIN.",
   "features.after.title": "Po svatbě",
   "features.after.text": "Web se přepne do režimu poděkování.",
-
   "trust.title": "Soukromý a přístupný od prvního kliknutí",
   "trust.lead": "Weby párů se nezobrazují ve vyhledávačích a citlivé údaje se hostům ukážou až po zadání PINu. Web navrhujeme tak, aby ho přečetl každý.",
   "trust.hidden.title": "Skrytý před vyhledávači",
@@ -118,7 +109,6 @@
   "trust.pin.text": "Vytisknete ho na oznámení vedle adresy. Citlivé údaje se ukážou až po zadání.",
   "trust.accessible.title": "Čitelný pro všechny",
   "trust.accessible.text": "Navrhujeme podle pravidel přístupnosti WCAG 2.2 AA: kontrasty, velké cíle, čtečky obrazovky, bez účtu pro hosty.",
-
   "pricing.title": "Zdarma <b>po dobu zaváděcího provozu</b>",
   "pricing.lead": "Tvorba i zveřejnění webu teď nic nestojí. Později bude zveřejnění zpoplatněno a cenu oznámíme předem.",
   "pricing.concept.label": "Koncept",
@@ -132,7 +122,6 @@
   "pricing.published.item4": "Po jeho skončení {conditions}",
   "pricing.published.cta": "Vytvořit web",
   "pricing.priceLabel": "Cena",
-
   "references.title": "Co říkají páry",
   "references.lead": "Skutečné recenze se souhlasem autorů sem teprve přidáme, zatím je tu jen zástupný text.",
   "references.placeholder": "Zástupný text, nahradí skutečnou recenzi",
@@ -141,21 +130,19 @@
   "references.q3": "„Jak web zvládli starší hosté a hosté ze zahraničí.“",
   "references.author": "[Jména páru] · [město], svatba [měsíc rok]",
   "references.note": "Zde se zobrazí skutečné recenze se souhlasem autorů. Do té doby tu bude program přátelských párů a čekací listina.",
-
   "waitlist.title": "Čekací listina",
   "waitlist.lead": "Zanechte e-mail a dáme vám vědět, až průvodce otevřeme.",
   "waitlist.email": "E-mail",
   "waitlist.consent": "Souhlasím s tím, že mi na tento e-mail pošlete oznámení o spuštění služby. Souhlas mohu kdykoli odvolat.",
   "waitlist.submit": "Zapsat se",
   "waitlist.pending": "Odesílám…",
-  "waitlist.success": "Děkujeme, zapsali jsme vás. Ozveme se, až průvodce otevřeme.",
+  "waitlist.success": "Děkujeme. Poslali jsme vám e-mail s odkazem: zápis prosím potvrďte, teprve potom vám pošleme oznámení o spuštění.",
   "waitlist.error.email.required": "Vyplňte e-mail.",
   "waitlist.error.email.invalid": "Zkontrolujte e-mail, zdá se, že není celý.",
   "waitlist.error.consent.required": "Bez souhlasu vás zapsat nemůžeme.",
   "waitlist.error.rateLimited": "Příliš mnoho pokusů. Zkuste to prosím za chvíli.",
   "waitlist.error.generic": "Zápis se nepovedl. Zkuste to prosím znovu.",
   "waitlist.honeypot": "Toto pole nechte prázdné",
-
   "faq.title": "Časté dotazy",
   "faq.lead": "Nenašli jste odpověď? Napište nám: {contact}.",
   "faq.1.q": "Kolik to stojí?",
@@ -170,10 +157,8 @@
   "faq.5.a": "Ano. Web může zůstat jako koncept se soukromým náhledem na odkaz a zveřejníte ho, až budete chtít.",
   "faq.6.q": "Co se stane s údaji hostů?",
   "faq.6.a": "Údaje z potvrzení účasti vidíte jen vy jako správce svatby a ukládáme je jen pro její organizaci. Podrobnosti uvedou zásady zpracování osobních údajů, které doplní provozovatel.",
-
   "cta.title": "Začněte jmény a datem. Zbytek se doplní.",
   "cta.lead": "Stačí dvě jména. Průvodce vás provede zbytkem.",
-
   "footer.about": "Svatební weby pro páry. Provozuje svatební fotograf {operator}, {address}.",
   "footer.product": "Služba",
   "footer.legal": "Právní informace",
@@ -181,5 +166,11 @@
   "footer.privacy": "Zpracování osobních údajů",
   "footer.terms": "Podmínky služby",
   "footer.accessibility": "Prohlášení o přístupnosti",
-  "footer.language": "Jazyk, patička"
+  "footer.language": "Jazyk, patička",
+  "waitlist.confirm.title": "Potvrzení čekací listiny",
+  "waitlist.confirm.lead": "Potvrďte prosím, že chcete dostat oznámení o spuštění Se vezmou na adresu, na kterou přišel tento odkaz.",
+  "waitlist.confirm.submit": "Potvrdit zápis",
+  "waitlist.confirm.done": "Hotovo, zápis je potvrzený. Ozveme se, až průvodce otevřeme.",
+  "waitlist.confirm.invalid": "Odkaz neplatí: už byl použitý, nebo vypršel. Zapište se prosím znovu na úvodní stránce.",
+  "waitlist.confirm.missing": "Tato stránka se otevírá odkazem z e-mailu. Pokud jste se chtěli zapsat, udělejte to prosím na úvodní stránce."
 }

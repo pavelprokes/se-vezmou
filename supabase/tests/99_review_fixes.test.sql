@@ -314,4 +314,49 @@ begin
 end
 $$;
 
+-- ---------------------------------------------------------------------------
+-- Čekací listina s potvrzením e-mailem (double opt-in)
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_token bytea := sha256(convert_to('token-cekaci-listina', 'UTF8'));
+  v_new bytea := sha256(convert_to('token-novy', 'UTF8'));
+begin
+  set local role service_role;
+  perform tap.ok(se_vezmou.waitlist_add('host@example.test', 'cs', 'v1', v_token), 'nový zápis: poslat odkaz');
+  perform tap.ok(not se_vezmou.waitlist_add('host@example.test', 'cs', 'v1', v_new),
+    'opakovaný zápis do 15 minut nový odkaz nepošle (žádné zaplavení schránky)');
+  perform tap.reset();
+  perform tap.ok((select confirmed_at is null and confirm_token_hash = v_token from se_vezmou.waitlist
+                   where email = 'host@example.test'), 'zápis čeká na potvrzení s otiskem tokenu');
+
+  update se_vezmou.waitlist set confirm_expires_at = now() + interval '7 days' - interval '20 minutes'
+   where email = 'host@example.test';
+  set local role service_role;
+  perform tap.ok(se_vezmou.waitlist_add('host@example.test', 'en', 'v2', v_new), 'po 15 minutách nový odkaz');
+  perform tap.ok(not se_vezmou.waitlist_confirm(v_token), 'starý odkaz po novém neplatí');
+  perform tap.ok(se_vezmou.waitlist_confirm(v_new), 'nový odkaz zápis potvrdí');
+  perform tap.ok(not se_vezmou.waitlist_confirm(v_new), 'odkaz jde použít jen jednou');
+  perform tap.ok(not se_vezmou.waitlist_add('host@example.test', 'cs', 'v1', v_token),
+    'potvrzená adresa už žádný odkaz nedostane');
+  perform tap.reset();
+  perform tap.ok((select confirmed_at is not null and consent_text_version = 'v1' and locale = 'cs'
+                    from se_vezmou.waitlist where email = 'host@example.test'),
+    'potvrzeno; opakovaný zápis nepřepsal původní souhlas ani jazyk');
+
+  -- prošlý nepotvrzený zápis smaže úklid
+  set local role service_role;
+  perform se_vezmou.waitlist_add('prosly@example.test', 'cs', 'v1', sha256(convert_to('prosly', 'UTF8')));
+  perform tap.reset();
+  update se_vezmou.waitlist set confirm_expires_at = now() - interval '1 minute' where email = 'prosly@example.test';
+  set local role service_role;
+  perform tap.ok(not se_vezmou.waitlist_confirm(sha256(convert_to('prosly', 'UTF8'))), 'prošlý odkaz nepotvrdí');
+  perform se_vezmou.housekeeping();
+  perform tap.reset();
+  perform tap.eq((select count(*) from se_vezmou.waitlist where email = 'prosly@example.test'), 0,
+    'nepotvrzený zápis s prošlým odkazem úklid smaže');
+  perform tap.eq((select count(*) from se_vezmou.waitlist where email = 'host@example.test'), 1, 'potvrzený zůstane');
+end
+$$;
+
 rollback;

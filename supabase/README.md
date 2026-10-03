@@ -41,6 +41,7 @@ Migrace:
 19. `clock_guard`: `se_vezmou.clock_guard` a tenké obaly (`purge_*`, `lifecycle_archive_due`, `lifecycle_enqueue_notices`, `lifecycle_notices_claim`) nad přejmenovanými `*_impl`; čas z budoucnosti bez testovací hodiny je chyba `clock_in_future`.
 20. `retention_gaps`: nová nastavení `abandoned_draft_days`, `archived_delete_days_after_guest_purge`, `waitlist_retention_months`; `housekeeping` (úklid `lockouts`, opuštěné koncepty, čekací listina), `lifecycle_delete_archived`, `op_erase_waitlist`, `retention_claim`, `retention_release`, záloha v `retention_due_weddings`, `op_restore_wedding` odmítne web převzatý k mazání.
 21. `indexes`: zrušené nepoužívané trigramové indexy `weddings`, nový `rsvp_people_guest_idx`.
+22. `guest_order`: `guests.created_at` má výchozí `clock_timestamp()`, takže pořadí hostů v domácnosti odpovídá pořadí vložení (dřív ho v rámci jedné transakce určovalo náhodné `id`).
 
 Matice rolí operátorů (každá `op_*` si roli ověřuje sama, `assert_operator`): čtení, poznámky, poslání přihlašovacího odkazu, nahlédnutí do údajů hostů se souhlasem páru a zablokování webu smí `owner` i `support`; ostatní změny stavu, změnu adresy, prodloužení lhůt, obnovu, audit a správu operátorů jen `owner`. Žádná z nich nevrací jména ani údaje hostů; k nim vede jediná cesta `op_view_guest_data` s aktivním `data_access_grants`, důvodem a auditem.
 
@@ -155,7 +156,7 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
 7. **Ověření po nasazení** (SQL editor, role `postgres`):
 
    ```sql
-   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 30)
+   -- migrace aplikovány (počet = počet souborů v supabase/migrations, dnes 31)
    select count(*) from se_vezmou.schema_migrations;
    -- RLS je zapnuté na každé tabulce schématu (0 řádků = v pořádku)
    select relname from pg_class
@@ -236,7 +237,7 @@ Ruční alternativa (jen vývoj): `for f in supabase/migrations/*.sql; do psql "
 
 ## Pasti při verzích migrací
 
-- **Verze `20261005…` až `20261009…` leží v budoucnosti** (dnešní datum je dřívější než jejich časová značka). Je to záměr (M10, M9, M7 a opravy po revizi mají nad sebou pevné pořadí), ale znamená to, že **nová migrace musí mít verzi větší než poslední aplikovaná** (dnes `20261009120400`), ne dnešní datum. Zkontrolujte `npm run db:migrate -- --status` nebo `select max(version) from se_vezmou.schema_migrations`.
+- **Verze `20261005…` až `20261009…` leží v budoucnosti** (dnešní datum je dřívější než jejich časová značka). Je to záměr (M10, M9, M7 a opravy po revizi mají nad sebou pevné pořadí), ale znamená to, že **nová migrace musí mít verzi větší než poslední aplikovaná** (dnes `20261009120500`), ne dnešní datum. Zkontrolujte `npm run db:migrate -- --status` nebo `select max(version) from se_vezmou.schema_migrations`.
 - `npm run db:migrate` **odmítne čekající migraci, která je starší než poslední aplikovaná** (zpráva o pořadí): aplikovat ji mimo pořadí by na ostrých datech mohlo dopadnout jinak než v testech. Kdo omylem pojmenuje migraci dnešním datem (např. `20261003…`), dostane tuto chybu po aplikaci novějších; řešením je soubor přejmenovat na novější verzi dřív, než se aplikuje.
 - Soubory pojmenujte `RRRRMMDDHHMMSS_popis.sql` (14 číslic, malá písmena a podtržítka). Při souběžné práci dvou větví zvolte různé verze; po sloučení musí pořadí zůstat takové, v jakém se bude aplikovat. Hotovou, už aplikovanou migraci nikdy neměňte (změní se její checksum).
 - Po přidání migrace aktualizujte seznam výše a počet v ověření po nasazení.

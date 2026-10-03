@@ -325,6 +325,10 @@ begin
   if not found or v_old = 'deleted' then
     raise exception 'wedding_not_found' using errcode = 'P0002';
   end if;
+  -- zablokovaný web smí uvolnit jen provozovatel; jinak by správce blokaci obešel smazáním
+  if v_old = 'blocked' then
+    raise exception 'wedding_blocked' using errcode = '55000';
+  end if;
 
   -- adresy přečíst před ukončením relací a před změnou stavu
   select coalesce(jsonb_agg(x.e), '[]'::jsonb) into v_notify from (
@@ -332,7 +336,7 @@ begin
      where a.wedding_id = v_wedding_id and a.removed_at is null
     union
     select wa.backup_email::text from se_vezmou.wedding_auth wa where wa.wedding_id = v_wedding_id
-         and wa.backup_email_confirmed_at is not null
+    and wa.backup_email_confirmed_at is not null
   ) x;
 
   update se_vezmou.weddings w set status = 'deleted' where w.id = v_wedding_id

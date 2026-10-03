@@ -242,7 +242,12 @@ export function PhotosPanel(props: PhotosPanelProps) {
       requestAnimationFrame(() => {
         const same = document.getElementById(`${baseId}-${focusId}-${to < from ? "up" : "down"}`);
         const other = document.getElementById(`${baseId}-${focusId}-${to < from ? "down" : "up"}`);
-        const target = same instanceof HTMLButtonElement && !same.disabled ? same : other;
+        const target =
+          same instanceof HTMLButtonElement &&
+          !same.disabled &&
+          same.getAttribute("aria-disabled") !== "true"
+            ? same
+            : other;
         if (target instanceof HTMLElement) target.focus();
       });
     }

@@ -8,5 +8,8 @@
   "notFound.body": "Tuto adresu neumíme zobrazit. Zkontrolujte ji, prosím, nebo se vraťte na úvod.",
   "and": "a",
   "language.csShort": "CS",
-  "language.enShort": "EN"
+  "language.enShort": "EN",
+  "error.title": "Něco se pokazilo",
+  "error.body": "Stránku se nepodařilo zobrazit. Zkuste ji, prosím, načíst znovu.",
+  "error.retry": "Zkusit znovu"
 }

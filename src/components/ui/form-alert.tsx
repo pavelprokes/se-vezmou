@@ -7,6 +7,8 @@ export interface FormAlertProps {
   /** Chybová zpráva celého formuláře; bez zprávy zůstane jen prázdná živá oblast. */
   children?: ReactNode;
   className?: string;
+  /** Kvůli přesunu zaměření na chybu celého formuláře (`document.getElementById(id)?.focus()`). */
+  id?: string;
 }
 
 /**
@@ -14,9 +16,9 @@ export interface FormAlertProps {
  * aby čtečky novou zprávu po odeslání spolehlivě oznámily (WCAG 4.1.3). Chyba je text s ikonou,
  * ne jen barva (WCAG 1.4.1).
  */
-export function FormAlert({ children, className }: FormAlertProps) {
+export function FormAlert({ children, className, id }: FormAlertProps) {
   return (
-    <div role="alert" className={className}>
+    <div role="alert" id={id} tabIndex={-1} className={className}>
       {children ? (
         <p
           className={cn(

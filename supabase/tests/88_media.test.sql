@@ -2,6 +2,8 @@
 -- mazání, export, doručení (get_public_media) a izolace mezi svatbami.
 -- Zdroj: docs/adr/0006-photo-storage.md, docs/data-model.md kap. 3.3 a 5.
 begin;
+-- testovací hodina (se_vezmou.clock_guard): purge_wedding se volá s časem po ochranné lhůtě, tedy z budoucnosti
+select set_config('se_vezmou.test_clock', 'on', true);
 select tap.seed();
 
 -- Pomocník: payload variant tak, jak ho sestavuje aplikace (klíč {wedding}/{media}/{šířka}.{formát})

@@ -258,6 +258,11 @@ export async function exhaustRateLimit(
   windowSeconds = 3600,
 ): Promise<void> {
   const key = rateKey(E2E_SECRETS.RATE_LIMIT_SECRET, scope, value);
+  // Čítač má pevná okna zarovnaná na epochu (`rate_limit_hit`). Kdyby hranice okna přišla, než test čítač použije,
+  // začalo by nové okno s nulou a limit by nebyl vyčerpán (nestabilní test). Blízko hranice proto počkáme na nové okno.
+  const intoWindowMs = Date.now() % (windowSeconds * 1000);
+  const leftMs = windowSeconds * 1000 - intoWindowMs;
+  if (leftMs < 25_000) await new Promise((resolve) => setTimeout(resolve, leftMs + 500));
   await withDb(async (db) => {
     for (let i = 0; i < hits; i++) {
       // Okno musí mít stejnou délku jako v aplikaci, jinak je to jiný čítač.

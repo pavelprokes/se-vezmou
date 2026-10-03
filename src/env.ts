@@ -16,6 +16,8 @@ const schema = z.object({
   SUPABASE_URL: z.string().min(1).optional(),
   /** Volitelně PEM kořenové CA Supabase: zapne ověřování certifikátu databáze (src/lib/db/pool.ts). */
   DATABASE_CA_CERT: z.string().min(1).optional(),
+  /** Výslovné povolení TLS bez ověření řetězu pro vzdálenou databázi bez DATABASE_CA_CERT (nedoporučeno). */
+  DATABASE_TLS_INSECURE: z.string().min(1).optional(),
 
   // Přihlášení (M4)
   /** Klíč pro HMAC e-mailů a kódů v databázi a pro šifrování odkazů a rozpracovaného přihlášení. */

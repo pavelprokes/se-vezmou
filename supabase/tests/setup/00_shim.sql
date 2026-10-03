@@ -5,7 +5,7 @@
 --  * role anon, authenticated, service_role (service_role s bypassrls jako na Supabase),
 --  * schéma auth s tabulkou auth.users a funkcemi auth.jwt() a auth.uid() (čtou claimy z
 --    request.jwt.claims jako PostgREST),
---  * roli authenticator (PostgREST; init skript na ní nastavuje seznam vystavených schémat),
+--  * roli authenticator (PostgREST; init skript její nastavení nemění),
 --  * schéma extensions a výchozí oprávnění, která Supabase uděluje novým objektům ve schématu
 --    public. Naše migrace se public nesmí dotknout a nesmí na nich záviset: test izolace
 --    (scripts/db-test.sh, supabase/tests/catalog_snapshot.sql) ověřuje, že se nic mimo schéma

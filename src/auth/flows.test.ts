@@ -289,6 +289,40 @@ describe("verifyLoginCode", () => {
     expect(await verifyLoginCode(input)).toEqual({ status: "limited", retryAfter: 60 });
     expect(db.names()).toEqual(["rate_limit_hit"]);
   });
+
+  it("zablokovaný web se nenabídne: otevře se nejstarší nezablokovaný, jinak invalid", async () => {
+    const blocked = {
+      ...weddingRows[0],
+      wedding_id: "55555555-5555-4555-8555-555555555555",
+      status: "blocked",
+    };
+    fakeDb({
+      rate_limit_hit: allow,
+      auth_verify_challenge: () => true,
+      auth_list_admin_weddings: () => [blocked, ...weddingRows],
+    });
+    expect(await verifyLoginCode(input)).toMatchObject({ status: "ok", weddingId: WEDDING });
+    fakeDb({
+      rate_limit_hit: allow,
+      auth_verify_challenge: () => true,
+      auth_list_admin_weddings: () => [blocked],
+    });
+    expect(await verifyLoginCode(input)).toEqual({ status: "invalid" });
+  });
+});
+
+describe("requestLoginCode: zablokovaný web", () => {
+  it("kód se kvůli zablokovanému webu neposílá (jako u neznámého e-mailu)", async () => {
+    const d = deferred();
+    fakeDb({
+      rate_limit_hit: allow,
+      auth_create_challenge: () => "99999999-9999-4999-8999-999999999999",
+      auth_list_admin_weddings: () => [{ ...weddingRows[0], status: "blocked" }],
+      ...logHandlers,
+    });
+    expect(await requestLoginCode({ ...base, defer: d.defer })).toEqual({ status: "sent" });
+    expect(d.tasks).toHaveLength(0);
+  });
 });
 
 describe("odkaz a rozpracované přihlášení", () => {

@@ -14,7 +14,9 @@
 //
 // MIGRATE_DATABASE_URL je spojení VLASTNÍKA schématu (role postgres), přímé nebo přes session pooler
 // (port 5432), NIKDY aplikační role se_vezmou_app a NIKDY transaction pooler (port 6543). Heslo se nikam
-// nevypisuje. Volitelně MIGRATE_CA_CERT (PEM kořenové CA) zapne ověření certifikátu serveru.
+// nevypisuje. U vzdálené databáze je POVINNÉ MIGRATE_CA_CERT (PEM kořenové CA Supabase): spojení ověřuje
+// certifikát serveru. Bez něj nástroj odmítne běžet, pokud výslovně nenastavíte MIGRATE_TLS_INSECURE=1
+// (TLS bez ověření řetězu, nedoporučeno). Lokální databáze (loopback, unixový socket) je bez TLS.
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
@@ -124,7 +126,14 @@ export function clientConfig(rawUrl, env = process.env) {
     if (!local) fail("MIGRATE_DATABASE_URL: sslmode=disable je povoleno jen pro lokální databázi");
     ssl = false;
   } else if (["require", "prefer", "no-verify"].includes(mode)) {
-    ssl = ca ? { ca, rejectUnauthorized: true } : { rejectUnauthorized: false };
+    if (ca) ssl = { ca, rejectUnauthorized: true };
+    else if ((env.MIGRATE_TLS_INSECURE ?? "").trim() === "1" || local)
+      ssl = { rejectUnauthorized: false };
+    else
+      fail(
+        "MIGRATE_DATABASE_URL: vzdálená databáze vyžaduje ověření certifikátu. Nastavte MIGRATE_CA_CERT " +
+          "(PEM kořenové CA Supabase), nebo vědomě MIGRATE_TLS_INSECURE=1 (TLS bez ověření řetězu).",
+      );
   } else if (["verify-ca", "verify-full"].includes(mode)) {
     ssl = ca ? { ca, rejectUnauthorized: true } : { rejectUnauthorized: true };
   } else {

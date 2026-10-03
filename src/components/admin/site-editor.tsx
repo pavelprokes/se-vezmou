@@ -357,7 +357,12 @@ export function SiteEditor({
     requestAnimationFrame(() => {
       const same = document.getElementById(`move-${block.id}-${delta === -1 ? "up" : "down"}`);
       const other = document.getElementById(`move-${block.id}-${delta === -1 ? "down" : "up"}`);
-      const target = same instanceof HTMLButtonElement && !same.disabled ? same : other;
+      const target =
+        same instanceof HTMLButtonElement &&
+        !same.disabled &&
+        same.getAttribute("aria-disabled") !== "true"
+          ? same
+          : other;
       if (target instanceof HTMLElement) target.focus();
     });
   }

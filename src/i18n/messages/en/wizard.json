@@ -322,5 +322,6 @@
   "issue.deadline_after_start": "The RSVP deadline must be on the wedding day at the latest.",
   "issue.pin_required": "Enter a PIN, or turn the PIN protection off.",
   "issue.pin_format": "The PIN must have 6 to 12 digits.",
-  "issue.pin_trivial": "This PIN is too easy (a run of numbers or the same digit repeated). Choose another one."
+  "issue.pin_trivial": "This PIN is too easy (a run of numbers or the same digit repeated). Choose another one.",
+  "preview.meta": "Draft preview"
 }

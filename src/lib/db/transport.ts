@@ -1,5 +1,7 @@
 import "server-only";
 import { buildTenantClaims, type TenantIdentity } from "./claims";
+import { env } from "@/env";
+import { testHatchesAllowed } from "@/lib/test-hatches";
 import { getPool } from "./pool";
 
 /**
@@ -88,6 +90,16 @@ export function escapeLiteral(value: string): string {
   return hasBackslash ? ` E${escaped}` : escaped;
 }
 
+/**
+ * Testovací hodina databáze (`se_vezmou.clock_guard`): mazací a plánovací funkce service role odmítnou čas
+ * (`p_now`) z budoucnosti, pokud transakce nemá zapnuté `se_vezmou.test_clock`. Zapíná se jen při `CRON_TEST_CLOCK=1`
+ * mimo ostrou produkci (stejná podmínka jako simulovaný čas v `src/lib/cron/params.ts`).
+ */
+function testClockOn(): boolean {
+  // testovací vrátka: v produkčním sestavení jen s ALLOW_TEST_HATCHES=1, v ostré produkci nikdy (src/lib/test-hatches.ts)
+  return env.CRON_TEST_CLOCK === "1" && testHatchesAllowed(env);
+}
+
 const pgTransport: RpcTransport = {
   async call(fn, args, kind, as, options) {
     if (!IDENTIFIER.test(fn)) throw new Error("Neplatný název funkce");
@@ -111,9 +123,11 @@ const pgTransport: RpcTransport = {
       // Role i claimy jsou lokální pro transakci (`set local`, `set_config(..., true)`), takže přežijí jen do
       // commitu a spojení vrácené poolerem nemůže nést cizí totožnost. Začátek transakce, role a claimy jdou
       // jedním jednoduchým dotazem (jedna cesta sítí), teprve potom volání funkce s parametry.
+      const testClock = !as && testClockOn() ? "set local se_vezmou.test_clock = 'on'" : null;
       const setup = [
         `begin${readOnly ? " read only" : ""}`,
         `set local role ${as ? "authenticated" : "service_role"}`,
+        ...(testClock ? [testClock] : []),
         ...(claims
           ? [`select set_config('request.jwt.claims', ${escapeLiteral(claims)}, true)`]
           : []),

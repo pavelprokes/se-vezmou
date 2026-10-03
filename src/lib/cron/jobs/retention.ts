@@ -9,6 +9,8 @@ import {
   purgeGuestData,
   purgeHealthData,
   purgeWedding,
+  claimPurge,
+  releasePurge,
   type DueWedding,
   type Recipient,
 } from "@/lib/lifecycle/rpc";
@@ -26,9 +28,12 @@ const RESERVE_MS = 3_000;
  * Retence a nevratné mazání (FR-OPS-5, docs/data-model.md kap. 10, docs/security-privacy.md kap. 6):
  *  1. zdravotní údaje (dieta, alergie) po `health_purge_at`, 2. ostatní údaje hostů po `guest_purge_at`
  *     (lhůty z app_settings, schvaluje právník), obojí zvlášť; zprávu o smazání odešle úloha životního cyklu,
- *  3. trvalé smazání webů po ochranné lhůtě (`purge_at`): nejdřív soubory v úložišti (předpona `{wedding_id}/`),
- *     TEPRVE POTOM řádky. Selhání mazání souborů web neoznačí za vymazaný: zůstane ve stavu deleted a další
- *     běh to zkusí znovu. Obnovení v ochranné lhůtě je jen operátorská věc (M9) a ruší `purge_at`.
+ *  3. trvalé smazání webů po ochranné lhůtě (`purge_at`): těsně před mazáním souborů čerstvá kontrola a převzetí
+ *     webu pod zámkem řádku (`retention_claim`; obnovený web se nesmaže a obnova převzatého webu se odmítne),
+ *     potom soubory v úložišti (předpona `{wedding_id}/`), TEPRVE POTOM řádky. Selhání mazání souborů web neoznačí
+ *     za vymazaný: zůstane ve stavu deleted, převzetí se uvolní a další běh to zkusí znovu po záloze (počet
+ *     pokusů, 30 minut až den), takže trvale selhávající web nezablokuje dávku ostatních. Obnovení v ochranné lhůtě
+ *     je jen operátorská věc (M9) a ruší `purge_at`.
  * Do auditu jde jen počet řádků a druh (bez osobních údajů).
  */
 export const retentionJob: JobDefinition = {
@@ -89,6 +94,19 @@ async function purgeOne(
     cronLog("warn", "cron_recipients_failed", { job: "retention", error_code: errorCode(error) });
   }
 
+  // Čerstvá kontrola těsně před mazáním souborů: web mohl být mezitím obnoven nebo prodloužen operátorem
+  // (seznam k smazání se četl dřív). Převzetí je pod zámkem řádku, takže se obnova a mazání neprolnou.
+  try {
+    if (!(await claimPurge(wedding.wedding_id, context.now))) {
+      counts.weddings_restored += 1;
+      return;
+    }
+  } catch (error) {
+    runner.problem("purge_claim_failed");
+    cronLog("error", "cron_purge_claim_failed", { job: "retention", error_code: errorCode(error) });
+    return;
+  }
+
   let filesDeleted = 0;
   try {
     const storage = getStorage();
@@ -102,6 +120,7 @@ async function purgeOne(
     // soubory se nepodařilo smazat: řádky zůstanou, web se nemaže, další běh to zopakuje
     counts.storage_failed += 1;
     runner.problem("storage_delete_failed");
+    await releaseQuietly(wedding.wedding_id);
     cronLog("error", "cron_storage_delete_failed", {
       job: "retention",
       error_code: errorCode(error),
@@ -122,12 +141,25 @@ async function purgeOne(
       job: "retention",
       error_code: errorCode(error),
     });
+    await releaseQuietly(wedding.wedding_id);
     return;
   }
   counts.weddings_purged += 1;
   counts.files_deleted += filesDeleted;
 
   await sendDeletionMessages(wedding, recipients, context.now, counts);
+}
+
+/** Uvolnění převzetí po selhání; nejlepší úsilí (zapůjčení v databázi vyprší samo za 15 minut). */
+async function releaseQuietly(weddingId: string): Promise<void> {
+  try {
+    await releasePurge(weddingId);
+  } catch (error) {
+    cronLog("warn", "cron_purge_release_failed", {
+      job: "retention",
+      error_code: errorCode(error),
+    });
+  }
 }
 
 /** Zpráva o trvalém smazání webu správcům; nejlepší úsilí (adresy po smazání nikde nezůstanou, nelze opakovat). */

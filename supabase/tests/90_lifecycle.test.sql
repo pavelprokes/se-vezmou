@@ -182,7 +182,10 @@ begin
     'obnovení správce nad limit se odmítne');
 
   -- hodnota z nastavení; tvrdý strop 5 platí vždy
+  -- hodnotu 10 by spouštěč app_settings_validate (meze nastavení) odmítl; pro tuto kontrolu tvrdého stropu ho vypneme
+  alter table se_vezmou.app_settings disable trigger app_settings_validate;
   update se_vezmou.app_settings set value = '10' where key = 'max_admins';
+  alter table se_vezmou.app_settings enable trigger app_settings_validate;
   update se_vezmou.wedding_admins set removed_at = null where wedding_id = tap.wa() and email = 'treti@example.test';
   insert into se_vezmou.wedding_admins (wedding_id, email) values (tap.wa(), 'paty@example.test');
   perform tap.throws(format('insert into se_vezmou.wedding_admins (wedding_id, email) values (%L, ''sesty@example.test'')', tap.wa()), 'max_admins_exceeded', 'tvrdý strop 5 platí i při vyšší hodnotě v nastavení');

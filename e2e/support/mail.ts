@@ -12,6 +12,18 @@ export interface Mail {
   sentAt: string;
 }
 
+/** Aplikace soubor zapisuje průběžně: nedopsaný soubor (prázdný, useknutý JSON) se krátce zkouší znovu. */
+function readMail(path: string): Mail {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return JSON.parse(readFileSync(path, "utf8")) as Mail;
+    } catch (error) {
+      if (attempt >= 50) throw error;
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 20);
+    }
+  }
+}
+
 export function readMails(to: string): Mail[] {
   let files: string[];
   try {
@@ -21,7 +33,7 @@ export function readMails(to: string): Mail[] {
   }
   return files
     .sort()
-    .map((name) => JSON.parse(readFileSync(join(outboxDir(), name), "utf8")) as Mail)
+    .map((name) => readMail(join(outboxDir(), name)))
     .filter((mail) => mail.to === to);
 }
 

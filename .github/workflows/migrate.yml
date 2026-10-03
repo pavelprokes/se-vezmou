@@ -1,0 +1,60 @@
+name: Migrace databáze
+
+# Automatické nasazení migrací (supabase/README.md, „Nasazení migrací“). Po pushi do main, který mění migrace
+# nebo nástroj, spustí `scripts/db-migrate.mjs` proti produkční databázi. Běží souběžně s nasazením na Vercelu:
+# migrace trvají sekundy, build minuty, takže schéma je hotové dřív, než nový kód začne běžet. Proto musí být
+# každá migrace zpětně kompatibilní se starým kódem (přidávat, nerušit; rušení až v další migraci).
+#
+# Tajné hodnoty repozitáře (Settings → Secrets and variables → Actions), nikdy na Vercelu (ADR 0011):
+#   MIGRATE_DATABASE_URL  spojení vlastníka schématu přes session pooler (port 5432)
+#   MIGRATE_CA_CERT       obsah PEM kořenové CA Supabase
+# Ručně: Actions → Migrace databáze → Run workflow (např. jen stav: volba „status“).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/db-migrate.mjs"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "apply = aplikovat čekající migrace, status = jen vypsat stav"
+        type: choice
+        options: [apply, status]
+        default: apply
+
+permissions:
+  contents: read
+
+# Nikdy dva běhy naráz a rozběhnutý se neruší (nástroj má navíc zámek v databázi).
+concurrency:
+  group: migrate-production
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      MIGRATE_DATABASE_URL: ${{ secrets.MIGRATE_DATABASE_URL }}
+      MIGRATE_CA_CERT: ${{ secrets.MIGRATE_CA_CERT }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Kontrola tajných hodnot
+        run: |
+          if [ -z "$MIGRATE_DATABASE_URL" ] || [ -z "$MIGRATE_CA_CERT" ]; then
+            echo "::error::Chybí tajné hodnoty MIGRATE_DATABASE_URL nebo MIGRATE_CA_CERT (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+      - name: Stav před nasazením
+        run: node scripts/db-migrate.mjs --status
+      - name: Aplikace čekajících migrací
+        if: github.event_name == 'push' || inputs.mode == 'apply'
+        run: node scripts/db-migrate.mjs

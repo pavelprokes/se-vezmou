@@ -1,3 +1,6 @@
+import { mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { clientConfig as rawClientConfig } from "./db-migrate.mjs";
 
@@ -24,6 +27,23 @@ describe("db-migrate: TLS", () => {
       ca: "PEM",
       rejectUnauthorized: true,
     });
+  });
+
+  it("MIGRATE_CA_CERT_FILE: certifikát se načte ze souboru (cesta relativně ke kořeni repa)", () => {
+    const dir = mkdtempSync(join(tmpdir(), "migrate-ca-"));
+    const file = join(dir, "ca.crt");
+    writeFileSync(file, "-----BEGIN CERTIFICATE-----\nAAA\n-----END CERTIFICATE-----\n");
+    expect(clientConfig(REMOTE, { MIGRATE_CA_CERT_FILE: file }).ssl).toEqual({
+      ca: "-----BEGIN CERTIFICATE-----\nAAA\n-----END CERTIFICATE-----",
+      rejectUnauthorized: true,
+    });
+    writeFileSync(file, "neni certifikat");
+    expect(() => clientConfig(REMOTE, { MIGRATE_CA_CERT_FILE: file })).toThrow(
+      /není certifikát PEM/,
+    );
+    expect(() => clientConfig(REMOTE, { MIGRATE_CA_CERT_FILE: join(dir, "chybi.crt") })).toThrow(
+      /nejde přečíst/,
+    );
   });
 
   it("výslovné MIGRATE_TLS_INSECURE=1 povolí TLS bez ověření; jiná hodnota ne", () => {

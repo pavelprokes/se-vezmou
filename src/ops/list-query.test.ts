@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { listHref, parseListQuery, toFilters } from "./list-query";
+import { defaultLocale, locales } from "@/i18n/config";
 
 describe("parseListQuery", () => {
   it("načte platné filtry", () => {
@@ -59,6 +60,14 @@ describe("toFilters a listHref", () => {
       "/zakazky?stav=draft&q=a+b&strana=2",
     );
     expect(listHref({ page: 2, status: "draft" }, 1)).toBe("/zakazky?stav=draft");
+  });
+
+  it("adresa nese jazyk rozhraní: výchozí bez předpony, ostatní pod /<jazyk>", () => {
+    for (const locale of locales) {
+      const expected =
+        locale === defaultLocale ? "/zakazky?strana=2" : `/${locale}/zakazky?strana=2`;
+      expect(listHref({ page: 2 }, 2, locale)).toBe(expected);
+    }
   });
 
   it("adresa a rozbor jsou si inverzní", () => {

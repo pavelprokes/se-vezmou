@@ -1,4 +1,5 @@
 import "server-only";
+import type { Locale } from "@/i18n/config";
 import { serviceRpc } from "@/lib/db/rpc";
 
 /**
@@ -85,7 +86,7 @@ export type ClaimedNotice = {
   stage: NoticeStage;
   event_at: string;
   slug: string | null;
-  locale: "cs" | "en";
+  locale: Locale;
   timezone: string;
   attempt: number;
 };
@@ -102,7 +103,7 @@ export async function claimNotices(scope: Scope & { limit: number }): Promise<Cl
   )) as ClaimedNotice[];
 }
 
-export type Recipient = { email: string; locale: "cs" | "en" };
+export type Recipient = { email: string; locale: Locale };
 
 /** Adresy aktivních správců: jdou jen k odeslání, nikam se neukládají ani nelogují. */
 export async function noticeRecipients(weddingId: string): Promise<Recipient[]> {
@@ -147,7 +148,7 @@ export type DueWedding = {
   media_count: number;
   slug: string | null;
   timezone: string;
-  locale: "cs" | "en";
+  locale: Locale;
 };
 
 export async function dueWeddings(scope: Scope & { batch: number }): Promise<DueWedding[]> {

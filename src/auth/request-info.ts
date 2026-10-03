@@ -1,5 +1,3 @@
-import { defaultLocale, type Locale } from "@/i18n/config";
-
 /** Čisté funkce nad hlavičkami požadavku (testovatelné bez Next.js). */
 
 type HeaderGetter = (name: string) => string | null | undefined;
@@ -36,23 +34,4 @@ export function isSameOrigin(
   } catch {
     return false;
   }
-}
-
-/** Jazyk rozhraní správy z `Accept-Language`: angličtina jen když ji prohlížeč upřednostňuje před češtinou. */
-export function pickLocale(acceptLanguage: string | null | undefined): Locale {
-  if (!acceptLanguage) return defaultLocale;
-  const ranked = acceptLanguage
-    .split(",")
-    .map((part, index) => {
-      const [tag, ...params] = part.trim().split(";");
-      const q = Number(params.find((p) => p.trim().startsWith("q="))?.split("=")[1] ?? 1);
-      return { lang: tag.trim().toLowerCase().split("-")[0], q: Number.isFinite(q) ? q : 0, index };
-    })
-    .filter((entry) => entry.q > 0)
-    .sort((a, b) => b.q - a.q || a.index - b.index);
-  for (const { lang } of ranked) {
-    if (lang === "cs") return "cs";
-    if (lang === "en") return "en";
-  }
-  return defaultLocale;
 }

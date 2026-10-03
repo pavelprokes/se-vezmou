@@ -1,6 +1,6 @@
 import "server-only";
 import { requireEnv } from "@/env";
-import type { Locale } from "@/i18n/config";
+import { type Locale, localePath } from "@/i18n/config";
 import {
   authCreateChallenge,
   authListAdminWeddings,
@@ -44,8 +44,8 @@ export function loginLinkFor(
     c: code,
     x: Date.now() + LOGIN_CODE.ttlSeconds * 1000,
   } satisfies LinkPayload);
-  // Jazyk rozhraní určuje cesta: anglický e-mail vede na `/en/...`.
-  return `${origin}${locale === "en" ? "/en" : ""}/prihlaseni/odkaz?t=${token}`;
+  // Jazyk rozhraní určuje cesta: e-mail v jiném než výchozím jazyce vede na `/<jazyk>/...`.
+  return `${origin}${localePath(`/prihlaseni/odkaz?t=${token}`, locale)}`;
 }
 
 export type RequestCodeResult = { status: "sent" } | { status: "limited"; retryAfter: number };

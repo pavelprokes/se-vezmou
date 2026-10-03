@@ -1,3 +1,4 @@
+import { splitLocalePath, type Locale } from "@/i18n/config";
 import { resolveHost, type HostConfig, type HostKind } from "./resolve";
 
 /**
@@ -13,11 +14,20 @@ export type RouteDecision =
       kind: HostKind;
       pathname: string;
       /**
-       * Jazyk rozhraní na hostiteli `app.`: předpona `/en` (cesta se přepíše bez ní), jinak čeština.
-       * Určuje ho vždy cesta, nikdy `Accept-Language`.
+       * Jazyk stránky z adresy (ADR 0013): předpona `/<jazyk>`, bez předpony výchozí jazyk. Chybí jen
+       * u `robots.txt` a `sitemap.xml`. Proxy ho předá hlavičkou a podle něj případně přesměruje.
        */
-      uiLocale?: "cs" | "en";
+      locale?: LocaleRoute;
     };
+
+export interface LocaleRoute {
+  /** Jazyk stránky podle adresy. */
+  locale: Locale;
+  /** Jazyk z předpony adresy; cesta bez předpony má `null` (výchozí jazyk, nikdo ho nezvolil výslovně). */
+  pathLocale: Locale | null;
+  /** Veřejná cesta bez předpony jazyka (`/en/web` -> `/web`). */
+  path: string;
+}
 
 /** Veřejné soubory (`/favicon.ico`, `/logo.svg`) se nepřepisují. `robots.txt` a `sitemap.xml` ano. */
 function isStaticAsset(pathname: string): boolean {
@@ -25,12 +35,15 @@ function isStaticAsset(pathname: string): boolean {
   return /\/[^/]+\.[a-z0-9]+$/i.test(pathname);
 }
 
-/** `/en/foo` -> `{ locale: "en", rest: "/foo" }`; `/cs/...` je duplicita a vrací `null`. */
-function splitLocale(pathname: string): { locale: "cs" | "en"; rest: string } | null {
-  const match = /^\/(cs|en)(\/.*)?$/.exec(pathname);
-  if (!match) return { locale: "cs", rest: pathname };
-  if (match[1] === "cs") return null;
-  return { locale: "en", rest: match[2] ?? "/" };
+/**
+ * `/en/foo` -> jazyk `en` a cesta `/foo`; bez předpony výchozí jazyk. Předpona výchozího jazyka
+ * (`/cs/...`) je duplicita a vrací `null` (404); neznámá předpona není jazyk.
+ */
+function splitLocale(pathname: string): LocaleRoute | null {
+  const split = splitLocalePath(pathname);
+  if (!split) return null;
+  const prefixed = split.path !== pathname;
+  return { locale: split.locale, pathLocale: prefixed ? split.locale : null, path: split.path };
 }
 
 function join(base: string, rest: string): string {
@@ -66,40 +79,28 @@ export function routeRequest(
       : { action: "notFound", kind };
   }
 
+  // Všichni hostitelé mají stejné schéma jazyků: výchozí bez předpony, ostatní pod `/<jazyk>`.
+  const split = splitLocale(pathname);
+  if (!split) return { action: "notFound", kind };
+
   switch (resolution.kind) {
-    case "marketing": {
-      const split = splitLocale(pathname);
-      if (!split) return { action: "notFound", kind };
+    case "marketing":
       return {
         action: "rewrite",
         kind,
-        pathname: join(`/h/marketing/${split.locale}`, split.rest),
+        pathname: join(`/h/marketing/${split.locale}`, split.path),
+        locale: split,
       };
-    }
-    case "tenant": {
-      const split = splitLocale(pathname);
-      if (!split) return { action: "notFound", kind };
+    case "tenant":
       return {
         action: "rewrite",
         kind,
-        pathname: join(`/h/tenant/${resolution.slug}/${split.locale}`, split.rest),
+        pathname: join(`/h/tenant/${resolution.slug}/${split.locale}`, split.path),
+        locale: split,
       };
-    }
-    case "app": {
-      // Rozhraní správy je česky, anglická varianta stejných stránek je pod `/en` (jazyk rozhraní
-      // se pak předá hlavičkou, cesty zůstávají jedny). `/cs/...` je duplicita.
-      const split = splitLocale(pathname);
-      if (!split) return { action: "notFound", kind };
-      return {
-        action: "rewrite",
-        kind,
-        pathname: join("/h/app", split.rest),
-        // Jazyk určuje vždy cesta, ne prohlížeč: bez předpony česky, pod `/en` anglicky. Jinak by
-        // odkaz „CS“ v přepínači vedl na stejnou adresu a angličtina z `Accept-Language` by zůstala.
-        uiLocale: split.locale,
-      };
-    }
+    case "app":
     case "admin":
-      return { action: "rewrite", kind, pathname: join("/h/admin", pathname) };
+      // Rozhraní správy a provozní administrace: jedny cesty stránek, jazyk se předá hlavičkou.
+      return { action: "rewrite", kind, pathname: join(`/h/${kind}`, split.path), locale: split };
   }
 }

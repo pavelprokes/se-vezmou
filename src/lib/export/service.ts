@@ -34,6 +34,9 @@ const CONTENT_TYPES: Record<ExportFormat, string> = {
   xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 };
 
+/** Základ názvu souboru exportu po jazycích. */
+const FILE_NAMES: Record<Locale, string> = { cs: "hoste-a-rsvp", en: "guests-and-rsvp" };
+
 export async function exportGuestsAndRsvp(
   session: AdminIdentity,
   options: ExportOptions,
@@ -49,7 +52,7 @@ export async function exportGuestsAndRsvp(
   const table = buildGuestTable(guestExportSchema.parse(raw), options.locale);
 
   const day = (options.now ?? new Date()).toISOString().slice(0, 10);
-  const base = options.locale === "cs" ? "hoste-a-rsvp" : "guests-and-rsvp";
+  const base = FILE_NAMES[options.locale];
   return {
     filename: `${base}-${day}.${options.format}`,
     contentType: CONTENT_TYPES[options.format],

@@ -1,4 +1,5 @@
 import "server-only";
+import type { Locale } from "@/i18n/config";
 import { z } from "zod";
 import { call, firstRow, type Bytes } from "./rpc";
 import { WEDDING_STATUSES, type OperatorRole, type WeddingStatus } from "./types";
@@ -183,7 +184,7 @@ function dateOnly(value: Date | string | null): string | null {
 
 export type WeddingListFilters = {
   status?: WeddingStatus;
-  locale?: "cs" | "en";
+  locale?: Locale;
   template?: string;
   /** První den měsíce svatby (`2027-06-01`). */
   month?: string;

@@ -1,4 +1,4 @@
-import type { Locale } from "@/i18n/config";
+import { type Locale, locales } from "@/i18n/config";
 import type { I18nText } from "@/site/i18n-text";
 import {
   publicContentSchema,
@@ -26,7 +26,7 @@ const PLACEHOLDER_NAME: Record<Locale, string> = { cs: "Jméno", en: "Name" };
 function text(value: I18nText | undefined): I18nText | null {
   if (!value) return null;
   const out: I18nText = {};
-  for (const locale of ["cs", "en"] as const) {
+  for (const locale of locales) {
     const part = value[locale]?.trim();
     if (part) out[locale] = part;
   }

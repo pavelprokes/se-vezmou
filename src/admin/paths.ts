@@ -1,8 +1,9 @@
-import type { Locale } from "@/i18n/config";
+import { localePath, type Locale } from "@/i18n/config";
 
 /**
- * Cesty správy na hostiteli `app.` v jazycích rozhraní: čeština bez předpony, angličtina pod `/en`
- * (proxy předponu odebere a předá jazyk hlavičkou, cesty stránek zůstávají jedny).
+ * Cesty správy na hostiteli `app.`: výchozí jazyk bez předpony, ostatní pod `/<jazyk>` (proxy
+ * předponu odebere a předá jazyk hlavičkou, cesty stránek zůstávají jedny). Odkazy a přesměrování
+ * skládá `appHref` (nebo `localHref` podle jazyka požadavku).
  */
 export const ADMIN_PATHS = {
   overview: "/",
@@ -27,7 +28,7 @@ export function responsePath(householdId: string): string {
   return `/odpovedi/${householdId}`;
 }
 
+/** Cesta v jazyce `locale` na hostitelích `app.` a `admin.` (`/web` -> `/en/web`). */
 export function appHref(path: string, locale: Locale): string {
-  if (locale === "cs") return path;
-  return path === "/" ? "/en" : `/en${path}`;
+  return localePath(path, locale);
 }

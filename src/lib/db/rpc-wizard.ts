@@ -1,4 +1,5 @@
 import "server-only";
+import type { Locale } from "@/i18n/config";
 import { call, firstRow, READ_ONLY, type Bytes } from "./rpc";
 import type { CheckSlugReason } from "./types";
 
@@ -13,7 +14,7 @@ import type { CheckSlugReason } from "./types";
 /** `true` při novém e-mailu, `false` při opakovaném (volající to uživateli nesděluje). */
 export function waitlistAdd(
   email: string,
-  locale: "cs" | "en" | null,
+  locale: Locale | null,
   consentTextVersion: string,
 ): Promise<boolean> {
   return call<boolean>(
@@ -28,7 +29,7 @@ export type AnalyticsEvent =
 
 export async function analyticsRecord(input: {
   event: AnalyticsEvent;
-  locale?: "cs" | "en" | null;
+  locale?: Locale | null;
   template?: string | null;
   step?: number | null;
 }): Promise<void> {

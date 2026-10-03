@@ -1,8 +1,39 @@
 import { getUiLocale } from "@/auth/request";
 import { getSession } from "@/auth/session";
+import type { Locale } from "@/i18n/config";
 import { toCsv } from "@/lib/export/csv";
 import { toXlsx } from "@/lib/export/xlsx";
 import type { Table } from "@/lib/export/types";
+
+/** Vzorová tabulka a základ názvu souboru po jazycích rozhraní. */
+const TEMPLATES: Record<Locale, { table: Table; base: string }> = {
+  cs: {
+    base: "vzor-hoste",
+    table: {
+      name: "Hosté",
+      headers: ["Domácnost", "Jméno a příjmení", "Dítě", "Věk"],
+      rows: [
+        ["Novákovi", "Jan Novák", "ne", null],
+        ["Novákovi", "Eva Nováková", "ne", null],
+        ["Novákovi", "Tomáš Novák", "ano", 5],
+        [null, "Petra Svobodová", "ne", null],
+      ],
+    },
+  },
+  en: {
+    base: "guest-list-template",
+    table: {
+      name: "Guests",
+      headers: ["Household", "Full name", "Child", "Age"],
+      rows: [
+        ["The Novaks", "Jan Novak", "no", null],
+        ["The Novaks", "Eva Novakova", "no", null],
+        ["The Novaks", "Tomas Novak", "yes", 5],
+        [null, "Petra Svobodova", "no", null],
+      ],
+    },
+  },
+};
 
 /**
  * Vzorová tabulka pro import hostů (CSV nebo Excel) se záhlavím a třemi ukázkovými řádky ve
@@ -10,33 +41,10 @@ import type { Table } from "@/lib/export/types";
  */
 export async function GET(request: Request): Promise<Response> {
   if (!(await getSession())) return new Response(null, { status: 401 });
-  const locale = await getUiLocale();
+  const { table, base } = TEMPLATES[await getUiLocale()];
   const csv = new URL(request.url).searchParams.get("format") === "csv";
 
-  const table: Table =
-    locale === "cs"
-      ? {
-          name: "Hosté",
-          headers: ["Domácnost", "Jméno a příjmení", "Dítě", "Věk"],
-          rows: [
-            ["Novákovi", "Jan Novák", "ne", null],
-            ["Novákovi", "Eva Nováková", "ne", null],
-            ["Novákovi", "Tomáš Novák", "ano", 5],
-            [null, "Petra Svobodová", "ne", null],
-          ],
-        }
-      : {
-          name: "Guests",
-          headers: ["Household", "Full name", "Child", "Age"],
-          rows: [
-            ["The Novaks", "Jan Novak", "no", null],
-            ["The Novaks", "Eva Novakova", "no", null],
-            ["The Novaks", "Tomas Novak", "yes", 5],
-            [null, "Petra Svobodova", "no", null],
-          ],
-        };
   const body = csv ? toCsv(table) : await toXlsx(table);
-  const base = locale === "cs" ? "vzor-hoste" : "guest-list-template";
   return new Response(new Uint8Array(body), {
     headers: {
       "Content-Type": csv

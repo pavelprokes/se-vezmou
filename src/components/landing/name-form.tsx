@@ -3,7 +3,8 @@
 import { useId, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { previewSlug } from "@/lib/slug-preview";
-import { NAME_MAX_LENGTH, WIZARD_PARAMS, WIZARD_PATH } from "@/lib/wizard-link";
+import type { Locale } from "@/i18n/config";
+import { NAME_MAX_LENGTH, WIZARD_PARAMS, wizardPath } from "@/lib/wizard-link";
 import { cn } from "@/lib/utils";
 
 export interface NameFormLabels {
@@ -21,7 +22,7 @@ export interface NameFormLabels {
 export interface NameFormProps {
   /** Adresa průvodce z konfigurace (`NEXT_PUBLIC_APP_URL`). */
   appUrl: string;
-  locale: string;
+  locale: Locale;
   /** Doména pro náhled adresy (`se-vezmou.cz`). */
   domain: string;
   labels: NameFormLabels;
@@ -50,7 +51,7 @@ export function NameForm({ appUrl, locale, domain, labels, variant }: NameFormPr
 
   return (
     <form
-      action={`${appUrl}${WIZARD_PATH}`}
+      action={`${appUrl}${wizardPath(locale)}`}
       method="get"
       aria-label={labels.form}
       className={cn(

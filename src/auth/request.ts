@@ -2,8 +2,8 @@ import "server-only";
 import { headers } from "next/headers";
 import { env } from "@/env";
 import { UI_LOCALE_HEADER } from "@/host/ui-locale";
-import type { Locale } from "@/i18n/config";
-import { clientIp, isSameOrigin, pickLocale } from "./request-info";
+import { toLocale, type Locale } from "@/i18n/config";
+import { clientIp, isSameOrigin } from "./request-info";
 
 /** Údaje o aktuálním požadavku ze Server Components a Server Actions. */
 
@@ -18,15 +18,13 @@ export async function getHost(): Promise<string | null> {
 }
 
 /**
- * Jazyk rozhraní správy: na hostiteli `app.` ho vždy určuje cesta (`/en/...` anglicky, jinak česky);
- * hlavičku nastavuje proxy a klientem poslanou hodnotu přepisuje. `Accept-Language` se použije jen
- * tam, kam proxy hlavičku nenastavuje (hostitel `admin.`, vývoj).
+ * Jazyk požadavku (ADR 0013): jediný zdroj je hlavička, kterou nastaví proxy podle adresy
+ * (`/en/...` anglicky, bez předpony česky) a klientem poslanou hodnotu vždy přepíše. Server sám
+ * nic nevyjednává (`Accept-Language` ani cookie nečte); bez hlavičky platí výchozí jazyk.
  */
 export async function getUiLocale(): Promise<Locale> {
   const h = await headers();
-  const fromRoute = h.get(UI_LOCALE_HEADER);
-  if (fromRoute === "en" || fromRoute === "cs") return fromRoute;
-  return pickLocale(h.get("accept-language"));
+  return toLocale(h.get(UI_LOCALE_HEADER));
 }
 
 export class OriginError extends Error {

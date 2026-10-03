@@ -5,7 +5,7 @@ import { requireEnv } from "@/env";
 import type { Defer } from "@/auth/login";
 import { RATE_RULES, type RateRule } from "@/auth/config";
 import { rateKey } from "@/auth/rate-limit";
-import type { Locale } from "@/i18n/config";
+import { type Locale, localePath } from "@/i18n/config";
 import { authSessionContext, rateLimitHit } from "@/lib/db/rpc";
 import { sendTemplatedEmail } from "@/lib/email/send";
 import { renderRsvpConfirmation } from "@/lib/email/templates";
@@ -238,7 +238,7 @@ async function sendConfirmation(input: {
     locale: input.locale,
     partners: { a: context.partnerAName, b: context.partnerBName },
     people: input.summary.people,
-    editUrl: `${input.origin}${input.locale === "cs" ? "/" : "/en"}#potvrdit-ucast`,
+    editUrl: `${input.origin}${localePath("/", input.locale)}#potvrdit-ucast`,
     unlisted: input.summary.unlisted,
   });
   await sendTemplatedEmail({

@@ -339,7 +339,7 @@
   "access.pin.enabledNow": "The guest PIN is now on.",
   "access.pin.disabledNow": "The guest PIN is now off.",
   "access.announce.title": "Printable PDF announcement",
-  "access.announce.intro": "A page with the website address, a QR code and the guest PIN that you can print or enclose with the invitation.",
+  "access.announce.intro": "A page with the website address, a QR code and the guest PIN that you can print or enclose with the invitation. If the website has a public photo gallery link, a second QR code leads there.",
   "access.announce.pin": "Guest PIN",
   "access.announce.pinHint": "The PIN is never stored in readable form, so please type it again. Only the correct PIN gets into the PDF; without it the announcement has no PIN.",
   "access.announce.submit": "Download the PDF",

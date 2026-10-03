@@ -8,11 +8,11 @@ import { RATE_RULES } from "@/auth/config";
 import { authPinGet, authSessionContext } from "@/lib/db/rpc";
 import { limited } from "@/lib/rate-guard";
 import { getPublicContent } from "@/site/content";
-import { renderAnnouncementPdf } from "@/wizard/pdf/announcement";
+import { pickGalleryUrl, renderAnnouncementPdf } from "@/wizard/pdf/announcement";
 import { displayHost, siteUrl } from "@/wizard/urls";
 
 /**
- * Stažení PDF oznámení k tisku (adresa, QR kód a PIN hostů) pro zveřejněný web přihlášeného
+ * Stažení PDF oznámení k tisku (adresa, QR kód, případně druhý QR kód veřejné fotogalerie a PIN hostů) pro zveřejněný web přihlášeného
  * správce. POST z obrazovky „Hotovo“ nese PIN, který se jinde nikde nezobrazuje (v databázi je jen
  * jeho hash): server ho před tiskem ověří proti hashi, takže se do PDF nedostane PIN, který
  * k webu nepatří. Adresa, jména a datum se berou ze zveřejněného webu, ne z požadavku.
@@ -66,6 +66,7 @@ export async function POST(request: Request): Promise<Response> {
     host: displayHost(context.slug, host, root),
     url: siteUrl(context.slug, host, content.defaultLocale, root),
     pin,
+    galleryUrl: pickGalleryUrl(content.blocks),
   });
 
   return new Response(bytes as BodyInit, {

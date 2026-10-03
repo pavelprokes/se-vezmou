@@ -595,13 +595,21 @@ test.describe("přístupnost rámce průvodce", () => {
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
       ),
     ).toBeLessThanOrEqual(0);
-    // písmo 200 % zvětší i pruh, odsazení posunu je v `rem`, takže roste spolu s ním
+    // písmo 200 % zvětší pruh; ResizeObserver výšku přeměří až po rozvržení, proto se na odsazení čeká
     await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
-    const scaled = await page.evaluate(() => ({
-      padding: parseFloat(getComputedStyle(document.documentElement).scrollPaddingBottom),
-      bar: document.querySelector<HTMLElement>('[data-testid="wizard-bar"]')!.offsetHeight,
-    }));
-    expect(scaled.padding).toBeGreaterThanOrEqual(scaled.bar);
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const bar = document.querySelector<HTMLElement>('[data-testid="wizard-bar"]')!;
+            const padding = parseFloat(
+              getComputedStyle(document.documentElement).scrollPaddingBottom,
+            );
+            return padding - bar.offsetHeight;
+          }),
+        { message: "odsazení posunu je aspoň tak velké jako pruh" },
+      )
+      .toBeGreaterThanOrEqual(0);
 
     // Tabulátorem dopředu i zpět: žádný zaměřený prvek mimo pruh nesmí zajet pod něj.
     const covered = async () =>

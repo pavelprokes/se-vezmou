@@ -24,7 +24,6 @@
   "program.kind.ceremony": "Ceremony",
   "program.kind.reception": "Reception",
   "program.kind.other": "Programme",
-  "program.at": "at {place}",
   "venue.title": "Venue",
   "venue.address": "Address",
   "venue.directions": "Getting there",
@@ -94,5 +93,20 @@
   "pin.error.limited": "Please try again later.",
   "pin.error.generic": "Something went wrong. Please try again.",
   "venue.private.title": "The address is protected by a PIN",
-  "venue.private.body": "You will see the exact address after entering the PIN from the invitation."
+  "venue.private.body": "You will see the exact address after entering the PIN from the invitation.",
+  "countdown.label": {
+    "one": "Until the wedding",
+    "other": "Until the wedding"
+  },
+  "countdown.unit": {
+    "one": "day",
+    "other": "days"
+  },
+  "hero.next": "Go to content",
+  "nav.top": "Back to top",
+  "notice.close": "Close notice",
+  "rsvp.watermark": "Yes",
+  "preview.heroPhoto": "Introduction photo",
+  "preview.heroPhoto.on": "With photo",
+  "preview.heroPhoto.off": "No photo"
 }

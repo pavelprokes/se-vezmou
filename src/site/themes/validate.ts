@@ -3,6 +3,7 @@ import {
   colorRoles,
   decorativeRoles,
   hasPalette,
+  surfaceKeys,
   templates,
   type ColorRole,
   type Palette,
@@ -72,7 +73,7 @@ export interface PaletteValidation {
  * 3 : 1 velký text a UI), dekorativní barvy se označí a nesmí se shodovat s žádnou barvou textu
  * ani rozhraní. Paleta s chybou (`ok === false`) se nesmí zveřejnit.
  */
-export function validatePalette(palette: Pick<Palette, "colors">): PaletteValidation {
+export function validatePalette(palette: Pick<Palette, "colors" | "surfaces">): PaletteValidation {
   const colors: Partial<PaletteColors> = palette.colors;
   const errors: string[] = [];
 
@@ -110,6 +111,8 @@ export function validatePalette(palette: Pick<Palette, "colors">): PaletteValida
     }
   }
 
+  if (palette.surfaces) errors.push(...validateSurfaces(palette.surfaces));
+
   const failures = results.filter((result) => !result.ok);
   return {
     ok: errors.length === 0 && failures.length === 0,
@@ -118,6 +121,35 @@ export function validatePalette(palette: Pick<Palette, "colors">): PaletteValida
     decorativeOnly,
     errors,
   };
+}
+
+/**
+ * Plochy (Eukalyptus): na každé ploše text, doplňkový text a akcent 4,5 : 1, tlačítko vůči ploše a obrys
+ * zaměření 3 : 1, text tlačítka 4,5 : 1. Pole má bílou výplň: text `ink` 4,5 : 1 a ohraničení `field` 3 : 1
+ * na bílé; na ploše je pole vidět buď ohraničením, nebo bílou výplní (3 : 1).
+ */
+export function validateSurfaces(surfaces: NonNullable<Palette["surfaces"]>): string[] {
+  const errors: string[] = [];
+  const need = (what: string, foreground: string, background: string, required: number) => {
+    const ratio = contrastRatio(foreground, background);
+    if (ratio < required)
+      errors.push(`${what}: ${ratio.toFixed(2)} : 1, vyžadováno ${required} : 1`);
+  };
+  need("pole: text na bílé", surfaces.ink, "#FFFFFF", THRESHOLDS.text);
+  need("pole: ohraničení na bílé", surfaces.field, "#FFFFFF", THRESHOLDS.ui);
+  for (const key of surfaceKeys) {
+    const s = surfaces.tones[key];
+    need(`plocha ${key}: text`, s.text, s.bg, THRESHOLDS.text);
+    need(`plocha ${key}: doplňkový text`, s.muted, s.bg, THRESHOLDS.text);
+    need(`plocha ${key}: akcent`, s.accent, s.bg, THRESHOLDS.text);
+    need(`plocha ${key}: text tlačítka`, s.onButton, s.button, THRESHOLDS.text);
+    need(`plocha ${key}: tlačítko`, s.button, s.bg, THRESHOLDS.ui);
+    need(`plocha ${key}: obrys zaměření`, s.focus, s.bg, THRESHOLDS.ui);
+    const field = Math.max(contrastRatio(surfaces.field, s.bg), contrastRatio("#FFFFFF", s.bg));
+    if (field < THRESHOLDS.ui)
+      errors.push(`plocha ${key}: pole: ${field.toFixed(2)} : 1, vyžadováno ${THRESHOLDS.ui} : 1`);
+  }
+  return errors;
 }
 
 /** Ověří paletu šablony podle klíčů; neznámá dvojice šablona/paleta je chyba. */

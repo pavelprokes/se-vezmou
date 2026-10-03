@@ -2,6 +2,7 @@ import { ChevronDown } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import type { BlockOf } from "@/site/types";
 import type { SiteCtx } from "../context";
+import { faqItems } from "../models";
 import { Paragraphs, Section } from "./section";
 
 /**
@@ -17,7 +18,7 @@ export function Faq({
   ctx: SiteCtx;
   tone: "bg" | "surface";
 }) {
-  const items = block.data.items.filter((i) => ctx.text(i.question) && ctx.text(i.answer));
+  const items = faqItems(block, ctx);
   return (
     <Section block={block} ctx={ctx} tone={tone}>
       <div className="site-faq">

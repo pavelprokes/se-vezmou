@@ -160,14 +160,20 @@ test.describe("klávesnice", () => {
       steps++;
       const result = await page.evaluate(() => {
         const active = document.activeElement as HTMLElement | null;
-        const stickyEl = document.querySelector(".site-sticky");
+        const stickyEl = document.querySelector(".site-sticky, .eu-sticky");
         if (!active || !stickyEl || active === document.body) return null;
+        // Eukalyptus tlačítko u formuláře a při psaní schová (není vidět ani v pořadí tabulátoru):
+        // projde-li zaměření celou stránkou znovu na začátek, test končí.
+        const seen = active.dataset.e2eSeen === "1";
+        active.dataset.e2eSeen = "1";
+        const hidden = getComputedStyle(stickyEl).visibility === "hidden";
         const a = active.getBoundingClientRect();
         const s = stickyEl.getBoundingClientRect();
         return {
-          inside: stickyEl.contains(active),
+          inside: stickyEl.contains(active) || seen,
           text: active.textContent?.trim().slice(0, 40),
-          covered: a.bottom > s.top && a.top < s.bottom && a.right > s.left && a.left < s.right,
+          covered:
+            !hidden && a.bottom > s.top && a.top < s.bottom && a.right > s.left && a.left < s.right,
           visible: a.top >= 0 && a.bottom <= window.innerHeight,
         };
       });
@@ -222,7 +228,7 @@ test.describe("režim poděkování po svatbě (FR-WEB-4)", () => {
     await page.goto(previewUrl("cs", { phase: "thanks", unlocked: true }));
     await expect(page.getByText("Do svatby zbývá")).toHaveCount(0);
     await expect(page.locator("#potvrdit-ucast")).toHaveCount(0);
-    await expect(page.locator(".site-sticky")).toHaveCount(0);
+    await expect(page.locator(".site-sticky, .eu-sticky")).toHaveCount(0);
     await expect(page.locator("#dary")).toHaveCount(0);
     await expect(page.getByText("19-2000145399/0800")).toHaveCount(0);
     await expect(page.locator("#galerie img")).toHaveCount(3);
@@ -268,9 +274,11 @@ test.describe("šablony mění jen tokeny, typografii a kompozici", () => {
   test("každá šablona a paleta nese svou barvu pozadí a stejné bloky", async ({ page }) => {
     const expected: Record<string, string> = {
       "editorial/papir": "rgb(251, 250, 247)",
-      "eukalyptus/stribrna": "rgb(238, 243, 239)",
-      "eukalyptus/hloubka": "rgb(34, 58, 52)",
-      "eukalyptus/pudr": "rgb(244, 241, 236)",
+      // Eukalyptus: podklad stránky je plocha „papír“ palety, sekce mají vlastní plochy.
+      "eukalyptus/bordo": "rgb(251, 248, 242)",
+      "eukalyptus/stribrna": "rgb(248, 250, 248)",
+      "eukalyptus/hloubka": "rgb(43, 71, 64)",
+      "eukalyptus/pudr": "rgb(251, 249, 246)",
       "chateau/champagne": "rgb(251, 246, 236)",
       "modern/limeta": "rgb(13, 15, 18)",
     };
@@ -278,7 +286,8 @@ test.describe("šablony mění jen tokeny, typografii a kompozici", () => {
       const [template, palette] = key.split("/") as [Template, string];
       await page.goto(previewUrl("cs", { template, palette }));
       await expect(page.locator(".site-root")).toHaveCSS("background-color", background);
-      await expect(page.locator("main > section")).toHaveCount(11);
+      // Eukalyptus má navíc pás odpočtu.
+      await expect(page.locator("main > section")).toHaveCount(template === "eukalyptus" ? 12 : 11);
     }
   });
 
@@ -291,12 +300,30 @@ test.describe("šablony mění jen tokeny, typografii a kompozici", () => {
     await expect(page.locator(".site-names")).toHaveCSS("text-transform", "uppercase");
   });
 
-  test("Eukalyptus má SVG listy jako dekor pod textem, ostatní šablony ne", async ({ page }) => {
+  test("Eukalyptus má SVG větvičky jako dekor, ostatní šablony ne", async ({ page }) => {
     await page.goto(previewUrl("cs", { template: "eukalyptus" }));
-    await expect(page.locator(".site-leaves")).toHaveCount(2);
-    await expect(page.locator(".site-leaves").first()).toHaveAttribute("aria-hidden", "true");
+    await expect(page.locator(".eu-hero .eu-sprig")).toHaveCount(2);
+    await expect(page.locator(".eu-sprig").first()).toHaveAttribute("aria-hidden", "true");
     await page.goto(previewUrl("cs", { template: "editorial" }));
-    await expect(page.locator(".site-leaves")).toHaveCount(0);
+    await expect(page.locator(".eu-sprig")).toHaveCount(0);
+  });
+
+  test("Eukalyptus: sousední sekce mají různé plochy a jména se vejdou bez vodorovného posunu", async ({
+    page,
+  }) => {
+    for (const viewport of [
+      { width: 375, height: 812 },
+      { width: 768, height: 1024 },
+      { width: 1440, height: 900 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto(previewUrl("cs", { template: "eukalyptus" }));
+      const tones = await page
+        .locator("main > section, .eu-footer")
+        .evaluateAll((els) => els.map((el) => el.getAttribute("data-tone")));
+      for (let i = 1; i < tones.length; i++) expect(tones[i]).not.toBe(tones[i - 1]);
+      expect(await horizontalOverflow(page)).toBeLessThanOrEqual(0);
+    }
   });
 
   test("Modern: animace jmen jen bez prefers-reduced-motion", async ({ browser }) => {

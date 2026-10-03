@@ -55,8 +55,10 @@ describe("SiteRenderer: bloky a struktura", () => {
     expect(screen.getAllByText(/19.\s?června 2027/, { selector: "time" }).length).toBeGreaterThan(
       0,
     );
-    // 2. 10. 2026 -> 19. 6. 2027 je 260 dní.
-    expect(screen.getByText(/Do svatby zbývá 260\s+dní/)).toBeInTheDocument();
+    // 2. 10. 2026 -> 19. 6. 2027 je 260 dní (Eukalyptus: popisek, obří číslo a jednotka zvlášť).
+    const countdown = screen.getByRole("region", { name: "Do svatby zbývá" });
+    expect(countdown).toHaveTextContent(/260\s*dní/);
+    expect(countdown).not.toHaveAttribute("aria-live");
   });
 
   it("vykreslí všechny bloky Eukalyptu v pořadí position a každá kotva v navigaci existuje", () => {
@@ -64,6 +66,7 @@ describe("SiteRenderer: bloky a struktura", () => {
     const sections = [...container.querySelectorAll("main > section")].map((s) => s.id);
     expect(sections).toEqual([
       "uvod",
+      "odpocet",
       "pribeh",
       "program",
       "misto",
@@ -79,7 +82,8 @@ describe("SiteRenderer: bloky a struktura", () => {
     const hrefs = within(nav)
       .getAllByRole("link")
       .map((a) => a.getAttribute("href"));
-    expect(hrefs).toEqual(sections.slice(1).map((id) => `#${id}`));
+    // Navigace vede na bloky webu; pás odpočtu není blok a v navigaci není.
+    expect(hrefs).toEqual(sections.slice(2).map((id) => `#${id}`));
     for (const href of hrefs) expect(container.querySelector(href!)).not.toBeNull();
   });
 
@@ -102,7 +106,9 @@ describe("SiteRenderer: bloky a struktura", () => {
       "20:00",
     ]);
     expect(items[0]).toHaveTextContent("Svatební obřad");
-    expect(items[0]).toHaveTextContent("v Zámecká kaple");
+    // Místo bez předložky a bez skloňování, tak jak ho pár zadal.
+    expect(items[0]).toHaveTextContent("Zámecká kaple");
+    expect(items[0]).not.toHaveTextContent("v Zámecká kaple");
   });
 
   it("místo má vždy textovou adresu a mapu jen jako odkaz, bez vložení třetích stran", () => {
@@ -246,7 +252,9 @@ describe("SiteRenderer: jazyk a náhradní jazyk", () => {
     renderSite(eukalyptusFixture, "en");
     expect(screen.getByRole("region", { name: "Programme" })).toBeInTheDocument();
     expect(screen.getByText("Wedding ceremony")).toBeInTheDocument();
-    expect(screen.getByText(/260 days to go/)).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Until the wedding" })).toHaveTextContent(
+      /260\s*days/,
+    );
     expect(screen.getAllByRole("link", { name: "RSVP" })).toHaveLength(2); // navigace a ukotvené tlačítko
   });
 
@@ -660,7 +668,10 @@ describe("SiteRenderer: čtyři šablony nad společnými bloky", () => {
         expect(root.style.getPropertyValue("--s-text").toLowerCase()).toBe(
           palette.colors.text.toLowerCase(),
         );
-        expect(container.querySelectorAll("main > section")).toHaveLength(11);
+        // Eukalyptus má navíc pás odpočtu (`hero.data.countdown` fixtury).
+        expect(container.querySelectorAll("main > section")).toHaveLength(
+          template === "eukalyptus" ? 12 : 11,
+        );
         // Dekorativní SVG šablony jsou skryté před čtečkami.
         for (const svg of container.querySelectorAll("svg:not([role='img'])")) {
           expect(svg.getAttribute("aria-hidden")).toBe("true");
@@ -671,12 +682,14 @@ describe("SiteRenderer: čtyři šablony nad společnými bloky", () => {
 
   it("neznámá paleta padá na výchozí paletu šablony", () => {
     const { container } = renderSite({ ...eukalyptusFixture, palette: "neexistuje" });
-    expect((container.querySelector(".site-root") as HTMLElement).dataset.palette).toBe("stribrna");
+    expect((container.querySelector(".site-root") as HTMLElement).dataset.palette).toBe("bordo");
   });
 
   it("listy Eukalyptu a monogram Chateau jsou dekor (aria-hidden), ostatní šablony je nemají", () => {
     const eu = renderSite(eukalyptusFixture);
-    expect(eu.container.querySelectorAll(".site-leaves[aria-hidden='true']")).toHaveLength(2);
+    const sprigs = eu.container.querySelectorAll(".eu-sprig");
+    expect(sprigs.length).toBeGreaterThan(1);
+    for (const sprig of sprigs) expect(sprig.getAttribute("aria-hidden")).toBe("true");
     eu.unmount();
     const ch = renderSite({ ...eukalyptusFixture, template: "chateau", palette: "champagne" });
     const monogram = ch.container.querySelector(".site-monogram");

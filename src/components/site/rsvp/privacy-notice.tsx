@@ -5,7 +5,8 @@ import { siteUrl } from "@/lib/site";
 
 /**
  * Krátká informace o zpracování údajů při potvrzení účasti (docs/security-privacy.md kap. 5.5):
- * správcem údajů hostů je pár, provozovatel je zpracovatel, odkaz vede na zásady zpracování.
+ * správcem údajů hostů je pár, provozovatel je zpracovatel, odkaz vede na zásady zpracování. Jména páru
+ * se do věty neskládají (neskloňují se), text odkazuje na snoubence v záhlaví webu.
  *
  * Zásady (`/soukromi`, `/en/privacy`) se obsluhují jen na hostiteli úvodní stránky, na webu páru
  * tato adresa neexistuje, proto odkaz míří na absolutní adresu `NEXT_PUBLIC_SITE_URL`. Otevírá se
@@ -16,26 +17,20 @@ import { siteUrl } from "@/lib/site";
 export function RsvpPrivacyNotice({
   t,
   locale,
-  partners,
 }: {
   t: Translator<"rsvp" | "site" | "common">;
   locale: Locale;
-  partners: { a: string; b: string };
 }) {
   const href = `${siteUrl}${localizedPath("privacy", locale)}`;
   return (
     <p className="site-muted site-hint" data-testid="rsvp-privacy-notice">
-      {t.rich(
-        "rsvp.privacy.notice",
-        {
-          a: (children) => (
-            <a href={href} target="_blank" rel="noopener noreferrer" className="site-link">
-              {children}
-            </a>
-          ),
-        },
-        { first: partners.a, second: partners.b },
-      )}
+      {t.rich("rsvp.privacy.notice", {
+        a: (children) => (
+          <a href={href} target="_blank" rel="noopener noreferrer" className="site-link">
+            {children}
+          </a>
+        ),
+      })}
     </p>
   );
 }

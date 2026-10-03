@@ -123,6 +123,8 @@ const blockBase = {
 export const heroData = z.object({
   countdown: z.boolean().default(false),
   tagline: i18nTextSchema.nullable().default(null),
+  /** Volitelná fotka přes celý úvod (šablony, které ji umí, např. Eukalyptus); médium je v `content.media`. */
+  photoMediaId: z.string().nullable().default(null),
 });
 export const programData = z.object({ intro: i18nTextSchema.nullable().default(null) });
 export const venueData = z.object({

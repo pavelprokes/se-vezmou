@@ -41,6 +41,33 @@ export interface Palette {
   key: string;
   name: I18nText;
   colors: PaletteColors;
+  /** Barevné plochy šablon s plnými plochami pro každou sekci (Eukalyptus); ostatní šablony je nemají. */
+  surfaces?: PaletteSurfaces;
+}
+
+/**
+ * Plochy (sémantické názvy, aby šla paleta měnit na úrovni páru): `light` úvod a místo, `paper` základ a fotky,
+ * `accent` odpočet a patička, `deep` program, `soft` potvrzení účasti, `dark` dary.
+ */
+export const surfaceKeys = ["light", "paper", "accent", "deep", "soft", "dark"] as const;
+export type SurfaceKey = (typeof surfaceKeys)[number];
+
+/** Barvy jedné plochy: text, doplňkový text a akcent (4,5 : 1), tlačítko a obrys zaměření (3 : 1). */
+export interface SurfaceColors {
+  bg: string;
+  text: string;
+  muted: string;
+  accent: string;
+  button: string;
+  onButton: string;
+  focus: string;
+}
+
+export interface PaletteSurfaces {
+  /** Vstupní pole mají vždy bílou výplň, text `ink` a ohraničení `field` (3 : 1 na bílé i na světlé ploše). */
+  field: string;
+  ink: string;
+  tones: Record<SurfaceKey, SurfaceColors>;
 }
 
 export interface TemplateDefinition {
@@ -48,6 +75,19 @@ export interface TemplateDefinition {
   name: I18nText;
   defaultPalette: string;
   palettes: readonly Palette[];
+}
+
+/** Plocha z barev v pořadí pozadí, text, doplňkový text, akcent, tlačítko, text tlačítka, obrys zaměření. */
+function tone(
+  bg: string,
+  text: string,
+  muted: string,
+  accent: string,
+  button: string,
+  onButton: string,
+  focus: string,
+): SurfaceColors {
+  return { bg, text, muted, accent, button, onButton, focus };
 }
 
 const editorial: TemplateDefinition = {
@@ -118,8 +158,39 @@ const editorial: TemplateDefinition = {
 const eukalyptus: TemplateDefinition = {
   key: "eukalyptus",
   name: { cs: "Eukalyptus", en: "Eucalyptus" },
-  defaultPalette: "stribrna",
+  defaultPalette: "bordo",
   palettes: [
+    {
+      key: "bordo",
+      name: { cs: "Bordó", en: "Burgundy" },
+      colors: {
+        bg: "#FBF8F2",
+        surface: "#F4EEE4",
+        text: "#1F2A24",
+        muted: "#56605A",
+        accent: "#7B2D2D",
+        accent2: "#1C3128",
+        onAccent: "#F4EEE4",
+        display: "#7B2D2D",
+        border: "#6B776F",
+        focus: "#1F2A24",
+        ornament: "#8FA593",
+        decor: "#B7C7B9",
+        decor2: "#E8C9C0",
+      },
+      surfaces: {
+        field: "#6B776F",
+        ink: "#1F2A24",
+        tones: {
+          light: tone("#F4EEE4", "#1F2A24", "#56605A", "#7B2D2D", "#7B2D2D", "#F4EEE4", "#7B2D2D"),
+          paper: tone("#FBF8F2", "#1F2A24", "#56605A", "#7B2D2D", "#7B2D2D", "#FBF8F2", "#7B2D2D"),
+          accent: tone("#7B2D2D", "#F4EEE4", "#E8C9C0", "#E8C9C0", "#F4EEE4", "#7B2D2D", "#F4EEE4"),
+          deep: tone("#1C3128", "#F4EEE4", "#B7C7B9", "#B7C7B9", "#F4EEE4", "#1C3128", "#F4EEE4"),
+          soft: tone("#DCE4D8", "#1F2A24", "#4C5A52", "#7B2D2D", "#7B2D2D", "#F4EEE4", "#7B2D2D"),
+          dark: tone("#141E19", "#F4EEE4", "#B7C7B9", "#E8C9C0", "#F4EEE4", "#141E19", "#F4EEE4"),
+        },
+      },
+    },
     {
       key: "stribrna",
       name: { cs: "Stříbrná", en: "Silver" },
@@ -137,6 +208,18 @@ const eukalyptus: TemplateDefinition = {
         ornament: "#8FAA9C",
         decor: "#BFD0C5",
         decor2: "#D8A98F",
+      },
+      surfaces: {
+        field: "#5F7A6F",
+        ink: "#1E2F2A",
+        tones: {
+          light: tone("#EEF3EF", "#1E2F2A", "#3F5750", "#2F4B44", "#2F4B44", "#EEF3EF", "#1E2F2A"),
+          paper: tone("#F8FAF8", "#1E2F2A", "#3F5750", "#7E4E3A", "#2F4B44", "#F8FAF8", "#1E2F2A"),
+          accent: tone("#2F4B44", "#EEF3EF", "#BFD0C5", "#F0D5C3", "#EEF3EF", "#2F4B44", "#EEF3EF"),
+          deep: tone("#1E2F2A", "#EEF3EF", "#BFD0C5", "#BFD0C5", "#EEF3EF", "#1E2F2A", "#EEF3EF"),
+          soft: tone("#DDE7E0", "#1E2F2A", "#3F5750", "#7E4E3A", "#2F4B44", "#EEF3EF", "#1E2F2A"),
+          dark: tone("#7E4E3A", "#FBF4EE", "#F0D5C3", "#F0D5C3", "#FBF4EE", "#7E4E3A", "#FBF4EE"),
+        },
       },
     },
     {
@@ -157,6 +240,18 @@ const eukalyptus: TemplateDefinition = {
         decor: "#3A5A51",
         decor2: "#D8A98F",
       },
+      surfaces: {
+        field: "#4F675E",
+        ink: "#1E2F2A",
+        tones: {
+          light: tone("#223A34", "#EEF3EF", "#BFD0C5", "#F0D5C3", "#F0D5C3", "#223A34", "#EEF3EF"),
+          paper: tone("#2B4740", "#EEF3EF", "#BFD0C5", "#F0D5C3", "#F0D5C3", "#223A34", "#EEF3EF"),
+          accent: tone("#F0D5C3", "#1E2F2A", "#4A4038", "#7E4E3A", "#223A34", "#F0D5C3", "#1E2F2A"),
+          deep: tone("#15241F", "#EEF3EF", "#BFD0C5", "#BFD0C5", "#EEF3EF", "#15241F", "#EEF3EF"),
+          soft: tone("#BFD0C5", "#1E2F2A", "#33463F", "#6E3F2D", "#223A34", "#EEF3EF", "#1E2F2A"),
+          dark: tone("#0F1A16", "#EEF3EF", "#BFD0C5", "#F0D5C3", "#EEF3EF", "#0F1A16", "#EEF3EF"),
+        },
+      },
     },
     {
       key: "pudr",
@@ -175,6 +270,18 @@ const eukalyptus: TemplateDefinition = {
         ornament: "#8FAA9C",
         decor: "#BFD0C5",
         decor2: "#D8A98F",
+      },
+      surfaces: {
+        field: "#6F7F78",
+        ink: "#1E2F2A",
+        tones: {
+          light: tone("#F4F1EC", "#1E2F2A", "#4A5A54", "#8A4A44", "#8A4A44", "#F4F1EC", "#1E2F2A"),
+          paper: tone("#FBF9F6", "#1E2F2A", "#4A5A54", "#8A4A44", "#8A4A44", "#FBF9F6", "#1E2F2A"),
+          accent: tone("#8A4A44", "#F4F1EC", "#F1D9D3", "#F1D9D3", "#F4F1EC", "#8A4A44", "#F4F1EC"),
+          deep: tone("#2F4B44", "#F4F1EC", "#C9D8CF", "#F1D9D3", "#F4F1EC", "#2F4B44", "#F4F1EC"),
+          soft: tone("#EAD9D2", "#1E2F2A", "#4A4A44", "#7A3F3A", "#8A4A44", "#F4F1EC", "#1E2F2A"),
+          dark: tone("#2A2321", "#F4F1EC", "#D2C7C2", "#F1D9D3", "#F4F1EC", "#2A2321", "#F4F1EC"),
+        },
       },
     },
   ],

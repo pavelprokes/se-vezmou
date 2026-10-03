@@ -252,7 +252,7 @@ describe("toWorkingSet", () => {
       locales: ["cs"],
       defaultLocale: "cs",
       template: "eukalyptus",
-      palette: "stribrna",
+      palette: "bordo",
       guestPinEnabled: true,
     });
     expect(set.venues).toHaveLength(1);

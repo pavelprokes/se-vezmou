@@ -1,9 +1,9 @@
 import { MapPin } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
-import { daysUntil, formatDateRange } from "@/site/format";
+import { formatDateRange } from "@/site/format";
 import type { BlockOf } from "@/site/types";
-import { EucalyptusLeaves, Monogram } from "../ornaments";
 import type { SiteCtx } from "../context";
+import { heroModel } from "../models";
 import { Paragraphs } from "./section";
 
 /**
@@ -12,17 +12,13 @@ import { Paragraphs } from "./section";
  */
 export function Hero({ block, ctx }: { block: BlockOf<"hero">; ctx: SiteCtx }) {
   const { content, t, locale } = ctx;
-  const thanks = content.phase === "thanks";
-  const venue = content.venues[0];
-  const days = daysUntil(content.startsOn, content.timezone, ctx.now);
-  const showCountdown = block.data.countdown && !thanks && days >= 0;
-  const template = content.template;
+  const { thanks, venue, days, showCountdown } = heroModel(block, ctx);
 
   return (
     <section id={block.anchor} aria-labelledby="site-jmena" className="site-hero">
-      {template === "eukalyptus" ? <EucalyptusLeaves /> : null}
+      {ctx.decor.heroBackdrop}
       <div className="site-wrap site-hero-inner">
-        {template === "chateau" ? <Monogram a={content.partners.a} b={content.partners.b} /> : null}
+        {ctx.decor.heroCrest}
         <p className="site-eyebrow">
           {thanks ? t("site.thanks.title") : t("site.hero.saveTheDate")}
         </p>

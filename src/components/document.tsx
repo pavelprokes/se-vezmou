@@ -14,6 +14,8 @@ const dmSans = DM_Sans({
 
 const newsreader = Newsreader({
   subsets: ["latin", "latin-ext"],
+  // Kurzíva pro nadpisy šablony Eukalyptus (jinak by ji prohlížeč dopočítal nakloněním).
+  style: ["normal", "italic"],
   variable: "--font-newsreader",
   display: "swap",
 });

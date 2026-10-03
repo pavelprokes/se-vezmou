@@ -8,19 +8,20 @@ const cs = await getTranslator("cs", ["common", "site", "rsvp"]);
 const en = await getTranslator("en", ["common", "site", "rsvp"]);
 
 describe("RsvpPrivacyNotice", () => {
-  it("jmenuje pár jako správce a odkazuje na české zásady na hostiteli úvodní stránky", () => {
-    render(<RsvpPrivacyNotice t={cs} locale="cs" partners={{ a: "Klára", b: "Matěj" }} />);
+  it("označí snoubence jako správce bez skládání jmen do věty a odkazuje na české zásady", () => {
+    render(<RsvpPrivacyNotice t={cs} locale="cs" />);
     const notice = screen.getByTestId("rsvp-privacy-notice");
-    expect(notice.textContent).toContain("Klára");
-    expect(notice.textContent).toContain("Matěj");
-    expect(notice.textContent).toContain("správcem");
+    // typo() vkládá nezlomitelné mezery za jednopísmenné předložky
+    expect(notice.textContent?.replace(/\u00a0/g, " ")).toContain(
+      "Správci údajů jsou snoubenci uvedení v záhlaví webu",
+    );
     const link = screen.getByRole("link");
     expect(link.getAttribute("href")).toMatch(/^https?:\/\/[^/]+\/soukromi$/);
     expect(link.getAttribute("rel")).toContain("noopener");
   });
 
   it("v angličtině odkazuje na anglické zásady", () => {
-    render(<RsvpPrivacyNotice t={en} locale="en" partners={{ a: "Klára", b: "Matěj" }} />);
+    render(<RsvpPrivacyNotice t={en} locale="en" />);
     expect(screen.getByRole("link").getAttribute("href")).toMatch(/\/en\/privacy$/);
     expect(screen.getByTestId("rsvp-privacy-notice").textContent).toContain("controller");
   });

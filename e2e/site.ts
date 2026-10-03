@@ -8,7 +8,7 @@ import { HOSTS, pageUrl } from "./hosts";
 
 export const TEMPLATES = {
   editorial: ["papir", "kamen", "pulnoc"],
-  eukalyptus: ["stribrna", "hloubka", "pudr"],
+  eukalyptus: ["bordo", "stribrna", "hloubka", "pudr"],
   chateau: ["champagne", "slonovina", "noc"],
   modern: ["slunce", "kobalt", "limeta"],
 } as const;

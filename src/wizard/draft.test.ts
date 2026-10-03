@@ -42,7 +42,7 @@ describe("createDraft", () => {
     expect(draft.defaultLocale).toBe("en");
     expect(draft.slug).toBe("klara-and-matej");
     expect(draft.template).toBe("eukalyptus");
-    expect(draft.palette).toBe("stribrna");
+    expect(draft.palette).toBe("bordo");
     expect(wizardDraftSchema.safeParse(draft).success).toBe(true);
   });
 
@@ -69,7 +69,7 @@ describe("parseDraft", () => {
       locales: ["en"],
       defaultLocale: "cs",
     });
-    expect(parsed?.palette).toBe("stribrna");
+    expect(parsed?.palette).toBe("bordo");
     expect(parsed?.defaultLocale).toBe("en");
   });
 

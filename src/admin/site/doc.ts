@@ -82,7 +82,12 @@ export const galleryLinkEditSchema = z.object({
 });
 
 const dataSchemas = {
-  hero: z.object({ countdown: z.boolean().default(false), tagline: optionalText(LIMITS.short) }),
+  hero: z.object({
+    countdown: z.boolean().default(false),
+    tagline: optionalText(LIMITS.short),
+    /** Fotka přes celý úvod (jedna z fotografií svatby). */
+    photoMediaId: z.string().nullable().default(null),
+  }),
   program: z.object({ intro: optionalText() }),
   venue: z.object({
     venueIds: z.array(uuid).max(LIMITS.venues).default([]),
@@ -223,7 +228,7 @@ export function newId(): string {
 
 export function defaultBlockData<T extends BlockType>(type: T): EditorBlockOf<T>["data"] {
   return dataSchemas[type].parse(
-    type === "hero" ? { countdown: true } : type === "gifts" ? {} : {},
+    type === "hero" ? { countdown: false } : type === "gifts" ? {} : {},
   ) as EditorBlockOf<T>["data"];
 }
 
@@ -1110,12 +1115,24 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
           },
         };
       }
-      case "hero":
+      case "hero": {
+        // Fotka úvodu: s přehledem médií jen hotová zveřejnitelná fotografie (jinak úvod bez fotky)
+        const image =
+          mediaGiven && block.data.photoMediaId
+            ? mediaById.get(block.data.photoMediaId)
+            : undefined;
+        const usable = image && image.kind === "photo" && publishable(image);
+        if (usable) addMedia(publicMedia, image);
         return {
           ...base,
           type: block.type,
-          data: { countdown: block.data.countdown, tagline: cleanText(block.data.tagline) },
+          data: {
+            countdown: block.data.countdown,
+            tagline: cleanText(block.data.tagline),
+            photoMediaId: mediaGiven ? (usable ? image.id : null) : block.data.photoMediaId,
+          },
         };
+      }
       case "program":
       case "rsvp":
         return { ...base, type: block.type, data: { intro: cleanText(block.data.intro) } };

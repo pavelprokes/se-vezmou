@@ -98,7 +98,6 @@ export function Done({ info, uiLocale }: { info: DoneInfo; uiLocale: Locale }) {
         </h2>
         <p>{t("wizard.done.share.body")}</p>
         <ShareLinks
-          url={info.url}
           labels={{
             whatsapp: t("wizard.done.share.whatsapp"),
             sms: t("wizard.done.share.sms"),

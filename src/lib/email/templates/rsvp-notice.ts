@@ -49,6 +49,18 @@ const COPY = {
   },
 } as const;
 
+/**
+ * Host mimo seznam píše jméno sám a e-mail jde z naší domény: odkazy ve jménu se vyřežou a délka
+ * omezí, aby z upozornění nešla udělat návnada na cizí stránku.
+ */
+function safeName(name: string): string {
+  return name
+    .replace(/(?:https?:\/\/|www\.)\S+/gi, "…")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 80);
+}
+
 export function renderRsvpNotice({
   locale,
   partners,
@@ -64,7 +76,7 @@ export function renderRsvpNotice({
     ...(unlisted ? [{ kind: "paragraph", text: copy.unlisted } as const] : []),
     ...people.map((person): Block => ({
       kind: "list",
-      text: person.name,
+      text: safeName(person.name),
       items: person.rows.map(
         (row) => `${row.event}: ${row.attending ? copy.attending : copy.declining}`,
       ),

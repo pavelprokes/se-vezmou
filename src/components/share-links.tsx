@@ -25,7 +25,7 @@ const canShare = () => typeof navigator !== "undefined" && typeof navigator.shar
  * JavaScriptu, nic se neposílá přes naše servery); systémové sdílení se přidá, když ho zařízení umí.
  * PIN hostů se do zprávy nikdy nepřidává: patří k pozvánce, ne do skupinového chatu.
  */
-export function ShareLinks({ url, labels }: { url: string; labels: ShareLabels }) {
+export function ShareLinks({ labels }: { labels: ShareLabels }) {
   const nativeShare = useSyncExternalStore(subscribe, canShare, () => false);
   const text = encodeURIComponent(labels.message);
   const links = [
@@ -63,9 +63,7 @@ export function ShareLinks({ url, labels }: { url: string; labels: ShareLabels }
           type="button"
           className={buttonVariants({ variant: "secondary" })}
           onClick={() =>
-            void navigator
-              .share({ title: labels.subject, text: labels.message, url })
-              .catch(() => {})
+            void navigator.share({ title: labels.subject, text: labels.message }).catch(() => {})
           }
         >
           <Icon icon={Share2} size={18} />

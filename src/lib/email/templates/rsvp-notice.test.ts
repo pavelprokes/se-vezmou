@@ -40,6 +40,18 @@ describe.each(locales)("upozornění na odpověď (%s)", (locale) => {
     expect(email.html).toContain("&lt;b&gt;");
   });
 
+  it("odkaz ve jménu hosta se vyřízne a dlouhé jméno se zkrátí", () => {
+    const email = renderRsvpNotice({
+      ...base(locale),
+      people: [
+        { name: "Pozor: obnovte heslo na http://evil.example/x", rows: [] },
+        { name: "A".repeat(200), rows: [] },
+      ],
+    });
+    expect(email.text).not.toContain("evil.example");
+    expect(email.text).not.toContain("A".repeat(81));
+  });
+
   it("host mimo seznam má poznámku, host ze seznamu ne", () => {
     const listed = renderRsvpNotice(base(locale));
     const unlisted = renderRsvpNotice({ ...base(locale), unlisted: true });

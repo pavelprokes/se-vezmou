@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 /** Tlačítko „Kopírovat“ s hlášením pro čtečky; bez schránky (nezabezpečený kontext) se nic nestane. */
 export function CopyButton({
@@ -17,6 +17,13 @@ export function CopyButton({
   text: string;
 }) {
   const [copied, setCopied] = useState(false);
+
+  // Hlášení po chvíli zmizí, aby další kopírování (jiný údaj i stejný) zase zaznělo
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2500);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   async function copy() {
     try {

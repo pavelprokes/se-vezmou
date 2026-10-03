@@ -20,7 +20,10 @@ export function dateChangeNotice(
   if (!startsOn || !/^\d{4}-\d{2}-\d{2}$/.test(startsOn)) return null;
   const notice: I18nText = {};
   for (const locale of locales) {
-    notice[locale] = typo(COPY[locale](formatDateRange(startsOn, endsOn ?? null, locale)), locale);
+    notice[locale] = typo(
+      COPY[locale](formatDateRange(startsOn, endsOn && endsOn > startsOn ? endsOn : null, locale)),
+      locale,
+    );
   }
   return notice;
 }

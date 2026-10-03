@@ -127,8 +127,8 @@ export default async function OverviewPage() {
             {site && published ? (
               <div className="mt-5 flex flex-col gap-3">
                 <h3 className="text-lg font-medium">{t("admin.overview.share.title")}</h3>
+                <p className="text-muted text-sm">{t("admin.overview.share.body")}</p>
                 <ShareLinks
-                  url={site.url}
                   labels={{
                     whatsapp: t("admin.overview.share.whatsapp"),
                     sms: t("admin.overview.share.sms"),

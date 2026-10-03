@@ -10,6 +10,12 @@ describe("dateChangeNotice", () => {
     expect(notice?.en).toContain("2027");
   });
 
+  it("konec před začátkem se ignoruje, text ukáže jen začátek", () => {
+    expect(dateChangeNotice(["en"], "2027-06-14", "2027-06-12")).toEqual(
+      dateChangeNotice(["en"], "2027-06-14"),
+    );
+  });
+
   it("vynechá jazyky, které web nemá", () => {
     expect(Object.keys(dateChangeNotice(["cs"], "2027-06-12") ?? {})).toEqual(["cs"]);
   });

@@ -14,7 +14,7 @@ const labels = {
 
 describe("ShareLinks", () => {
   it("sestaví odkazy pro WhatsApp, SMS a e-mail se zakódovanou zprávou", () => {
-    render(<ShareLinks url="https://klara-a-matej.se-vezmou.cz" labels={labels} />);
+    render(<ShareLinks labels={labels} />);
     const text = encodeURIComponent(labels.message);
     expect(screen.getByRole("link", { name: "WhatsApp" })).toHaveAttribute(
       "href",
@@ -28,7 +28,7 @@ describe("ShareLinks", () => {
   });
 
   it("systémové sdílení se nabídne jen tam, kde ho zařízení umí", () => {
-    render(<ShareLinks url="https://x.example" labels={labels} />);
+    render(<ShareLinks labels={labels} />);
     expect(screen.queryByRole("button", { name: "Další možnosti" })).toBeNull();
   });
 });

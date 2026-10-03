@@ -150,6 +150,7 @@ export default async function OverviewPage() {
               <QuickNotice
                 initial={{ notice: meta.quickNotice, enabled: meta.quickNoticeEnabled }}
                 locales={doc.wedding.locales}
+                weddingDate={{ startsOn: doc.wedding.startsOn, endsOn: doc.wedding.endsOn }}
                 action={quickNoticeAction}
                 published={published}
               />

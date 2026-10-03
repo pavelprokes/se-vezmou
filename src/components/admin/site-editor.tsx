@@ -882,6 +882,7 @@ export function SiteEditor({
             <QuickNotice
               initial={{ notice: meta.quickNotice, enabled: meta.quickNoticeEnabled }}
               locales={doc.wedding.locales}
+              weddingDate={{ startsOn: doc.wedding.startsOn, endsOn: doc.wedding.endsOn }}
               action={actions.quickNotice}
               published={published}
               onSaved={(value) =>

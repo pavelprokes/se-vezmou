@@ -3,6 +3,7 @@
 import { CircleCheck, CircleAlert } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { QuickNoticeActionResult } from "@/admin/site/action-types";
+import { dateChangeNotice } from "@/admin/site/date-change-notice";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/choice";
 import { Icon } from "@/components/ui/icon";
@@ -21,18 +22,22 @@ export function QuickNotice({
   action,
   published,
   onSaved,
+  weddingDate,
 }: {
   initial: { notice: I18nText | null; enabled: boolean };
   locales: readonly Locale[];
   action: (input: unknown) => Promise<QuickNoticeActionResult>;
   published: boolean;
   onSaved?: (value: { notice: I18nText | null; enabled: boolean }) => void;
+  /** Datum svatby z nastavení webu (rozepsaná změna se bere i z konceptu); bez něj je předvolba vypnutá. */
+  weddingDate?: { startsOn: string | null; endsOn: string | null };
 }) {
   const t = useAdminT();
   const [notice, setNotice] = useState<I18nText | null>(initial.notice);
   const [enabled, setEnabled] = useState(initial.enabled);
   const [state, setState] = useState<"idle" | "saving" | "saved" | "empty" | "error">("idle");
 
+  const presetText = dateChangeNotice(locales, weddingDate?.startsOn, weddingDate?.endsOn);
   const hasText = locales.some((locale) => notice?.[locale]?.trim());
 
   async function submit(event: FormEvent) {
@@ -66,6 +71,24 @@ export function QuickNotice({
           setState("idle");
         }}
       />
+      <div className="flex flex-col gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          className="self-start"
+          disabled={presetText === null}
+          onClick={() => {
+            setNotice(presetText);
+            setEnabled(true);
+            setState("idle");
+          }}
+        >
+          {t("admin.quick.preset")}
+        </Button>
+        <p className="text-muted text-sm">
+          {presetText === null ? t("admin.quick.presetNoDate") : t("admin.quick.presetHint")}
+        </p>
+      </div>
       <Checkbox
         label={t("admin.quick.enabled")}
         checked={enabled}

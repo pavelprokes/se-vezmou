@@ -19,10 +19,15 @@ export function readMails(to: string): Mail[] {
   } catch {
     return [];
   }
-  return files
-    .sort()
-    .map((name) => JSON.parse(readFileSync(join(outboxDir(), name), "utf8")) as Mail)
-    .filter((mail) => mail.to === to);
+  const mails: Mail[] = [];
+  for (const name of files.sort()) {
+    try {
+      mails.push(JSON.parse(readFileSync(join(outboxDir(), name), "utf8")) as Mail);
+    } catch {
+      // Aplikace soubor právě zapisuje (nedopsaný JSON). Přeskočí se; `waitForMail` čte znovu za 100 ms.
+    }
+  }
+  return mails.filter((mail) => mail.to === to);
 }
 
 /** Počká na `count`-tý e-mail pro adresu (e-mail se posílá až po odpovědi serveru). */

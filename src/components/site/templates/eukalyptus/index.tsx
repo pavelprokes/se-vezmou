@@ -138,9 +138,11 @@ export function EukalyptusSite({ ctx, layout }: TemplateProps) {
       <main id="obsah" tabIndex={-1} className="eu-main">
         <EuHero block={hero} ctx={ctx} links={navItems.slice(0, 5)} />
         {showCountdown ? <EuCountdown ctx={ctx} days={days} tone={toneOf(1)} /> : null}
-        {sections.map((block, i) =>
-          renderSection(block, ctx, toneOf(sectionOffset + i), roman(i + 1)),
-        )}
+        {sections.map((block, i) => {
+          // Dary číslo nemají (nadpis je ve věnci), proto se do číslování nepočítají.
+          const number = sections.slice(0, i + 1).filter((b) => b.type !== "gifts").length;
+          return renderSection(block, ctx, toneOf(sectionOffset + i), roman(number));
+        })}
       </main>
 
       <EuFooter ctx={ctx} tone={toneOf(tones.length - 1)} />

@@ -12,6 +12,7 @@ import { isReady, mediaSrc, type MediaItem } from "@/lib/media/types";
 import type { GalleryCard } from "@/site/types";
 import {
   newId,
+  protectedPhotoIds,
   publishable,
   resolveAccount,
   type EditorBlock,
@@ -91,7 +92,11 @@ function HeroEditor({ block, ctx }: Props<"hero">) {
  */
 function HeroPhotoPicker({ block, ctx }: Props<"hero">) {
   const t = useAdminT();
-  const photos = ctx.media.filter((m) => m.kind === "photo" && isReady(m) && publishable(m));
+  // Bez fotografií z galerie chráněné PINem: fotka úvodu je veřejná.
+  const hidden = protectedPhotoIds(ctx.doc.blocks);
+  const photos = ctx.media.filter(
+    (m) => m.kind === "photo" && isReady(m) && publishable(m) && !hidden.has(m.id),
+  );
   const chosen = photos.find((m) => m.id === block.data.photoMediaId);
   const label = (m: MediaItem, index: number) =>
     (m.alt && (m.alt[ctx.locales[0]] || Object.values(m.alt).find(Boolean))) ||

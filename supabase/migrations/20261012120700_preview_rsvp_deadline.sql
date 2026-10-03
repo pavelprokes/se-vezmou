@@ -1,6 +1,6 @@
--- Oprava po revizi kódu: náhled konceptu podle odkazu počítá fázi s termínem potvrzení účasti. Odpověď pro roli
--- `preview` nese navíc `rsvp_closes_at` (konec potvrzování z nastavení RSVP); zbytek funkce je beze změny
--- (stejná jako v 20261006100000_admin_site.sql).
+-- Oprava po revizi kódu: náhled konceptu podle odkazu počítá fázi stejně jako zveřejněný web (`se_vezmou.phase`).
+-- Odpověď pro roli `preview` nese navíc `rsvp_configured`, `rsvp_opens_at` a `rsvp_closes_at` z nastavení RSVP;
+-- zbytek funkce je beze změny (stejná jako v 20261006100000_admin_site.sql).
 
 create or replace function se_vezmou.get_public_site() returns jsonb
   language plpgsql stable security definer set search_path = ''
@@ -32,6 +32,8 @@ begin
         'palette', w.palette, 'partner_a_name', w.partner_a_name,
         'partner_b_name', w.partner_b_name, 'starts_on', w.starts_on, 'ends_on', w.ends_on,
         'timezone', w.timezone,
+        'rsvp_configured', exists (select 1 from se_vezmou.rsvp_settings s where s.wedding_id = w.id),
+        'rsvp_opens_at', (select s.opens_at from se_vezmou.rsvp_settings s where s.wedding_id = w.id),
         'rsvp_closes_at', (select s.closes_at from se_vezmou.rsvp_settings s where s.wedding_id = w.id)),
       'pages', (
         select coalesce(jsonb_agg(jsonb_build_object(

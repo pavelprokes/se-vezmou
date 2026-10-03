@@ -55,7 +55,12 @@ export async function WaitlistConfirmPage({
   const valid = typeof token === "string" && /^[A-Za-z0-9_-]{43}$/.test(token);
   return (
     <>
-      <LandingHeader locale={locale} route={ROUTE} />
+      {/* Přepínač jazyka si token ponese, jinak by druhá jazyková verze nevěděla, co potvrdit */}
+      <LandingHeader
+        locale={locale}
+        route={ROUTE}
+        query={valid ? `?t=${encodeURIComponent(token)}` : undefined}
+      />
       <main id="obsah" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-16 sm:px-8">
         <h1 className="text-ink text-4xl font-medium md:text-5xl">
           {t("landing.waitlist.confirm.title")}

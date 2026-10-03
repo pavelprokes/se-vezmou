@@ -5,6 +5,8 @@
 --  2. Upozornění, které zůstalo ve stavu `sending` (funkce cronu skončila uprostřed odesílání), se převezme
 --     nejvýš třikrát (stejně jako `failed`), pak skončí jako `failed`. Dřív se převzalo pokaždé znovu
 --     a e-mail mohl odcházet opakovaně.
+--  3. `lifecycle_notices_release`: převzatá upozornění, na která cronu nezbyl čas (nic se neodeslalo), se vrátí
+--     do fronty bez započítaného pokusu, aby je strop pokusů z bodu 2 nevyřadil bez odeslání.
 
 update se_vezmou.app_settings set value = '2'
  where key = 'retention_final_notice_days_before' and value = '1';
@@ -70,3 +72,20 @@ begin
    order by u.created_at, u.id;
 end
 $$;
+
+create function se_vezmou.lifecycle_notices_release(p_ids uuid[]) returns integer
+  language plpgsql volatile security definer set search_path = ''
+  as $$
+declare
+  v_rows integer;
+begin
+  update se_vezmou.lifecycle_notices n
+     set status = 'pending', locked_at = null, attempts = greatest(n.attempts - 1, 0)
+   where n.id = any(coalesce(p_ids, '{}')) and n.status = 'sending';
+  get diagnostics v_rows = row_count;
+  return v_rows;
+end
+$$;
+
+revoke all on function se_vezmou.lifecycle_notices_release(uuid[]) from public, anon;
+grant execute on function se_vezmou.lifecycle_notices_release(uuid[]) to service_role;

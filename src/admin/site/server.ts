@@ -430,9 +430,10 @@ async function withCardImage(session: AdminIdentity, card: GalleryCard): Promise
   if (!card.imageUrl) return withoutImage;
   const image = await fetchOgImage(card.imageUrl);
   if (!image.ok) return withoutImage;
-  // Úklid před uložením (kvóta obrázků karet): zůstane poslední obrázek a obrázky, které používá zveřejněný web
-  // nebo pracovní kopie, takže je místo pro nový a nic používaného nezmizí.
-  await pruneCardImages(session, 1, await cardImagesInUse(session));
+  // Úklid před uložením (kvóta 3 obrázky karet): zůstanou obrázky, které používá zveřejněný web nebo pracovní
+  // kopie, a z ostatních tolik nejnovějších, aby se vešel nový. Když nejde zjistit, co se používá, neuklízí se.
+  const inUse = await cardImagesInUse(session);
+  if (inUse) await pruneCardImages(session, Math.max(0, 2 - inUse.size), inUse);
   const imageMediaId = await storeCardImage(session, image);
   if (!imageMediaId) return withoutImage;
   return { ...card, imageMediaId };
@@ -441,32 +442,40 @@ async function withCardImage(session: AdminIdentity, card: GalleryCard): Promise
 /**
  * Obrázky karet, které právě používá zveřejněný web (veřejná i chráněná karta) nebo pracovní kopie. Úklid starých
  * obrázků je nesmí smazat: opakované „Obnovit náhled“ bez zveřejnění by jinak zveřejněnému webu vzalo obrázek.
+ * `null`, když se to nedá spolehlivě zjistit (chyba, nečitelná verze): úklid se pak vynechá.
  */
-async function cardImagesInUse(session: AdminIdentity): Promise<Set<string>> {
-  const ids = new Set<string>();
-  const add = (id: string | null | undefined) => {
-    if (id) ids.add(id);
-  };
-  const loaded = parseLoaded(await adminSiteLoad(session));
-  for (const block of loaded?.doc.blocks ?? []) {
-    if (block.type === "gallery") add(block.data.link?.card?.imageMediaId);
-  }
-  const published = loaded?.versions.find((version) => version.isPublished);
-  if (published) {
-    const version = z
-      .object({ public_content: z.unknown(), sensitive_content: z.unknown() })
-      .nullable()
-      .safeParse(await adminSiteVersionGet(session, published.id));
-    if (version.success && version.data) {
+async function cardImagesInUse(session: AdminIdentity): Promise<Set<string> | null> {
+  try {
+    const ids = new Set<string>();
+    const add = (id: string | null | undefined) => {
+      if (id) ids.add(id);
+    };
+    const loaded = parseLoaded(await adminSiteLoad(session));
+    if (!loaded) return null;
+    for (const block of loaded.doc.blocks) {
+      if (block.type === "gallery") add(block.data.link?.card?.imageMediaId);
+    }
+    const published = loaded.versions.find((version) => version.isPublished);
+    if (published) {
+      const version = z
+        .object({ public_content: z.unknown(), sensitive_content: z.unknown() })
+        .safeParse(await adminSiteVersionGet(session, published.id));
+      // Nečitelná zveřejněná verze: nevíme, co web používá, a nic se nesmaže.
+      if (!version.success) return null;
       const content = publicContentSchema.safeParse(version.data.public_content);
-      for (const block of content.success ? content.data.blocks : []) {
+      const sensitive = sensitiveContentSchema.safeParse(version.data.sensitive_content ?? {});
+      if (!content.success || !sensitive.success) return null;
+      for (const block of content.data.blocks) {
         if (block.type === "gallery") add(block.data.link?.card?.imageMediaId);
       }
-      const sensitive = sensitiveContentSchema.safeParse(version.data.sensitive_content ?? {});
-      if (sensitive.success) add(sensitive.data.gallery?.card?.imageMediaId);
+      add(sensitive.data.gallery?.card?.imageMediaId);
     }
+    return ids;
+  } catch {
+    // Chyba načtení nesmí shodit načtení náhledu karty; úklid se jen vynechá.
+    console.error("[fotografie] nepodařilo se zjistit používané obrázky karet");
+    return null;
   }
-  return ids;
 }
 
 // --- výběr svatby ----------------------------------------------------------------------------------

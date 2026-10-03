@@ -17,6 +17,7 @@ const rpc = vi.hoisted(() => ({
   claimNotices: vi.fn(),
   noticeRecipients: vi.fn(),
   finishNotice: vi.fn(),
+  releaseNotices: vi.fn(),
   purgeHealthData: vi.fn(),
   purgeGuestData: vi.fn(),
   dueWeddings: vi.fn(),
@@ -89,6 +90,7 @@ beforeEach(() => {
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   rpc.archiveDue.mockResolvedValue(0);
+  rpc.releaseNotices.mockResolvedValue(1);
   rpc.deleteArchived.mockResolvedValue(0);
   rpc.claimPurge.mockResolvedValue(true);
   rpc.releasePurge.mockResolvedValue(undefined);
@@ -269,6 +271,10 @@ describe("úloha životního cyklu", () => {
     expect(stubContext.send).toHaveBeenCalledTimes(1);
     expect(result.counts.deferred).toBe(1);
     expect(rpc.claimNotices).toHaveBeenCalledTimes(1);
+    // neodeslané převzaté upozornění se vrátí do fronty bez započítaného pokusu
+    expect(rpc.releaseNotices).toHaveBeenCalledWith(["n2"]);
+    expect(result.counts.notices_sent).toBe(1);
+    expect(result.status).toBe("partial");
   });
 
   it("vyčerpaný časový rozpočet: nic se nepřebírá, výsledek je partial a dokončí ho další běh", async () => {

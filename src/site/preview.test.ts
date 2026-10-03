@@ -123,12 +123,37 @@ describe("previewToPublicContent", () => {
   });
 
   it("fáze náhledu respektuje termín potvrzení účasti a časové pásmo svatby", () => {
+    const rsvp = {
+      rsvp_configured: true,
+      rsvp_opens_at: null,
+      rsvp_closes_at: "2027-05-01T10:00:00Z",
+    };
+    // uzavřeno přesně v okamžiku termínu (jako zveřejněný web), ne až další den
     const closed = previewToPublicContent(
-      raw({ wedding: { ...wedding, rsvp_closes_at: "2027-05-01T21:59:00Z" } }),
+      raw({ wedding: { ...wedding, ...rsvp } }),
       "a-b",
-      new Date("2027-05-02T08:00:00Z"),
+      new Date("2027-05-01T10:00:00Z"),
     );
     expect(closed?.phase).toBe("rsvp_closed");
+    const open = previewToPublicContent(
+      raw({ wedding: { ...wedding, ...rsvp } }),
+      "a-b",
+      new Date("2027-05-01T09:59:00Z"),
+    );
+    expect(open?.phase).toBe("rsvp_open");
+    // bez nastavení RSVP nebo před otevřením: save_the_date
+    const none = previewToPublicContent(
+      raw({ wedding: { ...wedding, rsvp_configured: false } }),
+      "a-b",
+      new Date("2027-01-01T00:00:00Z"),
+    );
+    expect(none?.phase).toBe("save_the_date");
+    const notYet = previewToPublicContent(
+      raw({ wedding: { ...wedding, ...rsvp, rsvp_opens_at: "2027-02-01T00:00:00Z" } }),
+      "a-b",
+      new Date("2027-01-01T00:00:00Z"),
+    );
+    expect(notYet?.phase).toBe("save_the_date");
     // 18. 6. 23:30 UTC je v Praze už den svatby (19. 6.)
     const day = previewToPublicContent(raw(), "a-b", new Date("2027-06-18T23:30:00Z"));
     expect(day?.phase).toBe("wedding_day");

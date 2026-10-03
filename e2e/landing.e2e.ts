@@ -433,6 +433,12 @@ for (const locale of locales) {
       // samotné otevření odkazu (jako skener pošty) nic nepotvrdí
       await page.goto(pageUrl(HOSTS.marketing, `${link.pathname}${link.search}`));
       expect(await confirmed()).toBe(false);
+      // přepínač jazyka si token ponese (druhá jazyková verze ví, co potvrdit)
+      const other = page.locator('a[hreflang]:not([aria-current="true"])').first();
+      await expect(other).toHaveAttribute(
+        "href",
+        new RegExp(`\\?t=${link.searchParams.get("t")}$`),
+      );
       await page
         .getByRole("button", { name: locale.code === "cs" ? "Potvrdit zápis" : "Confirm signup" })
         .click();

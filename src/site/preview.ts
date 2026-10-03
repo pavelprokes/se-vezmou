@@ -2,8 +2,7 @@ import { locales } from "@/i18n/config";
 import { z } from "zod";
 import { i18nTextSchema } from "./i18n-text";
 import { phaseFromDates } from "./phase";
-import { dayInZone } from "./format";
-import { blockSchema, publicContentSchema, type PublicContent } from "./types";
+import { blockSchema, publicContentSchema, type Phase, type PublicContent } from "./types";
 
 /**
  * Koncept z pracovních tabulek (odpověď `get_public_site` pro roli `preview`) na obsah webu.
@@ -26,7 +25,9 @@ const previewSchema = z.object({
     starts_on: z.string().nullable(),
     ends_on: z.string().nullable(),
     timezone: z.string(),
-    /** Konec potvrzování účasti (fáze náhledu); starší odpověď ho nemá. */
+    /** Nastavení RSVP pro fázi náhledu (stejná pravidla jako `se_vezmou.phase`); starší odpověď je nemá. */
+    rsvp_configured: z.boolean().optional(),
+    rsvp_opens_at: z.string().nullable().optional(),
     rsvp_closes_at: z.string().nullable().optional(),
   }),
   pages: z.array(
@@ -82,6 +83,28 @@ function previewBlock(block: Record<string, unknown>): Record<string, unknown> {
   return { ...block, data: { ...data, link: { ...link, url: null, card: null } } };
 }
 
+/**
+ * Fáze náhledu podle stejných pravidel jako zveřejněný web (`se_vezmou.phase`): den svatby a poděkování podle
+ * dnů v pásmu svatby, potvrzení účasti uzavřené přesně v okamžiku `closes_at`, před `opens_at` nebo bez
+ * nastavení RSVP `save_the_date`. Starší odpověď bez údajů o RSVP: fáze jen z dat.
+ */
+function previewPhase(wedding: z.infer<typeof previewSchema>["wedding"], now: Date): Phase {
+  const byDates = phaseFromDates(
+    { startsOn: wedding.starts_on ?? "", endsOn: wedding.ends_on },
+    now,
+    wedding.timezone,
+  );
+  if (byDates !== "rsvp_open" || wedding.rsvp_configured === undefined) return byDates;
+  if (!wedding.rsvp_configured) return "save_the_date";
+  if (wedding.rsvp_closes_at && now.getTime() >= new Date(wedding.rsvp_closes_at).getTime()) {
+    return "rsvp_closed";
+  }
+  if (!wedding.rsvp_opens_at || now.getTime() >= new Date(wedding.rsvp_opens_at).getTime()) {
+    return "rsvp_open";
+  }
+  return "save_the_date";
+}
+
 /** `null`, když odpověď nemá očekávaný tvar nebo koncept není vykreslitelný (např. chybí datum). */
 export function previewToPublicContent(
   raw: unknown,
@@ -105,18 +128,7 @@ export function previewToPublicContent(
     defaultLocale: wedding.default_locale,
     template: wedding.template,
     palette: wedding.palette,
-    // Fáze v časovém pásmu svatby a s termínem potvrzení účasti (jako zveřejněný web).
-    phase: phaseFromDates(
-      {
-        startsOn: wedding.starts_on,
-        endsOn: wedding.ends_on,
-        deadline: wedding.rsvp_closes_at
-          ? dayInZone(wedding.rsvp_closes_at, wedding.timezone)
-          : null,
-      },
-      now,
-      wedding.timezone,
-    ),
+    phase: previewPhase(wedding, now),
     quickNotice: null,
     thanksMessage: null,
     venues: venues

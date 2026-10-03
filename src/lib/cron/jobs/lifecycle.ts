@@ -7,6 +7,7 @@ import {
   finishNotice,
   noticeRecipients,
   noticesPending,
+  releaseNotices,
 } from "@/lib/lifecycle/rpc";
 import { createNoticeContext, deliverNotice, type NoticeContext } from "@/lib/lifecycle/notices";
 import { cronLog, errorCode } from "../log";
@@ -82,12 +83,16 @@ export async function sendPendingNotices(
     });
     if (batch.length === 0) break;
 
-    for (const notice of batch) {
+    for (const [index, notice] of batch.entries()) {
       // Čas se hlídá před každým upozorněním: funkce ukončená uprostřed odesílání by nechala odeslané upozornění
-      // bez zapsaného výsledku. Nezpracovaná zůstanou `sending` a po 15 minutách se převezmou (nejvýš třikrát).
+      // bez zapsaného výsledku. Nezpracovaná se vrátí do fronty bez započítaného pokusu (dokončí je další běh).
       if (context.timeLeftMs() < RESERVE_MS) {
         runner.deferred();
         outOfTime = true;
+        await releaseNotices(batch.slice(index).map((n) => n.notice_id)).catch(() => {
+          // nepovedlo se: zůstanou `sending` a po 15 minutách se převezmou znovu
+          runner.problem("notice_release_failed");
+        });
         break;
       }
       try {

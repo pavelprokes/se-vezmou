@@ -284,6 +284,14 @@ begin
   perform tap.ok((select status from se_vezmou.lifecycle_notices where id = v_stuck) = 'failed',
     'uvízlé odesílání po třetím pokusu skončí jako failed');
   perform tap.ok(v_retry = any(coalesce(v_ids, '{}')), 'uvízlé odesílání před třetím pokusem se převezme znovu');
+
+  -- převzaté a neodeslané (cronu došel čas) se vrátí do fronty bez započítaného pokusu
+  set local role service_role;
+  perform tap.eq(se_vezmou.lifecycle_notices_release(array[v_retry]), 1, 'neodeslané upozornění se vrátí do fronty');
+  perform tap.reset();
+  perform tap.ok((select status = 'pending' and attempts = 1 and locked_at is null
+                    from se_vezmou.lifecycle_notices where id = v_retry),
+    'vrácené upozornění čeká a pokus se mu nepočítá');
 end
 $$;
 

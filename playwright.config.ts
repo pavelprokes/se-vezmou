@@ -32,7 +32,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [["github"], ["list"]] : "list",
   use: {
-    // Rozhraní správy volí jazyk podle Accept-Language; testy jedou česky, angličtina má vlastní test.
+    // Jazyk rozhraní správy určuje cesta (`/en/...`), ne prohlížeč; testy jedou česky, angličtina má vlastní test.
     locale: "cs-CZ",
     trace: "retain-on-failure",
     launchOptions: {

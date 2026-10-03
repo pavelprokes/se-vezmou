@@ -1,5 +1,6 @@
 "use server";
 
+import { appHref } from "@/admin/paths";
 import { after } from "next/server";
 import { guarded } from "@/admin/guard";
 import {
@@ -41,9 +42,10 @@ function actor(session: AdminSession): AccessActor {
 
 async function context(): Promise<AccessContext> {
   const host = await getHost();
+  const locale = await getUiLocale();
   return {
-    locale: await getUiLocale(),
-    loginUrl: `${appOrigin(host, currentHostConfig())}/prihlaseni`,
+    locale,
+    loginUrl: `${appOrigin(host, currentHostConfig())}${appHref("/prihlaseni", locale)}`,
     defer: (task) =>
       after(async () => {
         await task();

@@ -13,8 +13,8 @@ export type RouteDecision =
       kind: HostKind;
       pathname: string;
       /**
-       * Jazyk rozhraní na hostiteli `app.`: předpona `/en` (cesta se přepíše bez ní) nebo čeština
-       * u průvodce (`/vytvorit`), jehož jazyk určuje cesta, ne prohlížeč.
+       * Jazyk rozhraní na hostiteli `app.`: předpona `/en` (cesta se přepíše bez ní), jinak čeština.
+       * Určuje ho vždy cesta, nikdy `Accept-Language`.
        */
       uiLocale?: "cs" | "en";
     };
@@ -94,11 +94,9 @@ export function routeRequest(
         action: "rewrite",
         kind,
         pathname: join("/h/app", split.rest),
-        ...(split.locale === "en"
-          ? { uiLocale: "en" as const }
-          : /^\/vytvorit(\/|$)/.test(split.rest)
-            ? { uiLocale: "cs" as const }
-            : {}),
+        // Jazyk určuje vždy cesta, ne prohlížeč: bez předpony česky, pod `/en` anglicky. Jinak by
+        // odkaz „CS“ v přepínači vedl na stejnou adresu a angličtina z `Accept-Language` by zůstala.
+        uiLocale: split.locale,
       };
     }
     case "admin":

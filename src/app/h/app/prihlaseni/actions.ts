@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { localHref } from "@/auth/local-href";
 import { after } from "next/server";
 import { appOrigin, currentHostConfig } from "@/auth/app-origin";
 import { PENDING_LOGIN_SECONDS } from "@/auth/config";
@@ -78,7 +79,7 @@ export async function requestCodeAction(_prev: FormState, formData: FormData): P
   // Rozpracované přihlášení patří prohlížeči, který kód vyžádal (zapečetěný e-mail, 10 minut).
   const spec = cookieSpec("pending", host, PENDING_LOGIN_SECONDS);
   (await cookies()).set({ name: spec.name, value: sealPendingLogin(email), ...spec.options });
-  redirect("/prihlaseni/kod");
+  redirect(await localHref("/prihlaseni/kod"));
 }
 
 async function finish(result: VerifyCodeResult): Promise<FormState> {
@@ -90,7 +91,7 @@ async function finish(result: VerifyCodeResult): Promise<FormState> {
     case "ok":
       await startAdminSession(result.weddingId, result.adminId);
       await clearPending();
-      redirect("/");
+      redirect(await localHref("/"));
   }
 }
 
@@ -139,7 +140,7 @@ export async function pinLoginAction(_prev: FormState, formData: FormData): Prom
   switch (result.status) {
     case "ok":
       await startAdminSession(result.weddingId, result.adminId);
-      redirect("/");
+      redirect(await localHref("/"));
     case "locked":
       return {
         error: "locked",
@@ -158,5 +159,5 @@ export async function logoutAction(): Promise<void> {
   if (await originAllowed()) {
     await endSession();
   }
-  redirect("/prihlaseni");
+  redirect(await localHref("/prihlaseni"));
 }

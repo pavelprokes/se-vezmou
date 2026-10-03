@@ -71,16 +71,18 @@ describe("routeRequest: jazyk rozhraní na hostiteli app", () => {
     });
   });
 
-  it("průvodce je česky podle cesty, ne podle prohlížeče", () => {
+  it("jazyk správy určuje vždy cesta, ne prohlížeč: bez předpony česky, pod /en anglicky", () => {
     expect(route("app.se-vezmou.cz", "/vytvorit")).toMatchObject({
       pathname: "/h/app/vytvorit",
       uiLocale: "cs",
     });
     expect(route("app.se-vezmou.cz", "/vytvorit/nahled")).toMatchObject({ uiLocale: "cs" });
-  });
-
-  it("ostatní stránky bez jazyka v cestě volí jazyk podle prohlížeče (bez uiLocale)", () => {
-    expect(route("app.se-vezmou.cz", "/prihlaseni")).not.toHaveProperty("uiLocale");
+    for (const path of ["/", "/web", "/prihlaseni", "/hoste/import", "/odpovedi/nastaveni"]) {
+      expect(route("app.se-vezmou.cz", path)).toMatchObject({ uiLocale: "cs" });
+      expect(route("app.se-vezmou.cz", `/en${path === "/" ? "" : path}`)).toMatchObject({
+        uiLocale: "en",
+      });
+    }
   });
 
   it("/cs/... je duplicita, 404; admin předponu /en nezná", () => {

@@ -60,7 +60,7 @@ export async function sendAdminLoginLink(input: {
   const message = renderLoginCode({
     locale: input.locale,
     code,
-    link: loginLinkFor(input.origin, email, code),
+    link: loginLinkFor(input.origin, email, code, input.locale),
     ttlSeconds: LOGIN_LINK_TTL_SECONDS,
   });
   input.defer(() =>

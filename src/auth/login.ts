@@ -33,13 +33,19 @@ export type Defer = (task: () => Promise<unknown>) => void;
  * Odkaz z e-mailu: zapečetěný e-mail a kód (v adrese nejsou čitelné), platí stejně dlouho jako kód.
  * Sdílí ho vyžádání kódu správcem i poslání přihlašovacího odkazu operátorem (M9).
  */
-export function loginLinkFor(origin: string, email: string, code: string): string {
+export function loginLinkFor(
+  origin: string,
+  email: string,
+  code: string,
+  locale: Locale = "cs",
+): string {
   const token = seal(requireEnv("AUTH_SECRET"), LINK_PURPOSE, {
     e: email,
     c: code,
     x: Date.now() + LOGIN_CODE.ttlSeconds * 1000,
   } satisfies LinkPayload);
-  return `${origin}/prihlaseni/odkaz?t=${token}`;
+  // Jazyk rozhraní určuje cesta: anglický e-mail vede na `/en/...`.
+  return `${origin}${locale === "en" ? "/en" : ""}/prihlaseni/odkaz?t=${token}`;
 }
 
 export type RequestCodeResult = { status: "sent" } | { status: "limited"; retryAfter: number };
@@ -89,7 +95,7 @@ export async function requestLoginCode(input: {
       const email = renderLoginCode({
         locale: input.locale,
         code,
-        link: loginLinkFor(input.origin, input.email, code),
+        link: loginLinkFor(input.origin, input.email, code, input.locale),
         ttlSeconds: LOGIN_CODE.ttlSeconds,
       });
       input.defer(() =>

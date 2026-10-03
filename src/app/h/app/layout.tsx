@@ -11,8 +11,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * Kořenový layout `app.se-vezmou.cz`. Jazyk rozhraní správy: čeština, angličtina podle
- * `Accept-Language` (bez cookie). Čtení hlaviček dělá všechny stránky správy dynamické, což je
+ * Kořenový layout `app.se-vezmou.cz`. Jazyk rozhraní správy určuje cesta: česky bez předpony,
+ * anglicky pod `/en` (bez cookie a bez `Accept-Language`). Čtení hlaviček dělá všechny stránky správy dynamické, což je
  * u relací správné (nic z nich se nesmí sdílet v mezipaměti).
  */
 export default async function AppLayout({ children }: LayoutProps<"/h/app">) {

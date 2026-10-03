@@ -64,6 +64,7 @@ function fakeDb(
     rateAllowed?: boolean;
     fail?: Record<string, DbError>;
     settings?: unknown;
+    notify?: boolean;
     importResult?: unknown;
   } = {},
 ) {
@@ -91,6 +92,10 @@ function fakeDb(
           return options.importResult ?? { households: 2, guests: 3, skipped: 0, duplicate: false };
         case "admin_rsvp_settings_get":
           return options.settings;
+        case "admin_rsvp_notify_get":
+          return options.notify ?? false;
+        case "admin_rsvp_notify_set":
+          return null;
         default:
           throw new Error(`Neočekávané volání ${fn}`);
       }
@@ -443,6 +448,9 @@ describe("nastavení RSVP", () => {
   it("načte nastavení a ověří jeho tvar", async () => {
     fakeDb({ settings: view });
     expect((await loadRsvpSettings(SESSION)).settings.email_confirmation).toBe(true);
+    expect((await loadRsvpSettings(SESSION)).settings.notify_couple).toBe(false);
+    fakeDb({ settings: view, notify: true });
+    expect((await loadRsvpSettings(SESSION)).settings.notify_couple).toBe(true);
     fakeDb({ settings: { nesmysl: 1 } });
     await expect(loadRsvpSettings(SESSION)).rejects.toThrow();
   });
@@ -452,6 +460,7 @@ describe("nastavení RSVP", () => {
     closesAt: null,
     allowUnlisted: true,
     emailConfirmation: false,
+    notifyCouple: false,
     enabledQuestions: { diet: true, song: false },
     questions: [],
     ...over,
@@ -500,6 +509,9 @@ describe("nastavení RSVP", () => {
       allow_unlisted: boolean;
       questions: { options: unknown; event_id: string | null }[];
     };
+    // příznak upozornění jde vlastní funkcí, ne v uložení otázek
+    expect(payload).not.toHaveProperty("notify_couple");
+    expect(calls.find((c) => c.fn === "admin_rsvp_notify_set")?.args).toEqual({ p_enabled: false });
     expect(payload.closes_at).toBe("2027-06-01T00:00:00+02:00");
     expect(payload.allow_unlisted).toBe(true);
     expect(payload.questions[0].event_id).toBe(EVENT);

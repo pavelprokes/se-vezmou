@@ -47,6 +47,7 @@ export default async function RsvpSettingsPage() {
     closesAt: view.settings.closes_at,
     allowUnlisted: view.settings.allow_unlisted,
     emailConfirmation: view.settings.email_confirmation,
+    notifyCouple: view.settings.notify_couple,
     enabledQuestions: flags,
     questions: view.questions.map((question) => ({
       id: question.id,

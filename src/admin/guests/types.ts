@@ -91,6 +91,7 @@ export const rsvpSettingsInputSchema = z.object({
   closesAt: isoOrNull,
   allowUnlisted: z.boolean(),
   emailConfirmation: z.boolean(),
+  notifyCouple: z.boolean(),
   enabledQuestions: z.partialRecord(z.enum(BUILTIN_QUESTIONS), z.boolean()),
   questions: z.array(questionInputSchema).max(QUESTION_LIMITS.custom),
 });
@@ -126,6 +127,8 @@ export const rsvpSettingsViewSchema = z.object({
     closes_at: z.string().nullable(),
     allow_unlisted: z.boolean(),
     email_confirmation: z.boolean(),
+    /** Upozornění páru na odpovědi (vlastní funkce `admin_rsvp_notify_get`, ne součást uložení otázek). */
+    notify_couple: z.boolean().default(false),
     enabled_questions: z.record(z.string(), z.unknown()),
   }),
   questions: z.array(

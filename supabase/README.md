@@ -47,6 +47,7 @@ Migrace:
 25. `challenge_lockout_per_client` (oprava po revizi): `auth_verify_challenge` s klíčem klienta (HMAC IP) počítá chyby zvlášť klientovi (pauza po 5) a celému e-mailu s desetinásobným prahem, takže cizí člověk nezablokuje přihlášení majiteli adresy.
 26. `admin_active_check` (oprava po revizi): `assert_admin_session()` volaná na začátku každé transakce správce (odebraný správce, smazaná nebo zablokovaná svatba nic nezmění); `admin_admin_remove` zamyká svatbu a po zámku ověří volajícího (dva správci se souběžně neodeberou navzájem).
 27. `rate_limit_sliding` (oprava po revizi): `rate_limit_hit` s posuvným oknem (na hranici oken už nejde vyčerpat limit dvakrát); čítače se drží dva dny.
+28. `rsvp_notify_couple`: příznak `rsvp_settings.notify_couple`, typ `rsvp_notice` v `email_log`, funkce `admin_rsvp_notify_get`, `admin_rsvp_notify_set` a `rsvp_notify_recipients` (service role).
 
 Matice rolí operátorů (každá `op_*` si roli ověřuje sama, `assert_operator`): čtení, poznámky, poslání přihlašovacího odkazu, nahlédnutí do údajů hostů se souhlasem páru a zablokování webu smí `owner` i `support`; ostatní změny stavu, změnu adresy, prodloužení lhůt, obnovu, audit a správu operátorů jen `owner`. Žádná z nich nevrací jména ani údaje hostů; k nim vede jediná cesta `op_view_guest_data` s aktivním `data_access_grants`, důvodem a auditem.
 

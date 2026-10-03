@@ -7,6 +7,8 @@ import {
   adminHouseholdDelete,
   adminHouseholdSave,
   adminInvitationsBulk,
+  adminRsvpNotifyGet,
+  adminRsvpNotifySet,
   adminRsvpSettingsGet,
   adminRsvpSettingsSave,
   type AdminIdentity,
@@ -226,7 +228,12 @@ export async function commitImport(
 // --- nastavení RSVP -------------------------------------------------------------------------
 
 export async function loadRsvpSettings(session: AdminIdentity): Promise<RsvpSettingsView> {
-  return rsvpSettingsViewSchema.parse(await adminRsvpSettingsGet(session));
+  const [view, notifyCouple] = await Promise.all([
+    adminRsvpSettingsGet(session),
+    adminRsvpNotifyGet(session),
+  ]);
+  const parsed = rsvpSettingsViewSchema.parse(view);
+  return { ...parsed, settings: { ...parsed.settings, notify_couple: notifyCouple } };
 }
 
 export type SaveSettingsResult =
@@ -250,6 +257,7 @@ export async function saveRsvpSettings(
     const ids = savedQuestionsSchema.parse(
       await adminRsvpSettingsSave(session, settingsToPayload(parsed.data)),
     );
+    await adminRsvpNotifySet(session, parsed.data.notifyCouple);
     return { status: "saved", questions: ids };
   } catch (error) {
     const reason = reasonOf(error);

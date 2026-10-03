@@ -193,7 +193,7 @@ Route handlery uvnitř segmentů (soubory metadata `robots.ts` fungují jen v ko
 ### 6.2 Jazyky, kanonické adresy, mapa webu
 
 - Pouze marketingový hostitel: každá stránka vystaví `<link rel="alternate" hreflang="cs">`, `hreflang="en"`, `hreflang="x-default"` (na českou verzi) a `rel="canonical"` na sebe. Dvojice stránek se mapuje tabulkou `pathnames.ts` (např. `/cenik` ↔ `/en/pricing`).
-- Žádné automatické přesměrování podle `Accept-Language`; jen nabídka (dismissible pruh, viz ADR 0003).
+- Vyjednání jazyka jen v proxy při vstupu na adresu bez předpony (cookie `NEXT_LOCALE`, pak `Accept-Language`), přesměrování 307 na `/<jazyk>`; výslovné přepnutí detekce nepřebije. Weby párů nepřesměrovávají. Viz ADR 0013 (nahrazuje nabídku z ADR 0003).
 - `sitemap.xml` (route handler marketingu) obsahuje obě jazykové verze s alternativami (`xhtml:link`). Weby párů, průvodce a správa v mapě nejsou.
 - Weby párů mají `lang` stránky z jazyka verze (`cs`, u angličtiny `en-GB` podle výchozí britské angličtiny `[OTÁZKA k potvrzení]`), cizojazyčné části mají vlastní `lang` (3.1.2). Odkazy na druhý jazyk nesou `hreflang` a `lang` kvůli čtečkám, ne kvůli indexaci.
 

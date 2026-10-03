@@ -6,7 +6,7 @@ import { Checkbox } from "@/components/ui/choice";
 import { Field } from "@/components/ui/field";
 import { QrCode } from "@/components/wizard/qr-code";
 import type { Locale } from "@/i18n/config";
-import { buildSpayd } from "@/site/payment";
+import { buildSpayd, isValidBic } from "@/site/payment";
 import type { MediaActions } from "@/lib/media/action-types";
 import { isReady, mediaSrc, type MediaItem } from "@/lib/media/types";
 import type { GalleryCard } from "@/site/types";
@@ -443,6 +443,17 @@ function GiftsEditor({ block, ctx }: Props<"gifts">) {
         value={block.data.holder ?? ""}
         maxLength={100}
         onChange={(event) => patchBlock(ctx, block.id, { holder: event.target.value || null })}
+      />
+      <Field
+        label={t("admin.gifts.bic")}
+        hint={t("admin.gifts.bicHint")}
+        autoComplete="off"
+        value={block.data.bic ?? ""}
+        maxLength={20}
+        error={
+          block.data.bic?.trim() && !isValidBic(block.data.bic) ? t("admin.error.bic") : undefined
+        }
+        onChange={(event) => patchBlock(ctx, block.id, { bic: event.target.value || null })}
       />
       <Field
         label={t("admin.gifts.message")}

@@ -89,6 +89,7 @@ const ISSUE_TEXT: Record<IssueCode, AdminKey> = {
   dresscodeEmpty: "admin.issue.dresscodeEmpty",
   storyEmpty: "admin.issue.storyEmpty",
   giftsAccount: "admin.issue.giftsAccount",
+  giftsBic: "admin.issue.giftsBic",
   galleryUrl: "admin.issue.galleryUrl",
   photoNoCaption: "admin.issue.photoNoCaption",
   lodgingUrl: "admin.issue.lodgingUrl",

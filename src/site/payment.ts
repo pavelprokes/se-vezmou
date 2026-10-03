@@ -16,6 +16,15 @@ export function isValidIban(value: string): boolean {
   return remainder === 1;
 }
 
+/** BIC/SWIFT podle ISO 9362: 8 nebo 11 znaků (banka, země, místo, volitelně pobočka). */
+export function isValidBic(value: string): boolean {
+  return /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/.test(normalizeBic(value));
+}
+
+export function normalizeBic(value: string): string {
+  return value.replace(/\s+/g, "").toUpperCase();
+}
+
 /** Zpráva do SPAYD: velká písmena bez diakritiky, bez `*`, nejvýše 60 znaků. */
 export function spaydMessage(message: string): string {
   return message

@@ -1,7 +1,13 @@
 import { z } from "zod";
 import { locales, type Locale } from "@/i18n/config";
 import { missingLocales, type I18nText } from "@/site/i18n-text";
-import { czAccountToIban, isValidCzAccount, isValidIban } from "@/site/payment";
+import {
+  czAccountToIban,
+  isValidBic,
+  isValidCzAccount,
+  isValidIban,
+  normalizeBic,
+} from "@/site/payment";
 import { phaseFromDates } from "@/site/phase";
 import { hasPalette, isTemplateKey, templateKeys } from "@/site/themes/palettes";
 import { validateTemplatePalette } from "@/site/themes/validate";
@@ -69,6 +75,8 @@ export const giftsDataSchema = z.object({
   /** Číslo účtu v tuzemském tvaru (`19-2000145399/0800`), nebo IBAN u zahraničního účtu. */
   account: z.string().max(60).default(""),
   holder: z.string().max(LIMITS.name).nullable().default(null),
+  /** BIC/SWIFT (8 nebo 11 znaků) pro zahraniční hosty; prázdný = bez BIC. */
+  bic: z.string().max(20).nullable().default(null),
   paymentMessage: z.string().max(60).nullable().default(null),
 });
 
@@ -587,6 +595,7 @@ export type IssueCode =
   | "dresscodeEmpty"
   | "storyEmpty"
   | "giftsAccount"
+  | "giftsBic"
   | "galleryUrl"
   | "photoNoCaption"
   | "lodgingUrl"
@@ -822,6 +831,9 @@ export function validateDoc(doc: EditorDoc, context: ValidateContext): Issue[] {
       case "gifts":
         if (resolveAccount(block.data.account) === null) {
           add({ code: "giftsAccount", severity: "error", area: "gifts" });
+        }
+        if (block.data.bic?.trim() && !isValidBic(block.data.bic)) {
+          add({ code: "giftsBic", severity: "error", area: "gifts" });
         }
         break;
       case "gallery": {
@@ -1069,6 +1081,7 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
             account: resolved.account,
             iban: resolved.iban,
             holder: block.data.holder?.trim() || null,
+            bic: block.data.bic && isValidBic(block.data.bic) ? normalizeBic(block.data.bic) : null,
             paymentMessage: block.data.paymentMessage?.trim() || null,
           };
         }
@@ -1307,6 +1320,7 @@ export function publicToDoc(content: PublicContent, sensitive: SensitiveContent)
             intro: block.data.intro,
             account: sensitive.gifts?.account ?? "",
             holder: sensitive.gifts?.holder ?? null,
+            bic: sensitive.gifts?.bic ?? null,
             paymentMessage: sensitive.gifts?.paymentMessage ?? null,
           },
         };

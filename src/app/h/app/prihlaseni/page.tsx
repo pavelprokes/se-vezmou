@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getUiLocale } from "@/auth/request";
+import { localHref } from "@/auth/local-href";
 import { getSession } from "@/auth/session";
 import { buttonVariants } from "@/components/ui/button";
 import { createTranslator } from "@/i18n/translator";
@@ -12,8 +13,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function LoginPage() {
-  if (await getSession()) redirect("/");
+  if (await getSession()) redirect(await localHref("/"));
   const t = createTranslator(await getUiLocale());
+  const pinHref = await localHref("/prihlaseni/pin");
   return (
     <AuthShell title={t("auth.login.title")} intro={t("auth.login.intro")}>
       <EmailForm
@@ -29,7 +31,7 @@ export default async function LoginPage() {
         }}
       />
       <p className="mt-6">
-        <a href="/prihlaseni/pin" className={buttonVariants({ variant: "text" })}>
+        <a href={pinHref} className={buttonVariants({ variant: "text" })}>
           {t("auth.login.pinLink")}
         </a>
       </p>

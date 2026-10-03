@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { currentHostConfig } from "@/auth/app-origin";
 import { getHost, getUiLocale } from "@/auth/request";
+import { localHref } from "@/auth/local-href";
 import { getSession } from "@/auth/session";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { WizardLoader } from "@/components/wizard/wizard-loader";
@@ -53,7 +54,7 @@ export default async function WizardPage({ searchParams }: PageProps<"/h/app/vyt
   if (session) {
     const state = await wizardLoad(session.weddingId);
     // Zveřejněný (nebo jinak uzavřený) web se v průvodci neupravuje.
-    if (!state || state.status !== "draft") redirect("/");
+    if (!state || state.status !== "draft") redirect(await localHref("/"));
     server = { draft: state.draft, previewEnabled: state.previewEnabled };
   }
 

@@ -2,6 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { localHref } from "@/auth/local-href";
 import {
   authCreateSession,
   authRevokeSession,
@@ -65,7 +66,7 @@ export const getSession = cache(async (): Promise<AdminSession | null> => {
 /** Relace, nebo přesměrování na přihlášení. */
 export async function requireSession(): Promise<AdminSession> {
   const session = await getSession();
-  if (!session) redirect(LOGIN_PATH);
+  if (!session) redirect(await localHref(LOGIN_PATH));
   return session;
 }
 

@@ -18,8 +18,9 @@ export async function getHost(): Promise<string | null> {
 }
 
 /**
- * Jazyk rozhraní správy: `/en/...` na hostiteli `app.` (hlavičku nastavuje proxy a klientem
- * poslanou hodnotu přepisuje), jinak čeština, angličtina podle `Accept-Language`.
+ * Jazyk rozhraní správy: na hostiteli `app.` ho vždy určuje cesta (`/en/...` anglicky, jinak česky);
+ * hlavičku nastavuje proxy a klientem poslanou hodnotu přepisuje. `Accept-Language` se použije jen
+ * tam, kam proxy hlavičku nenastavuje (hostitel `admin.`, vývoj).
  */
 export async function getUiLocale(): Promise<Locale> {
   const h = await headers();

@@ -32,7 +32,7 @@ export async function switchWeddingAction(
   const locale = await getUiLocale();
   try {
     const session = await getSession();
-    if (!session) redirect("/prihlaseni");
+    if (!session) redirect(appHref("/prihlaseni", locale));
     const mine = await adminMyWeddings(session);
     const target = mine.find((wedding) => wedding.weddingId === parsed.data);
     if (!target) return { error: "failed" };

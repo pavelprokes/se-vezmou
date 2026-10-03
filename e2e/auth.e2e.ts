@@ -569,30 +569,46 @@ test.describe("relace", () => {
 });
 
 test.describe("angličtina", () => {
-  test("rozhraní i e-mail podle Accept-Language", async ({ browser }) => {
+  test("rozhraní i e-mail pod /en, přihlášení zůstane anglicky", async ({ browser }) => {
     const wedding = await seedWedding();
     const context = await browser.newContext({
       locale: "en-GB",
       extraHTTPHeaders: { "x-forwarded-for": "198.51.100.99" },
     });
     const page = await context.newPage();
-    await page.goto(app("/prihlaseni"));
+    await page.goto(app("/en/prihlaseni"));
     await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
     await expect(
       page.getByRole("heading", { level: 1, name: "Sign in to manage your wedding" }),
     ).toBeVisible();
     await page.getByLabel("E-mail").fill(wedding.adminEmail);
     await page.getByRole("button", { name: "Send code" }).click();
-    await page.waitForURL(app("/prihlaseni/kod"));
+    await page.waitForURL(app("/en/prihlaseni/kod"));
 
     const mail = await waitForMail(wedding.adminEmail);
     expect(mail.subject).toBe("Your sign-in code for managing your wedding");
     expect(mail.html).toContain('lang="en-GB"');
+    expect(mail.html).toContain("/en/prihlaseni/odkaz?t=");
     await page.getByLabel("Six-digit code").fill(codeOf(mail));
     await page.getByRole("button", { name: "Sign in" }).click();
+    await expect(page).toHaveURL(app("/en"));
     await expect(page.getByRole("heading", { level: 1, name: "My website" })).toBeVisible();
     await expect(page.getByText(/Klára and\s+Matěj/)).toBeVisible();
     expect((await emailLogFor(wedding.adminEmail))[0]).toMatchObject({ locale: "en" });
+    await context.close();
+  });
+
+  test("anglický prohlížeč na české adrese vidí češtinu (jazyk určuje cesta)", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      locale: "en-GB",
+      extraHTTPHeaders: { "x-forwarded-for": "198.51.100.98" },
+    });
+    const page = await context.newPage();
+    await page.goto(app("/prihlaseni"));
+    await expect(page.locator("html")).toHaveAttribute("lang", "cs");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Přihlášení");
     await context.close();
   });
 });

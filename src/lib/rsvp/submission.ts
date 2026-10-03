@@ -60,13 +60,25 @@ export function parseSubmission(form: FormData, model: RsvpFormModel): ParseResu
   const eventTitle = new Map(model.events.map((event) => [event.id, event.title]));
   const attendingEvents = new Set<string>();
 
-  const health = (prefix: string): Pick<PayloadPerson, "diet" | "allergies"> => {
+  const health = (
+    prefix: string,
+  ): Pick<PayloadPerson, "diet" | "allergies" | "keep_health" | "health_name"> => {
     if (!model.flags.diet) return {};
     const result: Pick<PayloadPerson, "diet" | "allergies"> = {};
     for (const field of ["diet", "allergies"] as const) {
       const value = read(form, `${prefix}.${field}`);
       if (value.length > MAX_HEALTH) errors[`${prefix}.${field}`] = "too_long";
       else if (value !== "") result[field] = value;
+    }
+    // Uložené údaje, které host neviděl: bez nových hodnot se ponechají, pokud je výslovně nesmazal.
+    const empty = result.diet === undefined && result.allergies === undefined;
+    if (
+      empty &&
+      read(form, `${prefix}.savedHealth`) === "1" &&
+      read(form, `${prefix}.clearHealth`) === ""
+    ) {
+      const savedName = read(form, `${prefix}.savedName`);
+      return { keep_health: true, ...(savedName ? { health_name: savedName } : {}) };
     }
     return result;
   };
@@ -179,14 +191,27 @@ export function parseSubmission(form: FormData, model: RsvpFormModel): ParseResu
 
   // 4. e-mail pro potvrzení (jen když ho pár zapnul)
   let contactEmail: string | null = null;
+  let keepEmail = false;
   if (model.flags.emailConfirmation) {
     const email = read(form, "email");
     if (email !== "") {
       if (emailSchema.safeParse(email).success) contactEmail = email;
       else errors.email = "email";
+    } else {
+      // uložený e-mail, který host neviděl: prázdné pole ho ponechá
+      keepEmail = read(form, "emailSaved") === "1";
     }
   }
 
   if (Object.keys(errors).length > 0) return { ok: false, errors };
-  return { ok: true, payload: { contact_email: contactEmail, answers, people }, summary };
+  return {
+    ok: true,
+    payload: {
+      contact_email: contactEmail,
+      ...(keepEmail ? { keep_email: true } : {}),
+      answers,
+      people,
+    },
+    summary,
+  };
 }

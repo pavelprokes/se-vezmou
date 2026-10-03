@@ -316,7 +316,9 @@ describe("verifySecondFactor", () => {
   it("v době pauzy se kód vůbec neověřuje", async () => {
     const db = fakeDb({
       ...gate,
-      auth_lockout_state: () => [{ locked: true, retry_after: 600 }],
+      auth_lockout_failure: () => [
+        { locked: true, retry_after: 600, level: 1, newly_locked: false },
+      ],
       auth_operator_mfa_get: () => mfa(),
     });
     expect(
@@ -521,21 +523,49 @@ describe("zápis druhého faktoru", () => {
     expect(db.names()).not.toContain("auth_operator_mfa_confirm");
   });
 
-  it("nová sada záložních kódů: hashe do databáze, oznámení e-mailem", async () => {
+  it("nová sada záložních kódů: jen s kódem z aplikace, hashe do databáze, oznámení e-mailem", async () => {
     const db = fakeDb({
+      ...gate,
+      auth_operator_mfa_get: () => [{ secret_enc: enc, confirmed: true, last_step: null }],
+      auth_operator_totp_step: () => true,
       auth_operator_regenerate_backup_codes: () => 10,
-      ...logHandlers,
     });
     const d = deferred();
-    const codes = await regenerateBackupCodes({
+    const result = await regenerateBackupCodes({
       session: { ...session, aal2: true },
+      value: totpAt(SECRET, NOW),
+      ip: "1.1.1.1",
       defer: d.defer,
+      now: NOW,
     });
-    expect(codes).toHaveLength(10);
-    expect((db.calls[0].args.p_backup_hashes as Buffer[]).every((hash) => hash.length === 32)).toBe(
+    expect(result.status === "ok" && result.backupCodes).toHaveLength(10);
+    // ověření kódem se nezapisuje jako přihlášení (jen posune použitý časový krok)
+    expect(db.names()).toContain("auth_operator_totp_step");
+    expect(db.names()).not.toContain("auth_operator_mfa_accept");
+    const stored = db.calls.find((c) => c.fn === "auth_operator_regenerate_backup_codes")!;
+    expect((stored.args.p_backup_hashes as Buffer[]).every((hash) => hash.length === 32)).toBe(
       true,
     );
     await d.runAll();
     expect(sendMock.mock.calls[0][0].subject).toBe("Vygenerována nová sada záložních kódů");
+  });
+
+  it("nová sada záložních kódů: bez platného kódu z aplikace nic nevznikne", async () => {
+    const db = fakeDb({
+      ...gate,
+      auth_operator_mfa_get: () => [{ secret_enc: enc, confirmed: true, last_step: null }],
+    });
+    const base = {
+      session: { ...session, aal2: true },
+      ip: "1.1.1.1",
+      defer: deferred().defer,
+      now: NOW,
+    };
+    expect(await regenerateBackupCodes({ ...base, value: "" })).toEqual({ status: "format" });
+    expect(await regenerateBackupCodes({ ...base, value: "000000" })).toEqual({
+      status: "invalid",
+    });
+    expect(db.names()).not.toContain("auth_operator_regenerate_backup_codes");
+    expect(db.names()).toContain("auth_lockout_failure");
   });
 });

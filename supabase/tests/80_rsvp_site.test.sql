@@ -102,7 +102,12 @@ begin
   perform tap.eq(jsonb_array_length(v_data -> 'events'), 2, 'rsvp_get vrací pozvané události');
   perform tap.ok(not (v_data::text like '%Svoboda%'), 'rsvp_get neobsahuje hosty jiné svatby');
   perform tap.ok(not (v_data::text like '%Rodina A%'), 'rsvp_get neprozrazuje popisek domácnosti (jen pro správce)');
-  perform tap.ok(v_data #>> '{response,people,0,diet}' = 'vegetariánská', 'rsvp_get vrací dřívější odpověď domácnosti včetně diety');
+  -- host ověřený jen jménem nevidí zdravotní údaje ani e-mail, jen příznak, že jsou uložené
+  perform tap.ok(v_data -> 'response' -> 'people' -> 0 ? 'attendance', 'rsvp_get vrací dřívější odpověď domácnosti');
+  perform tap.ok(not (v_data::text like '%vegetariánská%'), 'rsvp_get nevrací dietu (zdravotní údaj)');
+  perform tap.ok(v_data #>> '{response,people,0,diet}' is null, 'dieta v pohledu hosta je null');
+  perform tap.ok((v_data #>> '{response,people,0,has_health}')::boolean, 'pohled hosta nese příznak uložených zdravotních údajů');
+  perform tap.ok(v_data #>> '{response,contact_email}' is null, 'rsvp_get nevrací kontaktní e-mail');
 end
 $$;
 

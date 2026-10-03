@@ -42,10 +42,12 @@ describe("config/pricing", () => {
 });
 
 describe("config/operator", () => {
-  it("provozovatel a kontakt jsou zástupné, dokud je nedodá majitel", () => {
-    expect(operator.nameAndId).toBe("[PROVOZOVATEL, IČO]");
-    expect(operator.contact).toBe("[KONTAKT]");
-    expect(isPlaceholder(operator.nameAndId)).toBe(true);
+  it("provozovatel i kontakt jsou doplněné", () => {
+    expect(operator.nameAndId).toBe("Pavel Prokeš, IČO 87877601");
+    expect(operator.address).toBe("Křižíkova 424/127, Praha 8");
+    expect(operator.contact).toBe("info@se-vezmou.cz");
+    expect(isPlaceholder(operator.nameAndId)).toBe(false);
+    expect(isPlaceholder(operator.contact)).toBe(false);
     expect(isPlaceholder("Novák s.r.o., 12345678")).toBe(false);
   });
 });

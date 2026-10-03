@@ -5,9 +5,8 @@ import {
   authPinGet,
   authPinOtherHash,
   authPinSet,
-  lockoutFailure,
+  lockoutAttempt,
   lockoutReset,
-  lockoutState,
   rateLimitHit,
   type PinRole,
 } from "@/lib/db/rpc";
@@ -60,8 +59,9 @@ export async function loginWithPin(input: {
   }
 
   const lockKey = rateKey(limitSecret, "pin-admin-wedding", input.slug);
-  const state = await lockoutState(lockKey);
-  if (state.locked) return { status: "locked", retryAfter: state.retryAfter };
+  // Pokus se započítá před ověřením (souběžné pokusy pauzu neobejdou), úspěch čítač vynuluje.
+  const attempt = await lockoutAttempt(lockKey, PIN_LOCKOUT);
+  if (attempt.blocked) return { status: "locked", retryAfter: attempt.retryAfter };
 
   const record = await authPinGet(input.slug, "admin");
   const matches = await verifyPin(
@@ -71,16 +71,15 @@ export async function loginWithPin(input: {
   );
 
   if (!record || !record.adminId || !matches) {
-    const failure = await lockoutFailure(lockKey, PIN_LOCKOUT);
     // Oznámení jen na potvrzenou záložní adresu (nepotvrzená adresa může být cizí).
-    if (failure.newlyLocked && record?.backupEmail) {
+    if (attempt.newlyLocked && record?.backupEmail) {
       const config = currentHostConfig();
       const email = renderBackupLoginNotice({
         locale: input.locale,
         event: "pin_locked",
         at: new Date(),
         site: siteHostname(input.slug, config),
-        pauseSeconds: failure.retryAfter,
+        pauseSeconds: attempt.retryAfter,
         loginUrl: `${input.origin}/prihlaseni`,
       });
       input.defer(() =>
@@ -94,8 +93,8 @@ export async function loginWithPin(input: {
         }),
       );
     }
-    return failure.locked
-      ? { status: "locked", retryAfter: failure.retryAfter }
+    return attempt.newlyLocked
+      ? { status: "locked", retryAfter: attempt.retryAfter }
       : { status: "invalid" };
   }
 

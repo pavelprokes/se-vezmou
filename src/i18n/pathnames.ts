@@ -20,6 +20,8 @@ const routes = {
   privacy: { cs: "/soukromi", en: "/privacy" },
   terms: { cs: "/podminky", en: "/terms" },
   accessibility: { cs: "/dostupnost", en: "/accessibility" },
+  /** Potvrzení zápisu na čekací listinu odkazem z e-mailu (noindex, mimo mapu webu). */
+  waitlistConfirm: { cs: "/cekaci-listina/potvrzeni", en: "/waitlist/confirm" },
 } as const satisfies Record<string, string | Record<Locale, string>>;
 
 export type RouteName = keyof typeof routes;

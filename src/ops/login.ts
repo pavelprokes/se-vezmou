@@ -8,14 +8,14 @@ import { rateKey } from "@/auth/rate-limit";
 import {
   authCreateChallenge,
   authVerifyChallenge,
-  lockoutFailure,
+  lockoutAttempt,
   lockoutReset,
-  lockoutState,
   rateLimitHit,
 } from "@/lib/db/rpc";
 import {
   authOperatorFind,
   authOperatorMfaAccept,
+  authOperatorTotpStep,
   authOperatorMfaBegin,
   authOperatorMfaConfirm,
   authOperatorMfaGet,
@@ -133,6 +133,7 @@ export async function verifyOperatorCode(input: {
     purpose: PURPOSE,
     codeHash: codeHash(authSecret, input.email, input.code),
     maxAttempts: OPERATOR_CODE.maxAttempts,
+    clientKey: rateKey(limitSecret, "challenge-client", input.ip),
   });
   if (!valid) return { status: "invalid" };
 
@@ -184,7 +185,9 @@ export type SecondFactorResult =
 
 type Blocked = { status: "limited" | "locked"; retryAfter: number };
 
-type FactorGate = { open: true; lockKey: string } | { open: false; result: Blocked };
+type FactorGate =
+  | { open: true; lockKey: string; newlyLocked: boolean; retryAfter: number }
+  | { open: false; result: Blocked };
 
 /** Omezení počtu pokusů o druhý faktor: podle IP a pauza podle operátora (série chyb se zdvojnásobuje). */
 async function factorGate(session: OperatorSession, ip: string): Promise<FactorGate> {
@@ -198,17 +201,20 @@ async function factorGate(session: OperatorSession, ip: string): Promise<FactorG
     return { open: false, result: { status: "limited", retryAfter: byIp.retryAfter } };
   }
   const lockKey = rateKey(limitSecret, "op-mfa-operator", session.operatorId);
-  const state = await lockoutState(lockKey);
-  if (state.locked) {
-    return { open: false, result: { status: "locked", retryAfter: state.retryAfter } };
+  // Pokus se započítá před ověřením (souběžné pokusy pauzu neobejdou), úspěch čítač vynuluje.
+  const attempt = await lockoutAttempt(lockKey, OPERATOR_MFA_LOCKOUT);
+  if (attempt.blocked) {
+    return { open: false, result: { status: "locked", retryAfter: attempt.retryAfter } };
   }
-  return { open: true, lockKey };
+  return { open: true, lockKey, newlyLocked: attempt.newlyLocked, retryAfter: attempt.retryAfter };
 }
 
-async function registerFailure(lockKey: string): Promise<Blocked | { status: "invalid" }> {
-  const failure = await lockoutFailure(lockKey, OPERATOR_MFA_LOCKOUT);
-  return failure.locked
-    ? { status: "locked", retryAfter: failure.retryAfter }
+/** Neúspěšný pokus (už započítaný v `factorGate`): pauza, pokud ji tento pokus zahájil. */
+function registerFailure(
+  gate: Extract<FactorGate, { open: true }>,
+): Blocked | { status: "invalid" } {
+  return gate.newlyLocked
+    ? { status: "locked", retryAfter: gate.retryAfter }
     : { status: "invalid" };
 }
 
@@ -224,15 +230,16 @@ export async function verifySecondFactor(input: {
   now?: number;
 }): Promise<SecondFactorResult> {
   const key = requireEnv("OPERATOR_MFA_KEY");
-  const gate = await factorGate(input.session, input.ip);
-  if (!gate.open) return gate.result;
-
+  // Špatný tvar se nepočítá jako pokus (nic se neověřuje)
   const totp = parseTotpCode(input.value);
   const backup = totp ? null : normalizeBackupCode(input.value);
   if (!totp && !backup) return { status: "format" };
 
+  const gate = await factorGate(input.session, input.ip);
+  if (!gate.open) return gate.result;
+
   const mfa = await authOperatorMfaGet(input.session.operatorId);
-  if (!mfa || !mfa.confirmed || !mfa.secretEnc) return registerFailure(gate.lockKey);
+  if (!mfa || !mfa.confirmed || !mfa.secretEnc) return registerFailure(gate);
 
   if (totp) {
     const secret = decryptTotpSecret(key, input.session.operatorId, mfa.secretEnc);
@@ -247,7 +254,7 @@ export async function verifySecondFactor(input: {
         sessionId: input.session.sessionId,
         step,
       }));
-    if (!accepted) return registerFailure(gate.lockKey);
+    if (!accepted) return registerFailure(gate);
     await lockoutReset(gate.lockKey);
     deferNotice(input.defer, input.session, { event: "login", at: new Date() });
     return { status: "ok", usedBackupCode: false };
@@ -258,7 +265,7 @@ export async function verifySecondFactor(input: {
     sessionId: input.session.sessionId,
     codeHash: hashBackupCode(key, input.session.operatorId, backup as string),
   });
-  if (remaining < 0) return registerFailure(gate.lockKey);
+  if (remaining < 0) return registerFailure(gate);
   await lockoutReset(gate.lockKey);
   deferNotice(input.defer, input.session, { event: "backup_code", at: new Date(), remaining });
   return { status: "ok", usedBackupCode: true };
@@ -308,11 +315,11 @@ export async function confirmEnrollment(input: {
   now?: number;
 }): Promise<ConfirmEnrollmentResult> {
   const key = requireEnv("OPERATOR_MFA_KEY");
-  const gate = await factorGate(input.session, input.ip);
-  if (!gate.open) return gate.result;
-
   const code = parseTotpCode(input.value);
   if (!code) return { status: "format" };
+
+  const gate = await factorGate(input.session, input.ip);
+  if (!gate.open) return gate.result;
 
   const mfa = await authOperatorMfaGet(input.session.operatorId);
   if (!mfa || mfa.confirmed || !mfa.secretEnc) return { status: "invalid" };
@@ -320,7 +327,7 @@ export async function confirmEnrollment(input: {
   if (!secret) throw new Error("Tajný klíč TOTP nejde dešifrovat (změnil se OPERATOR_MFA_KEY?)");
 
   const step = verifyTotp(secret, code, input.now ?? Date.now(), null);
-  if (step === null) return registerFailure(gate.lockKey);
+  if (step === null) return registerFailure(gate);
 
   const codes = generateBackupCodes();
   const confirmed = await authOperatorMfaConfirm({
@@ -338,11 +345,47 @@ export async function confirmEnrollment(input: {
 }
 
 /** Nová sada záložních kódů pro přihlášeného operátora (AAL2); stará se zneplatní, oznámí se e-mailem. */
+export type RegenerateCodesResult =
+  | { status: "ok"; backupCodes: string[] }
+  | { status: "format" }
+  | { status: "invalid" }
+  | { status: "locked"; retryAfter: number }
+  | { status: "limited"; retryAfter: number };
+
+/**
+ * Nová sada záložních kódů jen s aktuálním kódem z aplikace (ne záložním kódem): záložní kódy jsou trvalý druhý
+ * faktor, a tak je nesmí vytvořit jen převzatá nebo opuštěná relace. Kód se počítá do stejné pauzy jako přihlášení
+ * druhým faktorem a jde použít jednou (časový krok se eviduje).
+ */
 export async function regenerateBackupCodes(input: {
   session: OperatorSession;
+  value: unknown;
+  ip: string;
   defer: Defer;
-}): Promise<string[]> {
+  now?: number;
+}): Promise<RegenerateCodesResult> {
   const key = requireEnv("OPERATOR_MFA_KEY");
+  const code = parseTotpCode(input.value);
+  if (!code) return { status: "format" };
+
+  const gate = await factorGate(input.session, input.ip);
+  if (!gate.open) return gate.result;
+
+  const mfa = await authOperatorMfaGet(input.session.operatorId);
+  if (!mfa || !mfa.confirmed || !mfa.secretEnc) return registerFailure(gate);
+  const secret = decryptTotpSecret(key, input.session.operatorId, mfa.secretEnc);
+  if (!secret) throw new Error("Tajný klíč TOTP nejde dešifrovat (změnil se OPERATOR_MFA_KEY?)");
+  const step = verifyTotp(secret, code, input.now ?? Date.now(), mfa.lastStep);
+  const accepted =
+    step !== null &&
+    (await authOperatorTotpStep({
+      operatorId: input.session.operatorId,
+      sessionId: input.session.sessionId,
+      step,
+    }));
+  if (!accepted) return registerFailure(gate);
+  await lockoutReset(gate.lockKey);
+
   const codes = generateBackupCodes();
   await authOperatorRegenerateBackupCodes(
     input.session.operatorId,
@@ -354,5 +397,5 @@ export async function regenerateBackupCodes(input: {
     event: "backup_codes_regenerated",
     at: new Date(),
   });
-  return codes;
+  return { status: "ok", backupCodes: codes };
 }

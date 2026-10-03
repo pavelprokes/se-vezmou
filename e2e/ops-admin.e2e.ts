@@ -6,6 +6,7 @@ import { expect, test } from "./support/fixtures";
 import {
   admin,
   auditRows,
+  freshTotp,
   grantGuestAccess,
   loginAsOperator,
   operatorSessions,
@@ -864,6 +865,8 @@ test.describe("přehled, retence, audit, operátoři a účet", () => {
     await expect(page.getByRole("definition").filter({ hasText: operator.email })).toBeVisible();
     await expect(page.getByRole("definition").filter({ hasText: /^10$/ })).toBeVisible();
 
+    // nová sada jen s aktuálním kódem z aplikace (ne jen s relací)
+    await page.getByLabel("Kód z aplikace pro ověřování").fill(await freshTotp(operator));
     await page.getByRole("button", { name: "Vytvořit nové kódy" }).click();
     await expect(page.getByRole("heading", { name: "Nové záložní kódy" })).toBeVisible();
     const codes = await page

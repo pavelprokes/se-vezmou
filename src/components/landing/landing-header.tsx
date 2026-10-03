@@ -11,12 +11,15 @@ export interface LandingHeaderProps {
   locale: Locale;
   /** Stránka, na které hlavička stojí; přepínač odkazuje na její druhou jazykovou verzi. */
   route: PageRef;
+  /** Dotaz, který si přepínač jazyka ponese (např. token potvrzení čekací listiny `?t=…`). */
+  query?: string;
 }
 
 /** Hlavička úvodní stránky a právních podstránek: značka, kotvy sekcí, přepínač jazyka a výzva. */
-export async function LandingHeader({ locale, route }: LandingHeaderProps) {
+export async function LandingHeader({ locale, route, query }: LandingHeaderProps) {
   const t = await getTranslator(locale, ["common", "landing"]);
   const home = localizedPath("home", locale);
+  const paths = typeof route === "string" ? localizedPaths(route) : route;
   const links = [
     { href: `${home}#how`, label: t("landing.nav.how") },
     { href: localizedPath("templates", locale), label: t("landing.nav.templates") },
@@ -52,7 +55,13 @@ export async function LandingHeader({ locale, route }: LandingHeaderProps) {
           </nav>
           <LanguageSwitcher
             current={locale}
-            hrefs={typeof route === "string" ? localizedPaths(route) : route}
+            hrefs={
+              query
+                ? (Object.fromEntries(
+                    Object.entries(paths).map(([l, path]) => [l, `${path}${query}`]),
+                  ) as Record<Locale, string>)
+                : paths
+            }
             label={t("common.language.label")}
             short
           />

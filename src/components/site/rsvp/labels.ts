@@ -44,7 +44,15 @@ export interface RsvpLabels {
   };
   plus: { toggle: string; heading: string; name: string; nameHint: string };
   child: { add: string; heading: string; name: string; age: string; remove: string };
-  health: { legend: string; notice: string; diet: string; dietHint: string; allergies: string };
+  health: {
+    legend: string;
+    notice: string;
+    diet: string;
+    dietHint: string;
+    allergies: string;
+    saved: string;
+    clear: string;
+  };
   questions: {
     lodging: { legend: string; need: string; own: string; unsure: string };
     transport: { legend: string; need: string; own: string; offer: string };
@@ -55,7 +63,7 @@ export interface RsvpLabels {
     noHealthDietOn: string;
     noHealthDietOff: string;
   };
-  email: { label: string; hint: string };
+  email: { label: string; hint: string; saved: string };
   submit: { send: string; save: string; sending: string };
   errors: {
     summary: string;
@@ -156,6 +164,8 @@ export function rsvpLabels(t: Translator<"rsvp" | "site" | "common">): RsvpLabel
       diet: t("rsvp.health.diet"),
       dietHint: t("rsvp.health.dietHint"),
       allergies: t("rsvp.health.allergies"),
+      saved: t("rsvp.health.saved"),
+      clear: t("rsvp.health.clear"),
     },
     questions: {
       lodging: {
@@ -177,7 +187,11 @@ export function rsvpLabels(t: Translator<"rsvp" | "site" | "common">): RsvpLabel
       noHealthDietOn: t("rsvp.questions.noHealthDietOn"),
       noHealthDietOff: t("rsvp.questions.noHealthDietOff"),
     },
-    email: { label: t("rsvp.email.label"), hint: t("rsvp.email.hint") },
+    email: {
+      label: t("rsvp.email.label"),
+      hint: t("rsvp.email.hint"),
+      saved: t("rsvp.email.saved"),
+    },
     submit: {
       send: t("rsvp.submit.send"),
       save: t("rsvp.submit.save"),

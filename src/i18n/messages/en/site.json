@@ -108,5 +108,6 @@
   "rsvp.watermark": "Yes",
   "preview.heroPhoto": "Introduction photo",
   "preview.heroPhoto.on": "With photo",
-  "preview.heroPhoto.off": "No photo"
+  "preview.heroPhoto.off": "No photo",
+  "gifts.unavailable": "The gift details are not available right now. Please try again later or contact the couple."
 }

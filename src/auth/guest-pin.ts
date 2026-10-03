@@ -3,9 +3,8 @@ import { requireEnv } from "@/env";
 import {
   authCreateSession,
   authPinGet,
-  lockoutFailure,
+  lockoutAttempt,
   lockoutReset,
-  lockoutState,
   rateLimitHit,
 } from "@/lib/db/rpc";
 import { GUEST_SESSION, PIN_LOCKOUT, RATE_RULES } from "./config";
@@ -51,12 +50,15 @@ export async function unlockWithGuestPin(input: {
 
   const lockKey = rateKey(limitSecret, "pin-guest-wedding-ip", where);
   const weddingKey = rateKey(limitSecret, "pin-guest-wedding", input.slug);
-  const [ipState, weddingState] = await Promise.all([
-    lockoutState(lockKey),
-    lockoutState(weddingKey),
-  ]);
-  if (ipState.locked) return { status: "locked", retryAfter: ipState.retryAfter };
-  if (weddingState.locked) return { status: "locked", retryAfter: weddingState.retryAfter };
+  // Pokus se započítá hostu (svatba + IP) i celé svatbě ještě před ověřením, takže souběžné pokusy pauzu
+  // neobejdou; úspěch kteréhokoli hosta čítače nuluje (poctivé překlepy v součtu nedojdou k pauze).
+  const ipAttempt = await lockoutAttempt(lockKey, PIN_LOCKOUT);
+  if (ipAttempt.blocked) return { status: "locked", retryAfter: ipAttempt.retryAfter };
+  const weddingAttempt = await lockoutAttempt(weddingKey, {
+    ...PIN_LOCKOUT,
+    threshold: RATE_RULES.pinGuestWeddingFailures.limit,
+  });
+  if (weddingAttempt.blocked) return { status: "locked", retryAfter: weddingAttempt.retryAfter };
 
   const record = await authPinGet(input.slug, "guest");
   const matches = await verifyPin(
@@ -66,17 +68,10 @@ export async function unlockWithGuestPin(input: {
   );
 
   if (!record || record.weddingId !== input.weddingId || !matches) {
-    // Chyba se počítá hostu (svatba + IP) i celé svatbě; úspěch kteréhokoli hosta čítače nuluje,
-    // takže poctivé překlepy v součtu nikdy nedojdou k pauze.
-    const [failure, total] = await Promise.all([
-      lockoutFailure(lockKey, PIN_LOCKOUT),
-      lockoutFailure(weddingKey, {
-        ...PIN_LOCKOUT,
-        threshold: RATE_RULES.pinGuestWeddingFailures.limit,
-      }),
-    ]);
-    if (failure.locked) return { status: "locked", retryAfter: failure.retryAfter };
-    if (total.locked) return { status: "locked", retryAfter: total.retryAfter };
+    if (ipAttempt.newlyLocked) return { status: "locked", retryAfter: ipAttempt.retryAfter };
+    if (weddingAttempt.newlyLocked) {
+      return { status: "locked", retryAfter: weddingAttempt.retryAfter };
+    }
     return { status: "invalid" };
   }
 

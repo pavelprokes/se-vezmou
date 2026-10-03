@@ -374,12 +374,12 @@ describe("loginWithPin", () => {
   const record = () => [
     { wedding_id: WEDDING, admin_id: ADMIN, pin_hash: pinHash, backup_email: "zaloha@example.cz" },
   ];
-  const notLocked = () => [{ locked: false, retry_after: 0 }];
+  const notLocked = () => [{ locked: false, retry_after: 0, level: 0, newly_locked: false }];
 
   it("správný PIN: přihlásí, vynuluje sérii a oznámí přihlášení na záložní e-mail", async () => {
     const db = fakeDb({
       rate_limit_hit: allow,
-      auth_lockout_state: notLocked,
+      auth_lockout_failure: notLocked,
       auth_pin_get: record,
       auth_lockout_reset: () => null,
       ...logHandlers,
@@ -413,7 +413,6 @@ describe("loginWithPin", () => {
     ];
     const db = fakeDb({
       rate_limit_hit: allow,
-      auth_lockout_state: notLocked,
       auth_pin_get: unconfirmed,
       auth_lockout_reset: () => null,
       auth_lockout_failure: () => [
@@ -437,7 +436,7 @@ describe("loginWithPin", () => {
   it("klíč pauzy i limitu je HMAC, ne slug ani IP", async () => {
     const db = fakeDb({
       rate_limit_hit: allow,
-      auth_lockout_state: notLocked,
+      auth_lockout_failure: notLocked,
       auth_pin_get: record,
       auth_lockout_reset: () => null,
       ...logHandlers,
@@ -459,7 +458,6 @@ describe("loginWithPin", () => {
   it("chybný PIN: invalid, chyba se započítá (5 / 15 min / 24 h) a nic se neposílá", async () => {
     const db = fakeDb({
       rate_limit_hit: allow,
-      auth_lockout_state: notLocked,
       auth_pin_get: record,
       auth_lockout_failure: () => [
         { locked: false, retry_after: 0, level: 0, newly_locked: false },
@@ -481,7 +479,6 @@ describe("loginWithPin", () => {
   it("pátá chyba: pauza a oznámení o ní na záložní e-mail", async () => {
     const db = fakeDb({
       rate_limit_hit: allow,
-      auth_lockout_state: notLocked,
       auth_pin_get: record,
       auth_lockout_failure: () => [
         { locked: true, retry_after: 900, level: 1, newly_locked: true },
@@ -504,7 +501,9 @@ describe("loginWithPin", () => {
   it("probíhající pauza: PIN se ani neověřuje", async () => {
     const db = fakeDb({
       rate_limit_hit: allow,
-      auth_lockout_state: () => [{ locked: true, retry_after: 600 }],
+      auth_lockout_failure: () => [
+        { locked: true, retry_after: 600, level: 1, newly_locked: false },
+      ],
     });
     expect(await loginWithPin({ ...pinInput, defer: deferred().defer })).toEqual({
       status: "locked",
@@ -516,7 +515,6 @@ describe("loginWithPin", () => {
   it("neznámá svatba: stejná odpověď jako chybný PIN, chyba se počítá, e-mail se neposílá", async () => {
     const db = fakeDb({
       rate_limit_hit: allow,
-      auth_lockout_state: notLocked,
       auth_pin_get: () => [],
       auth_lockout_failure: () => [
         { locked: false, retry_after: 0, level: 0, newly_locked: false },
@@ -533,7 +531,6 @@ describe("loginWithPin", () => {
   it("neznámá svatba po sérii chyb hlásí pauzu stejně jako existující (bez prozrazení)", async () => {
     fakeDb({
       rate_limit_hit: allow,
-      auth_lockout_state: notLocked,
       auth_pin_get: () => [],
       auth_lockout_failure: () => [
         { locked: true, retry_after: 900, level: 1, newly_locked: true },

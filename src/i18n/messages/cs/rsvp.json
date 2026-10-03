@@ -86,5 +86,8 @@
   "done.summary": "Shrnutí odpovědi",
   "done.attending": "přijde",
   "done.declining": "nepřijde",
-  "honeypot.label": "Toto pole nevyplňujte"
+  "honeypot.label": "Toto pole nevyplňujte",
+  "health.saved": "Údaje o dietě a alergiích z vaší dřívější odpovědi máme uložené, z ochrany soukromí je tu ale nezobrazujeme. Necháte-li pole prázdná, zůstanou beze změny; vyplněním je nahradíte.",
+  "health.clear": "Smazat uložené údaje o dietě a alergiích",
+  "email.saved": "E-mail z vaší dřívější odpovědi máme uložený, z ochrany soukromí ho tu nezobrazujeme. Necháte-li pole prázdné, zůstane beze změny."
 }

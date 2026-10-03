@@ -400,10 +400,19 @@ export async function storeCardImage(
  * Po uložení nového obrázku karty zůstanou jen dva nejnovější (současný a předchozí, na který může ještě
  * odkazovat zveřejněná verze), starší se smažou (soubory, potom řádky).
  */
-export async function pruneCardImages(session: AdminIdentity, keep = 2): Promise<void> {
+export async function pruneCardImages(
+  session: AdminIdentity,
+  keep = 2,
+  /** Obrázky karet, které používá zveřejněný web nebo pracovní kopie: ty se nikdy nemažou. */
+  inUse: ReadonlySet<string> = new Set(),
+): Promise<void> {
   try {
     const cards = (await listMedia(session)).filter(
-      (item) => item.kind === "card" && item.status !== "pending" && item.status !== "processing",
+      (item) =>
+        item.kind === "card" &&
+        item.status !== "pending" &&
+        item.status !== "processing" &&
+        !inUse.has(item.id),
     );
     // Seznam je podle vzniku vzestupně: nejnovější jsou na konci.
     for (const item of cards.slice(0, Math.max(0, cards.length - keep))) {

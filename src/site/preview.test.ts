@@ -79,4 +79,83 @@ describe("previewToPublicContent", () => {
       previewToPublicContent(raw(), "a-b", new Date("2027-01-01"))?.venues[0].mapUrl,
     ).toBeNull();
   });
+
+  it("chráněný odkaz na galerii náhled neshodí: adresa ani karta v něm nejsou", () => {
+    const gallery = {
+      id: "b3",
+      type: "gallery",
+      anchor: "galerie",
+      sensitive: false,
+      data: {
+        mediaIds: [],
+        photosProtected: false,
+        link: { url: "https://fotky.example/tajne", label: null, protected: true, card: null },
+      },
+    };
+    const content = previewToPublicContent(
+      raw({ pages: [{ path: "", blocks: [raw().pages[0].blocks[0], gallery] }] }),
+      "a-b",
+      new Date("2027-01-01"),
+    );
+    if (!content) throw new Error("očekáván obsah");
+    const block = content.blocks.find((b) => b.type === "gallery");
+    expect(block?.type === "gallery" && block.data.link).toMatchObject({
+      protected: true,
+      url: null,
+    });
+    expect(JSON.stringify(content)).not.toContain("tajne");
+  });
+
+  it("blok, který neprojde schématem, se vynechá (zbytek náhledu zůstane)", () => {
+    const broken = {
+      id: "b9",
+      type: "contact",
+      anchor: "kontakt",
+      sensitive: false,
+      data: { people: [{ id: "p", name: "X", phone: "neplatné" }] },
+    };
+    const content = previewToPublicContent(
+      raw({ pages: [{ path: "", blocks: [...raw().pages[0].blocks, broken] }] }),
+      "a-b",
+      new Date("2027-01-01"),
+    );
+    expect(content?.blocks.map((b) => b.id)).toEqual(["b1", "b2"]);
+  });
+
+  it("fáze náhledu respektuje termín potvrzení účasti a časové pásmo svatby", () => {
+    const rsvp = {
+      rsvp_configured: true,
+      rsvp_opens_at: null,
+      rsvp_closes_at: "2027-05-01T10:00:00Z",
+    };
+    // uzavřeno přesně v okamžiku termínu (jako zveřejněný web), ne až další den
+    const closed = previewToPublicContent(
+      raw({ wedding: { ...wedding, ...rsvp } }),
+      "a-b",
+      new Date("2027-05-01T10:00:00Z"),
+    );
+    expect(closed?.phase).toBe("rsvp_closed");
+    const open = previewToPublicContent(
+      raw({ wedding: { ...wedding, ...rsvp } }),
+      "a-b",
+      new Date("2027-05-01T09:59:00Z"),
+    );
+    expect(open?.phase).toBe("rsvp_open");
+    // bez nastavení RSVP nebo před otevřením: save_the_date
+    const none = previewToPublicContent(
+      raw({ wedding: { ...wedding, rsvp_configured: false } }),
+      "a-b",
+      new Date("2027-01-01T00:00:00Z"),
+    );
+    expect(none?.phase).toBe("save_the_date");
+    const notYet = previewToPublicContent(
+      raw({ wedding: { ...wedding, ...rsvp, rsvp_opens_at: "2027-02-01T00:00:00Z" } }),
+      "a-b",
+      new Date("2027-01-01T00:00:00Z"),
+    );
+    expect(notYet?.phase).toBe("save_the_date");
+    // 18. 6. 23:30 UTC je v Praze už den svatby (19. 6.)
+    const day = previewToPublicContent(raw(), "a-b", new Date("2027-06-18T23:30:00Z"));
+    expect(day?.phase).toBe("wedding_day");
+  });
 });

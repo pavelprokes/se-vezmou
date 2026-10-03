@@ -1,5 +1,5 @@
 import "server-only";
-import { Unzip, UnzipInflate, UnzipPassThrough } from "fflate";
+import { Unzip, UnzipInflate, UnzipPassThrough, unzipSync } from "fflate";
 import { readSheet } from "read-excel-file/node";
 import { decodeCsv, IMPORT_LIMITS, parseCsv } from "./import-parse";
 
@@ -57,6 +57,11 @@ function unpackedTooLarge(bytes: Uint8Array): boolean {
       exceeded = true;
       return;
     }
+    // Uvedená velikost položky (místní hlavička), podle které knihovna alokuje paměť
+    if ((file.originalSize ?? 0) > IMPORT_LIMITS.unpackedBytes) {
+      exceeded = true;
+      return;
+    }
     file.ondata = (error, chunk) => {
       if (error) throw error;
       total += chunk.length;
@@ -81,6 +86,26 @@ function unpackedTooLarge(bytes: Uint8Array): boolean {
   return false;
 }
 
+/**
+ * Velikosti, které archiv o sobě UVÁDÍ (centrální adresář): skutečné rozbalení je hlídá `unpackedTooLarge`,
+ * knihovna pro čtení `.xlsx` ale podle uvedené velikosti předem alokuje paměť. Malý soubor, který tvrdí, že
+ * položka má 4 GB, by tak bez této kontroly vyčerpal paměť funkce. Nic se tu nerozbaluje (filtr vrací `false`).
+ */
+function declaredTooLarge(bytes: Uint8Array): boolean {
+  let total = 0;
+  let tooLarge = false;
+  unzipSync(bytes, {
+    filter: (file) => {
+      total += file.originalSize;
+      if (file.originalSize > IMPORT_LIMITS.unpackedBytes || total > IMPORT_LIMITS.unpackedBytes) {
+        tooLarge = true;
+      }
+      return false;
+    },
+  });
+  return tooLarge;
+}
+
 export async function readTable(bytes: Uint8Array): Promise<ReadResult> {
   if (bytes.byteLength === 0) return { ok: false, reason: "unreadable" };
   if (bytes.byteLength > IMPORT_LIMITS.fileBytes) return { ok: false, reason: "too_large" };
@@ -89,7 +114,9 @@ export async function readTable(bytes: Uint8Array): Promise<ReadResult> {
 
   if (startsWith(bytes, ZIP_MAGIC)) {
     try {
-      if (unpackedTooLarge(bytes)) return { ok: false, reason: "unpacked_too_large" };
+      if (declaredTooLarge(bytes) || unpackedTooLarge(bytes)) {
+        return { ok: false, reason: "unpacked_too_large" };
+      }
       const sheet = await readSheet(Buffer.from(bytes));
       // rozměry listu se hlídají dřív, než se buňky převádějí na text
       if (sheet.length > MAX_SHEET_ROWS || sheet.some((row) => row.length > MAX_SHEET_COLUMNS)) {

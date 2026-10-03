@@ -114,6 +114,11 @@ export async function noticeRecipients(weddingId: string): Promise<Recipient[]> 
   );
 }
 
+/** Vrátí převzatá, ale neodeslaná upozornění do fronty (bez započítaného pokusu); vrací jejich počet. */
+export function releaseNotices(ids: string[]): Promise<number> {
+  return serviceRpc<number>("lifecycle_notices_release", { p_ids: ids });
+}
+
 export function finishNotice(id: string, sent: number, failed: number): Promise<string> {
   return serviceRpc<string>("lifecycle_notice_finish", {
     p_id: id,

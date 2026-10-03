@@ -346,9 +346,10 @@ export async function restoreVersion(
     return { status: "limited", retryAfter: checkpoint.retryAfter };
   }
 
-  const reloaded = (await loadSite(session)) ?? loaded;
+  // Uloží se s revizí, ze které vznikl bod pro vrácení (bod revizi nemění): pokud mezitím uložilo jiné okno,
+  // je to konflikt, ne tiché přepsání změn, které v bodu nejsou.
   try {
-    const result = await adminSiteSave(session, reloaded.meta.rev, docToWork(doc));
+    const result = await adminSiteSave(session, loaded.meta.rev, docToWork(doc));
     if (result.conflict) return { status: "conflict" };
     return { status: "restored", rev: result.rev, versionNo: version.versionNo };
   } catch (error) {
@@ -429,10 +430,52 @@ async function withCardImage(session: AdminIdentity, card: GalleryCard): Promise
   if (!card.imageUrl) return withoutImage;
   const image = await fetchOgImage(card.imageUrl);
   if (!image.ok) return withoutImage;
+  // Úklid před uložením (kvóta 3 obrázky karet): zůstanou obrázky, které používá zveřejněný web nebo pracovní
+  // kopie, a z ostatních tolik nejnovějších, aby se vešel nový. Když nejde zjistit, co se používá, neuklízí se.
+  const inUse = await cardImagesInUse(session);
+  if (inUse) await pruneCardImages(session, Math.max(0, 2 - inUse.size), inUse);
   const imageMediaId = await storeCardImage(session, image);
   if (!imageMediaId) return withoutImage;
-  await pruneCardImages(session);
   return { ...card, imageMediaId };
+}
+
+/**
+ * Obrázky karet, které právě používá zveřejněný web (veřejná i chráněná karta) nebo pracovní kopie. Úklid starých
+ * obrázků je nesmí smazat: opakované „Obnovit náhled“ bez zveřejnění by jinak zveřejněnému webu vzalo obrázek.
+ * `null`, když se to nedá spolehlivě zjistit (chyba, nečitelná verze): úklid se pak vynechá.
+ */
+async function cardImagesInUse(session: AdminIdentity): Promise<Set<string> | null> {
+  try {
+    const ids = new Set<string>();
+    const add = (id: string | null | undefined) => {
+      if (id) ids.add(id);
+    };
+    const loaded = parseLoaded(await adminSiteLoad(session));
+    if (!loaded) return null;
+    for (const block of loaded.doc.blocks) {
+      if (block.type === "gallery") add(block.data.link?.card?.imageMediaId);
+    }
+    const published = loaded.versions.find((version) => version.isPublished);
+    if (published) {
+      const version = z
+        .object({ public_content: z.unknown(), sensitive_content: z.unknown() })
+        .safeParse(await adminSiteVersionGet(session, published.id));
+      // Nečitelná zveřejněná verze: nevíme, co web používá, a nic se nesmaže.
+      if (!version.success) return null;
+      const content = publicContentSchema.safeParse(version.data.public_content);
+      const sensitive = sensitiveContentSchema.safeParse(version.data.sensitive_content ?? {});
+      if (!content.success || !sensitive.success) return null;
+      for (const block of content.data.blocks) {
+        if (block.type === "gallery") add(block.data.link?.card?.imageMediaId);
+      }
+      add(sensitive.data.gallery?.card?.imageMediaId);
+    }
+    return ids;
+  } catch {
+    // Chyba načtení nesmí shodit načtení náhledu karty; úklid se jen vynechá.
+    console.error("[fotografie] nepodařilo se zjistit používané obrázky karet");
+    return null;
+  }
 }
 
 // --- výběr svatby ----------------------------------------------------------------------------------

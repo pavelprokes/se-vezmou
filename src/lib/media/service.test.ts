@@ -16,6 +16,7 @@ import {
   listMedia,
   renewUpload,
   requestUpload,
+  pruneCardImages,
   storeCardImage,
   updateMedia,
 } from "./service";
@@ -540,6 +541,23 @@ describe("storeCardImage: obrázek karty externí galerie", () => {
     ).toBeNull();
     expect(calls).toEqual([]);
   });
+});
+
+describe("pruneCardImages: úklid starých obrázků karet", () => {
+  it("smaže nejstarší nad limit, ale nikdy obrázek, který používá zveřejněný web nebo pracovní kopie", async () => {
+    const { rows } = fakeDb();
+    const ids: string[] = [];
+    for (let i = 0; i < 3; i += 1) {
+      const id = await storeCardImage(SESSION, {
+        data: await jpeg(800, 600, false),
+        contentType: "image/jpeg",
+      });
+      ids.push(id!);
+    }
+    // nejstarší (ids[0]) používá zveřejněný web: zůstane i s posledním, smaže se jen ids[1]
+    await pruneCardImages(SESSION, 1, new Set([ids[0]]));
+    expect([...rows.keys()].sort()).toEqual([ids[0], ids[2]].sort());
+  }, 60_000);
 });
 
 describe("popisek, smazání, seznam a export", () => {

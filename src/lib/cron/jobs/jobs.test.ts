@@ -17,6 +17,7 @@ const rpc = vi.hoisted(() => ({
   claimNotices: vi.fn(),
   noticeRecipients: vi.fn(),
   finishNotice: vi.fn(),
+  releaseNotices: vi.fn(),
   purgeHealthData: vi.fn(),
   purgeGuestData: vi.fn(),
   dueWeddings: vi.fn(),
@@ -89,6 +90,7 @@ beforeEach(() => {
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   rpc.archiveDue.mockResolvedValue(0);
+  rpc.releaseNotices.mockResolvedValue(1);
   rpc.deleteArchived.mockResolvedValue(0);
   rpc.claimPurge.mockResolvedValue(true);
   rpc.releasePurge.mockResolvedValue(undefined);
@@ -251,6 +253,28 @@ describe("úloha životního cyklu", () => {
     const result = await lifecycleJob.run(context());
     expect(result.status).toBe("partial");
     expect(result.counts.notices_sent).toBe(1);
+  });
+
+  it("čas dojde uprostřed dávky: další upozornění se už nezačne odesílat (žádné odeslání bez zápisu výsledku)", async () => {
+    let left = 30_000;
+    rpc.claimNotices
+      .mockResolvedValueOnce([notice(), notice({ notice_id: "n2" })])
+      .mockResolvedValueOnce([]);
+    rpc.noticeRecipients.mockResolvedValue([{ email: "jan@example.test", locale: "cs" }]);
+    rpc.finishNotice.mockImplementation(async () => {
+      left = 500; // po prvním upozornění zbývá méně než rezerva
+      return "sent";
+    });
+    stubContext.send.mockResolvedValue(true);
+    const result = await lifecycleJob.run(context({ timeLeftMs: () => left }));
+    expect(rpc.finishNotice).toHaveBeenCalledTimes(1);
+    expect(stubContext.send).toHaveBeenCalledTimes(1);
+    expect(result.counts.deferred).toBe(1);
+    expect(rpc.claimNotices).toHaveBeenCalledTimes(1);
+    // neodeslané převzaté upozornění se vrátí do fronty bez započítaného pokusu
+    expect(rpc.releaseNotices).toHaveBeenCalledWith(["n2"]);
+    expect(result.counts.notices_sent).toBe(1);
+    expect(result.status).toBe("partial");
   });
 
   it("vyčerpaný časový rozpočet: nic se nepřebírá, výsledek je partial a dokončí ho další běh", async () => {

@@ -72,7 +72,12 @@ export async function fetchUnlistedForm(weddingId: string): Promise<UnlistedForm
 export type SubmitFailure = "ticket" | "closed" | "unlisted" | "invalid";
 
 /** `duplicate`: odpověď se stejným nonce už je uložená (dvojklik, opakování); nic se nezapsalo podruhé. */
-export type SubmitOutcome = { ok: true; duplicate: boolean } | { ok: false; reason: SubmitFailure };
+/**
+ * `keptEmail`: host nechal pole e-mailu prázdné a databáze ponechala dřívější adresu; vrací se jen serveru
+ * kvůli potvrzení e-mailem, do stavu formuláře ani prohlížeče se nikdy nedostane.
+ */
+export type SubmitOutcome =
+  { ok: true; duplicate: boolean; keptEmail?: string } | { ok: false; reason: SubmitFailure };
 
 /** Hlášení funkcí, která znamenají neplatný obsah odpovědi (ne chybu aplikace ani databáze). */
 export const INVALID_REASONS: ReadonlySet<string> = new Set([
@@ -99,11 +104,10 @@ function classify(error: unknown): SubmitFailure {
 async function submit(call: () => Promise<unknown>): Promise<SubmitOutcome> {
   try {
     const result = await call();
-    const duplicate =
-      typeof result === "object" &&
-      result !== null &&
-      (result as { duplicate?: unknown }).duplicate === true;
-    return { ok: true, duplicate };
+    const record =
+      typeof result === "object" && result !== null ? (result as Record<string, unknown>) : {};
+    const keptEmail = typeof record.kept_email === "string" ? record.kept_email : undefined;
+    return { ok: true, duplicate: record.duplicate === true, ...(keptEmail ? { keptEmail } : {}) };
   } catch (error) {
     return { ok: false, reason: classify(error) };
   }

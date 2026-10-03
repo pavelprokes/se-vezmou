@@ -37,7 +37,7 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
             se-vezmou<span className="text-cinnamon-deep">.cz</span>
           </p>
           <p className="text-muted mt-3 max-w-xs">
-            {t("landing.footer.about", { operator: operator.nameAndId })}
+            {t("landing.footer.about", { operator: operator.nameAndId, address: operator.address })}
           </p>
           <p className="text-muted mt-2 max-w-xs">
             {t("landing.footer.contact", { contact: operator.contact })}

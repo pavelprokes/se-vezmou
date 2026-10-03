@@ -189,6 +189,8 @@ export function RegenerateCodesForm({
     codesTitle: string;
     codesIntro: string;
     codesList: string;
+    code: string;
+    hint: string;
   };
 }) {
   return (
@@ -206,7 +208,22 @@ export function RegenerateCodesForm({
         ) : null
       }
     >
-      {() => null}
+      {(form) => (
+        <Field
+          id={form.id("code")}
+          name="code"
+          type="text"
+          label={labels.code}
+          hint={labels.hint}
+          error={form.error("code")}
+          autoComplete="one-time-code"
+          inputMode="numeric"
+          pattern="[0-9 \-]*"
+          autoCapitalize="none"
+          spellCheck={false}
+          required
+        />
+      )}
     </ActionForm>
   );
 }

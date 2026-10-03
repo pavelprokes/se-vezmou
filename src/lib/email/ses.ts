@@ -15,6 +15,8 @@ export function createSesTransport(): EmailTransport {
       const result = await client.send(
         new SendEmailCommand({
           FromEmailAddress: env.EMAIL_FROM,
+          // Konfigurační sada (nepovinná): události doručení a vlastní pravidla potlačení v SES
+          ConfigurationSetName: env.SES_CONFIGURATION_SET,
           Destination: { ToAddresses: [to] },
           ReplyToAddresses: replyTo ? [replyTo] : undefined,
           Content: {

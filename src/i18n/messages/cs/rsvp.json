@@ -3,6 +3,7 @@
   "name.label": "Vaše jméno",
   "name.hint": "Napište jméno tak, jak je na pozvánce. Stačí jedna osoba, ostatní členy domácnosti najdeme sami.",
   "name.privacy": "Seznam hostů nikde nezobrazujeme. Hledáme jen vás.",
+  "privacy.notice": "Údaje z tohoto formuláře zpracováváme pro {first} a {second}, kteří jsou jejich správcem a rozhodují, k čemu je použijí. Provozovatel služby je zpracovává jen na jejich pokyn. Podrobnosti najdete v <a>zásadách zpracování osobních údajů</a> (otevřou se v nové záložce).",
   "name.submit": "Pokračovat",
   "name.searching": "Hledám…",
   "name.error.required": "Napište prosím své jméno.",

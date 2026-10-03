@@ -8,7 +8,7 @@ import {
 } from "./shared";
 
 /**
- * Oznámení o změnách přístupu ke správě webu (M7b, docs/security-privacy.md kap. 5): přidání a odebrání
+ * Oznámení o změnách přístupu ke správě webu (M7b, docs/security-privacy.md kap. 7 a 13): přidání a odebrání
  * správce, změna záložního e-mailu, souhlas s nahlédnutím provozovatele (udělení, odvolání, skutečné
  * nahlédnutí, OQ-53) a smazání webu. Zprávy nesou jen druh změny, čas, adresu webu a odkaz na
  * přihlášení; nikdy jména hostů ani údaje z webu. E-mailové adresy dotčených osob se do zpráv

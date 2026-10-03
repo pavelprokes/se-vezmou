@@ -1,6 +1,6 @@
 /**
  * Limity a rozměry fotografií na jednom místě (docs/adr/0006-photo-storage.md; hodnoty jsou návrh k potvrzení
- * po měření v betě, OQ-25). Server je vynucuje, rozhraní je jen zrcadlí. Počet fotografií a velikost souboru
+ * po měření v betě, OQ-55). Server je vynucuje, rozhraní je jen zrcadlí. Počet fotografií a velikost souboru
  * hlídá i databáze (`app_settings`: `media_max_photos`, `media_max_bytes`).
  */
 export const MEDIA_LIMITS = {

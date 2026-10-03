@@ -3,6 +3,7 @@ import type { BlockOf } from "@/site/types";
 import type { SiteCtx } from "../context";
 import { rsvpIsOpen } from "../context";
 import { rsvpLabels } from "../rsvp/labels";
+import { RsvpPrivacyNotice } from "../rsvp/privacy-notice";
 import { RsvpForm } from "../rsvp/rsvp-form";
 import { Paragraphs, Section } from "./section";
 
@@ -28,6 +29,7 @@ export function Rsvp({
   return (
     <Section block={block} ctx={ctx} tone={tone}>
       <Paragraphs value={block.data.intro} ctx={ctx} className="site-lead" />
+      {open ? <RsvpPrivacyNotice t={t} locale={ctx.locale} partners={content.partners} /> : null}
       {open ? (
         <RsvpForm
           labels={rsvpLabels(t)}

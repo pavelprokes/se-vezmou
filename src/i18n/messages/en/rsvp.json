@@ -3,6 +3,7 @@
   "name.label": "Your name",
   "name.hint": "Type your name as it appears on the invitation. One person is enough; we will find the rest of your household.",
   "name.privacy": "We never show the guest list. We only look for you.",
+  "privacy.notice": "We process the details from this form for {first} and {second}, who are their controller and decide how they are used. The service operator processes them only on their instructions. See the <a>privacy policy</a> for details (opens in a new tab).",
   "name.submit": "Continue",
   "name.searching": "Searching…",
   "name.error.required": "Please type your name.",

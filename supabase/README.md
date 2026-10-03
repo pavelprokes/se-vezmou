@@ -44,7 +44,7 @@ Migrace:
 
 Matice rolí operátorů (každá `op_*` si roli ověřuje sama, `assert_operator`): čtení, poznámky, poslání přihlašovacího odkazu, nahlédnutí do údajů hostů se souhlasem páru a zablokování webu smí `owner` i `support`; ostatní změny stavu, změnu adresy, prodloužení lhůt, obnovu, audit a správu operátorů jen `owner`. Žádná z nich nevrací jména ani údaje hostů; k nim vede jediná cesta `op_view_guest_data` s aktivním `data_access_grants`, důvodem a auditem.
 
-Co je záměrně odložené (označeno `TODO` v `functions_core.sql`; PINy a pauzy dodala M4, koncept a publikaci M5, správu webu M7a, operátory M9, hosty a přístup M7b): e-maily a export při retenci (M10).
+Dřívější `TODO` v `functions_core.sql` jsou vyřešená (PINy a pauzy dodala M4, koncept a publikaci M5, správu webu M7a, operátory M9, hosty a přístup M7b, e-maily, export a retenci M10). Zbývající komentář `TODO M9` v `functions_ops.sql` (řádek 71, oznámení o nahlédnutí) je zastaralý, oznámení je od M7b hotové; migrace se neupravuje, protože by se změnil její kontrolní součet a `npm run db:migrate` by ji odmítl.
 
 ## Spuštění testů
 
@@ -132,7 +132,7 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
    Stejně v Dashboardu: Settings, API, _Exposed schemas_ (odeberte jen `se_vezmou`).
 
 2. **Aplikační role.** Spusťte `supabase/init/01_app_role.sql`, ale **nejdřív v něm nahraďte zástupné heslo** silným náhodným heslem (min. 32 znaků, jen písmena a číslice). Skutečné heslo nikdy neukládejte do repozitáře; po spuštění ho z historie dotazů editoru smažte.
-3. **`MIGRATE_DATABASE_URL`** (jen na vašem počítači, v shellu; ne do souboru v repozitáři a ne na Vercel): spojení **vlastníka** (role `postgres`), přímé (`db.<ref>.supabase.co:5432`) nebo přes session pooler (`...pooler.supabase.com:5432`, uživatel `postgres.<ref>`). Ne transaction pooler (6543) a ne role `se_vezmou_app`; nástroj obojí odmítne.
+3. **`MIGRATE_DATABASE_URL`** (jen na vašem počítači, v shellu; ne do souboru v repozitáři a ne na Vercel): spojení **vlastníka** (role `postgres`), přímé (`db.<ref>.supabase.co:5432`) nebo přes session pooler (`...pooler.supabase.com:5432`, uživatel `postgres.<ref>`). Ne transaction pooler (6543) a ne role `se_vezmou_app`; nástroj obojí odmítne. Volitelně `MIGRATE_CA_CERT` (PEM kořenové CA Supabase, stejně jako `DATABASE_CA_CERT` u aplikace): nástroj pak ověřuje certifikát serveru; bez ní je TLS bez ověření řetězu. Také jen na vašem počítači, ne na Vercel.
 
    ```bash
    export MIGRATE_DATABASE_URL='postgresql://postgres:<heslo>@db.<ref>.supabase.co:5432/postgres'
@@ -146,8 +146,10 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
 6. **Proměnné na Vercelu** (Project Settings, Environment Variables, jen serverové, žádné `NEXT_PUBLIC_*` pro databázi):
    - `DATABASE_URL`: `postgresql://se_vezmou_app.<ref>:<heslo>@aws-0-<region>.pooler.supabase.com:6543/postgres` (transaction pooler, role `se_vezmou_app`; za tečkou je ref projektu). `DATABASE_CA_CERT` viz níže (povinná).
    - `DATABASE_CA_CERT`: PEM kořenové CA Supabase (stejný certifikát jako `MIGRATE_CA_CERT`), **povinná** pro vzdálenou databázi: bez ní aplikace databázi nepoužije (chyba nasazení s jasnou zprávou). Dočasné vědomé opt-out: `DATABASE_TLS_INSECURE=1` (TLS bez ověření řetězu, nedoporučeno).
-   - `AUTH_SECRET`, `RATE_LIMIT_SECRET`, `PIN_PEPPER`: tři různé náhodné hodnoty, každá min. 32 znaků (`openssl rand -base64 48`).
-   - E-maily přes AWS SES: `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `EMAIL_FROM` (odesílatel ověřený v SES). Bez nich se e-maily jen vypisují do logu a neodesílají.
+   - `AUTH_SECRET`, `RATE_LIMIT_SECRET`, `PIN_PEPPER`, `OPERATOR_MFA_KEY`: čtyři různé náhodné hodnoty, každá **min. 32 znaků** (`openssl rand -base64 48`). `OPERATOR_MFA_KEY` je povinný pro přihlášení operátorů (ztráta nebo změna = nový zápis druhého faktoru u všech).
+   - `CRON_SECRET`: **povinné, min. 32 znaků**. Vercel ho posílá cronu v hlavičce `Authorization: Bearer …`; bez nastavené nebo s příliš krátkou hodnotou **každá cesta `/api/cron/*` tiše vrací 401** a nic se nemaže podle retence ani neposílá.
+   - Fotografie přes Cloudflare R2: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET` (a případně `R2_ENDPOINT`, `S3_REGION`), postup níže.
+   - E-maily přes AWS SES: `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `EMAIL_FROM` (odesílatel ověřený v SES). Bez nich se e-maily v produkci neodesílají (kódy nedorazí) a jejich obsah se nevypisuje; obsah se vypíše do konzole jen při `NODE_ENV=development`.
    - Dále podle `.env.example` (`NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL`, `ROOT_DOMAIN`, Sentry).
    - **Nenastavujte** `MIGRATE_DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`: aplikace je nepoužívá.
 7. **Ověření po nasazení** (SQL editor, role `postgres`):
@@ -167,7 +169,13 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
     where n.nspname in ('public', 'app') and c.relname in ('weddings', 'guests', 'sessions', 'operators');
    ```
 
-   Zapomenuté `set role` ověříte přihlášením jako `se_vezmou_app` (např. `psql` s `DATABASE_URL`): `select count(*) from se_vezmou.weddings;` musí skončit `permission denied for schema se_vezmou`. V aplikaci se načte `https://se-vezmou.cz` a přihlášení na `app.se-vezmou.cz` pošle kód (bez SES ho vypíše do logu). Ve Vercel logu se nesmí objevit `Chybí DATABASE_URL`.
+   Zapomenuté `set role` ověříte přihlášením jako `se_vezmou_app` (např. `psql` s `DATABASE_URL`): `select count(*) from se_vezmou.weddings;` musí skončit `permission denied for schema se_vezmou`. V aplikaci se načte `https://se-vezmou.cz` a přihlášení na `app.se-vezmou.cz` pošle kód e-mailem (bez SES se v produkci neodešle nic a kód se nikam nevypíše). Ve Vercel logu se nesmí objevit `Chybí DATABASE_URL`.
+
+   **Cron a `job_runs`.** Po prvním běhu cronu (denně 03:17 UTC, nebo ručně ve Vercelu _Settings → Cron Jobs → Run_) musí v tabulce přibýt řádek; když ne, je `CRON_SECRET` chybný nebo chybí (cesty `/api/cron/*` pak vrací 401 bez jakékoli viditelné chyby):
+
+   ```sql
+   select job, status, started_at, counts from se_vezmou.job_runs order by started_at desc limit 5;
+   ```
 
 ### Fotografie: Cloudflare R2 (M7c, `docs/adr/0006-photo-storage.md`)
 
@@ -250,7 +258,7 @@ Postup si poznamenejte do evidence žádostí (odpověď žadateli do jednoho m�
 
 ## Přijaté riziko: přímá oprávnění `authenticated`
 
-Role `authenticated` má k tabulkám tenantů obecná přímá oprávnění (RLS je omezuje na svatbu správce). Prohlížeč s databází nemluví a aplikace volá jen funkce `security definer`, takže je to hloubková obrana, ne cesta použitá kódem. Zúžení nebo odebrání je následný úkol (`docs/open-questions.md`, OQ-60) a v této větvi se nemění.
+Role `authenticated` má k tabulkám tenantů obecná přímá oprávnění (RLS je omezuje na svatbu správce). Prohlížeč s databází nemluví a aplikace volá jen funkce `security definer`, takže je to hloubková obrana, ne cesta použitá kódem. Zúžení nebo odebrání je následný úkol (`docs/open-questions.md`, OQ-66) a v této větvi se nemění.
 
 ## Pravidla pro další migrace
 

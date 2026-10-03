@@ -37,8 +37,9 @@ vrací 404. Na náhledech `*.vercel.app` (bez subdomén) zvol druh hostitele pro
   provozovatele a kontakt (zatím zástupné) v `src/config/operator.ts`.
 - Tlačítka „Vytvořit web“ a pole jmen vedou na průvodce: adresu určuje `NEXT_PUBLIC_APP_URL`,
   cestu a query parametry (`jmeno1`, `jmeno2`, `jazyk`) `src/lib/wizard-link.ts`.
-- Čekací listina běží přes Server Action za rozhraním `src/lib/waitlist.ts`. Dokud není hotová
-  databáze (M3), adaptér záznam jen zaloguje bez osobních údajů a **e-mail se neukládá**.
+- Čekací listina běží přes Server Action za rozhraním `src/lib/waitlist.ts`. Adaptér
+  `src/lib/waitlist-db.ts` ukládá e-mail, jazyk a verzi souhlasu do databáze (funkce `waitlist_add`,
+  omezení počtu požadavků podle IP přes HMAC klíč); do logu se e-mail nikdy nepíše.
 - Obrázky pro sdílení (`public/og/`) vznikají skriptem `node scripts/generate-og.mjs`.
 
 ### Kontroly a testy
@@ -93,7 +94,7 @@ PostgREST ani supabase-js a prohlížeč s databází nemluví vůbec (`docs/adr
 Lokální vývoj bez projektu Supabase: spusťte vlastní PostgreSQL 15+ s nahraným shimem platformy,
 init skripty a migracemi (`supabase/tests/setup/00_shim.sql`, `supabase/init/*.sql`,
 `supabase/migrations/*.sql`, viz `supabase/README.md`) a do `.env.local` přidejte `DATABASE_URL=…`
-(role `se_vezmou_app`) a tři tajné hodnoty. Bez AWS proměnných se e-maily (včetně kódu) vypisují do konzole dev serveru a neodesílají.
+(role `se_vezmou_app`) a tři tajné hodnoty. Bez AWS proměnných se e-maily neodesílají; jen při `NODE_ENV=development` (`npm run dev`) se jejich obsah, včetně přihlašovacího kódu, vypíše do konzole dev serveru. V produkčním sestavení se bez SES nic neodešle a obsah se nikdy nevypisuje (případně jen varování bez obsahu).
 
 ### Provozní administrace (M9)
 
@@ -129,11 +130,44 @@ shodí `npm run i18n:check` (ADR 0003).
 1. Na https://vercel.com/new naimportuj tento GitHub repozitář.
 2. Vercel automaticky detekuje Next.js (build `next build`, žádná další konfigurace není potřeba).
 3. Proměnné prostředí nastav v _Project Settings → Environment Variables_
-   (vzor viz `.env.example`). Databázi a migrace nejdřív připrav podle `supabase/README.md`
-   (init skripty, role `se_vezmou_app`, `npm run db:migrate`); na Vercel patří jen `DATABASE_URL`
-   (pooler Supabase, transaction mode, role `se_vezmou_app`), nikdy `MIGRATE_DATABASE_URL`.
-4. Na Vercelu se staví **pouze větev `main`** (produkce). Ostatní větve se přeskakují přes
+   (vzor viz `.env.example`, úplný postup před spuštěním je v `docs/launch-checklist.md`).
+   Databázi a migrace nejdřív připrav podle `supabase/README.md` (init skripty, role
+   `se_vezmou_app`, `npm run db:migrate`). **Povinné v produkci:**
+   - `DATABASE_URL` (pooler Supabase, transaction mode, role `se_vezmou_app`; nikdy `MIGRATE_DATABASE_URL`
+     ani `MIGRATE_CA_CERT`, ty patří jen na počítač majitele k `npm run db:migrate`),
+   - `AUTH_SECRET`, `RATE_LIMIT_SECRET`, `PIN_PEPPER`, `OPERATOR_MFA_KEY` a `CRON_SECRET`: každá
+     **min. 32 náhodných znaků** (`openssl rand -base64 48`), všechny různé. `CRON_SECRET` bez
+     platné hodnoty způsobí, že **každá cesta `/api/cron/*` tiše vrací 401** a nic se nemaže ani
+     neposílá; `OPERATOR_MFA_KEY` je nutný pro přihlášení operátorů,
+   - AWS SES (`AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `EMAIL_FROM`): bez nich se
+     v produkci nic neodešle, tedy nedorazí přihlašovací kódy,
+   - Cloudflare R2 pro fotografie (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`,
+     `R2_BUCKET`, případně `R2_ENDPOINT` a `S3_REGION`; postup v `supabase/README.md`),
+   - `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_APP_URL`, `ROOT_DOMAIN`.
+
+   Povinná: `DATABASE_CA_CERT` (PEM kořenové CA Supabase, ověření certifikátu databáze; bez ní vzdálená databáze selže, vědomé opt-out `DATABASE_TLS_INSECURE=1`). Volitelné: Sentry (`NEXT_PUBLIC_SENTRY_DSN`,
+   `SENTRY_*`, rozhodnutí OQ-65). Proměnné jen pro testy (`EMAIL_TRANSPORT`, `STORAGE_DRIVER`,
+   `CRON_TEST_CLOCK`, `OG_FETCH_TEST_HOST`, `ENABLE_UI_CATALOG`, `HOST_PRESET`) na Vercelu nenastavuj.
+
+4. Po prvním nasazení projdi **ověření po nasazení** níže. Na Vercelu se staví **pouze větev `main`** (produkce). Ostatní větve se přeskakují přes
    `ignoreCommand` ve `vercel.json`, takže PR a pushe do `pre-prod` nespouštějí build.
+
+### Ověření po nasazení
+
+1. Úvodní stránka `https://se-vezmou.cz` se načte a přihlášení na `app.se-vezmou.cz` pošle e-mail s kódem
+   (ve Vercel logu se nesmí objevit `Chybí DATABASE_URL`).
+2. **Cron.** Po prvním naplánovaném běhu (denně 03:17 UTC, nebo ručně _Settings → Cron Jobs → Run_) musí
+   v databázi přibýt řádek:
+
+   ```sql
+   select job, status, started_at, counts from se_vezmou.job_runs order by started_at desc limit 5;
+   ```
+
+   Chybí-li řádek, nebo cron vrací 401, zkontroluj `CRON_SECRET` (min. 32 znaků, nastavený pro Production,
+   po změně nové nasazení). Chybějící nebo krátký `CRON_SECRET` je nejčastější tichá chyba: bez něj se
+   nemaže podle retence ani se neposílají upozornění.
+
+3. Další kontroly databáze a R2 jsou v `supabase/README.md`.
 
 ## Workflow větví
 
@@ -144,3 +178,8 @@ shodí `npm run i18n:check` (ADR 0003).
 - Preview konkrétní větve lze vyžádat ručně: `npx vercel` (nebo dočasně upravit `ignoreCommand`).
 
 Případně přes CLI: `npx vercel` (preview) / `npx vercel --prod`.
+
+## Před spuštěním
+
+Vše, co musí majitel udělat před ostrým provozem a při něm (proměnné, R2, migrace, první operátor, DNS,
+právní texty, SES, Sentry), je na jedné stránce: [`docs/launch-checklist.md`](docs/launch-checklist.md).

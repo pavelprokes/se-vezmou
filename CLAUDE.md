@@ -10,6 +10,10 @@ se-vezmou.cz: a Czech/English wedding-website SaaS (Next.js 16 App Router, React
 
 Design docs: `docs/technical-design.md`, `docs/data-model.md`, `docs/security-privacy.md`, `docs/test-plan.md`, decisions in `docs/adr/` (read the relevant ADR before changing auth, routing, DB access, i18n, email, storage).
 
+## Team (role pro agenty)
+
+Role, pravidla a standardy teamu jsou v `docs/team.md`. Shrnutí: slovo „team“ ve zprávě (nebo zápis „team:“) spustí postup „projektová manažerka zarámuje, relevantní role se jmenovitě vyjádří jednou větou, ostatní mlčí“; „bez teamu“ ho vypne. Konečné rozhodnutí má vždy Pavel, role netvrdí fakta bez zdroje (žádné vymyšlené recenze ani počty), právní a finanční výstupy jsou jen podklad. Ukázkové páry jsou vždy Klára a Matěj. Přístupnost WCAG 2.2 AA je podmínka přijetí.
+
 ## Commands
 
 ```bash

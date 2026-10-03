@@ -15,8 +15,8 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
   const home = localizedPath("home", locale);
   const product = [
     { href: `${home}#how`, label: t("landing.nav.how") },
-    { href: `${home}#templates`, label: t("landing.nav.templates") },
-    { href: `${home}#pricing`, label: t("landing.nav.pricing") },
+    { href: localizedPath("templates", locale), label: t("landing.nav.templates") },
+    { href: localizedPath("pricing", locale), label: t("landing.nav.pricing") },
     { href: `${home}#faq`, label: t("landing.nav.faq") },
   ];
   const legal = [

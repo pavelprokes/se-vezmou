@@ -8,7 +8,7 @@ import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { ProblemSection } from "@/components/landing/problem-section";
-import { ReferencesSection } from "@/components/landing/references-section";
+import { LaunchSection } from "@/components/landing/launch-section";
 import { StepsSection } from "@/components/landing/steps-section";
 import { HomeStructuredData } from "@/components/landing/structured-data";
 import { TemplatesSection } from "@/components/landing/templates-section";
@@ -57,7 +57,7 @@ export default async function MarketingHome({ params }: PageProps<"/h/marketing/
         <FeaturesSection locale={locale} />
         <TrustSection locale={locale} />
         <PricingSection locale={locale} />
-        <ReferencesSection locale={locale} />
+        <LaunchSection locale={locale} />
         <FaqSection locale={locale} />
         <CtaSection locale={locale} />
       </main>

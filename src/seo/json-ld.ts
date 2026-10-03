@@ -6,7 +6,7 @@ import { htmlLang, type Locale, locales } from "@/i18n/config";
  * Strukturovaná data (JSON-LD, technical-design 6.3). Čisté funkce bez Reactu: dostanou stejné
  * texty a čísla jako viditelná stránka, takže se značky nikdy nerozejdou s obsahem.
  *
- * `Review` se záměrně nevypisuje: reference jsou zatím zástupný text (test to hlídá).
+ * `Review` se záměrně nevypisuje: skutečné reference zatím nejsou (test to hlídá).
  */
 
 export type JsonLdNode = Record<string, unknown>;

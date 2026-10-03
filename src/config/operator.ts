@@ -1,6 +1,6 @@
 /**
  * Údaje o provozovateli a kontakt na jednom místě. Provozovatel je doplněný (Pavel Prokeš, svatební
- * fotograf; IČO ověřeno v ARES), kontakt je zatím zástupný text (žádné vymyšlené údaje). Používá je patička, FAQ, právní stránky i strukturovaná data.
+ * fotograf; IČO ověřeno v ARES), kontakt je info@se-vezmou.cz (záložní adresa pavel@pavelprokes.cz je jen interní, na webu se neuvádí). Používá je patička, FAQ, právní stránky i strukturovaná data.
  */
 export const operator = {
   /** Obchodní jméno a IČO provozovatele. */
@@ -8,7 +8,7 @@ export const operator = {
   /** Sídlo provozovatele (ARES, 3. 10. 2026). */
   address: "Křižíkova 424/127, Praha 8",
   /** Kontaktní e-mail nebo formulář. */
-  contact: "[KONTAKT]",
+  contact: "info@se-vezmou.cz",
 } as const;
 
 /** Zástupná hodnota se pozná podle hranatých závorek; skutečné údaje je nemají. */

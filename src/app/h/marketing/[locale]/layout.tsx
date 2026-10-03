@@ -4,6 +4,7 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { htmlLang, isLocale, locales } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 import { siteUrl } from "@/lib/site";
+import "./transitions.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

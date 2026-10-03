@@ -9,10 +9,13 @@ import { defaultLocale, localePath, locales, type Locale } from "./config";
  * cesty pro každý jazyk (`privacy: { cs: "/soukromi", en: "/privacy" }` -> `/soukromi`
  * a `/en/privacy`); `Record<Locale, ...>` vynutí doplnění po přidání jazyka. Nepřeložená varianta
  * (`/privacy` česky, `/en/soukromi`) vrací 404 (žádné duplicity).
- * Přidání stránky = nový řádek, např. `pricing: { cs: "/cenik", en: "/pricing" }`.
+ * Přidání stránky = nový řádek, např. `pricing: { cs: "/cenik", en: "/pricing" }`; stránka pak potřebuje složku s `page.tsx` pro každý jazyk.
  */
 const routes = {
   home: "/",
+  pricing: { cs: "/cenik", en: "/pricing" },
+  templates: { cs: "/sablony", en: "/templates" },
+  bilingual: { cs: "/dvojjazycny-svatebni-web", en: "/bilingual-wedding-website" },
   privacy: { cs: "/soukromi", en: "/privacy" },
   terms: { cs: "/podminky", en: "/terms" },
   accessibility: { cs: "/dostupnost", en: "/accessibility" },

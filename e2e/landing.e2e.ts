@@ -291,9 +291,13 @@ for (const locale of locales) {
       await openMenuIfCollapsed(page, isMobile);
       const nav = page.getByRole("navigation", { name: /Hlavní navigace|Main navigation/ });
       await expect(nav.getByRole("link")).toHaveCount(4);
+      await nav.getByRole("link").nth(3).click();
+      await expect(page).toHaveURL(/#faq$/);
+      await expect(page.locator("#faq")).toBeInViewport();
+      // Šablony a cena mají vlastní stránky.
+      await openMenuIfCollapsed(page, isMobile);
       await nav.getByRole("link").nth(2).click();
-      await expect(page).toHaveURL(/#pricing$/);
-      await expect(page.locator("#pricing")).toBeInViewport();
+      await expect(page).toHaveURL(locale.code === "cs" ? /\/cenik$/ : /\/en\/pricing$/);
     });
 
     test("přepínač jazyka vede na druhou verzi stránky", async ({ page, isMobile }) => {
@@ -505,6 +509,63 @@ test.describe("právní podstránky (zástupné)", () => {
     expect(response.status()).toBe(200);
     expect(html).toContain("<loc>https://se-vezmou.cz/en</loc>");
     expect(html).not.toMatch(/soukromi|privacy|podminky|terms|dostupnost|accessibility/);
+  });
+});
+
+test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
+  const pages = [
+    { path: "/cenik", h1: "Cena svatebního webu", alt: "/en/pricing" },
+    { path: "/en/pricing", h1: "Wedding website pricing", alt: "/cenik" },
+    { path: "/sablony", h1: "Šablony svatebního webu", alt: "/en/templates" },
+    { path: "/en/templates", h1: "Wedding website templates", alt: "/sablony" },
+    {
+      path: "/dvojjazycny-svatebni-web",
+      h1: "Dvojjazyčný svatební web",
+      alt: "/en/bilingual-wedding-website",
+    },
+    {
+      path: "/en/bilingual-wedding-website",
+      h1: "A bilingual wedding website",
+      alt: "/dvojjazycny-svatebni-web",
+    },
+  ];
+
+  for (const entry of pages) {
+    test(`${entry.path}: indexovatelná, canonical na sebe, hreflang a drobečky`, async ({
+      request,
+    }) => {
+      const { response, html } = await source(request, entry.path);
+      expect(response.status()).toBe(200);
+      expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
+      expect(html).toContain(entry.h1);
+      expect(html).not.toMatch(/<meta name="robots" content="noindex/);
+      expect(html).toContain(`<link rel="canonical" href="https://se-vezmou.cz${entry.path}"`);
+      expect(html).toContain(`href="https://se-vezmou.cz${entry.alt}"`);
+      const [graph] = jsonLd(html);
+      const crumbs = graph["@graph"].find((node) => node["@type"] === "BreadcrumbList") as {
+        itemListElement: unknown[];
+      };
+      expect(crumbs.itemListElement).toHaveLength(2);
+    });
+  }
+
+  test("cizí jazyková varianta cesty je 404", async ({ request }) => {
+    for (const path of [
+      "/pricing",
+      "/en/cenik",
+      "/templates",
+      "/en/sablony",
+      "/bilingual-wedding-website",
+    ]) {
+      const { response } = await source(request, path);
+      expect(response.status(), path).toBe(404);
+    }
+  });
+
+  test("mapa webu obsahuje nové stránky", async ({ request }) => {
+    const { html } = await source(request, "/sitemap.xml");
+    for (const entry of pages)
+      expect(html).toContain(`<loc>https://se-vezmou.cz${entry.path}</loc>`);
   });
 });
 

@@ -32,8 +32,8 @@ describe("sitemap.xml", () => {
   it("obsahuje obě jazykové verze s alternativami", () => {
     expect(xml).toContain("<loc>https://se-vezmou.cz/</loc>");
     expect(xml).toContain("<loc>https://se-vezmou.cz/en</loc>");
-    expect(xml.match(/hreflang="cs"/g)).toHaveLength(2);
-    expect(xml.match(/hreflang="en"/g)).toHaveLength(2);
+    expect(xml.match(/hreflang="cs"/g)).toHaveLength(indexableRoutes.length * 2);
+    expect(xml.match(/hreflang="en"/g)).toHaveLength(indexableRoutes.length * 2);
     expect(xml.match(/hreflang="x-default" href="https:\/\/se-vezmou.cz\/"/g)).toHaveLength(2);
   });
 
@@ -44,7 +44,20 @@ describe("sitemap.xml", () => {
 
   it("neobsahuje zástupné právní podstránky (noindex)", () => {
     expect(xml).not.toMatch(/soukromi|privacy|podminky|terms|dostupnost|accessibility/);
-    expect(indexableRoutes).toEqual(["home"]);
+    expect(indexableRoutes).toEqual(["home", "pricing", "templates", "bilingual"]);
+  });
+
+  it("obsahuje cenu, šablony a dvojjazyčný web v obou jazycích", () => {
+    for (const path of [
+      "/cenik",
+      "/en/pricing",
+      "/sablony",
+      "/en/templates",
+      "/dvojjazycny-svatebni-web",
+      "/en/bilingual-wedding-website",
+    ]) {
+      expect(xml).toContain(`<loc>https://se-vezmou.cz${path}</loc>`);
+    }
   });
 
   it("šlo by do mapy přidat další stránku po doplnění textu", () => {

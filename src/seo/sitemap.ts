@@ -5,7 +5,7 @@ import { languageUrls, type RouteName } from "@/i18n/pathnames";
  * Stránky v mapě webu. Právní podstránky jsou zatím zástupné (`noindex`), takže v mapě nejsou;
  * po doplnění textů se přidají sem a ve `generateMetadata` se jim zruší `noindex`.
  */
-export const indexableRoutes: readonly RouteName[] = ["home"];
+export const indexableRoutes: readonly RouteName[] = ["home", "pricing", "templates", "bilingual"];
 
 function escapeXml(value: string): string {
   return value

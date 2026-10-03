@@ -233,6 +233,32 @@ test.describe("editor webu: ukládání, koncept a publikace", () => {
     await expect(guest.locator("#dresscode")).toContainText("Slavnostní, bez bílé.");
   });
 
+  test("ubytování s adresou a zaškrtnutou mapou se ukáže na mapě místa konání", async ({
+    page,
+    context,
+  }) => {
+    const site = await seedManagedSite();
+    await site.login(context);
+    await openEditor(page);
+    const lodging = await openBlock(page, "lodging", "Ubytování a doprava");
+    await lodging.getByRole("checkbox", { name: "Zobrazit na webu: Ubytování a doprava" }).check();
+    await lodging.getByRole("button", { name: "Přidat ubytování" }).click();
+    await lodging.getByLabel("Čeština").first().fill("Penzion U Řeky");
+    await lodging.getByLabel("Adresa ubytování").fill("Říční 5, Dobřichovice");
+    await lodging.getByRole("checkbox", { name: "Zobrazit na mapě místa konání" }).check();
+    // souřadnice se hledají na serveru (v testech pevný bod, MAP_STUB)
+    await expect(lodging.getByText("Místo je na mapě")).toBeVisible();
+    await expectSaved(page);
+    await publish(page);
+
+    const guest = await context.newPage();
+    await guest.goto(site.url);
+    const venue = guest.locator("#misto");
+    await expect(venue.locator('.site-map-pin[data-kind="lodging"]')).toHaveCount(1);
+    await expect(venue.getByRole("img", { name: /Penzion U\sŘeky/ })).toBeVisible();
+    await expect(guest.locator("#ubytovani")).toContainText("Říční 5, Dobřichovice");
+  });
+
   test("úvod je vždy první a zapnutý, jeho pořadí nejde měnit", async ({ page, context }) => {
     const site = await seedManagedSite();
     await site.login(context);

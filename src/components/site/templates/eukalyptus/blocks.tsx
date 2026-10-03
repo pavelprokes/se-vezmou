@@ -531,7 +531,33 @@ export function EuLodging({ block, ctx, tone, index }: EuBlockProps<"lodging">) 
                         ctx.text(item.name)
                       )}
                     </p>
+                    {item.address ? (
+                      <address className="eu-address eu-muted">{item.address}</address>
+                    ) : null}
                     <Paragraphs value={item.description} ctx={ctx} className="eu-muted" />
+                    {item.lat !== null && item.lng !== null ? (
+                      <p className="eu-links">
+                        <a
+                          href={mapyCzUrl(item.lat, item.lng)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="eu-link"
+                        >
+                          {t("site.venue.mapyCz")}
+                          <Icon icon={ExternalLink} size={16} />
+                        </a>
+                        <a
+                          href={googleMapsUrl(item.lat, item.lng)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="eu-link"
+                        >
+                          {t("site.venue.googleMaps")}
+                          <Icon icon={ExternalLink} size={16} />
+                        </a>
+                        <span className="eu-muted eu-hint">{t("site.venue.mapHint")}</span>
+                      </p>
+                    ) : null}
                   </li>
                 ))}
               </ul>

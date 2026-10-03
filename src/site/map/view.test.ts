@@ -66,6 +66,16 @@ describe("mapView", () => {
     expect(view.zoom).toBe(SINGLE_ZOOM);
   });
 
+  it("ubytování má vlastní druh špendlíku; ve stejném místě jako obřad je jeden špendlík místa konání", () => {
+    const hotel = { lat: 49.93, lng: 14.285, label: "Hotel", kind: "lodging" as const };
+    const view = mapView([KAPLE, hotel])!;
+    expect(view.pins.map((pin) => pin.kind).sort()).toEqual(["lodging", "venue"]);
+    const same = mapView([{ ...KAPLE, label: "Zámecký hotel", kind: "lodging" }, KAPLE])!;
+    expect(same.pins).toEqual([
+      expect.objectContaining({ kind: "venue", label: "Zámecký hotel · Zámecká kaple" }),
+    ]);
+  });
+
   it("dvě blízká místa: co nejbližší pohled, oba špendlíky ve výřezu telefonu", () => {
     const view = mapView([KAPLE, { lat: 49.93, lng: 14.285, label: "Sál" }])!;
     expect(view.zoom).toBeLessThanOrEqual(MAX_ZOOM);

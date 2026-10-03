@@ -577,6 +577,48 @@ html:has(.site-root[data-sticky="true"]) {
   --s-map-blend: color;
 }
 
+/*
+ * Ubytování na mapě místa konání: zaoblený čtverec místo kapky (liší se tvarem, ne jen barvou) v barvě druhého
+ * akcentu; platí pro všechny šablony (proto silnější selektor než úpravy špendlíku v šablonách).
+ */
+.site-root .site-map .site-map-pin[data-kind="lodging"]::before {
+  left: -0.75rem;
+  top: -1.75rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 0.35rem;
+  background: var(--s-accent2);
+  transform: none;
+}
+.site-root .site-map .site-map-pin[data-kind="lodging"]::after {
+  bottom: 2.25rem;
+}
+/* Legenda (jen když jsou na mapě obě skupiny): tvar špendlíku a popis */
+.site-map-legend {
+  display: inline-flex;
+  gap: 0.75rem;
+  margin-right: 0.75rem;
+}
+.site-map-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.site-map-legend-item::before {
+  content: "";
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50% 50% 50% 0;
+  background: var(--s-accent);
+  transform: rotate(-45deg);
+}
+.site-map-legend-item[data-kind="lodging"]::before {
+  border-radius: 0.15rem;
+  background: var(--s-accent2);
+  transform: none;
+}
+
 @media (forced-colors: active) {
   .site-map-canvas::after {
     display: none;

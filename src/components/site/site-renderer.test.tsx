@@ -148,6 +148,37 @@ describe("SiteRenderer: bloky a struktura", () => {
     );
   });
 
+  it("ubytování se zaškrtnutou mapou je na mapě místa konání (jiný špendlík, legenda) a má adresu a odkazy", () => {
+    const content = structuredClone(eukalyptusFixture);
+    const lodging = content.blocks.find((b) => b.type === "lodging");
+    if (lodging?.type !== "lodging") throw new Error("ubytování");
+    Object.assign(lodging.data.items[0], {
+      address: "Říční 5, 252 01 Dobřichovice",
+      showOnMap: true,
+      lat: 49.927,
+      lng: 14.274,
+    });
+    // druhé ubytování mapu nemá zaškrtnutou, i když souřadnice má (např. starší data): na mapě není
+    Object.assign(lodging.data.items[1], { lat: 49.93, lng: 14.28 });
+    const { container, unmount } = renderSite(content);
+    const venue = screen.getByRole("region", { name: "Místo konání" });
+    const map = within(venue).getByRole("img", { name: /^Mapa místa konání/ });
+    expect(map.getAttribute("aria-label")).toMatch(/ubytování: Penzion U\sŘeky$/);
+    expect(map.getAttribute("aria-label")).not.toContain("Zámecký dvůr");
+    expect(container.querySelectorAll('.site-map-pin[data-kind="lodging"]')).toHaveLength(1);
+    expect(container.querySelector(".site-map-legend")).not.toBeNull();
+    const section = screen.getByRole("region", { name: /Ubytování/ });
+    expect(section).toHaveTextContent("Říční 5, 252 01 Dobřichovice");
+    expect(within(section).getAllByRole("link", { name: /Mapy\.cz|Google Maps/ })).toHaveLength(4);
+    unmount();
+
+    // vypnutý blok ubytování: na mapě není
+    lodging.enabled = false;
+    const off = renderSite(content);
+    expect(off.container.querySelector('.site-map-pin[data-kind="lodging"]')).toBeNull();
+    expect(off.container.querySelector(".site-map-legend")).toBeNull();
+  });
+
   it("bez volby mapy nebo bez souřadnic se mapa ani odkazy nevykreslí", () => {
     const { container, unmount } = renderSite(editorialFixture);
     expect(container.querySelector(".site-map")).toBeNull();

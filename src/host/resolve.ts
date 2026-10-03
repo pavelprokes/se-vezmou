@@ -1,4 +1,5 @@
 import { RESERVED_SLUGS } from "@/config/reserved-slugs";
+import { hostPresetAllowed } from "@/lib/test-hatches";
 
 /**
  * Určení druhu hostitele z hlavičky `Host` (ADR 0002). Čistá funkce bez I/O a bez `next/*`.
@@ -44,10 +45,10 @@ export function hostConfigFromEnv(
   const root = (env.ROOT_DOMAIN || "se-vezmou.cz").trim().toLowerCase();
   const rootDomains = options.development && root !== "localhost" ? [root, "localhost"] : [root];
 
-  const isProduction = env.VERCEL_ENV === "production";
+  // Předvolby hostitele jsou testovací vrátka s vlastním pravidlem (`hostPresetAllowed`): `marketing` smí
+  // dočasně i na `*.vercel.app`, `app` a `admin` nikdy v produkčním sestavení.
   const preset = env.HOST_PRESET as HostKind | undefined;
-  const validPreset =
-    !isProduction && preset && ["marketing", "app", "admin", "tenant"].includes(preset);
+  const validPreset = hostPresetAllowed(env.HOST_PRESET, env);
 
   return {
     rootDomains,

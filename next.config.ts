@@ -7,7 +7,19 @@ const isDev = process.env.NODE_ENV !== "production";
  * Původ průvodce (`app.`): formuláře s jmény na úvodní stránce se odesílají metodou GET právě sem
  * (funguje i bez JavaScriptu), proto ho `form-action` musí povolit. Hodnota je stejná jako v `src/env.ts`.
  */
-const appOrigin = new URL(process.env.NEXT_PUBLIC_APP_URL || "https://app.se-vezmou.cz").origin;
+function appOriginFromEnv(): string {
+  const value = process.env.NEXT_PUBLIC_APP_URL || "https://app.se-vezmou.cz";
+  try {
+    return new URL(value).origin;
+  } catch {
+    // Srozumitelná chyba při sestavení místo anonymního `TypeError: Invalid URL`.
+    throw new Error(
+      "NEXT_PUBLIC_APP_URL není platná adresa (očekává se např. https://app.se-vezmou.cz). Opravte proměnnou prostředí.",
+    );
+  }
+}
+
+const appOrigin = appOriginFromEnv();
 
 /**
  * Původ úložiště fotografií (Cloudflare R2, docs/adr/0006-photo-storage.md). Prohlížeč na něj posílá originály

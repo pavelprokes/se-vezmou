@@ -41,10 +41,13 @@ export interface PhotoStorage {
    */
   deletePrefix(weddingId: string): Promise<{ deleted: number }>;
 
-  /** Krátkodobě platná adresa pro PUT originálu do karantény (`incoming/{wedding_id}/{media_id}`). */
+  /**
+   * Krátkodobě platná adresa pro PUT originálu do karantény (`incoming/{wedding_id}/{media_id}`). Podpis se váže na
+   * přesnou velikost (`bytes`): klient musí poslat přesně tolik bajtů, kolik server schválil.
+   */
   presignPut(
     key: string,
-    options: { contentType: string; expiresInSeconds: number },
+    options: { contentType: string; bytes: number; expiresInSeconds: number },
   ): Promise<PutTarget>;
   /**
    * Podepsaná adresa pro čtení. Podpis se váže na časové okno (`windowSeconds`), takže je adresa po dobu okna

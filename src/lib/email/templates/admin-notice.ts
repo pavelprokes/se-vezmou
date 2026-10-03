@@ -26,8 +26,13 @@ export type AdminNoticeKind =
   | "admin_removed_others"
   /** Staré záložní adrese: už není záložní. */
   | "backup_changed_old"
-  /** Správcům a nové záložní adrese: záložní adresa se změnila. */
+  /** Správcům: záložní adresa se změnila. */
   | "backup_changed"
+  /**
+   * Nově zadané záložní adrese (první uložení v průvodci, změna záložní adresy): JEDINÁ zpráva, dokud adresu
+   * její vlastník nepotvrdí. Neutrální, bez odkazu: kdo adresu nezná, zprávu ignoruje.
+   */
+  | "backup_added"
   | "operator_access_granted"
   | "operator_access_revoked"
   | "guest_data_viewed"
@@ -179,6 +184,26 @@ function copyFor(p: AdminNoticeParams, when: string, until: string | null, site:
               "If neither you nor your partner made the change, sign in and check the access settings.",
             ],
             link: true,
+          };
+    case "backup_added":
+      return cs
+        ? {
+            subject: "Někdo vás uvedl jako záložní e-mail svatebního webu",
+            heading: "Záložní e-mail svatebního webu",
+            body: [
+              `Vaši adresu ${when} někdo uvedl jako záložní e-mail svatebního webu${siteText}. Pokud o tom nevíte, tuto zprávu prostě ignorujte.`,
+              "Dokud adresu nepotvrdí její vlastník, žádná další oznámení na ni nechodí.",
+            ],
+            link: false,
+          }
+        : {
+            subject: "Someone listed you as the backup e-mail of a wedding website",
+            heading: "Backup e-mail of a wedding website",
+            body: [
+              `Someone listed your address as the backup e-mail of a wedding website${siteText} on ${when}. If you do not know about this, simply ignore this message.`,
+              "Until the owner of the address confirms it, no further notices are sent to it.",
+            ],
+            link: false,
           };
     case "operator_access_granted":
       return cs

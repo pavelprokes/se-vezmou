@@ -1,12 +1,12 @@
 import "server-only";
-import { unzipSync } from "fflate";
+import { Unzip, UnzipInflate, UnzipPassThrough } from "fflate";
 import { readSheet } from "read-excel-file/node";
 import { decodeCsv, IMPORT_LIMITS, parseCsv } from "./import-parse";
 
 /**
  * Načtení nahraného souboru se seznamem hostů do tabulky řetězců (FR-ADM-4). Soubor je cizí vstup:
  * velikost se omezuje dřív, než se na něj sáhne, formát se pozná podle obsahu (ne podle přípony),
- * u XLSX se před rozbalením zkontroluje velikost rozbaleného obsahu z adresáře archivu (zip bomba)
+ * u XLSX se rozbalený obsah počítá skutečně (proudové rozbalení s přerušením na stropu, velikosti z hlaviček archivu se nevěří; zip bomba), omezen je i počet položek a rozměry listu
  * a knihovna `read-excel-file` pracuje jen se vzorcem a hodnotami buněk, nic nespouští.
  * Starý binární `.xls` se odmítá (jiný formát, uživatel ho uloží jako `.xlsx` nebo CSV).
  */
@@ -29,26 +29,55 @@ function cellText(value: unknown): string {
   return String(value);
 }
 
+/** Nejvíc položek v archivu XLSX (skutečný soubor jich má kolem dvaceti). */
+const MAX_ZIP_ENTRIES = 64;
+/** Vstup se do rozbalovače posílá po částech: jedna část se nafoukne nejvýše asi tisíckrát (deflate). */
+const PUSH_CHUNK = 16 * 1024;
+/** Nejvíc řádků a sloupců listu, které se vůbec převádějí na text (hranice nad IMPORT_LIMITS.rows). */
+const MAX_SHEET_ROWS = 5000;
+const MAX_SHEET_COLUMNS = 100;
+
+/**
+ * Zip bomba: velikosti uvedené v archivu (adresář, hlavičky) jsou řeč útočníka, proto se NEPOUŽÍVAJÍ.
+ * Archiv se rozbaluje proudově po malých částech a počítají se skutečně rozbalené bajty; po překročení
+ * stropu (celkem nebo u jedné položky) se rozbalování okamžitě přeruší. Omezen je i počet položek.
+ * `true` = archiv je příliš velký; poškozený archiv vyhodí výjimku.
+ */
 function unpackedTooLarge(bytes: Uint8Array): boolean {
   let total = 0;
+  let entries = 0;
+  let exceeded = false;
+  const unzip = new Unzip();
+  unzip.register(UnzipInflate);
+  unzip.register(UnzipPassThrough);
+  unzip.onfile = (file) => {
+    if (exceeded) return;
+    entries += 1;
+    if (entries > MAX_ZIP_ENTRIES) {
+      exceeded = true;
+      return;
+    }
+    file.ondata = (error, chunk) => {
+      if (error) throw error;
+      total += chunk.length;
+      if (total > IMPORT_LIMITS.unpackedBytes) {
+        exceeded = true;
+        file.terminate();
+      }
+    };
+    file.start();
+  };
   try {
-    // filtr jen čte adresář archivu a nic nerozbaluje (vrací false)
-    unzipSync(bytes, {
-      filter: (file) => {
-        total += file.originalSize;
-        if (
-          file.originalSize > IMPORT_LIMITS.unpackedBytes ||
-          total > IMPORT_LIMITS.unpackedBytes
-        ) {
-          throw new RangeError("unpacked_too_large");
-        }
-        return false;
-      },
-    });
+    for (let offset = 0; offset < bytes.length && !exceeded; offset += PUSH_CHUNK) {
+      const end = Math.min(offset + PUSH_CHUNK, bytes.length);
+      unzip.push(bytes.subarray(offset, end), end === bytes.length);
+    }
   } catch (error) {
-    if (error instanceof RangeError) return true;
+    if (exceeded) return true;
     throw error;
   }
+  if (exceeded) return true;
+  if (entries === 0) throw new Error("empty_archive");
   return false;
 }
 
@@ -62,6 +91,10 @@ export async function readTable(bytes: Uint8Array): Promise<ReadResult> {
     try {
       if (unpackedTooLarge(bytes)) return { ok: false, reason: "unpacked_too_large" };
       const sheet = await readSheet(Buffer.from(bytes));
+      // rozměry listu se hlídají dřív, než se buňky převádějí na text
+      if (sheet.length > MAX_SHEET_ROWS || sheet.some((row) => row.length > MAX_SHEET_COLUMNS)) {
+        return { ok: false, reason: "too_large" };
+      }
       return { ok: true, table: sheet.map((row) => row.map(cellText)) };
     } catch {
       return { ok: false, reason: "unreadable" };

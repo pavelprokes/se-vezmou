@@ -403,6 +403,22 @@ test.describe("přihlášení PINem (E2E-09)", () => {
     expect(await lockoutsFor(wedding.slug)).toBeNull();
   });
 
+  test("nepotvrzená záložní adresa nedostane žádné oznámení (ani o přihlášení, ani o pauze)", async ({
+    page,
+  }) => {
+    const wedding = await seedWedding({ pin: "482915", backupConfirmed: false });
+    await page.goto(app("/prihlaseni/pin"));
+    for (let i = 0; i < 5; i++) {
+      await page.getByLabel("Adresa svatebního webu").fill(wedding.slug);
+      await page.getByLabel("PIN ke správě").fill("739104");
+      await page.getByRole("button", { name: "Přihlásit se PINem" }).click();
+      await expect(page.locator("main").getByRole("alert")).not.toBeEmpty();
+    }
+    // pauza po páté chybě platí, jen se o ní nepíše na nepotvrzenou adresu
+    await expect(page.locator("main").getByRole("alert")).toContainText("pozastaveno");
+    expect(readMails(wedding.backupEmail)).toHaveLength(0);
+  });
+
   test("neznámá adresa dostane stejnou odpověď jako chybný PIN", async ({ page }) => {
     const wedding = await seedWedding({ pin: "482915" });
     const message = async (slug: string) => {

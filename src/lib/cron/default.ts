@@ -1,6 +1,7 @@
 import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import { env } from "@/env";
+import { testHatchesAllowed } from "@/lib/test-hatches";
 import { jobRunFinish, jobRunStart } from "@/lib/lifecycle/rpc";
 import { cronLog } from "./log";
 import { createCronHandler, BUDGET_MS, type CronHandlerOptions } from "./handler";
@@ -22,7 +23,8 @@ export function defaultCronHandler(options: CronHandlerOptions) {
     environment: () => ({
       secret: usableSecret(env.CRON_SECRET),
       testClock: env.CRON_TEST_CLOCK === "1",
-      production: process.env.VERCEL_ENV === "production",
+      // „production“ = vrátka nejsou povolena (ostrá produkce, nebo produkční sestavení bez ALLOW_TEST_HATCHES)
+      production: !testHatchesAllowed(env),
     }),
     store: () => ({
       start: (job, now) => jobRunStart(job, now),

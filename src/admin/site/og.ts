@@ -3,6 +3,8 @@ import { lookup as dnsLookup } from "node:dns/promises";
 import { request as httpRequest } from "node:http";
 import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
+import { env as appEnv } from "@/env";
+import { testHatchesAllowed, type EnvSource } from "@/lib/test-hatches";
 import { galleryCardSchema, httpsUrl, type GalleryCard } from "@/site/types";
 
 /**
@@ -15,7 +17,7 @@ import { galleryCardSchema, httpsUrl, type GalleryCard } from "@/site/types";
  *    ověřenou adresu (žádný druhý překlad, takže DNS rebinding nepomůže), TLS se ověřuje
  *    proti jménu hostitele,
  *  - totéž platí po KAŽDÉM přesměrování (nejvýše 3),
- *  - časový limit 5 s na vše, odpověď nejvýše 512 kB, jen `text/html`, bez komprese,
+ *  - časový limit 5 s na vše, odpověď nejvýše 64 kB (stačí na `<head>`), jen `text/html`, bez komprese,
  *  - parsuje se jen začátek dokumentu (`<head>`), nic se nespouští, žádné cookies, vlastní User-Agent,
  *  - všechny hodnoty jsou nedůvěryhodný text: zkracují se, zbavují řídicích znaků a při zobrazení
  *    se vypisují jako text (React escapuje); adresa obrázku se jen ukládá, web ji nevykresluje.
@@ -27,7 +29,7 @@ import { galleryCardSchema, httpsUrl, type GalleryCard } from "@/site/types";
 
 export const OG_LIMITS = {
   timeoutMs: 5000,
-  maxBytes: 512 * 1024,
+  maxBytes: 64 * 1024,
   maxRedirects: 3,
   title: 200,
   description: 400,
@@ -223,7 +225,12 @@ const defaultDeps: OgDeps = {
 };
 
 /** `jmeno.example=127.0.0.1:4555`; cíl jiný než loopback se ignoruje (výjimka nikdy nepovolí cizí síť). */
-export function parseTestHost(value: string | undefined): TestHost | null {
+export function parseTestHost(
+  value: string | undefined,
+  hatches: EnvSource = appEnv,
+): TestHost | null {
+  // Testovací vrátka: v produkčním sestavení jen s ALLOW_TEST_HATCHES=1, v ostré produkci nikdy.
+  if (!testHatchesAllowed(hatches)) return null;
   const match = /^([a-z0-9.-]+\.[a-z]{2,})=(127\.0\.0\.1):(\d{2,5})$/i.exec(value?.trim() ?? "");
   return match
     ? { hostname: match[1].toLowerCase(), address: match[2], port: Number(match[3]) }
@@ -231,7 +238,7 @@ export function parseTestHost(value: string | undefined): TestHost | null {
 }
 
 function envDeps(): OgDeps {
-  return { ...defaultDeps, testHost: parseTestHost(process.env.OG_FETCH_TEST_HOST) };
+  return { ...defaultDeps, testHost: parseTestHost(appEnv.OG_FETCH_TEST_HOST) };
 }
 
 // --- zpracování HTML ----------------------------------------------------------------------------
@@ -271,26 +278,105 @@ export function cleanOgText(value: string | undefined, max: number): string | nu
   return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
 }
 
+/** Meze rozboru: žádný zlý vstup nesmí zdržet smyčku událostí (lineární průchod, pevné stropy). */
+/** Konec `<head>`; bez vnořených kvantifikátorů, tedy lineární. */
+const HEAD_END = /<\/head[\s>]/i;
+
+const META_LIMITS = { tagChars: 2000, attrName: 40, tags: 200 } as const;
+
+const isSpace = (c: string) => c === " " || c === "\t" || c === "\n" || c === "\r" || c === "\f";
+
+/**
+ * Rozebere atributy jedné značky `<meta ...>` začínající na `from` (za názvem značky). Vrací atributy a
+ * pozici za `>`, nebo `null`, když značka není ukončená do `META_LIMITS.tagChars` znaků.
+ */
+function parseMetaAttributes(
+  head: string,
+  from: number,
+): { attrs: Map<string, string>; next: number } | null {
+  const limit = Math.min(head.length, from + META_LIMITS.tagChars);
+  const attrs = new Map<string, string>();
+  let i = from;
+  while (i < limit) {
+    const c = head[i];
+    if (c === ">") return { attrs, next: i + 1 };
+    if (isSpace(c) || c === "/") {
+      i++;
+      continue;
+    }
+    // název atributu (nejvýše attrName znaků, jinak se zbytek přeskočí)
+    const nameStart = i;
+    while (
+      i < limit &&
+      !isSpace(head[i]) &&
+      head[i] !== "=" &&
+      head[i] !== ">" &&
+      head[i] !== "/"
+    ) {
+      i++;
+    }
+    const name = head.slice(nameStart, Math.min(i, nameStart + META_LIMITS.attrName)).toLowerCase();
+    const validName = i - nameStart <= META_LIMITS.attrName && /^[a-z:_-]+$/.test(name);
+    while (i < limit && isSpace(head[i])) i++;
+    if (head[i] !== "=") continue; // atribut bez hodnoty
+    i++;
+    while (i < limit && isSpace(head[i])) i++;
+    let value = "";
+    const quote = head[i];
+    if (quote === '"' || quote === "'") {
+      const close = head.indexOf(quote, i + 1);
+      if (close < 0 || close >= limit) return null;
+      value = head.slice(i + 1, close);
+      i = close + 1;
+    } else {
+      const valueStart = i;
+      while (i < limit && !isSpace(head[i]) && head[i] !== ">") i++;
+      value = head.slice(valueStart, i);
+    }
+    if (validName && !attrs.has(name)) attrs.set(name, value);
+  }
+  return null;
+}
+
 function metaTags(head: string): Map<string, string> {
   const found = new Map<string, string>();
-  for (const tag of head.match(/<meta\b[^>]*>/gi) ?? []) {
-    const attrs = new Map<string, string>();
-    for (const m of tag.matchAll(/([a-zA-Z:_-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))/g)) {
-      attrs.set(m[1].toLowerCase(), m[2] ?? m[3] ?? m[4] ?? "");
-    }
-    const key = (attrs.get("property") ?? attrs.get("name") ?? "").toLowerCase();
-    const content = attrs.get("content");
+  let seen = 0;
+  let pos = 0;
+  while (seen < META_LIMITS.tags) {
+    const lt = head.indexOf("<", pos);
+    if (lt < 0) break;
+    pos = lt + 1;
+    if (head.slice(lt + 1, lt + 5).toLowerCase() !== "meta") continue;
+    const after = head[lt + 5];
+    if (after !== undefined && !isSpace(after) && after !== "/" && after !== ">") continue;
+    seen++;
+    const parsed = parseMetaAttributes(head, lt + 5);
+    if (!parsed) continue;
+    pos = parsed.next;
+    const key = (parsed.attrs.get("property") ?? parsed.attrs.get("name") ?? "").toLowerCase();
+    const content = parsed.attrs.get("content");
     if (key && content !== undefined && !found.has(key)) found.set(key, content);
   }
   return found;
 }
 
+/** Obsah prvního `<title>` (nejvýše 1000 znaků), bez regulárního výrazu s vracením. */
+function titleText(head: string): string | undefined {
+  const open = /<title(?![a-z0-9_-])/i.exec(head);
+  if (!open) return undefined;
+  const start = head.indexOf(">", open.index);
+  if (start < 0) return undefined;
+  const window = head.slice(start + 1, start + 1001);
+  const end = /<\/title/i.exec(window);
+  return end ? window.slice(0, end.index) : undefined;
+}
+
 /** Karta z začátku HTML dokumentu (`<head>`); `null`, když nenese nic použitelného. */
 export function parseOgCard(html: string, pageUrl: URL, now: Date): GalleryCard | null {
-  const end = html.search(/<\/head\s*>/i);
+  const end = html.search(HEAD_END);
   const head = end >= 0 ? html.slice(0, end) : html.slice(0, OG_LIMITS.maxBytes);
   const meta = metaTags(head);
-  const titleTag = /<title\b[^>]*>([\s\S]*?)<\/title\s*>/i.exec(head)?.[1];
+  const titleTag = titleText(head);
 
   const title = cleanOgText(
     meta.get("og:title") ?? meta.get("twitter:title") ?? titleTag,
@@ -348,25 +434,29 @@ class Stop extends Error {
 async function readHead(response: PageResponse): Promise<string> {
   const chunks: Buffer[] = [];
   let size = 0;
+  // Konec `<head>` se hledá jen v nově přijatém kusu a krátkém přesahu z předchozího (lineární práce).
+  let tail = "";
+  let headEnded = false;
   try {
     for await (const chunk of response.body) {
-      const buffer = Buffer.from(chunk);
+      let buffer = Buffer.from(chunk);
+      const overflow = size + buffer.length > OG_LIMITS.maxBytes;
+      if (overflow) buffer = buffer.subarray(0, OG_LIMITS.maxBytes - size);
       size += buffer.length;
-      if (size > OG_LIMITS.maxBytes) {
-        // Hlavička často skončí dřív; co máme, stačí k rozboru. Příliš dlouhý dokument bez
-        // `</head>` v limitu je nepoužitelný.
-        chunks.push(buffer.subarray(0, buffer.length - (size - OG_LIMITS.maxBytes)));
-        const partial = Buffer.concat(chunks).toString("utf8");
-        if (!/<\/head\s*>/i.test(partial)) throw new Stop("too_large");
+      chunks.push(buffer);
+      const fresh = tail + buffer.toString("utf8");
+      if (HEAD_END.test(fresh)) {
+        headEnded = true;
         break;
       }
-      chunks.push(buffer);
-      // Dál než za konec <head> číst netřeba (a nemá smysl).
-      if (/<\/head\s*>/i.test(Buffer.concat(chunks).toString("utf8"))) break;
+      tail = fresh.slice(-16);
+      if (overflow) break;
     }
   } finally {
     response.destroy();
   }
+  // Příliš dlouhý dokument bez `</head>` v limitu je nepoužitelný.
+  if (!headEnded && size >= OG_LIMITS.maxBytes) throw new Stop("too_large");
   return Buffer.concat(chunks).toString("utf8");
 }
 
@@ -471,7 +561,7 @@ export async function fetchOgCard(
       return failure("not_html", now);
     }
     const length = Number(response.headers["content-length"] ?? 0);
-    if (Number.isFinite(length) && length > OG_LIMITS.maxBytes * 4) {
+    if (Number.isFinite(length) && length > OG_LIMITS.maxBytes * 32) {
       response.destroy();
       return failure("too_large", now);
     }

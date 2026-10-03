@@ -60,7 +60,7 @@ begin
 
   perform tap.become('authenticated', tap.wa(), 'visitor');
   perform tap.throws('select se_vezmou.admin_site_save(0, ''{}''::jsonb)', '42501', 'admin_site_save: návštěvník je odmítnut');
-  perform tap.throws('select se_vezmou.admin_site_publish(''{}''::jsonb, ''{}''::jsonb, null)', '42501', 'admin_site_publish: návštěvník je odmítnut');
+  perform tap.throws('select se_vezmou.admin_site_publish(''{}''::jsonb, ''{}''::jsonb, null, (select site_rev from se_vezmou.weddings where id = tap.wa()))', '42501', 'admin_site_publish: návštěvník je odmítnut');
   perform tap.throws('select se_vezmou.admin_site_checkpoint(''{}''::jsonb, ''{}''::jsonb, null)', '42501', 'admin_site_checkpoint: návštěvník je odmítnut');
   perform tap.throws('select se_vezmou.admin_quick_notice_set(null, false)', '42501', 'admin_quick_notice_set: návštěvník je odmítnut');
   perform tap.throws(format('select se_vezmou.admin_site_version_get(%L)', tap.u('A:version')), '42501', 'admin_site_version_get: návštěvník je odmítnut');
@@ -196,14 +196,14 @@ begin
   j := se_vezmou.admin_site_load();
   perform tap.ok((j #>> '{wedding,has_unpublished_changes}')::boolean, 'po uložení koncept je novější než zveřejněná verze');
 
-  perform tap.throws('select * from se_vezmou.admin_site_publish(''{}''::jsonb, ''{}''::jsonb, null)', '22023', 'publish: prázdný snímek se odmítne');
-  perform tap.throws(format('select * from se_vezmou.admin_site_publish(%L::jsonb, ''{}''::jsonb, null)', tap.as_public('jina-adresa')::text),
+  perform tap.throws('select * from se_vezmou.admin_site_publish(''{}''::jsonb, ''{}''::jsonb, null, (select site_rev from se_vezmou.weddings where id = tap.wa()))', '22023', 'publish: prázdný snímek se odmítne');
+  perform tap.throws(format('select * from se_vezmou.admin_site_publish(%L::jsonb, ''{}''::jsonb, null, (select site_rev from se_vezmou.weddings where id = tap.wa()))', tap.as_public('jina-adresa')::text),
     '22023', 'publish: snímek s cizí adresou se odmítne');
-  perform tap.throws(format('select * from se_vezmou.admin_site_publish(%L::jsonb, ''[]''::jsonb, null)', tap.as_public('klara-a-matej')::text),
+  perform tap.throws(format('select * from se_vezmou.admin_site_publish(%L::jsonb, ''[]''::jsonb, null, (select site_rev from se_vezmou.weddings where id = tap.wa()))', tap.as_public('klara-a-matej')::text),
     '22023', 'publish: citlivá část musí být objekt');
 
   select * into r from se_vezmou.admin_site_publish(tap.as_public('klara-a-matej', 'Verze 2'),
-    '{"gifts": {"account": "1/0100"}}'::jsonb, '  druhá verze  ');
+    '{"gifts": {"account": "1/0100"}}'::jsonb, '  druhá verze  ', (select site_rev from se_vezmou.weddings where id = tap.wa()));
   perform tap.ok(r.version_no = 2 and r.slug = 'klara-a-matej', 'publish: nová verze č. 2');
   j := se_vezmou.admin_site_load();
   perform tap.reset();
@@ -241,7 +241,7 @@ begin
   perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
   select * into r from se_vezmou.admin_site_save(2, tap.as_work('Obřad 3'));
   perform tap.ok(r.ok, 'po stažení lze koncept ukládat');
-  select * into r from se_vezmou.admin_site_publish(tap.as_public('klara-a-matej', 'Verze 3'), '{}'::jsonb, null);
+  select * into r from se_vezmou.admin_site_publish(tap.as_public('klara-a-matej', 'Verze 3'), '{}'::jsonb, null, (select site_rev from se_vezmou.weddings where id = tap.wa()));
   perform tap.ok(r.version_no = 3, 'znovuzveřejnění vytvoří verzi 3');
   perform tap.reset();
   perform tap.ok((select status from se_vezmou.weddings where id = tap.wa()) = 'published', 'znovu zveřejněno');
@@ -270,7 +270,7 @@ begin
   perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
   perform tap.throws(format('select * from se_vezmou.admin_site_save(%s, %L::jsonb)',
     (select site_rev from se_vezmou.weddings where id = tap.wa()), tap.as_work()::text), '55000', 'zablokovaný web: uložení se odmítne');
-  perform tap.throws(format('select * from se_vezmou.admin_site_publish(%L::jsonb, ''{}''::jsonb, null)', tap.as_public('klara-a-matej')::text),
+  perform tap.throws(format('select * from se_vezmou.admin_site_publish(%L::jsonb, ''{}''::jsonb, null, (select site_rev from se_vezmou.weddings where id = tap.wa()))', tap.as_public('klara-a-matej')::text),
     '55000', 'zablokovaný web: zveřejnění se odmítne');
   perform tap.throws('select se_vezmou.admin_quick_notice_set(''{"cs": "x"}'', true)', '55000', 'zablokovaný web: rychlá změna se odmítne');
   perform tap.reset();
@@ -284,7 +284,7 @@ begin
   update se_vezmou.weddings set guest_pin_enabled = true where id = tap.wa();
   update se_vezmou.wedding_auth set guest_pin_hash = null where wedding_id = tap.wa();
   perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
-  perform tap.throws(format('select * from se_vezmou.admin_site_publish(%L::jsonb, ''{}''::jsonb, null)', tap.as_public('klara-a-matej')::text),
+  perform tap.throws(format('select * from se_vezmou.admin_site_publish(%L::jsonb, ''{}''::jsonb, null, (select site_rev from se_vezmou.weddings where id = tap.wa()))', tap.as_public('klara-a-matej')::text),
     'guest_pin_missing', 'publish: zapnutý PIN hostů bez hodnoty se odmítne');
   perform tap.reset();
   update se_vezmou.weddings set guest_pin_enabled = false where id = tap.wa();
@@ -410,6 +410,37 @@ begin
   perform tap.ok(not exists (select 1 from se_vezmou.audit_log
     where wedding_id = tap.wa() and action in ('site.published', 'site.unpublished', 'site.checkpoint', 'site.quick_notice')
       and meta::text ~* '(Klára|Matěj|Zámek|Tajná|účet|account)'), 'audit správy webu nenese obsah webu');
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- M7a oprava: zveřejnění je vázané na revizi pracovní kopie
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_rev integer;
+  r record;
+begin
+  select site_rev into v_rev from se_vezmou.weddings where id = tap.wa();
+
+  perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
+  select * into r from se_vezmou.admin_site_publish(tap.as_public('klara-a-matej', 'Zastaralá'), '{}'::jsonb, null, v_rev - 1);
+  perform tap.ok(r.conflict and not r.ok and r.version_no is null, 'publish: zastaralá revize je konflikt');
+  select * into r from se_vezmou.admin_site_publish(tap.as_public('klara-a-matej', 'Bez revize'), '{}'::jsonb, null, null);
+  perform tap.ok(r.conflict, 'publish: chybějící revize je konflikt');
+  perform tap.reset();
+  perform tap.ok((select site_rev from se_vezmou.weddings where id = tap.wa()) = v_rev, 'konflikt nezměnil revizi');
+  perform tap.ok(not exists (select 1 from se_vezmou.site_versions where wedding_id = tap.wa() and public_content::text like '%Zastaralá%'),
+    'konflikt nic nezveřejnil');
+
+  perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
+  select * into r from se_vezmou.admin_site_publish(tap.as_public('klara-a-matej', 'Aktuální'), '{}'::jsonb, null, v_rev);
+  perform tap.ok(r.ok and not r.conflict and r.version_no is not null, 'publish: aktuální revize zveřejní');
+  -- druhý pokus se stejnou revizí po uložení jinou změnou
+  perform se_vezmou.admin_site_save(v_rev, tap.as_work('Jiná změna'));
+  select * into r from se_vezmou.admin_site_publish(tap.as_public('klara-a-matej', 'Po změně'), '{}'::jsonb, null, v_rev);
+  perform tap.ok(r.conflict, 'publish: po uložení z jiného okna je stará revize konflikt');
+  perform tap.reset();
 end
 $$;
 

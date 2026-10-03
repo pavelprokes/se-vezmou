@@ -1,5 +1,5 @@
 import "server-only";
-import { call, firstRow, type Bytes } from "./rpc";
+import { call, firstRow, READ_ONLY, type Bytes } from "./rpc";
 import type { CheckSlugReason } from "./types";
 
 /**
@@ -180,10 +180,14 @@ export async function setPreviewToken(
 
 /** Svatba, jejíž koncept odpovídá adrese a hashi tokenu z odkazu na náhled. */
 export async function resolvePreview(slug: string, tokenHash: Bytes): Promise<string | null> {
-  const row = await firstRow<{ wedding_id: string }>("resolve_preview", {
-    p_slug: slug,
-    p_token_hash: tokenHash,
-  });
+  const row = await firstRow<{ wedding_id: string }>(
+    "resolve_preview",
+    {
+      p_slug: slug,
+      p_token_hash: tokenHash,
+    },
+    READ_ONLY,
+  );
   return row?.wedding_id ?? null;
 }
 
@@ -211,5 +215,5 @@ export function getPublicSite(
   weddingId: string,
   weddingRole: "visitor" | "preview",
 ): Promise<unknown> {
-  return call<unknown>("get_public_site", {}, "scalar", { weddingId, weddingRole });
+  return call<unknown>("get_public_site", {}, "scalar", { weddingId, weddingRole }, READ_ONLY);
 }

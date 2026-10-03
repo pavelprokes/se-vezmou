@@ -1,4 +1,6 @@
 import "server-only";
+import { env as appEnv } from "@/env";
+import { isProductionLike, testHatchesAllowed } from "@/lib/test-hatches";
 import { createMemoryStorage, type MemoryStorage } from "./memory";
 import { createR2Storage, r2ConfigFromEnv } from "./r2";
 import {
@@ -27,7 +29,7 @@ export type { ImageFormat, PhotoStorage, PutTarget, StorageKind, StoredObject } 
  *  1. proměnné R2 (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET`, volitelně
  *     `R2_ENDPOINT` a `S3_REGION`) jsou nastavené -> Cloudflare R2;
  *  2. bez nich mimo produkci (vývoj, testy) nebo s výslovným `STORAGE_DRIVER=memory` (e2e testy proti
- *     produkčnímu sestavení; nikdy při `VERCEL_ENV=production`) -> úložiště v paměti;
+ *     produkčnímu sestavení, jen s `ALLOW_TEST_HATCHES=1`; nikdy při `VERCEL_ENV=production`) -> úložiště v paměti;
  *  3. jinak (produkce bez R2) -> „nenastavené“ úložiště: výpis a mazání nic nedělají (není co mazat ani
  *     exportovat), ale jakékoli použití fotografií selže srozumitelnou chybou `not_configured`.
  *     Aplikace se tím nikdy nerozbije při startu, funkce fotografií jen hlásí, co chybí.
@@ -42,8 +44,10 @@ function sharedMemory(): MemoryStorage {
 }
 
 function memoryAllowed(env: Record<string, string | undefined>): boolean {
-  if (env.STORAGE_DRIVER === "memory") return env.VERCEL_ENV !== "production";
-  return env.NODE_ENV !== "production";
+  // `STORAGE_DRIVER=memory` je testovací vrátka (src/lib/test-hatches.ts): v produkčním sestavení jen s
+  // ALLOW_TEST_HATCHES=1, v ostré produkci nikdy. Bez ní se paměť používá jen mimo produkční sestavení.
+  if (env.STORAGE_DRIVER === "memory") return testHatchesAllowed(env);
+  return !isProductionLike(env);
 }
 
 const NOT_CONFIGURED_HINT =
@@ -87,9 +91,7 @@ export function createUnconfiguredStorage(missing: readonly string[] = []): Phot
 /** Výchozí úložiště do zapojení R2 (zpětná kompatibilita testů): nic neuchovává. */
 export const noopStorage: PhotoStorage = createUnconfiguredStorage();
 
-export function resolveStorage(
-  env: Record<string, string | undefined> = process.env,
-): PhotoStorage {
+export function resolveStorage(env: Record<string, string | undefined> = appEnv): PhotoStorage {
   const r2 = r2ConfigFromEnv(env);
   if (r2.status === "ok") return createR2Storage(r2.config);
   if (memoryAllowed(env)) return sharedMemory();

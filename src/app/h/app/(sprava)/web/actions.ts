@@ -55,10 +55,18 @@ export async function saveSiteAction(input: unknown): Promise<SaveActionResult> 
   });
 }
 
-export async function publishSiteAction(note: unknown): Promise<PublishActionResult> {
-  return guarded("zveřejnění webu", async (session) =>
-    publishSiteVersion(session, noteSchema.catch("").parse(note)),
-  );
+const baseRevSchema = z.number().int().min(0);
+
+export async function publishSiteAction(
+  note: unknown,
+  baseRev?: unknown,
+): Promise<PublishActionResult> {
+  return guarded("zveřejnění webu", async (session) => {
+    const rev = baseRevSchema.safeParse(baseRev);
+    return publishSiteVersion(session, noteSchema.catch("").parse(note), {
+      baseRev: rev.success ? rev.data : undefined,
+    });
+  });
 }
 
 export async function unpublishSiteAction(): Promise<SimpleActionResult> {

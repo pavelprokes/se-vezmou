@@ -1,5 +1,5 @@
 import "server-only";
-import { tenantRpc } from "@/lib/db/rpc";
+import { READ_ONLY, tenantRpc } from "@/lib/db/rpc";
 import { DbError, type TenantIdentity } from "@/lib/db/transport";
 import {
   rsvpInfoSchema,
@@ -23,7 +23,7 @@ export function visitor(weddingId: string): TenantIdentity {
 
 /** Otevřenost RSVP a volby páru; `null` pro neveřejný web. */
 export async function fetchRsvpInfo(weddingId: string): Promise<RsvpInfo | null> {
-  const raw = await tenantRpc<unknown>(visitor(weddingId), "rsvp_info");
+  const raw = await tenantRpc<unknown>(visitor(weddingId), "rsvp_info", {}, "scalar", READ_ONLY);
   return raw === null ? null : rsvpInfoSchema.parse(raw);
 }
 
@@ -46,20 +46,33 @@ export async function fetchHouseholdView(
   weddingId: string,
   ticket: string,
 ): Promise<RsvpView | null> {
-  const raw = await tenantRpc<unknown>(visitor(weddingId), "rsvp_get", { p_ticket: ticket });
+  const raw = await tenantRpc<unknown>(
+    visitor(weddingId),
+    "rsvp_get",
+    { p_ticket: ticket },
+    "scalar",
+    READ_ONLY,
+  );
   return raw === null ? null : rsvpViewSchema.parse(raw);
 }
 
 /** Formulář hosta mimo seznam; `null`, když to pár nepovolil nebo je RSVP zavřené. */
 export async function fetchUnlistedForm(weddingId: string): Promise<UnlistedFormView | null> {
-  const raw = await tenantRpc<unknown>(visitor(weddingId), "rsvp_unlisted_form");
+  const raw = await tenantRpc<unknown>(
+    visitor(weddingId),
+    "rsvp_unlisted_form",
+    {},
+    "scalar",
+    READ_ONLY,
+  );
   return raw === null ? null : unlistedFormSchema.parse(raw);
 }
 
 /** Důvody, proč databáze odpověď odmítla (podle identifikátoru hlášení funkce). */
 export type SubmitFailure = "ticket" | "closed" | "unlisted" | "invalid";
 
-export type SubmitOutcome = { ok: true } | { ok: false; reason: SubmitFailure };
+/** `duplicate`: odpověď se stejným nonce už je uložená (dvojklik, opakování); nic se nezapsalo podruhé. */
+export type SubmitOutcome = { ok: true; duplicate: boolean } | { ok: false; reason: SubmitFailure };
 
 /** Hlášení funkcí, která znamenají neplatný obsah odpovědi (ne chybu aplikace ani databáze). */
 export const INVALID_REASONS: ReadonlySet<string> = new Set([
@@ -85,8 +98,12 @@ function classify(error: unknown): SubmitFailure {
 
 async function submit(call: () => Promise<unknown>): Promise<SubmitOutcome> {
   try {
-    await call();
-    return { ok: true };
+    const result = await call();
+    const duplicate =
+      typeof result === "object" &&
+      result !== null &&
+      (result as { duplicate?: unknown }).duplicate === true;
+    return { ok: true, duplicate };
   } catch (error) {
     return { ok: false, reason: classify(error) };
   }

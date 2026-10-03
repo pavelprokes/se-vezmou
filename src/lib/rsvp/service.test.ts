@@ -479,6 +479,103 @@ describe("submitStep: odeslání a úprava (FR-RSVP-5, FR-RSVP-6)", () => {
     expect(message.text).not.toContain("#potvrdit-ucast");
   });
 
+  describe("host mimo seznam: idempotence (dvojklik, opakování)", () => {
+    const NONCE = "6f1f4f0e-1c2d-4a5b-8c9d-0e1f2a3b4c5d";
+    const unlistedForm = () =>
+      formOf([
+        ["x.0.kind", "adult"],
+        ["x.0.name", "Karel Cizí"],
+        [`x.0.ev.${E_OBRAD}`, "yes"],
+        [`x.0.ev.${E_HOSTINA}`, "no"],
+        ["email", "karel@example.test"],
+        ["nonce", NONCE],
+      ]);
+    const settings = {
+      settings: { enabled_questions: { children: true }, email_confirmation: true },
+    };
+
+    it("nonce z formuláře jde do databáze beze změny", async () => {
+      const db = fakeDb({
+        ...base,
+        rate_limit_hit: allow,
+        rsvp_unlisted_form: () => unlistedView(settings),
+        rsvp_submit_unlisted: () => ({ ok: true, response_id: "r9", duplicate: false }),
+      });
+      await submitStep(
+        submitInput({
+          mode: "unlisted",
+          ticket: null,
+          form: unlistedForm(),
+          defer: deferred().defer,
+        }),
+      );
+      expect(db.of("rsvp_submit_unlisted")[0].args).toMatchObject({ p_payload: { nonce: NONCE } });
+    });
+
+    it("bez platného nonce (starší stránka) se vygeneruje nový, odpověď se neztratí", async () => {
+      const db = fakeDb({
+        ...base,
+        rate_limit_hit: allow,
+        rsvp_unlisted_form: () => unlistedView(settings),
+        rsvp_submit_unlisted: () => ({ ok: true, response_id: "r9", duplicate: false }),
+      });
+      for (const nonce of [null, "nesmysl"]) {
+        const form = unlistedForm();
+        form.delete("nonce");
+        if (nonce) form.set("nonce", nonce);
+        const result = await submitStep(
+          submitInput({ mode: "unlisted", ticket: null, form, defer: deferred().defer }),
+        );
+        expect(result.state.done).toBeDefined();
+      }
+      const nonces = db
+        .of("rsvp_submit_unlisted")
+        .map((c) => (c.args.p_payload as { nonce: string }).nonce);
+      expect(nonces[0]).toMatch(/^[0-9a-f-]{36}$/);
+      expect(nonces[1]).not.toBe(nonces[0]);
+    });
+
+    it("opakované odeslání (duplicate): host vidí potvrzení, ale e-mail ani měření se nezopakují", async () => {
+      const db = fakeDb({
+        ...base,
+        rate_limit_hit: allow,
+        rsvp_unlisted_form: () => unlistedView(settings),
+        rsvp_submit_unlisted: () => ({ ok: true, response_id: "r9", duplicate: true }),
+      });
+      const later = deferred();
+      const result = await submitStep(
+        submitInput({ mode: "unlisted", ticket: null, form: unlistedForm(), defer: later.defer }),
+      );
+      expect(result.state.done).toMatchObject({ unlisted: true });
+      await later.run();
+      expect(db.of("analytics_record")).toHaveLength(0);
+      expect(sendEmail).not.toHaveBeenCalled();
+    });
+
+    it("dvojklik: dvě souběžná odeslání téhož formuláře uloží jedinou odpověď a pošlou jediný e-mail", async () => {
+      const seen = new Set<string>();
+      fakeDb({
+        ...base,
+        rate_limit_hit: allow,
+        rsvp_unlisted_form: () => unlistedView(settings),
+        // chování databáze: druhé použití téhož nonce je duplicita
+        rsvp_submit_unlisted: (args) => {
+          const nonce = (args.p_payload as { nonce: string }).nonce;
+          const duplicate = seen.has(nonce);
+          seen.add(nonce);
+          return { ok: true, response_id: "r9", duplicate };
+        },
+      });
+      const later = deferred();
+      const input = () =>
+        submitInput({ mode: "unlisted", ticket: null, form: unlistedForm(), defer: later.defer });
+      await Promise.all([submitStep(input()), submitStep(input())]);
+      await later.run();
+      expect(seen.size).toBe(1);
+      expect(sendEmail).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("host mimo seznam: formulář už není (vypnuto nebo zavřeno)", async () => {
     fakeDb({ ...base, rate_limit_hit: allow, rsvp_unlisted_form: () => null });
     const result = await submitStep(

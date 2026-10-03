@@ -42,18 +42,37 @@ export function mediaNotFound(): Response {
   });
 }
 
-/** Přesměrování na podepsanou adresu úložiště pro klíč varianty. */
-export async function mediaRedirect(key: string): Promise<Response> {
+/**
+ * Mezipaměť přesměrování. Veřejně viditelné médium (požadavek bez relace hosta po PINu, tedy výsledek databáze
+ * pro roli `visitor`: médium je ve zveřejněném snímku) smí do sdílené mezipaměti (CDN) na pět minut a dalších
+ * deset minut se smí servírovat zastaralé, než se obnoví: podepsaná adresa platí nejméně hodinu (okno podpisu),
+ * takže zastaralá odpověď nikdy nenese prošlou adresu. S cookie hosta po PINu (může jít o chráněnou
+ * fotografii) je odpověď `private, no-store`: do žádné sdílené mezipaměti ani do mezipaměti prohlížeče.
+ */
+export const MEDIA_CACHE = {
+  shared: "public, max-age=300, s-maxage=300, stale-while-revalidate=600",
+  guest: "private, no-store",
+  /** Náhledy správce (i nezveřejněné fotografie): jen mezipaměť prohlížeče správce, pět minut. */
+  admin: "private, max-age=300",
+} as const;
+
+/**
+ * Přesměrování na podepsanou adresu úložiště pro klíč varianty. `cache` volí hlavičku `Cache-Control`
+ * (viz `MEDIA_CACHE`): `shared` jen pro požadavek bez relace hosta po PINu.
+ */
+export async function mediaRedirect(
+  key: string,
+  options: { cache: keyof typeof MEDIA_CACHE },
+): Promise<Response> {
   const location = await getStorage().presignGet(key, {
     windowSeconds: MEDIA_LIMITS.deliveryWindowSeconds,
   });
   return new Response(null, {
     status: 302,
     headers: {
-      // Adresa se v prohlížeči nechá pět minut (obrázek sám si cachuje úložiště); `private`, protože fotografie
-      // chráněné PINem hostů nesmí skončit ve sdílené mezipaměti. Cookie rozhoduje o výsledku, proto `Vary`.
+      // Cookie rozhoduje o tom, co host uvidí (chráněné fotografie), proto vždy `Vary: Cookie`.
       Location: location,
-      "Cache-Control": "private, max-age=300",
+      "Cache-Control": MEDIA_CACHE[options.cache],
       Vary: "Cookie",
       "X-Robots-Tag": NOINDEX,
       "Referrer-Policy": "no-referrer",

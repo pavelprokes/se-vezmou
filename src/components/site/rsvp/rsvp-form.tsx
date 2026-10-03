@@ -11,6 +11,7 @@ import {
   type RefObject,
 } from "react";
 import { Icon } from "@/components/ui/icon";
+import { newNonce } from "@/lib/nonce";
 import {
   answerField,
   attendanceField,
@@ -431,6 +432,9 @@ function GuestForm({
   onOtherName: () => void;
 }) {
   const unlisted = model.mode === "unlisted";
+  // Idempotenční klíč tohoto formuláře: dvojklik i opakování po chybě sítě odešle týž klíč, takže server
+  // odpověď hosta mimo seznam nezaloží dvakrát. Po úspěchu formulář zmizí, nový formulář má nový klíč.
+  const nonce = useRef<string | null>(null);
   const introRef = useRef<HTMLParagraphElement>(null);
   const addPersonRef = useRef<HTMLButtonElement>(null);
   const addChildRef = useRef<HTMLButtonElement>(null);
@@ -593,6 +597,8 @@ function GuestForm({
         if (pending) return;
         const formData = new FormData(event.currentTarget);
         formData.set("mode", model.mode);
+        nonce.current ??= newNonce();
+        formData.set("nonce", nonce.current);
         onSubmit(formData);
       }}
     >

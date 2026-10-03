@@ -732,7 +732,8 @@ test.describe("správci a záložní e-mail", () => {
     expect(await backupEmail(site.weddingId)).toBe(next);
 
     expect(await subject(old)).toBe("Tato adresa už není záložní e-mail svatebního webu");
-    expect(await subject(next)).toBe("Záložní e-mail vašeho svatebního webu se změnil");
+    // nová adresa je nepotvrzená: dostane jedinou neutrální zprávu, ne oznámení o změně
+    expect(await subject(next)).toBe("Někdo vás uvedl jako záložní e-mail svatebního webu");
     expect(await subject(site.adminEmail)).toBe("Záložní e-mail vašeho svatebního webu se změnil");
   });
 });

@@ -102,6 +102,7 @@ export function createMemoryStorage(options: { secret?: Buffer } = {}): MemorySt
     },
 
     async presignPut(key, { contentType, expiresInSeconds }): Promise<PutTarget> {
+      // `bytes` se v paměťovém úložišti (vývoj, e2e) nevynucuje; skutečnou délku hlídá R2 podpisem.
       if (!parseKey(key)?.incoming) {
         throw new StorageError("invalid_key", "Nahrávat lze jen do karantény");
       }

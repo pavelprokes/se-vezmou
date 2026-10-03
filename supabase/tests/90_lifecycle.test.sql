@@ -131,6 +131,10 @@ begin
     perform se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_wrong);
   end loop;
   perform tap.ok(not se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_code), 'po 5 chybných pokusech se výzva zneplatní');
+  -- série chyb nad e-mailem spustila pauzu (viz 98_security_fixes.test.sql); pro další kontroly se zruší
+  perform tap.reset();
+  delete from se_vezmou.lockouts where bucket_key like 'challenge:%';
+  set local role service_role;
 
   -- nová výzva zneplatní předchozí
   perform se_vezmou.auth_create_challenge(v_email, 'admin_login', v_wrong);

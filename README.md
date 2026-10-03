@@ -28,7 +28,7 @@ Běžné prohlížeče překládají `*.localhost` na loopback, takže stačí o
 
 `src/proxy.ts` přepíše cestu podle hlavičky `Host` na interní segmenty `/h/...`, které zvenku
 vrací 404. Na náhledech `*.vercel.app` (bez subdomén) zvol druh hostitele proměnnými
-`HOST_PRESET` a `PREVIEW_TENANT_SLUG` (viz `.env.example`; produkce je nikdy nečte).
+`HOST_PRESET` a `PREVIEW_TENANT_SLUG` (viz `.env.example`; ostrá produkce je nikdy nečte, v produkčním sestavení platí jen `marketing`).
 
 ### Úvodní stránka (M2)
 

@@ -145,11 +145,13 @@ describe("úložiště v paměti", () => {
     await expect(
       storage.presignPut(variantKey(A, M, 640, "webp"), {
         contentType: "image/jpeg",
+        bytes: 10,
         expiresInSeconds: 60,
       }),
     ).rejects.toThrow();
     const target = await storage.presignPut(incomingKey(A, M), {
       contentType: "image/jpeg",
+      bytes: 1234,
       expiresInSeconds: 600,
     });
     expect(target.method).toBe("PUT");
@@ -208,13 +210,13 @@ describe("výběr úložiště", () => {
   });
 
   it("e2e (produkční sestavení) zapíná paměť výslovně, ale nikdy na produkci Vercelu", () => {
-    expect(resolveStorage({ NODE_ENV: "production", STORAGE_DRIVER: "memory" }).kind).toBe(
-      "memory",
+    const e2e = { NODE_ENV: "production", STORAGE_DRIVER: "memory" };
+    // bez opt-in (ALLOW_TEST_HATCHES=1) paměť v produkčním sestavení nefunguje
+    expect(resolveStorage(e2e).kind).toBe("unconfigured");
+    expect(resolveStorage({ ...e2e, ALLOW_TEST_HATCHES: "1" }).kind).toBe("memory");
+    expect(resolveStorage({ ...e2e, ALLOW_TEST_HATCHES: "1", VERCEL_ENV: "production" }).kind).toBe(
+      "unconfigured",
     );
-    expect(
-      resolveStorage({ NODE_ENV: "production", STORAGE_DRIVER: "memory", VERCEL_ENV: "production" })
-        .kind,
-    ).toBe("unconfigured");
   });
 
   it("v produkci bez R2 selže až použití fotografií, výpis a mazání nic nedělají", async () => {
@@ -223,7 +225,11 @@ describe("výběr úložiště", () => {
     expect(await storage.listPrefix(A)).toEqual([]);
     expect(await storage.deletePrefix(A)).toEqual({ deleted: 0 });
     await expect(
-      storage.presignPut(incomingKey(A, M), { contentType: "image/png", expiresInSeconds: 60 }),
+      storage.presignPut(incomingKey(A, M), {
+        contentType: "image/png",
+        bytes: 10,
+        expiresInSeconds: 60,
+      }),
     ).rejects.toMatchObject({
       code: "not_configured",
       message: expect.stringContaining("R2_ACCOUNT_ID"),

@@ -69,13 +69,15 @@ function request(id = MEDIA, width = "640", query = "", slug = "klara-a-matej"):
 }
 
 describe("GET /media/{media_id}/{šířka} na webu páru", () => {
-  it("přesměruje na podepsanou adresu úložiště s krátkou cache a bez indexace", async () => {
+  it("přesměruje na podepsanou adresu úložiště s cache pro veřejné médium a bez indexace", async () => {
     const response = await request();
     expect(response.status).toBe(302);
     const location = new URL(response.headers.get("location")!, "http://x");
     expect(location.pathname).toBe("/api/dev-storage");
     expect(location.searchParams.get("key")).toBe(variantKey(WEDDING, MEDIA, 640, "webp"));
-    expect(response.headers.get("cache-control")).toBe("private, max-age=300");
+    expect(response.headers.get("cache-control")).toBe(
+      "public, max-age=300, s-maxage=300, stale-while-revalidate=600",
+    );
     expect(response.headers.get("x-robots-tag")).toBe("noindex, nofollow");
     expect(response.headers.get("vary")).toBe("Cookie");
     expect(response.headers.get("referrer-policy")).toBe("no-referrer");
@@ -99,7 +101,26 @@ describe("GET /media/{media_id}/{šířka} na webu páru", () => {
     expect(calls.find((c) => c.fn === "get_public_media")!.as?.weddingRole).toBe("guest_pin");
   });
 
-  it("relace hosta jiné svatby nic neodemkne", async () => {
+  it("odpověď hostu s relací po PINu je private a bez mezipaměti (může jít o chráněnou fotografii)", async () => {
+    guest.session = { sessionId: SESSION_ID, weddingId: WEDDING };
+    const response = await request();
+    expect(response.status).toBe(302);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(response.headers.get("vary")).toBe("Cookie");
+    expect(response.headers.get("cache-control")).not.toMatch(/public|s-maxage|max-age/);
+  });
+
+  it("veřejná odpověď nikdy nepřežije dýl, než platí podepsaná adresa (okno podpisu je delší než mezipaměť)", async () => {
+    const { MEDIA_LIMITS } = await import("@/lib/media/limits");
+    const header = (await request()).headers.get("cache-control")!;
+    const seconds = (name: string) => Number(new RegExp(`${name}=(\\d+)`).exec(header)![1]);
+    // nejhorší případ: max-age + stale-while-revalidate za posledního okamžiku platnosti obnovené odpovědi
+    expect(seconds("s-maxage") + seconds("stale-while-revalidate")).toBeLessThan(
+      MEDIA_LIMITS.deliveryWindowSeconds,
+    );
+  });
+
+  it("relace hosta jiné svatby nic neodemkne a odpověď je veřejná", async () => {
     guest.session = { sessionId: SESSION_ID, weddingId: "55555555-5555-4555-8555-555555555555" };
     await request();
     expect(calls.find((c) => c.fn === "get_public_media")!.as?.weddingRole).toBe("visitor");

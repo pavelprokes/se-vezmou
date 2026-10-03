@@ -33,7 +33,7 @@ export function createNoticeContext(): NoticeContext {
   const secret = requireEnv("AUTH_SECRET");
   const config = currentHostConfig();
   return {
-    send: (input) => sendTemplatedEmail({ ...input, secret }),
+    send: (input) => sendTemplatedEmail({ ...input, secret, requireDelivery: true }),
     loginUrl: `${new URL(env.NEXT_PUBLIC_APP_URL).origin}/prihlaseni`,
     siteOf: (slug) => (slug ? siteHostname(slug, config) : undefined),
   };

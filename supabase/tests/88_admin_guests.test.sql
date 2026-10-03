@@ -145,7 +145,7 @@ declare
 begin
   perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
   r := se_vezmou.admin_guests_import(jsonb_build_object(
-    'invited_event_ids', jsonb_build_array(tap.u('A:event1')),
+    'nonce', gen_random_uuid(), 'invited_event_ids', jsonb_build_array(tap.u('A:event1')),
     'households', jsonb_build_array(
       jsonb_build_object('label', 'Novákovi', 'guests', jsonb_build_array(
         jsonb_build_object('display_name', 'Jan Novák', 'is_child', false),
@@ -154,12 +154,12 @@ begin
       jsonb_build_object('label', '', 'guests', jsonb_build_array(
         jsonb_build_object('display_name', 'Petra Samotná', 'is_child', false))))));
   perform tap.reset();
-  perform tap.ok(r = '{"households": 2, "guests": 4}', 'import: vrací počty');
+  perform tap.ok(r = '{"households": 2, "guests": 4, "skipped": 0, "duplicate": false}', 'import: vrací počty');
   perform tap.eq((select count(*) from se_vezmou.guests where wedding_id = tap.wa() and source = 'import'), 4, 'import: zdroj import');
   perform tap.eq((select count(*) from se_vezmou.invitations i join se_vezmou.guests g on g.id = i.guest_id
                    where g.wedding_id = tap.wa() and g.source = 'import' and i.event_id = tap.u('A:event1')), 4, 'import: výchozí pozvání na obřad');
   perform tap.ok(exists (select 1 from se_vezmou.audit_log where wedding_id = tap.wa() and action = 'guests.import'
-                          and meta = '{"households": 2, "guests": 4}'), 'import: audit nese jen počty');
+                          and meta = '{"households": 2, "guests": 4, "skipped": 0}'), 'import: audit nese jen počty');
 
   -- neplatný řádek zruší celý import (transakce)
   v_before := (select count(*) from se_vezmou.guests where wedding_id = tap.wa());
@@ -167,11 +167,11 @@ begin
   perform tap.throws('select se_vezmou.admin_guests_import(''{"households": [{"label": "a", "guests": [{"display_name": "Dobrý"}]}, {"label": "b", "guests": [{"display_name": ""}]}]}'')',
     '22023', 'import s neplatným řádkem se odmítne');
   perform tap.throws('select se_vezmou.admin_guests_import(''{"households": []}'')', '22023', 'prázdný import se odmítne');
-  perform tap.throws(format('select se_vezmou.admin_guests_import(%L::jsonb)', jsonb_build_object('invited_event_ids', jsonb_build_array(tap.u('B:event1')),
+  perform tap.throws(format('select se_vezmou.admin_guests_import(%L::jsonb)', jsonb_build_object('nonce', gen_random_uuid(), 'invited_event_ids', jsonb_build_array(tap.u('B:event1')),
     'households', jsonb_build_array(jsonb_build_object('label', 'a', 'guests', jsonb_build_array(jsonb_build_object('display_name', 'Host')))))::text),
     'invalid_event', 'import s událostí cizí svatby se odmítne');
   -- limit hostů na svatbu
-  perform tap.throws((select format('select se_vezmou.admin_guests_import(%L::jsonb)', jsonb_build_object('households',
+  perform tap.throws((select format('select se_vezmou.admin_guests_import(%L::jsonb)', jsonb_build_object('nonce', gen_random_uuid(), 'include_duplicates', true, 'households',
       (select jsonb_agg(jsonb_build_object('label', 'h' || h, 'guests',
          (select jsonb_agg(jsonb_build_object('display_name', 'Host ' || h || '-' || g)) from generate_series(1, 20) g)))
          from generate_series(1, 76) h))::text)),
@@ -370,6 +370,10 @@ begin
   perform tap.ok((select backup_email::text from se_vezmou.wedding_auth where wedding_id = tap.wb()) = 'b-zaloha@example.test', 'svatba B: záložní e-mail beze změny');
   perform tap.ok(exists (select 1 from se_vezmou.audit_log where wedding_id = tap.wa() and action = 'auth.backup_changed' and meta = '{}'),
     'backup: audit bez adres');
+  perform tap.ok((select backup_email_confirmed_at is null from se_vezmou.wedding_auth where wedding_id = tap.wa()),
+    'backup: nová adresa je nepotvrzená');
+  -- adresa se potvrdí (potvrzovací krok v rozhraní zatím chybí, proto přímo v databázi), další oznámení už na ni chodí
+  update se_vezmou.wedding_auth set backup_email_confirmed_at = now() where wedding_id = tap.wa();
 end
 $$;
 

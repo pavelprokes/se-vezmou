@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { env } from "@/env";
 import { hostConfigFromEnv, type HostKind } from "@/host/resolve";
 import { routeRequest } from "@/host/route";
 import { UI_LOCALE_HEADER } from "@/host/ui-locale";
@@ -11,8 +12,8 @@ import { UI_LOCALE_HEADER } from "@/host/ui-locale";
  * a vyloučení cesty z matcheru by jim odebralo i tuto vrstvu).
  */
 
-const hostConfig = hostConfigFromEnv(process.env, {
-  development: process.env.NODE_ENV !== "production",
+const hostConfig = hostConfigFromEnv(env, {
+  development: env.NODE_ENV !== "production",
 });
 
 /** Hlavičky podle druhu hostitele (FR-PRIV-1). Úvodní stránka je jediná indexovatelná. */

@@ -275,7 +275,7 @@ begin
   perform tap.become('authenticated', tap.wa(), 'visitor');
   perform tap.ok(se_vezmou.rsvp_unlisted_form() is null, 'host mimo seznam vypnut: formulář nic nevrací');
   perform tap.throws(format('select se_vezmou.rsvp_submit_unlisted(%L::jsonb)', jsonb_build_object(
-    'answers', '{}'::jsonb, 'people', jsonb_build_array(jsonb_build_object('person_name', 'Karel Cizí', 'attendance', v_att)))::text),
+    'nonce', gen_random_uuid(), 'answers', '{}'::jsonb, 'people', jsonb_build_array(jsonb_build_object('person_name', 'Karel Cizí', 'attendance', v_att)))::text),
     'unlisted_not_allowed', 'host mimo seznam vypnut: zápis se odmítne');
   perform tap.reset();
   perform tap.eq((select count(*) from se_vezmou.rsvp_responses where wedding_id = tap.wa() and household_id is null), 0, 'nic se nezapsalo');
@@ -290,24 +290,24 @@ begin
     'formulář nese časové pásmo a výchozí jazyk svatby pro zobrazení času a náhradního jazyka');
 
   v_result := se_vezmou.rsvp_submit_unlisted(jsonb_build_object(
-    'contact_email', 'karel@example.test', 'answers', jsonb_build_object('song', 'Cizí píseň'),
+    'nonce', gen_random_uuid(), 'contact_email', 'karel@example.test', 'answers', jsonb_build_object('song', 'Cizí píseň'),
     'people', jsonb_build_array(
       jsonb_build_object('person_name', 'Karel Cizí', 'attendance', v_att, 'diet', 'vegan'),
       jsonb_build_object('person_name', 'Malá Cizí', 'is_child', true, 'age', 6, 'attendance', v_att))));
   perform tap.ok((v_result ->> 'ok')::boolean, 'host mimo seznam: odpověď se uloží');
 
   perform tap.throws(format('select se_vezmou.rsvp_submit_unlisted(%L::jsonb)', jsonb_build_object(
-    'people', jsonb_build_array(jsonb_build_object('person_name', 'Karel Cizí', 'attendance',
+    'nonce', gen_random_uuid(), 'people', jsonb_build_array(jsonb_build_object('person_name', 'Karel Cizí', 'attendance',
       jsonb_build_array(jsonb_build_object('event_id', e3, 'attending', true)))))::text),
     'event_not_invited', 'host mimo seznam neodpoví na událost bez rsvp_enabled');
   perform tap.throws(format('select se_vezmou.rsvp_submit_unlisted(%L::jsonb)', jsonb_build_object(
-    'people', jsonb_build_array(jsonb_build_object('guest_id', tap.u('A:guest1'), 'attendance', v_att)))::text),
+    'nonce', gen_random_uuid(), 'people', jsonb_build_array(jsonb_build_object('guest_id', tap.u('A:guest1'), 'attendance', v_att)))::text),
     'invalid_guest', 'host mimo seznam nemůže odpovídat za hosta ze seznamu');
   perform tap.throws(format('select se_vezmou.rsvp_submit_unlisted(%L::jsonb)', jsonb_build_object(
-    'people', jsonb_build_array(jsonb_build_object('attendance', v_att)))::text),
+    'nonce', gen_random_uuid(), 'people', jsonb_build_array(jsonb_build_object('attendance', v_att)))::text),
     'invalid_payload', 'host mimo seznam musí uvést jméno');
   perform tap.throws(format('select se_vezmou.rsvp_submit_unlisted(%L::jsonb)', (
-    select jsonb_build_object('people', jsonb_agg(jsonb_build_object('person_name', 'Host ' || n, 'attendance', v_att)))
+    select jsonb_build_object('nonce', gen_random_uuid(), 'people', jsonb_agg(jsonb_build_object('person_name', 'Host ' || n, 'attendance', v_att)))
       from generate_series(1, 7) n)::text),
     'invalid_payload', 'host mimo seznam: nejvýš šest osob');
   perform tap.reset();
@@ -323,14 +323,14 @@ begin
 
   -- druhý zápis je další odpověď (host mimo seznam nemá co upravovat), ne přepsání cizí
   perform tap.become('authenticated', tap.wa(), 'visitor');
-  perform se_vezmou.rsvp_submit_unlisted(jsonb_build_object('people', jsonb_build_array(
+  perform se_vezmou.rsvp_submit_unlisted(jsonb_build_object('nonce', gen_random_uuid(), 'people', jsonb_build_array(
     jsonb_build_object('person_name', 'Jiný Cizí', 'attendance', v_att))));
   perform tap.reset();
   perform tap.eq((select count(*) from se_vezmou.rsvp_responses where wedding_id = tap.wa() and household_id is null), 2, 'každý zápis mimo seznam je samostatná odpověď');
 
   -- role a svatba
   perform tap.become('authenticated', tap.wa(), 'admin');
-  perform tap.throws(format('select se_vezmou.rsvp_submit_unlisted(%L::jsonb)', jsonb_build_object('people', jsonb_build_array(
+  perform tap.throws(format('select se_vezmou.rsvp_submit_unlisted(%L::jsonb)', jsonb_build_object('nonce', gen_random_uuid(), 'people', jsonb_build_array(
     jsonb_build_object('person_name', 'X Y', 'attendance', v_att)))::text), 'forbidden', 'správce nezapisuje jako host mimo seznam');
   perform tap.ok(se_vezmou.rsvp_unlisted_form() is null, 'správce nedostane formulář hosta mimo seznam');
   perform tap.reset();
@@ -342,7 +342,7 @@ begin
   update se_vezmou.rsvp_settings set closes_at = now() - interval '1 minute' where wedding_id = tap.wa();
   perform tap.become('authenticated', tap.wa(), 'visitor');
   perform tap.ok(se_vezmou.rsvp_unlisted_form() is null, 'uzavřené RSVP: formulář hosta mimo seznam nic nevrací');
-  perform tap.throws(format('select se_vezmou.rsvp_submit_unlisted(%L::jsonb)', jsonb_build_object('people', jsonb_build_array(
+  perform tap.throws(format('select se_vezmou.rsvp_submit_unlisted(%L::jsonb)', jsonb_build_object('nonce', gen_random_uuid(), 'people', jsonb_build_array(
     jsonb_build_object('person_name', 'X Y', 'attendance', v_att)))::text), 'rsvp_closed', 'uzavřené RSVP: zápis mimo seznam se odmítne');
   perform tap.reset();
   update se_vezmou.rsvp_settings set closes_at = null where wedding_id = tap.wa();

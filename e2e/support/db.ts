@@ -38,9 +38,17 @@ export function randomIp(): string {
   return `198.51.${byte()}.${byte()}`;
 }
 
-/** Založí svatbu Kláry a Matěje se správcem a záložním e-mailem; volitelně s PINem správy. */
+/**
+ * Založí svatbu Kláry a Matěje se správcem a záložním e-mailem; volitelně s PINem správy. Záložní e-mail je
+ * výchozně potvrzený (chodí na něj oznámení); `backupConfirmed: false` ověřuje, že nepotvrzená adresa nedostane nic.
+ */
 export async function seedWedding(
-  options: { tag?: string; pin?: string | null; partners?: [string, string] } = {},
+  options: {
+    tag?: string;
+    pin?: string | null;
+    partners?: [string, string];
+    backupConfirmed?: boolean;
+  } = {},
 ): Promise<SeededWedding> {
   const tag = options.tag ?? uniqueTag();
   const [a, b] = options.partners ?? ["Klára", "Matěj"];
@@ -75,8 +83,8 @@ export async function seedWedding(
       [seeded.adminId, seeded.weddingId, seeded.adminEmail],
     );
     await db.query(
-      "insert into se_vezmou.wedding_auth (wedding_id, backup_email, admin_pin_hash) values ($1, $2, $3)",
-      [seeded.weddingId, seeded.backupEmail, pinHash],
+      "insert into se_vezmou.wedding_auth (wedding_id, backup_email, admin_pin_hash, backup_email_confirmed_at) values ($1, $2, $3, case when $4::boolean then now() end)",
+      [seeded.weddingId, seeded.backupEmail, pinHash, options.backupConfirmed ?? true],
     );
     await db.query("commit");
   });
@@ -143,7 +151,7 @@ export async function seedPublishedSite(options: {
       [adminId, weddingId, `spravce-${slug}@example.test`],
     );
     await db.query(
-      "insert into se_vezmou.wedding_auth (wedding_id, backup_email) values ($1, $2)",
+      "insert into se_vezmou.wedding_auth (wedding_id, backup_email, backup_email_confirmed_at) values ($1, $2, now())",
       [weddingId, `zaloha-${slug}@example.test`],
     );
     await db.query(

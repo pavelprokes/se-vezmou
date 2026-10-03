@@ -2,7 +2,7 @@ import "server-only";
 import { getGuestSession, guestIdentity } from "@/auth/guest-session";
 import type { Locale } from "@/i18n/config";
 import { publicMediaIds } from "@/lib/db/media";
-import { resolveSlug, tenantRpc } from "@/lib/db/rpc";
+import { READ_ONLY, resolveSlug, tenantRpc } from "@/lib/db/rpc";
 import { fetchRsvpInfo } from "@/lib/rsvp/db";
 import type { RsvpSiteState } from "@/lib/rsvp/form";
 import { initialState } from "@/lib/rsvp/service";
@@ -46,6 +46,9 @@ export async function loadGuestContext(slug: string, locale: Locale): Promise<Gu
       const site = await tenantRpc<{ sensitive?: unknown } | null>(
         guestIdentity(access),
         "get_public_site",
+        {},
+        "scalar",
+        READ_ONLY,
       );
       const parsed = sensitiveContentSchema.safeParse(site?.sensitive ?? {});
       sensitive = parsed.success ? parsed.data : sensitiveContentSchema.parse({});

@@ -1,11 +1,11 @@
 import "server-only";
+import { limited, reasonOf } from "@/lib/rate-guard";
 import { currentHostConfig, siteHostname } from "@/auth/app-origin";
-import { RATE_RULES, type RateRule } from "@/auth/config";
+import { RATE_RULES } from "@/auth/config";
 import { normalizeEmail } from "@/auth/identity";
 import type { Defer } from "@/auth/login";
 import { normalizePinInput, type PinProblem } from "@/auth/pin";
 import { setPin } from "@/auth/pin-login";
-import { rateKey } from "@/auth/rate-limit";
 import { requireEnv } from "@/env";
 import type { Locale } from "@/i18n/config";
 import {
@@ -20,8 +20,7 @@ import {
   revokeOperatorAccess,
   type AdminIdentity,
 } from "@/lib/db/admin-guests";
-import { authSessionContext, rateLimitHit } from "@/lib/db/rpc";
-import { DbError } from "@/lib/db/transport";
+import { authSessionContext } from "@/lib/db/rpc";
 import { sendTemplatedEmail } from "@/lib/email/send";
 import { renderAdminNotice, type AdminNoticeKind } from "@/lib/email/templates";
 import { z } from "zod";
@@ -57,19 +56,6 @@ export type AccessContext = {
 };
 
 export type Limited = { status: "limited"; retryAfter: number };
-
-async function limited(scope: string, weddingId: string, rule: RateRule): Promise<number | null> {
-  const result = await rateLimitHit(
-    rateKey(requireEnv("RATE_LIMIT_SECRET"), scope, weddingId),
-    rule.limit,
-    rule.windowSeconds,
-  );
-  return result.allowed ? null : result.retryAfter;
-}
-
-function reasonOf(error: unknown): string | undefined {
-  return error instanceof DbError ? error.reason : undefined;
-}
 
 export async function loadAccess(session: AdminIdentity): Promise<AccessView> {
   return accessViewSchema.parse(await adminAccessLoad(session));
@@ -201,8 +187,9 @@ export async function setBackupEmail(
     if (!result.changed) return { status: "same" };
     const view = await loadAccess(actor);
     sendNotices(ctx, view, actor.weddingId, [
-      { email: result.old, kind: "backup_changed_old" },
-      { email, kind: "backup_changed" },
+      ...(result.old ? [{ email: result.old, kind: "backup_changed_old" } as NoticeTarget] : []),
+      // Nová adresa je nepotvrzená: dostane jedinou neutrální zprávu, žádná další oznámení nechodí.
+      { email, kind: "backup_added" },
       ...result.notify.map((to): NoticeTarget => ({ email: to, kind: "backup_changed" })),
     ]);
     return { status: "changed" };

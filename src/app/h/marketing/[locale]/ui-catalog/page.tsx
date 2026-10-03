@@ -10,6 +10,7 @@ import { Icon } from "@/components/ui/icon";
 import { SiteHeader } from "@/components/site-header";
 import { isLocale } from "@/i18n/config";
 import { createTranslator } from "@/i18n/translator";
+import { devPagesEnabled } from "@/site/dev-gate";
 import { Heart, MapPin } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -24,10 +25,7 @@ export const metadata: Metadata = {
  */
 export default async function UiCatalog({ params }: PageProps<"/h/marketing/[locale]/ui-catalog">) {
   await connection();
-  const enabled =
-    process.env.VERCEL_ENV !== "production" &&
-    (process.env.NODE_ENV !== "production" || process.env.ENABLE_UI_CATALOG === "1");
-  if (!enabled) notFound();
+  if (!devPagesEnabled()) notFound();
 
   const { locale } = await params;
   if (!isLocale(locale)) notFound();

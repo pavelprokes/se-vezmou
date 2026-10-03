@@ -305,6 +305,7 @@
   "access.backup.title": "Backup e-mail",
   "access.backup.intro": "The backup address receives notices about PIN sign-ins, PIN changes and changes of access. It should belong to someone you trust.",
   "access.backup.current": "Backup e-mail: {email}",
+  "access.backup.unconfirmed": "Nobody has confirmed this address yet, so we send no notices about sign-ins or access changes to it. The address owner received only one neutral message.",
   "access.backup.new": "New backup e-mail",
   "access.backup.submit": "Change the backup e-mail",
   "access.backup.question": "Change the backup e-mail to {email}? The old and new addresses and the administrators get a notice.",

@@ -20,6 +20,8 @@ export type SendTemplatedInput = {
   email: RenderedEmail;
   /** Tajná hodnota pro HMAC příjemce (AUTH_SECRET). */
   secret: string;
+  /** Zpráva musí skutečně odejít (ne jen do konzole); jinak selže a eviduje se jako `failed`. */
+  requireDelivery?: boolean;
 };
 
 /** Vrací `true`, když doprava zprávu přijala. Nikdy nevyhazuje: přihlášení na ní nesmí záviset. */
@@ -38,12 +40,15 @@ export async function sendTemplatedEmail(input: SendTemplatedInput): Promise<boo
   }
 
   try {
-    const result = await sendEmail({
-      to: input.to,
-      subject: input.email.subject,
-      html: input.email.html,
-      text: input.email.text,
-    });
+    const result = await sendEmail(
+      {
+        to: input.to,
+        subject: input.email.subject,
+        html: input.email.html,
+        text: input.email.text,
+      },
+      { requireDelivery: input.requireDelivery },
+    );
     if (logId) {
       await emailLogSetStatus(logId, "sent", { providerMessageId: result.providerMessageId });
     }

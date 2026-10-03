@@ -229,8 +229,23 @@ describe("setBackupEmail", () => {
       "zaloha@example.test",
     ]);
     expect(byAddress["zaloha@example.test"]).toMatch(/už není záložní/);
-    expect(byAddress["nova@example.test"]).toMatch(/se změnil/);
+    // nová adresa je nepotvrzená: dostane jedinou neutrální zprávu, ne oznámení o změně
+    expect(byAddress["nova@example.test"]).toMatch(/Někdo vás uvedl/);
+    expect(byAddress["eva@example.test"]).toMatch(/se změnil/);
     expect(sent()).toHaveLength(3);
+  });
+
+  it("nepotvrzená stará adresa (old = null) žádné oznámení nedostane", async () => {
+    fakeDb({
+      admin_backup_email_set: { changed: true, old: null, notify: ["eva@example.test"] },
+    });
+    expect(await setBackupEmail(ACTOR, ctx, "nova@example.test")).toEqual({ status: "changed" });
+    await flush();
+    expect(
+      sent()
+        .map((m) => m.to)
+        .sort(),
+    ).toEqual(["eva@example.test", "nova@example.test"]);
   });
 
   it("stejná adresa nic neposílá, neplatná se odmítne", async () => {

@@ -143,8 +143,9 @@ begin
   insert into se_vezmou.orders (wedding_id) values (w);
   insert into se_vezmou.wedding_admins (id, wedding_id, email)
   values (v_admin, w, lower(p_tag) || '-spravce@example.test');
-  insert into se_vezmou.wedding_auth (wedding_id, backup_email, admin_pin_hash, guest_pin_hash)
-  values (w, lower(p_tag) || '-zaloha@example.test', 'hash-admin-' || p_tag, 'hash-guest-' || p_tag);
+  -- záložní adresa fixtur je potvrzená (oznámení na ni chodí); nepotvrzená je v 98_security_fixes.test.sql
+  insert into se_vezmou.wedding_auth (wedding_id, backup_email, backup_email_confirmed_at, admin_pin_hash, guest_pin_hash)
+  values (w, lower(p_tag) || '-zaloha@example.test', now(), 'hash-admin-' || p_tag, 'hash-guest-' || p_tag);
   insert into se_vezmou.wedding_status_history (wedding_id, to_status, actor_type)
   values (w, 'draft', 'system');
 

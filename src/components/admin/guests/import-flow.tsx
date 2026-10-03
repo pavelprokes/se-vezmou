@@ -2,6 +2,7 @@
 
 import { CircleAlert, CircleCheck, Copy, FileSpreadsheet } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { newNonce } from "@/lib/nonce";
 import type { CommitImportAction } from "@/admin/guests/action-types";
 import {
   IMPORT_LIMITS,
@@ -72,6 +73,9 @@ export function ImportFlow({
   const [includeDuplicates, setIncludeDuplicates] = useState(false);
   const [eventIds, setEventIds] = useState<string[]>(events.map((event) => event.id));
   const [result, setResult] = useState<{ households: number; guests: number } | null>(null);
+  // Idempotenční klíč dávky: dvojklik na „Importovat“ i opakování po výpadku sítě odešle týž klíč, takže se
+  // hosté nezapíšou dvakrát. Nový náhled (nový soubor) dostane nový klíč.
+  const nonce = useRef<string | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
 
   const sum = totals(rows, includeDuplicates);
@@ -107,6 +111,7 @@ export function ImportFlow({
     setState("idle");
     if (response.status === "ok") {
       setRows(response.rows);
+      nonce.current = null;
       setStep("preview");
     } else if (response.status === "failed") {
       setError(t(FAIL_KEY[response.reason] ?? "admin.guests.import.fail.unreadable"));
@@ -122,7 +127,9 @@ export function ImportFlow({
   const confirm = async () => {
     setError(null);
     setState("busy");
+    nonce.current ??= newNonce();
     const outcome = await commit({
+      nonce: nonce.current,
       rows: rows.map((row) => ({
         line: row.line,
         household: row.household,

@@ -6,6 +6,7 @@ import { codeHash, emailHash } from "@/auth/identity";
 import { hashPin, verifyPin } from "@/auth/pin";
 import { pinProblem } from "@/auth/pin-format";
 import { rateKey } from "@/auth/rate-limit";
+import { currentHostConfig, siteHostname } from "@/auth/app-origin";
 import type { Defer } from "@/auth/login";
 import { LOGIN_CODE } from "@/auth/config";
 import type { Locale } from "@/i18n/config";
@@ -28,7 +29,7 @@ import {
   type WizardSlugStatus,
 } from "@/lib/db/rpc-wizard";
 import { sendTemplatedEmail } from "@/lib/email/send";
-import { renderWizardCode } from "@/lib/email/templates";
+import { renderAdminNotice, renderWizardCode } from "@/lib/email/templates";
 import { toPublicContent, toSensitiveContent, toWorkingSet } from "../content";
 import {
   canSaveToServer,
@@ -188,6 +189,11 @@ export async function firstSave(input: {
   emails: WizardEmails;
   draft: WizardDraft;
   ip: string;
+  /**
+   * Záložní adresu nikdo neověřil, takže dostane jedinou neutrální zprávu „někdo vás uvedl jako záložní
+   * e-mail“ (bez odkazu); žádná další oznámení na ni nechodí, dokud ji její vlastník nepotvrdí.
+   */
+  backupNotice?: { locale: Locale; defer: Defer };
 }): Promise<FirstSaveResult> {
   if (!canSaveToServer(input.draft)) {
     return { status: "incomplete", issues: validateDraft(input.draft) };
@@ -206,6 +212,27 @@ export async function firstSave(input: {
 
   const previewToken = generateToken();
   await setPreviewToken(result.weddingId, hashToken(previewToken), result.adminId);
+
+  if (input.backupNotice) {
+    const { locale, defer } = input.backupNotice;
+    const secret = requireEnv("AUTH_SECRET");
+    const email = renderAdminNotice({
+      locale,
+      kind: "backup_added",
+      at: new Date(),
+      site: siteHostname(input.draft.slug, currentHostConfig()),
+    });
+    defer(() =>
+      sendTemplatedEmail({
+        type: "admin_changed",
+        to: input.emails.backupEmail,
+        weddingId: result.weddingId,
+        locale,
+        email,
+        secret,
+      }),
+    );
+  }
   return {
     status: "created",
     weddingId: result.weddingId,

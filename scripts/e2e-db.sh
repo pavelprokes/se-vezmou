@@ -115,5 +115,9 @@ if [[ -n "$DB_DIR" ]]; then
 else
   export E2E_APP_DATABASE_URL="$(printf '%s' "$URL" | sed -E 's#^(postgres(ql)?://)([^@/]*@)?#\1se_vezmou_app:se_vezmou_app_test_only@#')"
 fi
+# e2e běží proti produkčnímu sestavení: testovací vrátka (e-mail do souborů, simulovaný čas cronu, úložiště
+# v paměti, katalog UI, falešný cíl karet galerie) se v něm zapínají jen tímto výslovným opt-in
+# (src/lib/test-hatches.ts). Nikdy ho nenastavujte na Vercelu.
+export ALLOW_TEST_HATCHES=1
 # Příkaz běží pod trap: chyba příkazu se předá jako návratový kód, úklid proběhne vždy.
 "$@"

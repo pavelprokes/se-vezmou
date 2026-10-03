@@ -64,6 +64,7 @@ function fakeDb(
     rateAllowed?: boolean;
     fail?: Record<string, DbError>;
     settings?: unknown;
+    importResult?: unknown;
   } = {},
 ) {
   const calls: Call[] = [];
@@ -87,7 +88,7 @@ function fakeDb(
         case "admin_invitations_bulk":
           return 3;
         case "admin_guests_import":
-          return { households: 2, guests: 3 };
+          return options.importResult ?? { households: 2, guests: 3, skipped: 0, duplicate: false };
         case "admin_rsvp_settings_get":
           return options.settings;
         default:
@@ -281,8 +282,9 @@ describe("import hostů", () => {
     });
   });
 
-  it("zápis ověří řádky znovu, vynechá chyby a duplicity a pošle pozvání", async () => {
+  it("zápis ověří řádky znovu, vynechá chyby a pošle databázi nonce, volbu duplicit a pozvání", async () => {
     const calls = fakeDb();
+    const nonce = "6f1f4f0e-1c2d-4a5b-8c9d-0e1f2a3b4c5d";
     const result = await commitImport(SESSION, {
       rows: [
         { line: 2, household: "Novákovi", name: "Eva Nová", isChild: false, age: null },
@@ -293,10 +295,21 @@ describe("import hostů", () => {
       ],
       includeDuplicates: false,
       eventIds: [EVENT],
+      nonce,
     });
-    expect(result).toEqual({ status: "imported", households: 2, guests: 3 });
+    expect(result).toEqual({
+      status: "imported",
+      households: 2,
+      guests: 3,
+      skipped: 0,
+      duplicate: false,
+    });
     const call = calls.find((c) => c.fn === "admin_guests_import")!;
+    // které jsou duplicity (Dvořák Petr už v seznamu je), rozhoduje databáze pod zámkem svatby
+    expect(calls.some((c) => c.fn === "admin_guest_list")).toBe(false);
     expect(call.args.p_payload).toEqual({
+      nonce,
+      include_duplicates: false,
       households: [
         {
           label: "Novákovi",
@@ -305,6 +318,7 @@ describe("import hostů", () => {
             { display_name: "Tomáš Nový", is_child: true, age: 6 },
           ],
         },
+        { label: "", guests: [{ display_name: "Dvořák Petr", is_child: false, age: null }] },
         // věk u dospělého se zahodí, řádek zůstává platný
         { label: "", guests: [{ display_name: "Dospělý", is_child: false, age: null }] },
       ],
@@ -312,7 +326,42 @@ describe("import hostů", () => {
     });
   });
 
-  it("duplicity se zapíšou jen na výslovnou volbu", async () => {
+  it("dvojklik: opakování téže dávky vrátí výsledek první dávky s příznakem duplicate", async () => {
+    const calls = fakeDb({
+      importResult: { households: 2, guests: 3, skipped: 1, duplicate: true },
+    });
+    const input = {
+      rows: [{ line: 2, household: "", name: "Eva Nová", isChild: false, age: null }],
+      includeDuplicates: false,
+      eventIds: [],
+      nonce: "6f1f4f0e-1c2d-4a5b-8c9d-0e1f2a3b4c5d",
+    };
+    const [a, b] = await Promise.all([commitImport(SESSION, input), commitImport(SESSION, input)]);
+    expect(a).toMatchObject({ status: "imported", duplicate: true, skipped: 1 });
+    expect(b).toEqual(a);
+    const nonces = calls
+      .filter((c) => c.fn === "admin_guests_import")
+      .map((c) => (c.args.p_payload as { nonce: string }).nonce);
+    expect(nonces).toEqual([input.nonce, input.nonce]);
+  });
+
+  it("bez nonce (starší stránka) se vygeneruje nový", async () => {
+    const calls = fakeDb();
+    const input = {
+      rows: [{ line: 2, household: "", name: "Eva Nová", isChild: false, age: null }],
+      includeDuplicates: false,
+      eventIds: [],
+    };
+    await commitImport(SESSION, input);
+    await commitImport(SESSION, input);
+    const nonces = calls
+      .filter((c) => c.fn === "admin_guests_import")
+      .map((c) => (c.args.p_payload as { nonce: string }).nonce);
+    expect(nonces[0]).toMatch(/^[0-9a-f-]{36}$/);
+    expect(nonces[1]).not.toBe(nonces[0]);
+  });
+
+  it("duplicity se zapíšou jen na výslovnou volbu (příznak jde do databáze)", async () => {
     const calls = fakeDb();
     await commitImport(SESSION, {
       rows: [{ line: 2, household: "", name: "Petr Dvořák", isChild: false, age: null }],
@@ -321,12 +370,22 @@ describe("import hostů", () => {
     });
     const payload = calls.find((c) => c.fn === "admin_guests_import")!.args.p_payload as {
       households: unknown[];
+      include_duplicates: boolean;
     };
     expect(payload.households).toHaveLength(1);
+    expect(payload.include_duplicates).toBe(true);
   });
 
-  it("není co importovat; neplatný vstup a limit hostů jsou stavy", async () => {
+  it("není co importovat (samé chybné řádky, nebo databáze všechny přeskočila); neplatný vstup a limit hostů jsou stavy", async () => {
     fakeDb();
+    expect(
+      await commitImport(SESSION, {
+        rows: [{ line: 2, household: "", name: "", isChild: false, age: null }],
+        includeDuplicates: false,
+        eventIds: [],
+      }),
+    ).toEqual({ status: "nothing" });
+    fakeDb({ importResult: { households: 0, guests: 0, skipped: 1, duplicate: false } });
     expect(
       await commitImport(SESSION, {
         rows: [{ line: 2, household: "", name: "Petr Dvořák", isChild: false, age: null }],

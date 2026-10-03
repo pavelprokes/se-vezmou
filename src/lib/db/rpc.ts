@@ -1,5 +1,12 @@
 import "server-only";
-import { getTransport, type RpcKind, type RpcTransport, type TenantIdentity } from "./transport";
+import { cache } from "react";
+import {
+  getTransport,
+  type RpcKind,
+  type RpcOptions,
+  type RpcTransport,
+  type TenantIdentity,
+} from "./transport";
 import type { SessionKind } from "./types";
 
 /**
@@ -22,8 +29,9 @@ export function call<T>(
   args: Record<string, unknown>,
   kind: RpcKind,
   as?: TenantIdentity,
+  options?: RpcOptions,
 ): Promise<T> {
-  return (override ?? getTransport()).call(fn, args, kind, as) as Promise<T>;
+  return (override ?? getTransport()).call(fn, args, kind, as, options) as Promise<T>;
 }
 
 /** Volání libovolné funkce jako service role (pro tenké moduly mimo tento soubor, např. analytiku). */
@@ -44,12 +52,17 @@ export function tenantRpc<T>(
   fn: string,
   args: Record<string, unknown> = {},
   kind: RpcKind = "scalar",
+  options?: RpcOptions,
 ): Promise<T> {
-  return call<T>(fn, args, kind, as);
+  return call<T>(fn, args, kind, as, options);
 }
 
-export async function firstRow<T>(fn: string, args: Record<string, unknown>): Promise<T | null> {
-  const rows = await call<T[]>(fn, args, "table");
+export async function firstRow<T>(
+  fn: string,
+  args: Record<string, unknown>,
+  options?: RpcOptions,
+): Promise<T | null> {
+  const rows = await call<T[]>(fn, args, "table", undefined, options);
   return rows[0] ?? null;
 }
 
@@ -57,6 +70,11 @@ export async function firstRow<T>(fn: string, args: Record<string, unknown>): Pr
 export type Bytes = Buffer;
 
 // --- omezení počtu požadavků -------------------------------------------------------------
+
+export type { RpcOptions };
+
+/** Funkce `stable`, které jen čtou: `commit` nečeká před odpovědí (viz `RpcOptions`). */
+export const READ_ONLY: RpcOptions = { readOnly: true };
 
 export type RateLimit = { allowed: boolean; retryAfter: number };
 
@@ -123,14 +141,14 @@ export type ResolvedSlug = {
   template: string;
 };
 
-export async function resolveSlug(slug: string): Promise<ResolvedSlug | null> {
+async function resolveSlugUncached(slug: string): Promise<ResolvedSlug | null> {
   const row = await firstRow<{
     wedding_id: string;
     status: string;
     default_locale: string;
     locales: string[];
     template: string;
-  }>("resolve_slug", { p_slug: slug });
+  }>("resolve_slug", { p_slug: slug }, READ_ONLY);
   return row
     ? {
         weddingId: row.wedding_id,
@@ -141,6 +159,12 @@ export async function resolveSlug(slug: string): Promise<ResolvedSlug | null> {
       }
     : null;
 }
+
+/**
+ * Adresa -> svatba. `cache` z Reactu: v rámci jednoho vykreslení stránky (metadata, stránka, živá data hosta)
+ * se dotaz provede jednou, ne třikrát. Mimo vykreslení (route handler, Server Action) se nic nesdílí.
+ */
+export const resolveSlug = cache(resolveSlugUncached);
 
 // --- relace ------------------------------------------------------------------------------
 
@@ -270,7 +294,8 @@ export type PinRecord = {
   weddingId: string;
   adminId: string | null;
   pinHash: string;
-  backupEmail: string;
+  /** Záložní e-mail pro oznámení; jen potvrzený, jinak `null` (nepotvrzené adrese se nic neposílá). */
+  backupEmail: string | null;
 };
 
 export async function authPinGet(slug: string, role: PinRole): Promise<PinRecord | null> {
@@ -278,7 +303,7 @@ export async function authPinGet(slug: string, role: PinRole): Promise<PinRecord
     wedding_id: string;
     admin_id: string | null;
     pin_hash: string;
-    backup_email: string;
+    backup_email: string | null;
   }>("auth_pin_get", { p_slug: slug, p_role: role });
   return row
     ? {
@@ -298,15 +323,15 @@ export function authPinOtherHash(weddingId: string, role: PinRole): Promise<stri
   );
 }
 
-/** Vrací záložní e-mail, na který se má poslat oznámení o změně. */
+/** Vrací potvrzený záložní e-mail, na který se má poslat oznámení o změně (`null`, když není potvrzen). */
 export function authPinSet(input: {
   weddingId: string;
   role: PinRole;
   hash: string;
   actorAdminId?: string | null;
   keepSessionId?: string | null;
-}): Promise<string> {
-  return call<string>(
+}): Promise<string | null> {
+  return call<string | null>(
     "auth_pin_set",
     {
       p_wedding_id: input.weddingId,
@@ -332,7 +357,7 @@ export async function authSessionContext(weddingId: string): Promise<SessionCont
     status: string;
     partner_a_name: string;
     partner_b_name: string;
-  }>("auth_session_context", { p_wedding_id: weddingId });
+  }>("auth_session_context", { p_wedding_id: weddingId }, READ_ONLY);
   return row
     ? {
         slug: row.slug,

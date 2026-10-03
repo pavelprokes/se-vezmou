@@ -32,6 +32,12 @@ const pages = [
   { name: "privacy anglicky", path: "/en/privacy" },
   { name: "podmínky", path: "/podminky" },
   { name: "dostupnost", path: "/dostupnost" },
+  { name: "cena", path: "/cenik" },
+  { name: "pricing anglicky", path: "/en/pricing" },
+  { name: "šablony", path: "/sablony" },
+  { name: "templates anglicky", path: "/en/templates" },
+  { name: "dvojjazyčný web", path: "/dvojjazycny-svatebni-web" },
+  { name: "bilingual anglicky", path: "/en/bilingual-wedding-website" },
 ];
 
 for (const { name, path } of pages) {

@@ -70,6 +70,14 @@ describe("Eukalyptus: kompozice", () => {
     expect(labels).toEqual(["I", "II", "III"]);
   });
 
+  it("dary číslo nemají a číslování nepřeskočí", () => {
+    const { container } = renderEu(variant({}, ["program", "gifts", "rsvp"]));
+    const labels = [...container.querySelectorAll(".eu-head .eu-label")].map(
+      (el) => el.textContent?.split(" — ")[0],
+    );
+    expect(labels).toEqual(["I", "II"]);
+  });
+
   it("po svatbě: poděkování, fotografie hned za úvodem, bez odpočtu, RSVP a darů", () => {
     const { container } = renderEu(variant({ phase: "thanks" }));
     expect(screen.getByText("Děkujeme, že jste byli s námi")).toBeInTheDocument();

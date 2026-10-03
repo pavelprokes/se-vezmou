@@ -19,8 +19,8 @@ export async function LandingHeader({ locale, route }: LandingHeaderProps) {
   const home = localizedPath("home", locale);
   const links = [
     { href: `${home}#how`, label: t("landing.nav.how") },
-    { href: `${home}#templates`, label: t("landing.nav.templates") },
-    { href: `${home}#pricing`, label: t("landing.nav.pricing") },
+    { href: localizedPath("templates", locale), label: t("landing.nav.templates") },
+    { href: localizedPath("pricing", locale), label: t("landing.nav.pricing") },
     { href: `${home}#faq`, label: t("landing.nav.faq") },
     { href: localizedPath("blog", locale), label: t("landing.nav.blog") },
   ];

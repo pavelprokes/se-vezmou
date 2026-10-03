@@ -26,7 +26,11 @@ function pendingAddress(draft: WizardDraft, which: PlaceKey): string | null {
     which === "ceremony"
       ? part.enabled
       : part.enabled && !(draft.reception.sameVenue && draft.ceremony.enabled);
-  if (!draft.showMap || !used || address === "" || part.geo?.query === address) return null;
+  // Místo bez názvu web nevykreslí (`resolvePlaces`), nemá smysl ho hledat.
+  const named = part.venueName.trim() !== "";
+  if (!draft.showMap || !used || !named || address === "" || part.geo?.query === address) {
+    return null;
+  }
   return address;
 }
 

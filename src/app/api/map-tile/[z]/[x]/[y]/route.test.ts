@@ -12,8 +12,8 @@ vi.mock("@/site/map/server", () => ({ fetchTile: vi.fn(async () => state.tile) }
 import { fetchTile } from "@/site/map/server";
 import { GET } from "./route";
 
-function get(z: string, x: string, y: string) {
-  return GET(new Request(`http://localhost/api/map-tile/${z}/${x}/${y}`), {
+function get(z: string, x: string, y: string, search = "") {
+  return GET(new Request(`http://localhost/api/map-tile/${z}/${x}/${y}${search}`), {
     params: Promise.resolve({ z, x, y }),
   });
 }
@@ -41,9 +41,16 @@ describe("/api/map-tile", () => {
     ["abc", "0", "0"],
     ["+1", "0", "0"],
     ["1.5", "0", "0"],
+    ["15", "017700", "11100"],
+    ["015", "1", "1"],
   ])("neplatná dlaždice %s/%s/%s je 404 bez stahování", async (z, x, y) => {
     const response = await get(z, x, y);
     expect(response.status).toBe(404);
+    expect(fetchTile).not.toHaveBeenCalled();
+  });
+
+  it("adresa s parametry je 404 (jinak by každý dotaz obešel mezipaměť CDN)", async () => {
+    expect((await get("10", "1", "1", "?r=1")).status).toBe(404);
     expect(fetchTile).not.toHaveBeenCalled();
   });
 

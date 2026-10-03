@@ -87,6 +87,8 @@ export async function geocodeAddress(
   }
 
   // Jedna sekunda mezi dotazy pro celou aplikaci; při souběhu jeden pokus znovu po krátkém čekání.
+  // ponytail: pevné okno v databázi, na hranici sekundy mohou projít dva dotazy těsně po sobě; při
+  // provozu, kde by to vadilo, frontu dotazů (advisory lock) nebo vlastní instanci Nominatimu.
   const globalRule = RATE_RULES.nominatimGlobal;
   const globalKey = rateKey(deps.secret(), "nominatim", "global");
   let slot = await deps.rateLimitHit(globalKey, globalRule.limit, globalRule.windowSeconds);

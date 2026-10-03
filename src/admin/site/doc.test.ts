@@ -308,6 +308,12 @@ describe("mapa místa", () => {
     expect(block?.type === "venue" && block.data.showMap).toBe(true);
   });
 
+  it("soukromé místo nemá souřadnice ani v pracovní kopii", () => {
+    const work = docToWork(located()) as { venues: { id: string; lat: number | null }[] };
+    expect(work.venues.find((v) => v.id === ID(1))?.lat).toBe(49.92556);
+    expect(work.venues.find((v) => v.id === ID(2))?.lat).toBeNull();
+  });
+
   it("vrácení verze zachová souřadnice veřejného místa a volbu mapy", () => {
     const { content, sensitive } = docToPublic(located(), { slug: "klara-a-matej" })!;
     const back = publicToDoc(content, sensitive);

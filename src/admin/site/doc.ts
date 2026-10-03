@@ -520,6 +520,9 @@ function cleanDoc(doc: EditorDoc): EditorDoc {
       address: venue.address.trim(),
       directions: trim(venue.directions),
       mapUrl: venue.mapUrl ? (normalizeUrl(venue.mapUrl) ?? venue.mapUrl.trim()) : null,
+      // Soukromé místo na mapě nikdy není: souřadnice se neukládají ani do pracovní kopie.
+      lat: venue.isPrivate ? null : venue.lat,
+      lng: venue.isPrivate ? null : venue.lng,
     })),
     events: doc.events.map((event) => ({
       ...event,

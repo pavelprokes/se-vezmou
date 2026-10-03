@@ -45,9 +45,9 @@ export function VenueMap({ points, ctx }: { points: MapPoint[]; ctx: SiteCtx }) 
               style={{ left: tile.left, top: tile.top }}
             />
           ))}
-          {view.pins.map((pin) => (
+          {view.pins.map((pin, index) => (
             <span
-              key={`${pin.left},${pin.top}`}
+              key={index}
               className="site-map-pin"
               data-label={pin.label}
               style={{ left: pin.left, top: pin.top }}

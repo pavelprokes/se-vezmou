@@ -12,8 +12,11 @@ export const MAX_ZOOM = 16;
 export const SINGLE_ZOOM = 15;
 /** Plátno s dlaždicemi: pokryje i široký monitor, zbytek ořízne `overflow: hidden`. */
 export const CANVAS = { width: 2560, height: 448 } as const;
-/** Bezpečný výřez kolem středu, do kterého se musí vejít všechny špendlíky i na telefonu (320 px). */
-const FIT = { width: 260, height: 170 } as const;
+/**
+ * Bezpečný výřez kolem středu pro hroty špendlíků: na telefonu (320 px, mapa 256 px vysoká) se vejdou
+ * i popisky nad špendlíky (asi 70 px nad hrotem).
+ */
+const FIT = { width: 220, height: 90 } as const;
 /** Mez zeměpisné šířky Web Mercatoru. */
 const MAX_LAT = 85.05112878;
 

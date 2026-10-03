@@ -178,7 +178,14 @@ function VenueGeo({ venue, ctx }: { venue: EditorVenue; ctx: EditorContext }) {
 }
 
 /** Místa konání: textová adresa je vždy, mapa je doplněk (FR-WEB-1); soukromé místo je za PINem. */
-export function VenuesEditor({ ctx, showMap = false }: { ctx: EditorContext; showMap?: boolean }) {
+export function VenuesEditor({
+  ctx,
+  mapVenueIds = [],
+}: {
+  ctx: EditorContext;
+  /** Místa na mapě (blok Místo se zapnutou mapou); jen jejich souřadnice se hledají. */
+  mapVenueIds?: readonly string[];
+}) {
   const t = useAdminT();
   const { doc } = ctx;
   const setVenues = (next: EditorVenue[]) =>
@@ -234,7 +241,9 @@ export function VenuesEditor({ ctx, showMap = false }: { ctx: EditorContext; sho
               // Souřadnice patří k adrese: po úpravě se zahodí a mapa je hledá znovu.
               onChange={(e) => patch(venue.id, { address: e.target.value, lat: null, lng: null })}
             />
-            {showMap && !venue.isPrivate ? <VenueGeo venue={venue} ctx={ctx} /> : null}
+            {mapVenueIds.includes(venue.id) && !venue.isPrivate ? (
+              <VenueGeo venue={venue} ctx={ctx} />
+            ) : null}
             <Checkbox
               label={t("admin.venue.private")}
               checked={venue.isPrivate}

@@ -130,7 +130,7 @@ function VenueBlockEditor({ block, ctx }: Props<"venue">) {
         />
         <p className="text-muted ps-9 text-sm">{t("admin.venue.showMapHint")}</p>
       </div>
-      <VenuesEditor ctx={ctx} showMap={block.data.showMap} />
+      <VenuesEditor ctx={ctx} mapVenueIds={block.data.showMap ? block.data.venueIds : []} />
       {ctx.doc.venues.length > 0 ? (
         <fieldset className="flex flex-col gap-1">
           <legend className="text-ink mb-1 font-medium">{t("admin.venue.shown")}</legend>

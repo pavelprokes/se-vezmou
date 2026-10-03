@@ -19,17 +19,19 @@ import { MAX_ZOOM } from "@/site/map/view";
 
 const HEADERS = { "X-Robots-Tag": "noindex, nofollow" };
 
+/** Jen kanonický tvar (bez úvodních nul): jiný zápis téže dlaždice by obešel mezipaměť CDN. */
 function parseTile(z: string, x: string, y: string): { z: number; x: number; y: number } | null {
-  if (![z, x, y].every((part) => /^\d{1,6}$/.test(part))) return null;
+  if (![z, x, y].every((part) => /^(0|[1-9]\d{0,5})$/.test(part))) return null;
   const tile = { z: Number(z), x: Number(x), y: Number(y) };
   const n = 2 ** tile.z;
   return tile.z <= MAX_ZOOM && tile.x < n && tile.y < n ? tile : null;
 }
 
-export async function GET(_request: Request, context: RouteContext<"/api/map-tile/[z]/[x]/[y]">) {
+export async function GET(request: Request, context: RouteContext<"/api/map-tile/[z]/[x]/[y]">) {
   const { z, x, y } = await context.params;
   const tile = parseTile(z, x, y);
-  if (!tile) {
+  // Parametry v adrese web nepoužívá; s nimi by každý dotaz byl nový klíč mezipaměti.
+  if (!tile || new URL(request.url).search !== "") {
     return new Response(null, {
       status: 404,
       headers: { ...HEADERS, "Cache-Control": "public, max-age=86400" },

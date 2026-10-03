@@ -71,8 +71,8 @@ describe("mapView", () => {
     expect(view.zoom).toBeLessThanOrEqual(MAX_ZOOM);
     expect(view.zoom).toBeGreaterThanOrEqual(13);
     const [a, b] = view.pins;
-    expect(Math.abs(a.left - b.left)).toBeLessThanOrEqual(260);
-    expect(Math.abs(a.top - b.top)).toBeLessThanOrEqual(170);
+    expect(Math.abs(a.left - b.left)).toBeLessThanOrEqual(220);
+    expect(Math.abs(a.top - b.top)).toBeLessThanOrEqual(90);
   });
 
   it("vzdálená místa (Praha a Brno) se oddálí", () => {

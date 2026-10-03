@@ -175,6 +175,8 @@ test.describe("placeholdery ostatních hostitelů", () => {
     const second = await page.goto(pageUrl("klara-a-matej.localhost", "/neexistuje"));
     expect(second?.status()).toBe(404);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Stránka nenalezena");
+    // titulek 404 není výchozí titulek značky (WCAG 2.4.2)
+    await expect(page).toHaveTitle("Stránka nenalezena");
     expect(await page.content()).not.toContain("neexistuje.localhost");
   });
 
@@ -182,9 +184,11 @@ test.describe("placeholdery ostatních hostitelů", () => {
     const cs = await page.goto(pageUrl(HOSTS.marketing, "/nic"));
     expect(cs?.status()).toBe(404);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Stránka nenalezena");
+    await expect(page).toHaveTitle("Stránka nenalezena");
     const en = await page.goto(pageUrl(HOSTS.marketing, "/en/nic"));
     expect(en?.status()).toBe(404);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Page not found");
+    await expect(page).toHaveTitle("Page not found");
     await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
   });
 });

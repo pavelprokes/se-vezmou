@@ -65,13 +65,15 @@ export function LocalizedField({
         ) : null}
       </legend>
       {hint ? <p className="text-muted text-sm">{hint}</p> : null}
-      {locales.map((locale) => {
+      {locales.map((locale, position) => {
         const name = locale === "cs" ? t("admin.lang.cs") : t("admin.lang.en");
         const common = {
           label: name,
           lang: locale,
           value: value?.[locale] ?? "",
           maxLength,
+          // Povinný je aspoň jeden jazyk: příznak nese první pole, aby čtečka nehlásila povinné obě.
+          "aria-required": required && position === 0 ? true : undefined,
         };
         return multiline ? (
           <TextArea

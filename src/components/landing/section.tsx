@@ -6,8 +6,8 @@ export type SectionTone = "parchment" | "warm" | "ink" | "cinnamon";
 const toneClasses: Record<SectionTone, string> = {
   parchment: "bg-parchment text-ink",
   warm: "bg-warm text-ink",
-  ink: "bg-ink text-parchment",
-  cinnamon: "bg-cinnamon-deep text-parchment",
+  ink: "bg-ink text-parchment [--focus-ring:var(--color-parchment)]",
+  cinnamon: "bg-cinnamon-deep text-parchment [--focus-ring:var(--color-parchment)]",
 };
 
 export interface SectionProps {

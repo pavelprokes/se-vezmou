@@ -5,6 +5,20 @@ import type { BlockOf, PublicEvent } from "@/site/types";
 import type { SiteCtx } from "../context";
 import { Paragraphs, Section } from "./section";
 
+/** Zástupný znak místa ve větě "v {place}": název místa může být v záložním jazyce a dostane vlastní `lang` (3.1.2). */
+const PLACE_MARK = "";
+
+function placeAt(sentence: string, name: Parameters<SiteCtx["text"]>[0], ctx: SiteCtx) {
+  const [before, after = ""] = sentence.split(PLACE_MARK);
+  return (
+    <>
+      {before}
+      <span lang={ctx.lang(name)}>{ctx.text(name)}</span>
+      {after}
+    </>
+  );
+}
+
 const KIND_ICON: Record<PublicEvent["kind"], LucideIcon> = {
   ceremony: Heart,
   reception: Wine,
@@ -60,7 +74,7 @@ export function Program({
                     <Paragraphs value={event.description} ctx={ctx} className="site-muted" />
                     {venue ? (
                       <p className="site-muted">
-                        {t("site.program.at", { place: ctx.text(venue.name) })}
+                        {placeAt(t("site.program.at", { place: PLACE_MARK }), venue.name, ctx)}
                       </p>
                     ) : null}
                   </div>

@@ -10,11 +10,14 @@ import { getPreviewContent } from "@/site/content";
 
 type Props = PageProps<"/h/tenant/[slug]/[locale]/nahled/[token]">;
 
-export const metadata: Metadata = {
-  title: "Náhled konceptu",
-  // Koncept se nesmí indexovat ani sdílet jako odkaz s náhledem (FR-WZ-5).
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale } = await params;
+  return {
+    title: createTranslator(isLocale(locale) ? locale : "cs")("wizard.preview.meta"),
+    // Koncept se nesmí indexovat ani sdílet jako odkaz s náhledem (FR-WZ-5).
+    robots: { index: false, follow: false },
+  };
+}
 
 /**
  * Náhled neveřejného konceptu podle neuhádnutelného odkazu (FR-WZ-5, `resolve_preview`). Každá

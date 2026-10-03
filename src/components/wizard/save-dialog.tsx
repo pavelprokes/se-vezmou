@@ -51,8 +51,20 @@ export function SaveDialog({
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
+  // Pole kódu se objeví až po přepnutí kroku: zaměření na něj přesune efekt po vykreslení.
+  useEffect(() => {
+    if (stage === "code") document.getElementById("wz-code")?.focus();
+    if (stage === "saving") document.getElementById("wz-save-status")?.focus();
+  }, [stage]);
+
+  function focusAlert() {
+    document.getElementById("wz-save-alert")?.focus();
+  }
+
   async function sendCode(event?: FormEvent) {
     event?.preventDefault();
+    // Tlačítka nejsou `disabled` (zaměření by zmizelo), dvojí odeslání se hlídá tady.
+    if (pending) return;
     setPending(true);
     setEmailError(null);
     const result = await requestSaveCodeAction({ email, backupEmail: backup });
@@ -77,15 +89,18 @@ export function SaveDialog({
         return;
       case "limited":
         setEmailError("limited");
+        focusAlert();
         return;
       case "error":
         setEmailError("generic");
+        focusAlert();
         return;
     }
   }
 
   async function verify(event: FormEvent) {
     event.preventDefault();
+    if (pending) return;
     setPending(true);
     setCodeError("none");
     const result = await verifySaveCodeAction(code);
@@ -97,7 +112,11 @@ export function SaveDialog({
     }
     setPending(false);
     setCodeError(result.status);
-    document.getElementById("wz-code")?.focus();
+    if (result.status === "invalid" || result.status === "format") {
+      document.getElementById("wz-code")?.focus();
+    } else {
+      focusAlert();
+    }
   }
 
   const emailMessage = (field: "email" | "backup"): string | undefined => {
@@ -127,7 +146,7 @@ export function SaveDialog({
       {stage === "emails" ? (
         <form onSubmit={sendCode} noValidate className="mt-4 flex flex-col gap-5">
           <p>{t("wizard.save.intro")}</p>
-          <FormAlert>{formMessage}</FormAlert>
+          <FormAlert id="wz-save-alert">{formMessage}</FormAlert>
           <Field
             id="wz-email"
             type="email"
@@ -172,7 +191,7 @@ export function SaveDialog({
       {stage === "code" ? (
         <form onSubmit={verify} noValidate className="mt-4 flex flex-col gap-5">
           <p>{t("wizard.save.code.intro", { email })}</p>
-          <FormAlert>
+          <FormAlert id="wz-save-alert">
             {codeError === "limited" || codeError === "error" || codeError === "expired"
               ? t(`wizard.save.code.error.${codeError}` as WizardKey)
               : undefined}
@@ -212,7 +231,7 @@ export function SaveDialog({
       ) : null}
 
       {stage === "saving" ? (
-        <p role="status" className="mt-4">
+        <p id="wz-save-status" role="status" tabIndex={-1} className="mt-4">
           {t("wizard.save.saving")}
         </p>
       ) : null}

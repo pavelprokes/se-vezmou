@@ -97,6 +97,10 @@ test.describe("E2E-01: průvodce od jmen po zveřejnění", () => {
     await expect(page.getByTestId("done-address")).toHaveText(`${slug}.localhost:${PORT}`);
     await expect(page.getByRole("img", { name: /QR kód s adresou webu/ })).toBeVisible();
     await expect(page.getByTestId("done-pin")).toHaveText(pin);
+    // obrazovka Hotovo je v hlavní oblasti, na kterou míří odkaz přeskočení (WCAG 2.4.1); PIN čtečka dostane po číslicích
+    await expect(page.getByRole("main")).toHaveCount(1);
+    await expect(page.locator("main#obsah")).toContainText(slug);
+    await expect(page.getByRole("main").getByText(pin.split("").join(" "))).toBeAttached();
 
     // Databáze: web je zveřejněný, adresa trvale přidělená, PIN jen jako hash.
     const wedding = await rows<{
@@ -428,6 +432,7 @@ test.describe("E2E-06: koncept a odkaz na náhled", () => {
       "noindex, nofollow",
     );
     await expect(guest.getByText("Náhled neveřejného konceptu")).toBeVisible();
+    await expect(guest).toHaveTitle("Náhled konceptu");
     await expect(guest.getByRole("heading", { level: 1 })).toHaveText("Klára & Matěj");
 
     // Poškozený token a token jiné adresy: stejná 404.
@@ -565,5 +570,73 @@ test.describe("web páru: neexistující, nezveřejněná a blokovaná adresa", 
     expect(en[0].status).toBe(404);
     expect(en[1]).toEqual(en[0]);
     expect(en[2]).toEqual(en[0]);
+  });
+});
+
+test.describe("přístupnost rámce průvodce", () => {
+  test("pevný spodní pruh nezakrývá zaměřený prvek při 320 px a písmu 200 % (WCAG 2.4.11, 1.4.10)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.goto(wizardUrl(""));
+    await expect(heading(page)).toHaveText("Kdo se bere?");
+    await page.getByLabel("První jméno").fill("Klára");
+
+    const bar = page.getByTestId("wizard-bar");
+    await expect(bar).toBeVisible();
+    // odsazení posunu stránky je aspoň tak velké jako pruh, jinak by pod něj zaměření zajelo
+    const sizes = await page.evaluate(() => ({
+      padding: parseFloat(getComputedStyle(document.documentElement).scrollPaddingBottom),
+      bar: document.querySelector<HTMLElement>('[data-testid="wizard-bar"]')!.offsetHeight,
+    }));
+    expect(sizes.padding).toBeGreaterThanOrEqual(sizes.bar);
+    expect(
+      await page.evaluate(
+        () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      ),
+    ).toBeLessThanOrEqual(0);
+    // písmo 200 % zvětší i pruh, odsazení posunu je v `rem`, takže roste spolu s ním
+    await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+    const scaled = await page.evaluate(() => ({
+      padding: parseFloat(getComputedStyle(document.documentElement).scrollPaddingBottom),
+      bar: document.querySelector<HTMLElement>('[data-testid="wizard-bar"]')!.offsetHeight,
+    }));
+    expect(scaled.padding).toBeGreaterThanOrEqual(scaled.bar);
+
+    // Tabulátorem dopředu i zpět: žádný zaměřený prvek mimo pruh nesmí zajet pod něj.
+    const covered = async () =>
+      page.evaluate(() => {
+        const barEl = document.querySelector<HTMLElement>('[data-testid="wizard-bar"]')!;
+        const el = document.activeElement as HTMLElement | null;
+        if (!el || el === document.body || barEl.contains(el)) return null;
+        const box = el.getBoundingClientRect();
+        const top = barEl.getBoundingClientRect().top;
+        return box.bottom > top + 1 ? `${el.tagName} ${el.id}: ${box.bottom} > ${top}` : null;
+      });
+    await page.locator("body").click({ position: { x: 1, y: 1 } });
+    for (let i = 0; i < 30; i++) {
+      await page.keyboard.press("Tab");
+      expect(await covered(), `Tab ${i}`).toBeNull();
+    }
+    for (let i = 0; i < 30; i++) {
+      await page.keyboard.press("Shift+Tab");
+      expect(await covered(), `Shift+Tab ${i}`).toBeNull();
+    }
+  });
+
+  test("bez JavaScriptu je zpráva o načítání i o potřebě JavaScriptu v hlavní oblasti s cílem přeskočení", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto(wizardUrl(""));
+    const main = page.getByRole("main");
+    await expect(main).toHaveCount(1);
+    await expect(main).toHaveAttribute("id", "obsah");
+    await expect(main).toContainText("Načítáme váš koncept");
+    // obsah `<noscript>` Playwright do textu nezapočítá, proto se čte zdrojové HTML hlavní oblasti
+    expect(await main.innerHTML()).toContain("potřebuje zapnutý JavaScript");
+    await expect(page.getByRole("link", { name: "Přeskočit na obsah" })).toBeAttached();
+    await context.close();
   });
 });

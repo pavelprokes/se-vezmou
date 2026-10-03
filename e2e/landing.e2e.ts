@@ -412,6 +412,19 @@ for (const locale of locales) {
       );
       // Zadaný e-mail po chybě zůstane v poli.
       await expect(form.getByLabel(labels.email, { exact: true })).toHaveValue("neni-email");
+      // Zaměření přejde na první chybné pole (WCAG 3.3.1) a pole se nevytvořilo znovu.
+      await expect(form.getByLabel(labels.email, { exact: true })).toBeFocused();
+    });
+
+    test("chybí jen souhlas: zaměření přejde na zaškrtávátko, e-mail zůstane", async ({ page }) => {
+      await page.goto(pageUrl(HOSTS.marketing, locale.path));
+      const form = page.locator("#waitlist form");
+      await form.getByLabel(labels.email, { exact: true }).fill("par@example.com");
+      await form.getByRole("button", { name: labels.submit }).click();
+      await expect(form.getByText(labels.noConsent)).toBeVisible();
+      await expect(form.getByLabel(labels.consent)).toBeFocused();
+      await expect(form.getByLabel(labels.consent)).toHaveAttribute("aria-invalid", "true");
+      await expect(form.getByLabel(labels.email, { exact: true })).toHaveValue("par@example.com");
     });
 
     test("prázdný e-mail: hlášení o povinném poli", async ({ page }) => {
@@ -524,6 +537,69 @@ test.describe("zaměření, cíle dotyku a reflow", () => {
     await expect(skip).toBeFocused();
     await page.keyboard.press("Enter");
     await expect(page.locator("#obsah")).toBeFocused();
+  });
+
+  test("obrys zaměření na tmavé závěrečné sekci má vůči pozadí aspoň 3 : 1 (WCAG 1.4.11, 2.4.13)", async ({
+    page,
+  }) => {
+    await page.goto(pageUrl(HOSTS.marketing, "/"));
+    const section = page.locator("#start");
+    await section.scrollIntoViewIfNeeded();
+    for (const target of [
+      section.getByLabel("První jméno"),
+      section.getByLabel("Druhé jméno"),
+      section.getByRole("button"),
+    ]) {
+      await target.focus();
+      const colors = await target.evaluate((el) => {
+        const outline = getComputedStyle(el).outlineColor;
+        const background = getComputedStyle(el.closest("section")!).backgroundColor;
+        return { outline, background };
+      });
+      const rgb = (value: string) =>
+        value
+          .match(/\d+(\.\d+)?/g)!
+          .slice(0, 3)
+          .map(Number);
+      const luminance = ([r, g, b]: number[]) => {
+        const [lr, lg, lb] = [r, g, b].map((c) => {
+          const v = c / 255;
+          return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+      };
+      const [a, b] = [luminance(rgb(colors.outline)), luminance(rgb(colors.background))];
+      const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      expect(ratio, `${colors.outline} na ${colors.background}`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  test("odkaz na úvod má přístupný název s viditelným textem (WCAG 2.5.3)", async ({ page }) => {
+    for (const [path, name] of [
+      ["/", "se-vezmou.cz, úvodní stránka"],
+      ["/en", "se-vezmou.cz, home page"],
+    ]) {
+      await page.goto(pageUrl(HOSTS.marketing, path));
+      const logo = page.locator("header").getByRole("link", { name });
+      await expect(logo).toBeVisible();
+      expect(name).toContain(((await logo.textContent()) ?? "").trim());
+    }
+  });
+
+  test("bez JavaScriptu je navigace na mobilu dostupná (nabídka rozbalená, tlačítko skryté)", async ({
+    browser,
+  }) => {
+    const context = await browser.newContext({
+      javaScriptEnabled: false,
+      viewport: { width: 375, height: 812 },
+    });
+    const page = await context.newPage();
+    await page.goto(pageUrl(HOSTS.marketing, "/"));
+    await expect(page.getByRole("button", { name: "Nabídka" })).toBeHidden();
+    const nav = page.getByRole("navigation", { name: "Hlavní navigace" });
+    await expect(nav.getByRole("link", { name: "Cena" })).toBeVisible();
+    await expect(page.locator("header").getByRole("link", { name: "Vytvořit web" })).toBeVisible();
+    await context.close();
   });
 
   test("viditelný focus a cíle dotyku 44 px u odkazů, tlačítek a otázek FAQ", async ({

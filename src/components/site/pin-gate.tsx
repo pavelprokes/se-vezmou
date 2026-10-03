@@ -73,7 +73,11 @@ export function PinGate({ labels, locale, unlockKey, headingLevel = 3 }: PinGate
       className="site-pin"
       aria-labelledby={`${id}-title`}
       action={action}
-      onSubmit={() => remember(unlockKey)}
+      onSubmit={(event) => {
+        // Tlačítko není `disabled` (zaměření by zmizelo), dvojí odeslání se hlídá tady.
+        if (pending) event.preventDefault();
+        else remember(unlockKey);
+      }}
       noValidate
     >
       <Heading id={`${id}-title`} className="site-h3">
@@ -98,12 +102,7 @@ export function PinGate({ labels, locale, unlockKey, headingLevel = 3 }: PinGate
           aria-describedby={`${id}-hint${message ? ` ${id}-error` : ""}`}
           className="site-input"
         />
-        <button
-          type="submit"
-          className="site-btn"
-          disabled={pending}
-          aria-disabled={pending || undefined}
-        >
+        <button type="submit" className="site-btn" aria-disabled={pending || undefined}>
           {pending ? labels.sending : labels.submit}
         </button>
       </div>

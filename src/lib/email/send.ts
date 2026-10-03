@@ -39,8 +39,9 @@ export async function sendTemplatedEmail(input: SendTemplatedInput): Promise<boo
     console.error("[e-mail] záznam e-mailu se nepodařilo uložit", errorName(error));
   }
 
+  let result: Awaited<ReturnType<typeof sendEmail>>;
   try {
-    const result = await sendEmail(
+    result = await sendEmail(
       {
         to: input.to,
         subject: input.email.subject,
@@ -49,10 +50,6 @@ export async function sendTemplatedEmail(input: SendTemplatedInput): Promise<boo
       },
       { requireDelivery: input.requireDelivery },
     );
-    if (logId) {
-      await emailLogSetStatus(logId, "sent", { providerMessageId: result.providerMessageId });
-    }
-    return true;
   } catch (error) {
     console.error("[e-mail] odeslání selhalo", input.type, errorName(error));
     if (logId) {
@@ -62,6 +59,16 @@ export async function sendTemplatedEmail(input: SendTemplatedInput): Promise<boo
     }
     return false;
   }
+
+  // E-mail už odešel: chyba zápisu do logu nesmí změnit výsledek (jinak by se upozornění poslalo znovu).
+  if (logId) {
+    await emailLogSetStatus(logId, "sent", { providerMessageId: result.providerMessageId }).catch(
+      (error: unknown) => {
+        console.error("[e-mail] stav odeslaného e-mailu se nepodařilo zapsat", errorName(error));
+      },
+    );
+  }
+  return true;
 }
 
 function errorName(error: unknown): string {

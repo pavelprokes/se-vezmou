@@ -2,7 +2,8 @@ import { locales } from "@/i18n/config";
 import { z } from "zod";
 import { i18nTextSchema } from "./i18n-text";
 import { phaseFromDates } from "./phase";
-import { publicContentSchema, type PublicContent } from "./types";
+import { dayInZone } from "./format";
+import { blockSchema, publicContentSchema, type PublicContent } from "./types";
 
 /**
  * Koncept z pracovních tabulek (odpověď `get_public_site` pro roli `preview`) na obsah webu.
@@ -25,6 +26,8 @@ const previewSchema = z.object({
     starts_on: z.string().nullable(),
     ends_on: z.string().nullable(),
     timezone: z.string(),
+    /** Konec potvrzování účasti (fáze náhledu); starší odpověď ho nemá. */
+    rsvp_closes_at: z.string().nullable().optional(),
   }),
   pages: z.array(
     z.object({
@@ -66,6 +69,19 @@ const previewSchema = z.object({
   ),
 });
 
+/**
+ * Blok pracovní kopie pro náhled: chráněný odkaz na galerii nemá ve veřejném snímku adresu ani kartu (ukazuje se
+ * až po PINu), pracovní kopie je ale drží; bez úpravy by blok neprošel schématem.
+ */
+function previewBlock(block: Record<string, unknown>): Record<string, unknown> {
+  if (block.type !== "gallery" || typeof block.data !== "object" || block.data === null)
+    return block;
+  const data = block.data as Record<string, unknown>;
+  const link = data.link as Record<string, unknown> | null | undefined;
+  if (!link || link.protected !== true) return block;
+  return { ...block, data: { ...data, link: { ...link, url: null, card: null } } };
+}
+
 /** `null`, když odpověď nemá očekávaný tvar nebo koncept není vykreslitelný (např. chybí datum). */
 export function previewToPublicContent(
   raw: unknown,
@@ -89,7 +105,18 @@ export function previewToPublicContent(
     defaultLocale: wedding.default_locale,
     template: wedding.template,
     palette: wedding.palette,
-    phase: phaseFromDates({ startsOn: wedding.starts_on, endsOn: wedding.ends_on }, now),
+    // Fáze v časovém pásmu svatby a s termínem potvrzení účasti (jako zveřejněný web).
+    phase: phaseFromDates(
+      {
+        startsOn: wedding.starts_on,
+        endsOn: wedding.ends_on,
+        deadline: wedding.rsvp_closes_at
+          ? dayInZone(wedding.rsvp_closes_at, wedding.timezone)
+          : null,
+      },
+      now,
+      wedding.timezone,
+    ),
     quickNotice: null,
     thanksMessage: null,
     venues: venues
@@ -114,12 +141,14 @@ export function previewToPublicContent(
       venueId: event.venue_id,
     })),
     media: [],
-    // Dotaz vrací jen zapnuté bloky v pořadí; pozice se odvodí z pořadí.
-    blocks: home.blocks.map((block, index) => ({
-      ...block,
-      enabled: true,
-      position: index + 1,
-    })),
+    // Dotaz vrací jen zapnuté bloky v pořadí; pozice se odvodí z pořadí. Pracovní kopie není normalizovaná
+    // jako zveřejněný snímek: blok, který neprojde schématem, se vynechá (dřív shodil celý náhled na 404).
+    blocks: home.blocks.flatMap((block, index) => {
+      const parsed = blockSchema.safeParse(
+        previewBlock({ ...block, enabled: true, position: index + 1 }),
+      );
+      return parsed.success ? [parsed.data] : [];
+    }),
   });
   return content.success ? content.data : null;
 }

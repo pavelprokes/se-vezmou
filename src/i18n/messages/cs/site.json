@@ -114,5 +114,6 @@
   "rsvp.watermark": "Ano",
   "preview.heroPhoto": "Fotka v úvodu",
   "preview.heroPhoto.on": "S fotkou",
-  "preview.heroPhoto.off": "Bez fotky"
+  "preview.heroPhoto.off": "Bez fotky",
+  "gifts.unavailable": "Údaje o daru teď nejsou k dispozici. Zkuste to prosím později, případně se obraťte na snoubence."
 }

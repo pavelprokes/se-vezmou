@@ -91,6 +91,12 @@ describe("readTable", () => {
     expect(performance.now() - started).toBeLessThan(2000);
   });
 
+  it("malý archiv, který uvádí obří velikost položky, se odmítne dřív, než knihovna alokuje paměť", async () => {
+    const small = zipSync({ "xl/worksheets/sheet1.xml": new Uint8Array(100) }, { level: 9 });
+    forgeSizes(small, 0xfffffffe);
+    expect(await readTable(small)).toEqual({ ok: false, reason: "unpacked_too_large" });
+  });
+
   it("archiv s příliš mnoha položkami se odmítne", async () => {
     const files: Record<string, Uint8Array> = {};
     for (let i = 0; i < 200; i++) files[`xl/f${i}.xml`] = new Uint8Array([1, 2, 3]);

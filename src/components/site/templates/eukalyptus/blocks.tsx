@@ -418,6 +418,9 @@ export function EuGifts({ block, ctx, tone }: EuBlockProps<"gifts">) {
                 <figcaption className="eu-muted">{t("site.gifts.qrHint")}</figcaption>
               </figure>
             </UnlockedRegion>
+          ) : ctx.sensitiveUnlocked && ctx.sensitive !== null ? (
+            // Host je po PINu, ale údaje o daru nejsou k dispozici: žádný nový formulář PINu (smyčka)
+            <p className="eu-lead">{t("site.gifts.unavailable")}</p>
           ) : (
             <div className="eu-gate eu-gate-gifts">
               <PinGate labels={pinGateLabels(t, "gifts")} locale={ctx.locale} unlockKey="gifts" />

@@ -346,9 +346,10 @@ export async function restoreVersion(
     return { status: "limited", retryAfter: checkpoint.retryAfter };
   }
 
-  const reloaded = (await loadSite(session)) ?? loaded;
+  // Uloží se s revizí, ze které vznikl bod pro vrácení (bod revizi nemění): pokud mezitím uložilo jiné okno,
+  // je to konflikt, ne tiché přepsání změn, které v bodu nejsou.
   try {
-    const result = await adminSiteSave(session, reloaded.meta.rev, docToWork(doc));
+    const result = await adminSiteSave(session, loaded.meta.rev, docToWork(doc));
     if (result.conflict) return { status: "conflict" };
     return { status: "restored", rev: result.rev, versionNo: version.versionNo };
   } catch (error) {
@@ -429,10 +430,43 @@ async function withCardImage(session: AdminIdentity, card: GalleryCard): Promise
   if (!card.imageUrl) return withoutImage;
   const image = await fetchOgImage(card.imageUrl);
   if (!image.ok) return withoutImage;
+  // Úklid před uložením (kvóta obrázků karet): zůstane poslední obrázek a obrázky, které používá zveřejněný web
+  // nebo pracovní kopie, takže je místo pro nový a nic používaného nezmizí.
+  await pruneCardImages(session, 1, await cardImagesInUse(session));
   const imageMediaId = await storeCardImage(session, image);
   if (!imageMediaId) return withoutImage;
-  await pruneCardImages(session);
   return { ...card, imageMediaId };
+}
+
+/**
+ * Obrázky karet, které právě používá zveřejněný web (veřejná i chráněná karta) nebo pracovní kopie. Úklid starých
+ * obrázků je nesmí smazat: opakované „Obnovit náhled“ bez zveřejnění by jinak zveřejněnému webu vzalo obrázek.
+ */
+async function cardImagesInUse(session: AdminIdentity): Promise<Set<string>> {
+  const ids = new Set<string>();
+  const add = (id: string | null | undefined) => {
+    if (id) ids.add(id);
+  };
+  const loaded = parseLoaded(await adminSiteLoad(session));
+  for (const block of loaded?.doc.blocks ?? []) {
+    if (block.type === "gallery") add(block.data.link?.card?.imageMediaId);
+  }
+  const published = loaded?.versions.find((version) => version.isPublished);
+  if (published) {
+    const version = z
+      .object({ public_content: z.unknown(), sensitive_content: z.unknown() })
+      .nullable()
+      .safeParse(await adminSiteVersionGet(session, published.id));
+    if (version.success && version.data) {
+      const content = publicContentSchema.safeParse(version.data.public_content);
+      for (const block of content.success ? content.data.blocks : []) {
+        if (block.type === "gallery") add(block.data.link?.card?.imageMediaId);
+      }
+      const sensitive = sensitiveContentSchema.safeParse(version.data.sensitive_content ?? {});
+      if (sensitive.success) add(sensitive.data.gallery?.card?.imageMediaId);
+    }
+  }
+  return ids;
 }
 
 // --- výběr svatby ----------------------------------------------------------------------------------

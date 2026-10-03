@@ -253,6 +253,24 @@ describe("úloha životního cyklu", () => {
     expect(result.counts.notices_sent).toBe(1);
   });
 
+  it("čas dojde uprostřed dávky: další upozornění se už nezačne odesílat (žádné odeslání bez zápisu výsledku)", async () => {
+    let left = 30_000;
+    rpc.claimNotices
+      .mockResolvedValueOnce([notice(), notice({ notice_id: "n2" })])
+      .mockResolvedValueOnce([]);
+    rpc.noticeRecipients.mockResolvedValue([{ email: "jan@example.test", locale: "cs" }]);
+    rpc.finishNotice.mockImplementation(async () => {
+      left = 500; // po prvním upozornění zbývá méně než rezerva
+      return "sent";
+    });
+    stubContext.send.mockResolvedValue(true);
+    const result = await lifecycleJob.run(context({ timeLeftMs: () => left }));
+    expect(rpc.finishNotice).toHaveBeenCalledTimes(1);
+    expect(stubContext.send).toHaveBeenCalledTimes(1);
+    expect(result.counts.deferred).toBe(1);
+    expect(rpc.claimNotices).toHaveBeenCalledTimes(1);
+  });
+
   it("vyčerpaný časový rozpočet: nic se nepřebírá, výsledek je partial a dokončí ho další běh", async () => {
     const result = await lifecycleJob.run(context({ timeLeftMs: () => 500 }));
     expect(result.status).toBe("partial");

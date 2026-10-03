@@ -69,7 +69,8 @@ export async function sendPendingNotices(
   counts.messages_failed = 0;
 
   let processed = 0;
-  for (let round = 0; round < MAX_NOTICE_ROUNDS; round += 1) {
+  let outOfTime = false;
+  for (let round = 0; round < MAX_NOTICE_ROUNDS && !outOfTime; round += 1) {
     if (context.timeLeftMs() < RESERVE_MS) {
       runner.deferred();
       break;
@@ -82,6 +83,13 @@ export async function sendPendingNotices(
     if (batch.length === 0) break;
 
     for (const notice of batch) {
+      // Čas se hlídá před každým upozorněním: funkce ukončená uprostřed odesílání by nechala odeslané upozornění
+      // bez zapsaného výsledku. Nezpracovaná zůstanou `sending` a po 15 minutách se převezmou (nejvýš třikrát).
+      if (context.timeLeftMs() < RESERVE_MS) {
+        runner.deferred();
+        outOfTime = true;
+        break;
+      }
       try {
         const recipients = await noticeRecipients(notice.wedding_id);
         const delivery =

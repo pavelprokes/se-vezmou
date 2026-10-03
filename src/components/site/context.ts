@@ -186,7 +186,7 @@ const DEFAULT_HERO: BlockOf<"hero"> = {
   enabled: true,
   position: 0,
   sensitive: false,
-  data: { countdown: false, tagline: null },
+  data: { countdown: false, tagline: null, photoMediaId: null },
 };
 
 /** Přijímání potvrzení účasti je otevřené jen ve fázi `rsvp_open`. */

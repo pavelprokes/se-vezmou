@@ -8,10 +8,11 @@ import { QrCode } from "@/components/wizard/qr-code";
 import type { Locale } from "@/i18n/config";
 import { buildSpayd } from "@/site/payment";
 import type { MediaActions } from "@/lib/media/action-types";
-import type { MediaItem } from "@/lib/media/types";
+import { isReady, mediaSrc, type MediaItem } from "@/lib/media/types";
 import type { GalleryCard } from "@/site/types";
 import {
   newId,
+  publishable,
   resolveAccount,
   type EditorBlock,
   type EditorBlockOf,
@@ -19,7 +20,7 @@ import {
 } from "@/admin/site/doc";
 import { normalizeHttpsUrl, normalizePhone, normalizeUrl } from "@/admin/site/normalize";
 import { EventsEditor, VenuesEditor } from "./events";
-import { AddButton, ItemCard, LocalizedField, Note } from "./fields";
+import { AddButton, ItemCard, LocalizedField, Note, SelectField } from "./fields";
 import { useAdminT } from "./i18n";
 import { PhotosPanel } from "./photos";
 
@@ -79,7 +80,49 @@ function HeroEditor({ block, ctx }: Props<"hero">) {
         maxLength={200}
         onChange={(tagline) => patchBlock(ctx, block.id, { tagline })}
       />
+      <HeroPhotoPicker block={block} ctx={ctx} />
     </>
+  );
+}
+
+/**
+ * Fotka přes celý úvod: výběr z hotových fotografií svatby s popiskem (nahrávají se v bloku Fotografie).
+ * Doporučený formát je v nápovědě; na mobilu se fotka ořízne na výšku, proto hlavní motiv doprostřed.
+ */
+function HeroPhotoPicker({ block, ctx }: Props<"hero">) {
+  const t = useAdminT();
+  const photos = ctx.media.filter((m) => m.kind === "photo" && isReady(m) && publishable(m));
+  const chosen = photos.find((m) => m.id === block.data.photoMediaId);
+  const label = (m: MediaItem, index: number) =>
+    (m.alt && (m.alt[ctx.locales[0]] || Object.values(m.alt).find(Boolean))) ||
+    t("admin.block.hero.photoUntitled", { n: index + 1 });
+  return (
+    <div className="flex flex-col gap-3">
+      <SelectField
+        label={t("admin.block.hero.photo")}
+        hint={t("admin.block.hero.photoHint")}
+        value={chosen?.id ?? ""}
+        onChange={(value) => patchBlock(ctx, block.id, { photoMediaId: value || null })}
+      >
+        <option value="">{t("admin.block.hero.photoNone")}</option>
+        {photos.map((m, index) => (
+          <option key={m.id} value={m.id}>
+            {label(m, index)}
+          </option>
+        ))}
+      </SelectField>
+      {photos.length === 0 ? <Note tone="info">{t("admin.block.hero.photoEmpty")}</Note> : null}
+      {chosen && chosen.widths.length > 0 ? (
+        // eslint-disable-next-line @next/next/no-img-element -- náhled přes vlastní adresu, popisek je ve výběru
+        <img
+          src={mediaSrc(chosen.id, chosen.widths[0], "webp")}
+          alt=""
+          width={chosen.width ?? undefined}
+          height={chosen.height ?? undefined}
+          className="h-auto w-full max-w-64 rounded-xl"
+        />
+      ) : null}
+    </div>
   );
 }
 

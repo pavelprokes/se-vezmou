@@ -168,7 +168,7 @@ function buildBlocks(draft: WizardDraft, resolved: Resolved): Block[] {
     type: "hero",
     anchor: "uvod",
     position: next(),
-    data: { countdown: true, tagline: null },
+    data: { countdown: false, tagline: null, photoMediaId: null },
   });
 
   if (resolved.events.length > 0) {

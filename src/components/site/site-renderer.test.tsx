@@ -673,7 +673,7 @@ describe("SiteRenderer: čtyři šablony nad společnými bloky", () => {
 
   it("neznámá paleta padá na výchozí paletu šablony", () => {
     const { container } = renderSite({ ...eukalyptusFixture, palette: "neexistuje" });
-    expect((container.querySelector(".site-root") as HTMLElement).dataset.palette).toBe("stribrna");
+    expect((container.querySelector(".site-root") as HTMLElement).dataset.palette).toBe("bordo");
   });
 
   it("listy Eukalyptu a monogram Chateau jsou dekor (aria-hidden), ostatní šablony je nemají", () => {

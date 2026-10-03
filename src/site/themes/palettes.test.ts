@@ -9,24 +9,31 @@ import {
   templates,
   type Palette,
 } from "./palettes";
-import { PAIRS, describeFailures, validatePalette, validateTemplatePalette } from "./validate";
+import {
+  PAIRS,
+  describeFailures,
+  validatePalette,
+  validateSurfaces,
+  validateTemplatePalette,
+} from "./validate";
 
 const all = templateKeys.flatMap((template) =>
   templates[template].palettes.map((palette) => ({ template, palette })),
 );
 
 describe("šablony a palety (FR-WEB-3)", () => {
-  it("má čtyři šablony a každá právě tři předem ověřené palety", () => {
+  it("má čtyři šablony s předem ověřenými paletami (Eukalyptus čtyři, ostatní tři)", () => {
     expect(templateKeys).toEqual(["editorial", "eukalyptus", "chateau", "modern"]);
     for (const template of templateKeys) {
-      expect(templates[template].palettes).toHaveLength(3);
+      expect(templates[template].palettes).toHaveLength(template === "eukalyptus" ? 4 : 3);
       expect(hasPalette(template, templates[template].defaultPalette)).toBe(true);
     }
   });
 
-  it("Eukalyptus má palety Stříbrná (výchozí), Hloubka a Pudr", () => {
-    expect(templates.eukalyptus.defaultPalette).toBe("stribrna");
+  it("Eukalyptus má palety Bordó (výchozí), Stříbrná, Hloubka a Pudr, všechny s plochami", () => {
+    expect(templates.eukalyptus.defaultPalette).toBe("bordo");
     expect(templates.eukalyptus.palettes.map((p) => p.name.cs)).toEqual([
+      "Bordó",
       "Stříbrná",
       "Hloubka",
       "Pudr",
@@ -44,6 +51,34 @@ describe("šablony a palety (FR-WEB-3)", () => {
     const powder = getPalette("eukalyptus", "pudr").colors;
     expect(powder.bg).toBe("#F4F1EC");
     expect(powder.accent).toBe("#8A4A44");
+  });
+
+  it("plochy Eukalyptu drží kontrast a jen Eukalyptus plochy má", () => {
+    for (const { template, palette } of all) {
+      expect(palette.surfaces !== undefined).toBe(template === "eukalyptus");
+      if (palette.surfaces) expect(validateSurfaces(palette.surfaces)).toEqual([]);
+    }
+    // Bordó podle zadání: krém, víno, les, šalvěj, noc a papír
+    const bordo = getPalette("eukalyptus", "bordo").surfaces!;
+    expect(bordo.tones.accent.bg).toBe("#7B2D2D");
+    expect(bordo.tones.deep.bg).toBe("#1C3128");
+    expect(contrastRatio(bordo.field, "#FFFFFF")).toBeGreaterThanOrEqual(4.6);
+  });
+
+  it("plocha se slabým kontrastem neprojde validací a paletu nejde zveřejnit", () => {
+    const bordo = getPalette("eukalyptus", "bordo");
+    const weak = {
+      ...bordo,
+      surfaces: {
+        ...bordo.surfaces!,
+        tones: {
+          ...bordo.surfaces!.tones,
+          soft: { ...bordo.surfaces!.tones.soft, muted: "#A0A8A2" },
+        },
+      },
+    };
+    expect(validateSurfaces(weak.surfaces).join()).toContain("plocha soft: doplňkový text");
+    expect(validatePalette(weak).ok).toBe(false);
   });
 
   it("neznámá paleta padá na výchozí paletu šablony", () => {

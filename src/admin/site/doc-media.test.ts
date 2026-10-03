@@ -341,3 +341,38 @@ describe("reconcileGalleryMedia: pořadí z dokumentu a tabulka médií", () => 
     expect(gallery?.type === "gallery" && gallery.data.mediaIds).toEqual([ID(1)]);
   });
 });
+
+describe("fotka v úvodu", () => {
+  const withHeroPhoto = (photoMediaId: string | null) => {
+    const doc = docWithGallery();
+    return {
+      ...doc,
+      blocks: doc.blocks.map((b) =>
+        b.type === "hero" ? ({ ...b, data: { ...b.data, photoMediaId } } as EditorBlock) : b,
+      ),
+    };
+  };
+  const heroOf = (content: ReturnType<typeof build>["content"]) => {
+    const block = content.blocks.find((b) => b.type === "hero");
+    if (block?.type !== "hero") throw new Error("úvod");
+    return block;
+  };
+
+  it("hotová fotografie s popiskem jde do snímku i bez zařazení do galerie", () => {
+    const { content } = build(withHeroPhoto(ID(7)), [photo(7)]);
+    expect(heroOf(content).data.photoMediaId).toBe(ID(7));
+    expect(content.media.map((m) => m.id)).toEqual([ID(7)]);
+  });
+
+  it("fotografie bez popisku, nehotová nebo obrázek karty se nezveřejní (úvod bez fotky)", () => {
+    for (const item of [
+      photo(7, { alt: null }),
+      photo(7, { status: "processing" }),
+      cardImage(7),
+    ]) {
+      const { content } = build(withHeroPhoto(ID(7)), [item]);
+      expect(heroOf(content).data.photoMediaId).toBeNull();
+      expect(content.media).toEqual([]);
+    }
+  });
+});

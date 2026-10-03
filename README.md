@@ -109,7 +109,7 @@ jen se souhlasem páru, přehled, lhůty a retenci, audit a správu operátorů 
 Prvního operátora (majitele) založí vlastník databáze mimo aplikaci (bez hesel v repozitáři):
 
 ```bash
-export MIGRATE_DATABASE_URL='postgresql://postgres:…@db.<ref>.supabase.co:5432/postgres'
+# připojení vlastníka a CA z .env.migrate.local (vzor .env.migrate.example), stejně jako u npm run db:migrate
 npm run ops:create-owner -- majitel@example.cz
 npm run ops:reset-mfa -- majitel@example.cz   # ztracený druhý faktor
 ```
@@ -134,7 +134,8 @@ shodí `npm run i18n:check` (ADR 0003).
    Databázi a migrace nejdřív připrav podle `supabase/README.md` (init skripty, role
    `se_vezmou_app`, `npm run db:migrate`). **Povinné v produkci:**
    - `DATABASE_URL` (pooler Supabase, transaction mode, role `se_vezmou_app`; nikdy `MIGRATE_DATABASE_URL`
-     ani `MIGRATE_CA_CERT`, ty patří jen na počítač majitele k `npm run db:migrate`),
+     ani `MIGRATE_CA_CERT`, ty patří jen na počítač majitele (`.env.migrate.local`) a do tajných hodnot GitHubu,
+     odkud migrace po pushi do `main` spouští workflow `migrate.yml`),
    - `AUTH_SECRET`, `RATE_LIMIT_SECRET`, `PIN_PEPPER`, `OPERATOR_MFA_KEY` a `CRON_SECRET`: každá
      **min. 32 náhodných znaků** (`openssl rand -base64 48`), všechny různé. `CRON_SECRET` bez
      platné hodnoty způsobí, že **každá cesta `/api/cron/*` tiše vrací 401** a nic se nemaže ani

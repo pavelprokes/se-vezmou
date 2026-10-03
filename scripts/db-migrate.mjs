@@ -1,10 +1,13 @@
 #!/usr/bin/env node
 // Nasazení migrací databáze se-vezmou.cz (docs/adr/0011, supabase/README.md).
 //
-//   MIGRATE_DATABASE_URL=postgresql://postgres:…@db.<ref>.supabase.co:5432/postgres \
-//     npm run db:migrate -- --dry-run      # jen vypíše plán, nic nezapíše
+//   npm run db:migrate -- --dry-run        # jen vypíše plán, nic nezapíše
 //   npm run db:migrate                     # aplikuje čekající migrace
 //   npm run db:migrate -- --status         # stav všech migrací
+//
+// Lokálně si `npm run db:migrate` načte proměnné ze souboru `.env.migrate.local` (není v gitu, vzor
+// `.env.migrate.example`). Při nasazení migrace spouští GitHub Actions (`.github/workflows/migrate.yml`)
+// s tajnými hodnotami repozitáře; na Vercelu tyto údaje nikdy nejsou.
 //
 // Jen node + pg, bez Supabase CLI. Aplikuje supabase/migrations/*.sql v pořadí názvů, KAŽDOU v jedné
 // transakci, a eviduje je v se_vezmou.schema_migrations (version, name, checksum sha256, applied_at),
@@ -15,7 +18,8 @@
 // MIGRATE_DATABASE_URL je spojení VLASTNÍKA schématu (role postgres), přímé nebo přes session pooler
 // (port 5432), NIKDY aplikační role se_vezmou_app a NIKDY transaction pooler (port 6543). Heslo se nikam
 // nevypisuje. U vzdálené databáze je POVINNÉ MIGRATE_CA_CERT (PEM kořenové CA Supabase): spojení ověřuje
-// certifikát serveru. Bez něj nástroj odmítne běžet, pokud výslovně nenastavíte MIGRATE_TLS_INSECURE=1
+// certifikát serveru (místo obsahu jde zadat cestu k souboru: MIGRATE_CA_CERT_FILE). Bez něj nástroj
+// odmítne běžet, pokud výslovně nenastavíte MIGRATE_TLS_INSECURE=1
 // (TLS bez ověření řetězu, nedoporučeno). Lokální databáze (loopback, unixový socket) je bez TLS.
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
@@ -91,6 +95,22 @@ export function destructiveStatement(sql) {
 const LOOPBACK = new Set(["", "localhost", "127.0.0.1", "[::1]", "::1"]);
 
 /** Nastavení spojení z MIGRATE_DATABASE_URL; chyby nikdy neobsahují heslo. */
+/** Kořenová CA: obsah PEM v MIGRATE_CA_CERT, nebo cesta k souboru v MIGRATE_CA_CERT_FILE (relativně ke kořeni repa). */
+export function caCert(env = process.env) {
+  const inline = (env.MIGRATE_CA_CERT ?? "").trim();
+  if (inline) return inline;
+  const file = (env.MIGRATE_CA_CERT_FILE ?? "").trim();
+  if (!file) return undefined;
+  let pem;
+  try {
+    pem = readFileSync(resolve(ROOT, file), "utf8").trim();
+  } catch {
+    fail(`MIGRATE_CA_CERT_FILE: soubor ${file} nejde přečíst`);
+  }
+  if (!pem.includes("BEGIN CERTIFICATE")) fail(`MIGRATE_CA_CERT_FILE: ${file} není certifikát PEM`);
+  return pem;
+}
+
 export function clientConfig(rawUrl, env = process.env) {
   let url;
   try {
@@ -120,7 +140,7 @@ export function clientConfig(rawUrl, env = process.env) {
   const host = hostParam || hostname || undefined;
   const local = LOOPBACK.has(host ?? "") || (host ?? "").startsWith("/");
   const mode = url.searchParams.get("sslmode") ?? (local ? "disable" : "require");
-  const ca = (env.MIGRATE_CA_CERT ?? "").trim() || undefined;
+  const ca = caCert(env);
   let ssl;
   if (mode === "disable") {
     if (!local) fail("MIGRATE_DATABASE_URL: sslmode=disable je povoleno jen pro lokální databázi");

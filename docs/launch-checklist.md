@@ -42,8 +42,9 @@ Postup krok za krokem je v `supabase/README.md`, kapitola Fotografie. Stručně:
 ## 3. Databáze a migrace
 
 1. Init skripty `supabase/init/00_*.sql` a `01_*.sql` (změňte heslo role `se_vezmou_app`!), viz `supabase/README.md`.
-2. `export MIGRATE_DATABASE_URL='postgresql://postgres:…@db.<ref>.supabase.co:5432/postgres'` (jen v shellu na vašem počítači) a `MIGRATE_CA_CERT` (PEM kořenové CA Supabase, povinná; bez ní nástroj odmítne běžet, vědomé opt-out `MIGRATE_TLS_INSECURE=1`).
+2. `cp .env.migrate.example .env.migrate.local` a doplňte `MIGRATE_DATABASE_URL` (vlastník, session pooler) a `MIGRATE_CA_CERT_FILE` (cesta ke kořenové CA Supabase, povinná; vědomé opt-out `MIGRATE_TLS_INSECURE=1`). Soubor není v gitu a nepatří na Vercel.
 3. `npm run db:migrate -- --dry-run`, pak `npm run db:migrate`. Stav: `npm run db:migrate -- --status`.
+   **Další nasazení migrací je automatické:** v GitHubu nastavte tajné hodnoty `MIGRATE_DATABASE_URL` a `MIGRATE_CA_CERT` (obsah PEM), workflow `.github/workflows/migrate.yml` pak migrace spustí po každém pushi do `main`, který je mění (`supabase/README.md`, „Automatické nasazení migrací“).
 4. **Past s „budoucími“ daty migrací.** Soubory migrací jsou číslované daty (`20261008120000_media.sql`), která jsou **později než skutečné dnešní datum**. Nástroj odmítne čekající migraci, která je **starší než poslední aplikovaná**, a odmítne i změněnou už aplikovanou. Novou migraci proto vždy pojmenujte **po nejnovější existující** (vyšší číslo než všechny v `supabase/migrations/`), ne podle kalendáře, a hotové migrace nikdy neupravujte ani komentáře v nich (změní se kontrolní součet). Opravy jdou novým souborem.
 5. Ověřovací dotazy po nasazení jsou v `supabase/README.md` (počet migrací, RLS, práva rolí).
 

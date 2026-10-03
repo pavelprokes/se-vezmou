@@ -138,14 +138,16 @@ Sdílený projekt Supabase, schéma `se_vezmou`, přímé spojení `pg` přes po
    Stejně v Dashboardu: Settings, API, _Exposed schemas_ (odeberte jen `se_vezmou`).
 
 2. **Aplikační role.** Spusťte `supabase/init/01_app_role.sql`, ale **nejdřív v něm nahraďte zástupné heslo** silným náhodným heslem (min. 32 znaků, jen písmena a číslice). Skutečné heslo nikdy neukládejte do repozitáře; po spuštění ho z historie dotazů editoru smažte.
-3. **`MIGRATE_DATABASE_URL`** (jen na vašem počítači, v shellu; ne do souboru v repozitáři a ne na Vercel): spojení **vlastníka** (role `postgres`), přímé (`db.<ref>.supabase.co:5432`) nebo přes session pooler (`...pooler.supabase.com:5432`, uživatel `postgres.<ref>`). Ne transaction pooler (6543) a ne role `se_vezmou_app`; nástroj obojí odmítne. Volitelně `MIGRATE_CA_CERT` (PEM kořenové CA Supabase, stejně jako `DATABASE_CA_CERT` u aplikace): nástroj pak ověřuje certifikát serveru; bez ní je TLS bez ověření řetězu. Také jen na vašem počítači, ne na Vercel.
+3. **`MIGRATE_DATABASE_URL`** (na vašem počítači v `.env.migrate.local`, který není v gitu, a v tajných hodnotách GitHubu; nikdy na Vercel): spojení **vlastníka** (role `postgres`), přímé (`db.<ref>.supabase.co:5432`) nebo přes session pooler (`...pooler.supabase.com:5432`, uživatel `postgres.<ref>`). Ne transaction pooler (6543) a ne role `se_vezmou_app`; nástroj obojí odmítne. Volitelně `MIGRATE_CA_CERT` (PEM kořenové CA Supabase, stejně jako `DATABASE_CA_CERT` u aplikace): nástroj pak ověřuje certifikát serveru; bez ní je TLS bez ověření řetězu. Také jen na vašem počítači, ne na Vercel.
 
    ```bash
-   export MIGRATE_DATABASE_URL='postgresql://postgres:<heslo>@db.<ref>.supabase.co:5432/postgres'
-   export MIGRATE_CA_CERT="$(cat supabase-root-ca.pem)"   # PEM kořenové CA Supabase (Dashboard, Database, SSL)
+   cp .env.migrate.example .env.migrate.local   # doplňte MIGRATE_DATABASE_URL a MIGRATE_CA_CERT_FILE
    ```
 
-   **TLS:** u vzdálené databáze nástroj vždy ověřuje certifikát serveru a `MIGRATE_CA_CERT` (obsah PEM kořenové CA z Dashboardu, ne cesta k souboru) je povinná. Bez ní nástroj skončí s jasnou zprávou a nic nespustí. Jen pokud výslovně a vědomě nechcete ověřovat řetězec, nastavte `MIGRATE_TLS_INSECURE=1` (TLS zůstane, ale bez ověření řetězu, takže nechrání před aktivním útočníkem v síti; nedoporučeno, jen přechodně). Lokální databáze (loopback, unixový socket) je bez TLS a nic z toho nepotřebuje.
+   `npm run db:migrate` si soubor načte sám. Místo souboru jde i `export MIGRATE_DATABASE_URL=…` a
+   `export MIGRATE_CA_CERT="$(cat supabase-root-ca.pem)"` (obsah PEM) v shellu.
+
+   **TLS:** u vzdálené databáze nástroj vždy ověřuje certifikát serveru a kořenová CA je povinná: obsah PEM v `MIGRATE_CA_CERT`, nebo cesta k souboru v `MIGRATE_CA_CERT_FILE`. Bez ní nástroj skončí s jasnou zprávou a nic nespustí. Jen pokud výslovně a vědomě nechcete ověřovat řetězec, nastavte `MIGRATE_TLS_INSECURE=1` (TLS zůstane, ale bez ověření řetězu, takže nechrání před aktivním útočníkem v síti; nedoporučeno, jen přechodně). Lokální databáze (loopback, unixový socket) je bez TLS a nic z toho nepotřebuje.
 
 4. **Plán:** `npm run db:migrate -- --dry-run`. Vypíše čekající migrace (soubor a sha256), nic nezapíše. Zkontrolujte, že čekají všechny a že nevypíše žádný `PROBLÉM`.
 5. **Aplikace:** `npm run db:migrate`. Každá migrace běží v jedné transakci a zapíše se do `se_vezmou.schema_migrations` (verze, název, sha256, čas). Opakované spuštění nic nezmění. Změněnou už aplikovanou migraci nástroj odmítne a nikdy nic nemaže (migrace s `drop table`, `truncate`, `delete from` na nejvyšší úrovni odmítne). Stav: `npm run db:migrate -- --status`.
@@ -231,6 +233,23 @@ npm run ops:create-owner -- majitel@example.cz
 ```
 
 Skript založí majitele jen když ještě žádný aktivní není (další majitele zakládá majitel v administraci, nebo skript s `--allow-additional`), zapíše audit `operator.bootstrap` bez e-mailu a nic nevypisuje z tajných hodnot. Na Vercel patří navíc `OPERATOR_MFA_KEY` (min. 32 náhodných znaků, `openssl rand -base64 48`; ztráta nebo změna klíče znamená nový zápis druhého faktoru u všech operátorů). Majitel pak otevře `https://admin.se-vezmou.cz/prihlaseni`, opíše kód z e-mailu a zapíše druhý faktor (aplikace TOTP), záložní kódy si uloží mimo telefon. Ztracený faktor majitele obnoví jiný majitel, nebo vlastník databáze: `npm run ops:reset-mfa -- majitel@example.cz` (zneplatní klíč, záložní kódy a relace, zapíše audit). Skripty testuje `npm run db:migrate:test`.
+
+### Automatické nasazení migrací (GitHub Actions)
+
+Po pushi do `main`, který mění `supabase/migrations/` nebo nástroj, spustí workflow `.github/workflows/migrate.yml`
+`scripts/db-migrate.mjs` proti produkční databázi (stav, pak aplikace čekajících migrací). Ručně: Actions,
+„Migrace databáze“, Run workflow (`apply`, nebo jen `status`).
+
+- **Jednorázové nastavení:** v GitHubu Settings, Secrets and variables, Actions dvě tajné hodnoty:
+  `MIGRATE_DATABASE_URL` (spojení vlastníka přes session pooler, port 5432) a `MIGRATE_CA_CERT` (obsah PEM
+  kořenové CA Supabase). Job běží v prostředí `production`; v Settings, Environments k němu jde přidat schválení.
+  Na Vercel tyto hodnoty nikdy nepatří (ADR 0011): běžící aplikace má jen roli `se_vezmou_app`.
+- **Pořadí:** migrace běží souběžně s nasazením na Vercelu, trvají sekundy a build minuty, takže schéma je hotové
+  dřív, než se přepne nový kód. Proto musí být **každá migrace zpětně kompatibilní se starým kódem**: přidávat
+  (nové funkce, sloupce s výchozí hodnotou, nové přetížení), ne rušit nebo přejmenovávat, na co se starý kód
+  spoléhá. Rušení až v další migraci, po nasazení kódu, který už staré nepoužívá.
+- **Selhání:** neúspěšná migrace se vrátí celá (transakce) a workflow skončí chybou; nasazený kód pak běží nad
+  starým schématem. Opravte migraci (novým souborem, pokud se už některá aplikovala) a pushněte znovu.
 
 ### Nástroj `npm run db:migrate`
 

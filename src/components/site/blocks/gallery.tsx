@@ -1,8 +1,9 @@
 import { ExternalLink, Lock } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
-import type { BlockOf, PublicMedia } from "@/site/types";
+import type { BlockOf } from "@/site/types";
 import type { SiteCtx } from "../context";
-import { GalleryLightbox, type LightboxItem, type LightboxLabels } from "../gallery-lightbox";
+import { GalleryLightbox, type LightboxLabels } from "../gallery-lightbox";
+import { galleryModel } from "../models";
 import { Picture } from "../picture";
 import { PinGate, UnlockedRegion } from "../pin-gate";
 import { pinGateLabels } from "../pin-labels";
@@ -33,33 +34,19 @@ export function Gallery({
   tone: "bg" | "surface";
 }) {
   const { t } = ctx;
-  const link = block.data.link;
-  const photosProtected = block.data.photosProtected;
-  const linkProtected = link?.protected === true;
-
-  const url = link
-    ? linkProtected
-      ? ctx.sensitiveUnlocked
-        ? (ctx.sensitive?.gallery?.url ?? null)
-        : null
-      : link.url
-    : null;
-  // Karta: název (text odkazu od páru přepisuje název z cílové stránky), popis, doména a kopie obrázku.
-  const card = link ? (linkProtected ? (ctx.sensitive?.gallery?.card ?? null) : link.card) : null;
-  const fetched = card?.status === "ok" ? card : null;
-  const cardImage: PublicMedia | undefined = fetched?.imageMediaId
-    ? ctx.media(fetched.imageMediaId)
-    : undefined;
-
-  // Fotografie v pořadí: veřejné podle `mediaIds`, chráněné z citlivé části (bez obrázku karty).
-  const media: PublicMedia[] = photosProtected
-    ? ctx.sensitiveUnlocked
-      ? (ctx.sensitive?.photos ?? []).filter((m) => m.id !== fetched?.imageMediaId)
-      : []
-    : block.data.mediaIds.map((id) => ctx.media(id)).filter((m) => m !== undefined);
-  const items: LightboxItem[] = media
-    .map((m) => ({ media: m, alt: ctx.text(m.alt), lang: ctx.lang(m.alt) }))
-    .filter(({ media: m, alt }) => m.decorative || alt !== "");
+  const {
+    url,
+    title,
+    titleLang,
+    description,
+    host,
+    cardImage,
+    items,
+    photosProtected,
+    linkProtected,
+    gated,
+    locked,
+  } = galleryModel(block, ctx);
   const lightboxLabels: LightboxLabels = {
     open: t("site.gallery.open", { alt: "{alt}" }),
     openN: t("site.gallery.openN", { n: "{n}", total: "{total}" }),
@@ -69,16 +56,6 @@ export function Gallery({
     next: t("site.gallery.next"),
     counter: t("site.gallery.counter", { n: "{n}", total: "{total}" }),
   };
-
-  const ownTitle = link ? ctx.text(link.label) : "";
-  const title = ownTitle || fetched?.title || t("site.gallery.linkDefault");
-  const description = fetched?.description ?? null;
-  let host = "";
-  try {
-    host = url ? new URL(url).hostname.replace(/^www\./, "") : "";
-  } catch {
-    host = "";
-  }
 
   const anchor = url ? (
     <a href={url} target="_blank" rel="noopener noreferrer" className="site-linkcard">
@@ -92,10 +69,7 @@ export function Gallery({
           />
         </span>
       ) : null}
-      <span
-        className="site-linkcard-title"
-        lang={ownTitle && link ? ctx.lang(link.label) : undefined}
-      >
+      <span className="site-linkcard-title" lang={titleLang}>
         {title}
       </span>
       {description ? <span className="site-linkcard-desc">{description}</span> : null}
@@ -109,9 +83,6 @@ export function Gallery({
 
   const grid = items.length > 0 ? <GalleryLightbox items={items} labels={lightboxLabels} /> : null;
 
-  const gated = photosProtected || linkProtected;
-  // Příznak odemčení bez citlivých údajů nic neodemkne (zůstane výzva k zadání PINu)
-  const locked = gated && !(ctx.sensitiveUnlocked && ctx.sensitive !== null);
   return (
     <Section block={block} ctx={ctx} tone={tone}>
       {photosProtected ? null : grid}

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import type { Block } from "@/site/types";
-import { Divider } from "../ornaments";
 import { BLOCK_TITLE, type SiteCtx } from "../context";
 
 export interface SectionProps {
@@ -28,7 +27,7 @@ export function Section({ block, ctx, tone, children, after }: SectionProps) {
         <h2 id={headingId} className="site-h2">
           {ctx.t(BLOCK_TITLE[block.type])}
         </h2>
-        <Divider template={ctx.content.template} />
+        {ctx.decor.divider}
         {children}
       </div>
       {after}

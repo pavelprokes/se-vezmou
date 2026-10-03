@@ -5,6 +5,7 @@ import type { BlockOf } from "@/site/types";
 import type { SiteCtx } from "../context";
 import { PinGate, UnlockedRegion } from "../pin-gate";
 import { pinGateLabels } from "../pin-labels";
+import { venueEntries } from "../models";
 import { VenueMap } from "../venue-map";
 import { Paragraphs, Section } from "./section";
 
@@ -26,17 +27,7 @@ export function Venue({
   tone: "bg" | "surface";
 }) {
   const { t } = ctx;
-  const venues = block.data.venueIds.map((id) => ctx.venue(id)).filter((v) => v !== undefined);
-  const privateAddress = (id: string) =>
-    ctx.sensitiveUnlocked ? (ctx.sensitive?.venues[id] ?? null) : null;
-  const located = (venue: (typeof venues)[number]) =>
-    block.data.showMap && !venue.isPrivate && venue.lat !== null && venue.lng !== null
-      ? { lat: venue.lat, lng: venue.lng }
-      : null;
-  const points = venues.flatMap((venue) => {
-    const point = located(venue);
-    return point ? [{ ...point, label: ctx.text(venue.name) }] : [];
-  });
+  const { entries, points } = venueEntries(block, ctx);
 
   return (
     <Section
@@ -47,18 +38,13 @@ export function Venue({
     >
       <Paragraphs value={block.data.intro} ctx={ctx} className="site-lead" />
       <div className="site-cards">
-        {venues.map((venue) => {
-          const unlocked = venue.isPrivate ? privateAddress(venue.id) : null;
-          const address = venue.isPrivate ? (unlocked?.address ?? null) : venue.address;
-          const mapUrl = venue.isPrivate ? (unlocked?.mapUrl ?? null) : venue.mapUrl;
-          const directions = venue.isPrivate ? (unlocked?.directions ?? null) : venue.directions;
-          const point = located(venue);
+        {entries.map(({ venue, address, mapUrl, directions, locked, point }) => {
           return (
             <article key={venue.id} className="site-card" aria-labelledby={`venue-${venue.id}`}>
               <h3 id={`venue-${venue.id}`} className="site-h3">
                 <span lang={ctx.lang(venue.name)}>{ctx.text(venue.name)}</span>
               </h3>
-              {venue.isPrivate && !address ? (
+              {locked ? (
                 <div className="site-gate">
                   <Icon icon={Lock} size={24} />
                   <PinGate

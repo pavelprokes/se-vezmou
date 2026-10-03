@@ -4,6 +4,7 @@ import { Icon } from "@/components/ui/icon";
 import { buildSpayd } from "@/site/payment";
 import type { BlockOf } from "@/site/types";
 import type { SiteCtx } from "../context";
+import { giftsModel } from "../models";
 import { PinGate, UnlockedRegion } from "../pin-gate";
 import { pinGateLabels } from "../pin-labels";
 import { Paragraphs, Section } from "./section";
@@ -53,7 +54,7 @@ export function Gifts({
   tone: "bg" | "surface";
 }) {
   const { t } = ctx;
-  const gifts = ctx.sensitiveUnlocked ? ctx.sensitive?.gifts : null;
+  const gifts = giftsModel(ctx);
 
   return (
     <Section block={block} ctx={ctx} tone={tone}>

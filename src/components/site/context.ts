@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { htmlLang, type Locale } from "@/i18n/config";
 import type { NamespaceKey } from "@/i18n/messages";
 import type { Translator } from "@/i18n/translator";
@@ -41,6 +42,18 @@ export interface SiteCtx {
   lang(value: I18nText | null | undefined): string | undefined;
   media(id: string | null | undefined): PublicMedia | undefined;
   venue(id: string | null | undefined): PublicVenue | undefined;
+  /** Dekor šablony pro sdílené bloky (ornament v úvodu, oddělovač pod nadpisem sekce). */
+  decor: SiteDecor;
+}
+
+/** Dekorativní prvky, které šablona vloží do sdílených bloků; vždy `aria-hidden`. */
+export interface SiteDecor {
+  /** Za obsahem úvodu (např. větvičky v rozích). */
+  heroBackdrop?: ReactNode;
+  /** Nad jmény v úvodu (např. monogram). */
+  heroCrest?: ReactNode;
+  /** Pod nadpisem každé sekce. */
+  divider?: ReactNode;
 }
 
 export interface SiteCtxOptions {
@@ -82,6 +95,7 @@ export function createSiteCtx(
       content.media.find((m) => m.id === id) ??
       (options.sensitiveUnlocked ? options.sensitive?.photos.find((m) => m.id === id) : undefined),
     venue: (id) => content.venues.find((v) => v.id === id),
+    decor: {},
   };
 }
 

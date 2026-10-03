@@ -1,5 +1,3 @@
-import type { TemplateKey } from "@/site/themes/palettes";
-
 /**
  * Dekorativní inline SVG šablon. Vždy `aria-hidden`, nikdy nenese sdělení ani text; barvy jen
  * z dekorativních rolí palety (`ornament`, `decor`, `decor2`), které test kontrastu označuje
@@ -64,24 +62,23 @@ export function Monogram({ a, b }: { a: string; b: string }) {
   );
 }
 
-/** Oddělovač sekcí podle šablony; pro Editorial a Modern jen tenká linka v CSS. */
-export function Divider({ template }: { template: TemplateKey }) {
-  if (template === "chateau") {
-    return (
-      <svg {...common} viewBox="0 0 200 16" className="site-divider">
-        <path className="site-divider-line" d="M0 8 H82 M118 8 H200" fill="none" />
-        <path className="site-divider-gem" d="M100 1 L107 8 L100 15 L93 8 Z" />
-      </svg>
-    );
-  }
-  if (template === "eukalyptus") {
-    return (
-      <svg {...common} viewBox="0 0 200 24" className="site-divider">
-        <path className="site-divider-line" d="M0 12 H78 M122 12 H200" fill="none" />
-        <Leaf className="site-leaf-1" transform="translate(100 12) rotate(-30) scale(.22)" />
-        <Leaf className="site-leaf-2" transform="translate(100 12) rotate(30) scale(.22)" />
-      </svg>
-    );
-  }
-  return null;
+/** Oddělovač sekcí Chateau: linka s kosočtvercem. */
+export function ChateauDivider() {
+  return (
+    <svg {...common} viewBox="0 0 200 16" className="site-divider">
+      <path className="site-divider-line" d="M0 8 H82 M118 8 H200" fill="none" />
+      <path className="site-divider-gem" d="M100 1 L107 8 L100 15 L93 8 Z" />
+    </svg>
+  );
+}
+
+/** Oddělovač sekcí Eukalyptus: linka se dvěma lístky. */
+export function EucalyptusDivider() {
+  return (
+    <svg {...common} viewBox="0 0 200 24" className="site-divider">
+      <path className="site-divider-line" d="M0 12 H78 M122 12 H200" fill="none" />
+      <Leaf className="site-leaf-1" transform="translate(100 12) rotate(-30) scale(.22)" />
+      <Leaf className="site-leaf-2" transform="translate(100 12) rotate(30) scale(.22)" />
+    </svg>
+  );
 }

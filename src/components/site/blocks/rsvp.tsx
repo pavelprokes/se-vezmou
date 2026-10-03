@@ -1,7 +1,6 @@
-import { dayInZone, formatDay } from "@/site/format";
 import type { BlockOf } from "@/site/types";
 import type { SiteCtx } from "../context";
-import { rsvpIsOpen } from "../context";
+import { rsvpModel } from "../models";
 import { rsvpLabels } from "../rsvp/labels";
 import { RsvpPrivacyNotice } from "../rsvp/privacy-notice";
 import { RsvpForm } from "../rsvp/rsvp-form";
@@ -22,9 +21,7 @@ export function Rsvp({
   tone: "bg" | "surface";
 }) {
   const { t, content } = ctx;
-  const open = rsvpIsOpen(content);
-  const closesAt = ctx.rsvp?.closesAt ?? null;
-  const closes = closesAt ? formatDay(dayInZone(closesAt, content.timezone), ctx.locale) : null;
+  const { open, closes, status } = rsvpModel(ctx);
 
   return (
     <Section block={block} ctx={ctx} tone={tone}>
@@ -39,9 +36,7 @@ export function Rsvp({
           closes={closes}
         />
       ) : (
-        <p className="site-rsvp-status">
-          {content.phase === "save_the_date" ? t("site.rsvp.notYet") : t("site.rsvp.closed")}
-        </p>
+        <p className="site-rsvp-status">{status}</p>
       )}
     </Section>
   );

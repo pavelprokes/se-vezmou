@@ -9,6 +9,9 @@ import type { JobContext } from "../run";
 
 const rpc = vi.hoisted(() => ({
   archiveDue: vi.fn(),
+  deleteArchived: vi.fn(),
+  claimPurge: vi.fn(),
+  releasePurge: vi.fn(),
   enqueueNotices: vi.fn(),
   noticesPending: vi.fn(),
   claimNotices: vi.fn(),
@@ -86,6 +89,9 @@ beforeEach(() => {
   vi.spyOn(console, "warn").mockImplementation(() => undefined);
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   rpc.archiveDue.mockResolvedValue(0);
+  rpc.deleteArchived.mockResolvedValue(0);
+  rpc.claimPurge.mockResolvedValue(true);
+  rpc.releasePurge.mockResolvedValue(undefined);
   rpc.enqueueNotices.mockResolvedValue({ first: 0, final: 0 });
   rpc.noticesPending.mockResolvedValue(0);
   rpc.claimNotices.mockResolvedValue([]);
@@ -105,6 +111,7 @@ afterEach(() => {
 describe("úloha životního cyklu", () => {
   it("archivuje, naplánuje a odešle upozornění po dávkách s počty bez osobních údajů", async () => {
     rpc.archiveDue.mockResolvedValue(2);
+    rpc.deleteArchived.mockResolvedValue(4);
     rpc.enqueueNotices.mockResolvedValue({ first: 1, final: 1 });
     rpc.claimNotices
       .mockResolvedValueOnce([notice(), notice({ notice_id: "n2", wedding_id: B, slug: null })])
@@ -127,6 +134,7 @@ describe("úloha životního cyklu", () => {
     expect(result.status).toBe("ok");
     expect(result.counts).toMatchObject({
       archived: 2,
+      archived_deleted: 4,
       notices_planned_first: 1,
       notices_planned_final: 1,
       notices_sent: 1,
@@ -204,6 +212,7 @@ describe("úloha životního cyklu", () => {
     const result = await lifecycleJob.run(context({ dryRun: true }));
     expect(result.counts).toEqual({
       archived: 3,
+      archived_deleted: 0,
       notices_planned_first: 2,
       notices_planned_final: 0,
       notices_pending: 4,
@@ -212,6 +221,14 @@ describe("úloha životního cyklu", () => {
     expect(rpc.enqueueNotices).toHaveBeenCalledWith(expect.objectContaining({ dryRun: true }));
     expect(rpc.claimNotices).not.toHaveBeenCalled();
     expect(stubContext.send).not.toHaveBeenCalled();
+  });
+
+  it("selhání přesunu archivovaných webů nezastaví upozornění: partial", async () => {
+    rpc.deleteArchived.mockRejectedValue(new Error("db"));
+    const result = await lifecycleJob.run(context());
+    expect(result.status).toBe("partial");
+    expect(result.counts.archived_deleted).toBe(0);
+    expect(rpc.enqueueNotices).toHaveBeenCalled();
   });
 
   it("selhání archivace nezastaví upozornění: partial", async () => {
@@ -400,6 +417,76 @@ describe("úloha retence", () => {
     const second = await retentionJob.run(context());
     expect(second.status).toBe("ok");
     expect(second.counts).toMatchObject({ weddings_purged: 1, files_deleted: 2 });
+  });
+
+  it("čerstvá kontrola a převzetí proběhnou těsně PŘED mazáním souborů, ty před smazáním řádků", async () => {
+    rpc.dueWeddings.mockResolvedValue([due(A)]);
+    const order: string[] = [];
+    rpc.claimPurge.mockImplementation(async () => {
+      order.push(`claim:files=${storage.keys().filter((k) => k.startsWith(A)).length}`);
+      return true;
+    });
+    rpc.purgeWedding.mockImplementation(async () => {
+      order.push(`purge:files=${storage.keys().filter((k) => k.startsWith(A)).length}`);
+      return { kind: "wedding", guests: 0, blocks: 0, media: 2, storage_paths: [] };
+    });
+    const result = await retentionJob.run(context());
+    expect(result.status).toBe("ok");
+    expect(order).toEqual(["claim:files=2", "purge:files=0"]);
+    expect(rpc.claimPurge).toHaveBeenCalledWith(A, NOW);
+    expect(rpc.releasePurge).not.toHaveBeenCalled();
+  });
+
+  it("web obnovený operátorem mezi seznamem a mazáním: soubory PŘEŽIJÍ, řádky se nemažou", async () => {
+    rpc.dueWeddings.mockResolvedValue([due(A), due(B)]);
+    // A je mezitím obnovený: čerstvá kontrola ho nepřevezme (false), B pokračuje
+    rpc.claimPurge.mockImplementation(async (weddingId: string) => weddingId !== A);
+    rpc.purgeWedding.mockResolvedValue({
+      kind: "wedding",
+      guests: 0,
+      blocks: 0,
+      media: 1,
+      storage_paths: [],
+    });
+    const result = await retentionJob.run(context());
+    expect(result.status).toBe("ok");
+    expect(result.counts).toMatchObject({ weddings_restored: 1, weddings_purged: 1 });
+    // fotografie obnoveného webu zůstaly, fotografie smazaného webu B zmizely
+    expect(storage.keys().filter((k) => k.startsWith(A))).toHaveLength(2);
+    expect(storage.keys().filter((k) => k.startsWith(B))).toHaveLength(0);
+    expect(rpc.purgeWedding).not.toHaveBeenCalledWith(A, expect.anything());
+    expect(rpc.releasePurge).not.toHaveBeenCalled();
+  });
+
+  it("selhání převzetí (chyba databáze): nic se nemaže, úloha je partial", async () => {
+    rpc.dueWeddings.mockResolvedValue([due(A)]);
+    rpc.claimPurge.mockRejectedValue(new DbError("retention_claim", "40001", "chyba SQL"));
+    const result = await retentionJob.run(context());
+    expect(result.status).toBe("partial");
+    expect(result.errorCode).toBe("purge_claim_failed");
+    expect(storage.keys().filter((k) => k.startsWith(A))).toHaveLength(2);
+    expect(rpc.purgeWedding).not.toHaveBeenCalled();
+  });
+
+  it("po selhání mazání souborů i řádků se převzetí uvolní (další pokus po záloze)", async () => {
+    storage.failDeleteFor.add(A);
+    rpc.dueWeddings.mockResolvedValue([due(A), due(B)]);
+    rpc.purgeWedding.mockRejectedValueOnce(new DbError("purge_wedding", "40001", "chyba SQL"));
+    const result = await retentionJob.run(context());
+    expect(result.status).toBe("partial");
+    // A: selhalo mazání souborů, B: selhalo mazání řádků; obě převzetí se uvolnila
+    expect(rpc.releasePurge).toHaveBeenCalledWith(A);
+    expect(rpc.releasePurge).toHaveBeenCalledWith(B);
+    expect(rpc.releasePurge).toHaveBeenCalledTimes(2);
+  });
+
+  it("selhání uvolnění převzetí úlohu neshodí (zapůjčení v databázi vyprší samo)", async () => {
+    storage.failDeleteFor.add(A);
+    rpc.dueWeddings.mockResolvedValue([due(A)]);
+    rpc.releasePurge.mockRejectedValue(new Error("síť"));
+    const result = await retentionJob.run(context());
+    expect(result.status).toBe("partial");
+    expect(result.errorCode).toBe("storage_delete_failed");
   });
 
   it("web mezitím obnovený operátorem se nesmaže a není to chyba", async () => {

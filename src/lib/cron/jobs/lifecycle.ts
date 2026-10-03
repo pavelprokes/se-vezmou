@@ -1,6 +1,7 @@
 import "server-only";
 import {
   archiveDue,
+  deleteArchived,
   claimNotices,
   enqueueNotices,
   finishNotice,
@@ -20,7 +21,8 @@ const RESERVE_MS = 3_000;
 
 /**
  * Životní cyklus (FR-LC-1, FR-LC-2): archivace webů po konci provozu (published -> archived, doplnění
- * retenčních dat), plánování upozornění a odeslání upozornění a zpráv o smazání správcům. Fáze webu se
+ * retenčních dat), přesun archivovaných webů po lhůtě za `guest_purge_at` do stavu deleted (nastavení
+ * `archived_delete_days_after_guest_purge`, čeká na schválení právníkem; trvale je potom smaže retence), plánování upozornění a odeslání upozornění a zpráv o smazání správcům. Fáze webu se
  * nezapisují: odvozují se z dat (`se_vezmou.phase`), cron mění jen uložený stav.
  */
 export const lifecycleJob: JobDefinition = {
@@ -31,6 +33,11 @@ export const lifecycleJob: JobDefinition = {
 
     runner.counts.archived =
       (await runner.step("archive", () => archiveDue({ ...scope, batch: context.batch }))) ?? 0;
+
+    runner.counts.archived_deleted =
+      (await runner.step("delete_archived", () =>
+        deleteArchived({ ...scope, batch: context.batch }),
+      )) ?? 0;
 
     const planned = await runner.step("plan_notices", () => enqueueNotices(scope));
     runner.counts.notices_planned_first = planned?.first ?? 0;

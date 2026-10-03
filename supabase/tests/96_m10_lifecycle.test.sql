@@ -1,6 +1,8 @@
 -- M10: životní cyklus (fáze, archivace, ruční přepsání), zámek běhů úloh, upozornění a dohled pro operátora.
 -- „Teď“ se předává parametrem p_now: simulovaný čas bez čekání.
 begin;
+-- testovací hodina (se_vezmou.clock_guard): bez ní by funkce odmítly p_now z budoucnosti; hlídá ji 98_db_hardening
+select set_config('se_vezmou.test_clock', 'on', true);
 select tap.seed();
 
 -- ---------------------------------------------------------------------------

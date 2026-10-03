@@ -49,6 +49,8 @@ const BY_REASON: Record<string, OpsErrorKey> = {
   invalid_role: "invalidRole",
   self_not_allowed: "selfNotAllowed",
   wedding_deleted: "notRestorable",
+  // web právě maže úloha retence (převzetí těsně před mazáním souborů): obnova už není možná
+  purge_in_progress: "notRestorable",
 };
 
 export function opsErrorKey(error: unknown): OpsErrorKey {

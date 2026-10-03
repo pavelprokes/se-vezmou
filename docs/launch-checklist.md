@@ -6,24 +6,24 @@ Stav: k 2. 10. 2026 (po M10, M11 probíhá). Jedna stránka s tím, co musíte u
 
 Project Settings, Environment Variables, **Production** (a podle potřeby Preview). Tajné hodnoty vytvořte příkazem `openssl rand -base64 48`, každá **jiná**, nikdy je neukládejte do repozitáře. Po každé změně je potřeba nové nasazení.
 
-| Proměnná                                                                      | Povinná          | Minimum a poznámka                                                                                          |
-| ----------------------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                                                                | ano              | pooler Supabase, transaction mode (port 6543), role `se_vezmou_app`                                         |
-| `DATABASE_CA_CERT`                                                            | doporučená       | PEM kořenové CA Supabase, zapne ověření certifikátu databáze (OQ-45)                                        |
-| `AUTH_SECRET`                                                                 | ano              | min. **32 znaků**                                                                                           |
-| `RATE_LIMIT_SECRET`                                                           | ano              | min. **32 znaků**                                                                                           |
-| `PIN_PEPPER`                                                                  | ano              | min. **32 znaků**; rotace vyžaduje plán (`docs/security-privacy.md` kap. 1.2)                               |
-| `OPERATOR_MFA_KEY`                                                            | ano              | min. **32 znaků**; šifruje TOTP operátorů, ztráta nebo změna = všichni operátoři zapíšou druhý faktor znovu |
-| `CRON_SECRET`                                                                 | ano              | min. **32 znaků**; bez něj **každá `/api/cron/*` tiše vrací 401** a nic se nemaže ani neposílá              |
-| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                    | ano              | IAM uživatel jen na odesílání SES; region `eu-central-1`                                                    |
-| `EMAIL_FROM`                                                                  | ano              | odesílatel ověřený v SES, např. `Se vezmou <info@se-vezmou.cz>`                                             |
-| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`                   | ano (fotografie) | token omezený na jeden bucket                                                                               |
-| `R2_BUCKET`                                                                   | ano (fotografie) | např. `se-vezmou-photos`                                                                                    |
-| `R2_ENDPOINT`, `S3_REGION`                                                    | volitelné        | `https://<account-id>.eu.r2.cloudflarestorage.com`, `auto`                                                  |
-| `NEXT_PUBLIC_SITE_URL`                                                        | ano              | `https://se-vezmou.cz`, shodně s hlavním jménem (apex nebo `www`, viz bod 6)                                |
-| `NEXT_PUBLIC_APP_URL`                                                         | ano              | `https://app.se-vezmou.cz`                                                                                  |
-| `ROOT_DOMAIN`                                                                 | ano              | `se-vezmou.cz`                                                                                              |
-| `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | volitelné        | viz bod 9                                                                                                   |
+| Proměnná                                                                      | Povinná          | Minimum a poznámka                                                                                                                          |
+| ----------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                                                                | ano              | pooler Supabase, transaction mode (port 6543), role `se_vezmou_app`                                                                         |
+| `DATABASE_CA_CERT`                                                            | ano              | PEM kořenové CA Supabase; spojení se vzdálenou databází ověřuje certifikát, bez ní selže (OQ-45). Vědomé opt-out: `DATABASE_TLS_INSECURE=1` |
+| `AUTH_SECRET`                                                                 | ano              | min. **32 znaků**                                                                                                                           |
+| `RATE_LIMIT_SECRET`                                                           | ano              | min. **32 znaků**                                                                                                                           |
+| `PIN_PEPPER`                                                                  | ano              | min. **32 znaků**; rotace vyžaduje plán (`docs/security-privacy.md` kap. 1.2)                                                               |
+| `OPERATOR_MFA_KEY`                                                            | ano              | min. **32 znaků**; šifruje TOTP operátorů, ztráta nebo změna = všichni operátoři zapíšou druhý faktor znovu                                 |
+| `CRON_SECRET`                                                                 | ano              | min. **32 znaků**; bez něj **každá `/api/cron/*` tiše vrací 401** a nic se nemaže ani neposílá                                              |
+| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`                    | ano              | IAM uživatel jen na odesílání SES; region `eu-central-1`                                                                                    |
+| `EMAIL_FROM`                                                                  | ano              | odesílatel ověřený v SES, např. `Se vezmou <info@se-vezmou.cz>`                                                                             |
+| `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`                   | ano (fotografie) | token omezený na jeden bucket                                                                                                               |
+| `R2_BUCKET`                                                                   | ano (fotografie) | např. `se-vezmou-photos`                                                                                                                    |
+| `R2_ENDPOINT`, `S3_REGION`                                                    | volitelné        | `https://<account-id>.eu.r2.cloudflarestorage.com`, `auto`                                                                                  |
+| `NEXT_PUBLIC_SITE_URL`                                                        | ano              | `https://se-vezmou.cz`, shodně s hlavním jménem (apex nebo `www`, viz bod 6)                                                                |
+| `NEXT_PUBLIC_APP_URL`                                                         | ano              | `https://app.se-vezmou.cz`                                                                                                                  |
+| `ROOT_DOMAIN`                                                                 | ano              | `se-vezmou.cz`                                                                                                                              |
+| `NEXT_PUBLIC_SENTRY_DSN`, `SENTRY_ORG`, `SENTRY_PROJECT`, `SENTRY_AUTH_TOKEN` | volitelné        | viz bod 9                                                                                                                                   |
 
 **Nenastavujte** na Vercelu: `MIGRATE_DATABASE_URL`, `MIGRATE_CA_CERT`, `EMAIL_TRANSPORT`, `EMAIL_OUTBOX_DIR`, `STORAGE_DRIVER`, `CRON_TEST_CLOCK`, `OG_FETCH_TEST_HOST`, `ENABLE_UI_CATALOG`, `HOST_PRESET`, `PREVIEW_TENANT_SLUG`, `NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`. Úplný vzor je `.env.example`.
 
@@ -42,7 +42,7 @@ Postup krok za krokem je v `supabase/README.md`, kapitola Fotografie. Stručně:
 ## 3. Databáze a migrace
 
 1. Init skripty `supabase/init/00_*.sql` a `01_*.sql` (změňte heslo role `se_vezmou_app`!), viz `supabase/README.md`.
-2. `export MIGRATE_DATABASE_URL='postgresql://postgres:…@db.<ref>.supabase.co:5432/postgres'` (jen v shellu na vašem počítači), volitelně `MIGRATE_CA_CERT`.
+2. `export MIGRATE_DATABASE_URL='postgresql://postgres:…@db.<ref>.supabase.co:5432/postgres'` (jen v shellu na vašem počítači) a `MIGRATE_CA_CERT` (PEM kořenové CA Supabase, povinná; bez ní nástroj odmítne běžet, vědomé opt-out `MIGRATE_TLS_INSECURE=1`).
 3. `npm run db:migrate -- --dry-run`, pak `npm run db:migrate`. Stav: `npm run db:migrate -- --status`.
 4. **Past s „budoucími“ daty migrací.** Soubory migrací jsou číslované daty (`20261008120000_media.sql`), která jsou **později než skutečné dnešní datum**. Nástroj odmítne čekající migraci, která je **starší než poslední aplikovaná**, a odmítne i změněnou už aplikovanou. Novou migraci proto vždy pojmenujte **po nejnovější existující** (vyšší číslo než všechny v `supabase/migrations/`), ne podle kalendáře, a hotové migrace nikdy neupravujte ani komentáře v nich (změní se kontrolní součet). Opravy jdou novým souborem.
 5. Ověřovací dotazy po nasazení jsou v `supabase/README.md` (počet migrací, RLS, práva rolí).

@@ -2,8 +2,8 @@
 --
 -- STAV: majitel projektu už 00_init_se_vezmou.sql i tento skript provedl na sdíleném projektu
 -- Supabase. V repozitáři jsou jako záznam toho, co v databázi je, a pro nový projekt či obnovu.
--- Expozice schématu se_vezmou pro PostgREST (poslední krok 00_init_se_vezmou.sql) je kvůli
--- přímému spojení `pg` (ADR 0011) NEPOVINNÁ: aplikace PostgREST ani supabase-js nepoužívá.
+-- Init skript už schéma pro PostgREST nevystavuje (nepřepisuje globální pgrst.db_schemas):
+-- aplikace PostgREST ani supabase-js nepoužívá (ADR 0011, OQ-46).
 --
 -- Spouští se JEDNOU v Supabase SQL editoru (role postgres). Skript je idempotentní.
 --

@@ -108,6 +108,41 @@ begin
      and has_function_privilege('authenticated', p.oid, 'execute');
   perform tap.ok(v_bad is null, 'authenticated nemá execute na funkce service role (porušuje: ' || coalesce(v_bad, '-') || ')');
 
+  -- 10b. KAŽDÁ funkce schématu (security definer i invoker) má prázdný search_path a nikdo z PUBLIC ani anon
+  --      ji nespustí (nový typ funkce bez pravidla by test shodil)
+  select string_agg(p.oid::regprocedure::text, ', ') into v_bad
+    from pg_proc p
+   where p.pronamespace = 'se_vezmou'::regnamespace
+     and not exists (select 1 from unnest(coalesce(p.proconfig, '{}')) c where c = 'search_path=""');
+  perform tap.ok(v_bad is null, 'každá funkce schématu má prázdný search_path (porušuje: ' || coalesce(v_bad, '-') || ')');
+
+  select string_agg(p.oid::regprocedure::text, ', ') into v_bad
+    from pg_proc p
+   where p.pronamespace = 'se_vezmou'::regnamespace
+     and (p.proacl is null
+          or exists (select 1 from aclexplode(p.proacl) acl where acl.grantee = 0)
+          or has_function_privilege('anon', p.oid, 'execute'));
+  perform tap.ok(v_bad is null, 'žádná funkce schématu nemá execute pro PUBLIC ani anon (porušuje: ' || coalesce(v_bad, '-') || ')');
+
+  -- 10c. seznam podle názvu: provozní funkce životního cyklu, retence a běhů úloh, interní obaly a pomocné funkce
+  --      nesmí spustit správce ani host (authenticated). Nová funkce s těmito předponami musí projít.
+  select string_agg(p.oid::regprocedure::text, ', ') into v_bad
+    from pg_proc p
+   where p.pronamespace = 'se_vezmou'::regnamespace
+     and (p.proname like 'lifecycle\_%' or p.proname like 'job\_run\_%' or p.proname like 'retention\_%'
+          or p.proname like 'purge\_%' or p.proname like '%\_impl' or p.proname like 'op\_%'
+          or p.proname in ('housekeeping', 'clock_guard', 'assert_operator', 'write_audit',
+                           'app_setting_bounds', 'app_setting_valid', 'email_status_rank'))
+     and has_function_privilege('authenticated', p.oid, 'execute');
+  perform tap.ok(v_bad is null, 'lifecycle_*, job_run_*, retention_*, purge_*, *_impl, op_* a pomocné funkce nemá authenticated (porušuje: ' || coalesce(v_bad, '-') || ')');
+
+  -- *_impl (tělo funkcí za obalem s clock_guard) nespustí nikdo, ani service_role
+  select string_agg(p.oid::regprocedure::text, ', ') into v_bad
+    from pg_proc p
+   where p.pronamespace = 'se_vezmou'::regnamespace and p.proname like '%\_impl'
+     and (has_function_privilege('service_role', p.oid, 'execute') or has_function_privilege('authenticated', p.oid, 'execute'));
+  perform tap.ok(v_bad is null, 'interní *_impl funkce nespustí service_role ani authenticated (porušuje: ' || coalesce(v_bad, '-') || ')');
+
   -- 11. správce nikdy nečte hashe PINů ani nemění citlivé sloupce svatby
   perform tap.ok(not has_column_privilege('authenticated', 'se_vezmou.wedding_auth', 'admin_pin_hash', 'select'),
     'správce nemá SELECT na admin_pin_hash');

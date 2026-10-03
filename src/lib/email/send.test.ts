@@ -52,4 +52,20 @@ describe("sendTemplatedEmail přes konzolovou dopravu (vývoj bez SES)", () => {
     expect(await sendTemplatedEmail(input(true))).toBe(false);
     expect(statuses).toEqual(["failed"]);
   });
+
+  it("odeslaný e-mail zůstane úspěchem, i když se nepodaří zapsat jeho stav (jinak by se poslal znovu)", async () => {
+    const statuses: string[] = [];
+    setTransport({
+      async call(fn, args) {
+        if (fn === "email_log_insert") return "55555555-5555-4555-8555-555555555555";
+        if (fn === "email_log_set_status") {
+          statuses.push(String(args.p_status));
+          throw new Error("spojení s databází spadlo");
+        }
+        throw new Error(`Neočekávané volání ${fn}`);
+      },
+    });
+    expect(await sendTemplatedEmail(input())).toBe(true);
+    expect(statuses).toEqual(["sent"]);
+  });
 });

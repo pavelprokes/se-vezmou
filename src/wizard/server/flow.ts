@@ -168,6 +168,7 @@ export async function verifyWizardCode(input: {
     purpose: PURPOSE,
     codeHash: codeHash(authSecret, input.email, input.code),
     maxAttempts: LOGIN_CODE.maxAttempts,
+    clientKey: rateKey(requireEnv("RATE_LIMIT_SECRET"), "challenge-client", input.ip),
   });
   return valid ? "ok" : "invalid";
 }

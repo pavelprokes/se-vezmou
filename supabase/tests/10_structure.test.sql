@@ -104,7 +104,7 @@ begin
                            'resolve_preview', 'housekeeping', 'get_app_settings',
                            'email_log_insert', 'email_log_set_status',
                            'wizard_create_draft', 'wizard_save', 'wizard_load', 'publish_site',
-                           'set_preview_token', 'waitlist_add', 'analytics_record'))
+                           'set_preview_token', 'waitlist_add', 'waitlist_confirm', 'analytics_record'))
      and has_function_privilege('authenticated', p.oid, 'execute');
   perform tap.ok(v_bad is null, 'authenticated nemá execute na funkce service role (porušuje: ' || coalesce(v_bad, '-') || ')');
 

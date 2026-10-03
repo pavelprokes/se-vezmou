@@ -1,0 +1,370 @@
+-- Opravy po revizi kódu (fáze 1): zdravotní údaje a e-mail v RSVP hosta, aktivita konceptu a obnovitelný
+-- úklid opuštěných konceptů (migrace 20261012120000_rsvp_guest_privacy, 20261012120100_draft_activity).
+begin;
+select tap.seed();
+
+-- ---------------------------------------------------------------------------
+-- rsvp_submit: uložené zdravotní údaje a e-mail, které host neviděl, zůstanou jen s keep_*
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_ticket text;
+  g1 uuid := tap.u('A:guest1');
+  e1 uuid := tap.u('A:event1');
+  e2 uuid := tap.u('A:event2');
+  v_att jsonb := jsonb_build_array(jsonb_build_object('event_id', e1, 'attending', true),
+                                   jsonb_build_object('event_id', e2, 'attending', true));
+begin
+  update se_vezmou.rsvp_settings set email_confirmation = true where wedding_id = tap.wa();
+  update se_vezmou.rsvp_responses set contact_email = 'jan@example.test' where wedding_id = tap.wa();
+
+  perform tap.become('authenticated', tap.wa(), 'visitor');
+  select ticket into v_ticket from se_vezmou.rsvp_match('Jan Novák');
+  perform tap.ok((se_vezmou.rsvp_get(v_ticket) #>> '{response,has_email}')::boolean,
+    'pohled hosta nese příznak uloženého e-mailu');
+  perform tap.ok(se_vezmou.rsvp_get(v_ticket)::text not like '%jan@example.test%', 'pohled hosta e-mail neobsahuje');
+
+  -- úprava bez nových údajů s keep_health a keep_email: hodnoty zůstanou
+  perform se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('keep_email', true, 'people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'keep_health', true, 'attendance', v_att))));
+  perform tap.reset();
+  perform tap.ok((select diet = 'vegetariánská' and allergies = 'ořechy' from se_vezmou.rsvp_health
+                   where wedding_id = tap.wa()), 'keep_health ponechá dietu i alergie');
+  perform tap.ok((select contact_email = 'jan@example.test' from se_vezmou.rsvp_responses where wedding_id = tap.wa()),
+    'keep_email ponechá e-mail pro potvrzení');
+
+  -- nová hodnota má přednost před keep_health
+  perform tap.become('authenticated', tap.wa(), 'visitor');
+  perform se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'keep_health', true, 'diet', 'vegan', 'attendance', v_att))));
+  perform tap.reset();
+  perform tap.ok((select diet = 'vegan' and allergies is null from se_vezmou.rsvp_health where wedding_id = tap.wa()),
+    'vyplněná dieta nahradí uložené údaje');
+  perform tap.ok((select contact_email is null from se_vezmou.rsvp_responses where wedding_id = tap.wa()),
+    'bez keep_email a bez nového e-mailu se e-mail smaže');
+
+  -- bez příznaku (host údaje smazal) se nic neponechá
+  perform tap.become('authenticated', tap.wa(), 'visitor');
+  perform se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'attendance', v_att))));
+  perform tap.reset();
+  perform tap.eq((select count(*) from se_vezmou.rsvp_health where wedding_id = tap.wa()), 0,
+    'bez keep_health se uložené údaje smažou');
+
+  -- vypnutá dieta: keep_health nic neobnoví
+  insert into se_vezmou.rsvp_health (person_id, wedding_id, diet)
+    select p.id, tap.wa(), 'bez lepku' from se_vezmou.rsvp_people p where p.wedding_id = tap.wa() and p.guest_id = g1;
+  update se_vezmou.rsvp_settings set enabled_questions = '{"plus_one": true}' where wedding_id = tap.wa();
+  perform tap.become('authenticated', tap.wa(), 'visitor');
+  perform se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'keep_health', true, 'attendance', v_att))));
+  perform tap.reset();
+  perform tap.eq((select count(*) from se_vezmou.rsvp_health where wedding_id = tap.wa()), 0,
+    'při vypnuté dietě se zdravotní údaje neobnoví');
+end
+$$;
+
+-- doprovod: uložené údaje se ponechají podle jména
+do $$
+declare
+  v_ticket text;
+  g1 uuid := tap.u('A:guest1');
+  e1 uuid := tap.u('A:event1');
+  v_att jsonb := jsonb_build_array(jsonb_build_object('event_id', e1, 'attending', true));
+begin
+  update se_vezmou.rsvp_settings set enabled_questions = '{"plus_one": true, "diet": true}' where wedding_id = tap.wa();
+  perform tap.become('authenticated', tap.wa(), 'visitor');
+  select ticket into v_ticket from se_vezmou.rsvp_match('Jan Novák');
+  perform se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Doprovod Hosta', 'allergies', 'laktóza', 'attendance', v_att))));
+  perform se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Doprovod Hosta', 'keep_health', true, 'attendance', v_att))));
+  perform tap.reset();
+  perform tap.ok((select h.allergies = 'laktóza' from se_vezmou.rsvp_health h
+                    join se_vezmou.rsvp_people p on p.id = h.person_id
+                   where p.wedding_id = tap.wa() and p.person_name = 'Doprovod Hosta'),
+    'keep_health u doprovodu ponechá jeho alergie');
+
+  -- přejmenovaný doprovod: údaje se najdou podle původního jména (health_name)
+  perform tap.become('authenticated', tap.wa(), 'visitor');
+  perform se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Doprovod Opravený', 'keep_health', true,
+                       'health_name', 'Doprovod Hosta', 'attendance', v_att))));
+  perform tap.reset();
+  perform tap.ok((select h.allergies = 'laktóza' from se_vezmou.rsvp_health h
+                    join se_vezmou.rsvp_people p on p.id = h.person_id
+                   where p.wedding_id = tap.wa() and p.person_name = 'Doprovod Opravený'),
+    'přejmenovaný doprovod si podle původního jména ponechá alergie');
+end
+$$;
+
+-- stejnojmenné děti: údaje se párují podle pořadí, ne náhodně; ponechaný e-mail se vrátí serveru
+do $$
+declare
+  v_ticket text;
+  v_result jsonb;
+  g1 uuid := tap.u('A:guest1');
+  e1 uuid := tap.u('A:event1');
+  v_att jsonb := jsonb_build_array(jsonb_build_object('event_id', e1, 'attending', true));
+begin
+  update se_vezmou.rsvp_settings
+     set enabled_questions = '{"plus_one": true, "children": true, "diet": true}', email_confirmation = true
+   where wedding_id = tap.wa();
+  perform tap.become('authenticated', tap.wa(), 'visitor');
+  select ticket into v_ticket from se_vezmou.rsvp_match('Jan Novák');
+  perform se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('contact_email', 'jan@example.test',
+    'people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Eliška', 'is_child', true, 'age', 3, 'diet', 'první', 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Eliška', 'is_child', true, 'age', 6, 'diet', 'druhá', 'attendance', v_att))));
+  v_result := se_vezmou.rsvp_submit(v_ticket, jsonb_build_object('keep_email', true, 'people', jsonb_build_array(
+    jsonb_build_object('guest_id', g1, 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Eliška', 'is_child', true, 'age', 3, 'keep_health', true, 'attendance', v_att),
+    jsonb_build_object('guest_id', null, 'person_name', 'Eliška', 'is_child', true, 'age', 6, 'keep_health', true, 'attendance', v_att))));
+  perform tap.reset();
+  perform tap.ok((select array_agg(h.diet order by p.created_at) = array['první', 'druhá']
+                    from se_vezmou.rsvp_health h join se_vezmou.rsvp_people p on p.id = h.person_id
+                   where p.wedding_id = tap.wa() and p.person_name = 'Eliška'),
+    'stejnojmenné děti dostanou své údaje v původním pořadí');
+  perform tap.ok(v_result ->> 'kept_email' = 'jan@example.test', 'ponechaný e-mail se vrátí serveru kvůli potvrzení');
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Aktivita konceptu: hosté, nastavení RSVP a přihlášení správce
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_old timestamptz := now() - interval '20 days';
+begin
+  update se_vezmou.weddings set last_activity_at = v_old where id = tap.wa();
+  perform set_config('request.jwt.claims', jsonb_build_object(
+    'sub', tap.u('A:admin'), 'wedding_id', tap.wa(), 'role', 'authenticated', 'wedding_role', 'admin')::text, true);
+  insert into se_vezmou.households (wedding_id, label) values (tap.wa(), 'Nová domácnost');
+  perform tap.reset();
+  perform tap.ok((select last_activity_at > now() - interval '1 minute' from se_vezmou.weddings where id = tap.wa()),
+    'úprava seznamu hostů správcem je aktivita');
+
+  update se_vezmou.weddings set last_activity_at = v_old where id = tap.wa();
+  perform set_config('request.jwt.claims', jsonb_build_object(
+    'sub', tap.u('A:admin'), 'wedding_id', tap.wa(), 'role', 'authenticated', 'wedding_role', 'admin')::text, true);
+  update se_vezmou.rsvp_settings set allow_unlisted = true where wedding_id = tap.wa();
+  perform tap.reset();
+  perform tap.ok((select last_activity_at > now() - interval '1 minute' from se_vezmou.weddings where id = tap.wa()),
+    'změna nastavení RSVP správcem je aktivita');
+
+  update se_vezmou.weddings set last_activity_at = v_old where id = tap.wa();
+  insert into se_vezmou.sessions (token_hash, kind, wedding_id, subject_id, idle_seconds, idle_expires_at, absolute_expires_at)
+  values (sha256(convert_to('token-login-A', 'UTF8')), 'admin', tap.wa(), tap.u('A:admin'), 1209600,
+          now() + interval '14 days', now() + interval '60 days');
+  perform tap.ok((select last_activity_at > now() - interval '1 minute' from se_vezmou.weddings where id = tap.wa()),
+    'přihlášení správce je aktivita');
+
+  -- úklid (bez claims správce) aktivitu nezakládá
+  update se_vezmou.weddings set last_activity_at = v_old where id = tap.wa();
+  update se_vezmou.households set label = 'Úklid' where wedding_id = tap.wa() and label = 'Nová domácnost';
+  perform tap.ok((select last_activity_at < now() - interval '19 days' from se_vezmou.weddings where id = tap.wa()),
+    'změna hostů mimo relaci správce aktivitu nezakládá');
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Opuštěný koncept: obnovitelný a po obnovení se hned znovu nesmaže
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_draft uuid := tap.u('d:restored');
+  v_res jsonb;
+begin
+  insert into se_vezmou.weddings (id, partner_a_name, partner_b_name) values (v_draft, 'Obnovená', 'Svatba');
+  update se_vezmou.weddings set last_activity_at = now() - interval '40 days' where id = v_draft;
+  insert into se_vezmou.wedding_status_history (wedding_id, from_status, to_status, actor_type, reason, created_at)
+  values (v_draft, 'deleted', 'draft', 'operator', 'restore', now() - interval '1 day');
+
+  set local role service_role;
+  v_res := se_vezmou.housekeeping();
+  perform tap.reset();
+  perform tap.ok((select status from se_vezmou.weddings where id = v_draft) = 'draft',
+    'koncept obnovený operátorem se před uplynutím lhůty nečinnosti znovu nesmaže');
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Kódy z e-mailu: pauza podle klienta, cizí klient nezablokuje majitele adresy
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_email bytea := sha256(convert_to('hmac:majitel@example.test', 'UTF8'));
+  v_code bytea := sha256(convert_to('123456', 'UTF8'));
+  v_wrong bytea := sha256(convert_to('000000', 'UTF8'));
+begin
+  set local role service_role;
+  perform se_vezmou.auth_create_challenge(v_email, 'admin_login', v_code);
+  for i in 1..5 loop
+    perform se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_wrong, 5::smallint, 'utocnik');
+  end loop;
+  perform se_vezmou.auth_create_challenge(v_email, 'admin_login', v_code);
+  perform tap.ok(not se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_code, 5::smallint, 'utocnik'),
+    'útočník je po pěti chybách v pauze (ani správný kód neprojde)');
+  perform tap.ok(se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_code, 5::smallint, 'majitel'),
+    'majitel adresy se z jiného klienta přihlásí');
+
+  -- celý e-mail: desetinásobný práh přes všechny klienty
+  for k in 1..10 loop
+    perform se_vezmou.auth_create_challenge(v_email, 'admin_login', v_code);
+    for i in 1..5 loop
+      perform se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_wrong, 5::smallint, 'klient-' || k);
+    end loop;
+  end loop;
+  perform se_vezmou.auth_create_challenge(v_email, 'admin_login', v_code);
+  perform tap.ok(not se_vezmou.auth_verify_challenge(v_email, 'admin_login', v_code, 5::smallint, 'novy-klient'),
+    'padesát chyb z mnoha klientů zastaví ověřování celého e-mailu');
+  perform tap.reset();
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Správce: aktivní kontrola v transakci a odebrání po zámku
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_b uuid;
+begin
+  insert into se_vezmou.wedding_admins (wedding_id, email) values (tap.wa(), 'druhy@example.test') returning id into v_b;
+
+  perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
+  perform se_vezmou.assert_admin_session();
+  perform tap.reset();
+  perform tap.ok(true, 'aktivní správce kontrolou projde');
+
+  -- B je mezitím odebrán: jeho rozběhnuté volání neprojde ani kontrolou, ani odebráním správce A
+  update se_vezmou.wedding_admins set removed_at = now() where id = v_b;
+  perform tap.become('authenticated', tap.wa(), 'admin', v_b);
+  perform tap.throws('select se_vezmou.assert_admin_session()', 'forbidden', 'odebraný správce kontrolou neprojde');
+  perform tap.throws(format('select se_vezmou.admin_admin_remove(%L)', tap.u('A:admin')), 'forbidden',
+    'odebraný správce už nikoho neodebere (svatba nezůstane bez správce)');
+  perform tap.reset();
+  perform tap.ok((select removed_at is null from se_vezmou.wedding_admins where id = tap.u('A:admin')),
+    'správce A zůstal');
+
+  -- zablokovaná svatba
+  update se_vezmou.weddings set status = 'blocked' where id = tap.wa();
+  perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
+  perform tap.throws('select se_vezmou.assert_admin_session()', 'forbidden', 'zablokovaná svatba kontrolou neprojde');
+  perform tap.reset();
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Upozornění: uvízlé odesílání se převezme nejvýš třikrát; poslední upozornění má okno 2 dny
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_stuck uuid;
+  v_retry uuid;
+  v_ids uuid[];
+begin
+  perform tap.ok(se_vezmou.setting_int('retention_final_notice_days_before', 1) = 2,
+    'poslední upozornění má výchozí okno 2 dny');
+
+  insert into se_vezmou.lifecycle_notices (wedding_id, kind, stage, event_at, status, attempts, locked_at)
+  values (tap.wb(), 'guest_purge', 'done', now() + interval '30 days', 'sending', 3, now() - interval '1 hour')
+  returning id into v_stuck;
+  insert into se_vezmou.lifecycle_notices (wedding_id, kind, stage, event_at, status, attempts, locked_at)
+  values (tap.wb(), 'health_purge', 'done', now() + interval '30 days', 'sending', 1, now() - interval '1 hour')
+  returning id into v_retry;
+
+  set local role service_role;
+  select array_agg(notice_id) into v_ids from se_vezmou.lifecycle_notices_claim(now(), 50, tap.wb());
+  perform tap.reset();
+  perform tap.ok(not (v_stuck = any(coalesce(v_ids, '{}'))), 'uvízlé odesílání po třetím pokusu se nepřebere');
+  perform tap.ok((select status from se_vezmou.lifecycle_notices where id = v_stuck) = 'failed',
+    'uvízlé odesílání po třetím pokusu skončí jako failed');
+  perform tap.ok(v_retry = any(coalesce(v_ids, '{}')), 'uvízlé odesílání před třetím pokusem se převezme znovu');
+
+  -- převzaté a neodeslané (cronu došel čas) se vrátí do fronty bez započítaného pokusu
+  set local role service_role;
+  perform tap.eq(se_vezmou.lifecycle_notices_release(array[v_retry]), 1, 'neodeslané upozornění se vrátí do fronty');
+  perform tap.reset();
+  perform tap.ok((select status = 'pending' and attempts = 1 and locked_at is null
+                    from se_vezmou.lifecycle_notices where id = v_retry),
+    'vrácené upozornění čeká a pokus se mu nepočítá');
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Ověření kódem TOTP mimo přihlášení: posune časový krok, ale nezapíše přihlášení
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_session uuid;
+  v_logins bigint;
+begin
+  update se_vezmou.operators set totp_secret_enc = 'sifrovany-klic', totp_confirmed_at = now(), totp_last_step = 100
+   where id = tap.u('operator:owner');
+  set local role service_role;
+  v_session := se_vezmou.auth_operator_create_session(tap.u('operator:owner'), sha256(convert_to('op-step', 'UTF8')), 1800, 28800);
+  perform tap.reset();
+  perform tap.ok(not se_vezmou.auth_operator_totp_step(tap.u('operator:owner'), v_session, 101),
+    'relace bez druhého faktoru krok neposune');
+  update se_vezmou.operator_sessions set aal2_verified_at = now() where id = v_session;
+  select count(*) into v_logins from se_vezmou.audit_log where action = 'operator.login';
+
+  set local role service_role;
+  perform tap.ok(se_vezmou.auth_operator_totp_step(tap.u('operator:owner'), v_session, 101), 'nový krok projde');
+  perform tap.ok(not se_vezmou.auth_operator_totp_step(tap.u('operator:owner'), v_session, 101), 'stejný krok podruhé neprojde');
+  perform tap.reset();
+  perform tap.eq((select count(*) from se_vezmou.audit_log where action = 'operator.login'), v_logins,
+    'ověření mimo přihlášení se nezapíše jako přihlášení');
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- Čekací listina s potvrzením e-mailem (double opt-in)
+-- ---------------------------------------------------------------------------
+do $$
+declare
+  v_token bytea := sha256(convert_to('token-cekaci-listina', 'UTF8'));
+  v_new bytea := sha256(convert_to('token-novy', 'UTF8'));
+begin
+  set local role service_role;
+  perform tap.ok(se_vezmou.waitlist_add('host@example.test', 'cs', 'v1', v_token), 'nový zápis: poslat odkaz');
+  perform tap.ok(not se_vezmou.waitlist_add('host@example.test', 'cs', 'v1', v_new),
+    'opakovaný zápis do 15 minut nový odkaz nepošle (žádné zaplavení schránky)');
+  perform tap.reset();
+  perform tap.ok((select confirmed_at is null and confirm_token_hash = v_token from se_vezmou.waitlist
+                   where email = 'host@example.test'), 'zápis čeká na potvrzení s otiskem tokenu');
+
+  update se_vezmou.waitlist set confirm_expires_at = now() + interval '7 days' - interval '20 minutes'
+   where email = 'host@example.test';
+  set local role service_role;
+  perform tap.ok(se_vezmou.waitlist_add('host@example.test', 'en', 'v2', v_new), 'po 15 minutách nový odkaz');
+  perform tap.ok(not se_vezmou.waitlist_confirm(v_token), 'starý odkaz po novém neplatí');
+  perform tap.ok(se_vezmou.waitlist_confirm(v_new), 'nový odkaz zápis potvrdí');
+  perform tap.ok(not se_vezmou.waitlist_confirm(v_new), 'odkaz jde použít jen jednou');
+  perform tap.ok(not se_vezmou.waitlist_add('host@example.test', 'cs', 'v1', v_token),
+    'potvrzená adresa už žádný odkaz nedostane');
+  perform tap.reset();
+  perform tap.ok((select confirmed_at is not null and consent_text_version = 'v1' and locale = 'cs'
+                    from se_vezmou.waitlist where email = 'host@example.test'),
+    'potvrzeno; opakovaný zápis nepřepsal původní souhlas ani jazyk');
+
+  -- prošlý nepotvrzený zápis smaže úklid
+  set local role service_role;
+  perform se_vezmou.waitlist_add('prosly@example.test', 'cs', 'v1', sha256(convert_to('prosly', 'UTF8')));
+  perform tap.reset();
+  update se_vezmou.waitlist set confirm_expires_at = now() - interval '1 minute' where email = 'prosly@example.test';
+  set local role service_role;
+  perform tap.ok(not se_vezmou.waitlist_confirm(sha256(convert_to('prosly', 'UTF8'))), 'prošlý odkaz nepotvrdí');
+  perform se_vezmou.housekeeping();
+  perform tap.reset();
+  perform tap.eq((select count(*) from se_vezmou.waitlist where email = 'prosly@example.test'), 0,
+    'nepotvrzený zápis s prošlým odkazem úklid smaže');
+  perform tap.eq((select count(*) from se_vezmou.waitlist where email = 'host@example.test'), 1, 'potvrzený zůstane');
+end
+$$;
+
+rollback;

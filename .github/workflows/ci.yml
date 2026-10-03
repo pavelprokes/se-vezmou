@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+# Token CI jen ke čtení repozitáře (nic nezapisuje ani nekomentuje).
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true

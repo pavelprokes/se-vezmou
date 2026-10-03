@@ -2,7 +2,7 @@ import { locales } from "@/i18n/config";
 import { z } from "zod";
 import { i18nTextSchema } from "./i18n-text";
 import { phaseFromDates } from "./phase";
-import { publicContentSchema, type PublicContent } from "./types";
+import { blockSchema, publicContentSchema, type Phase, type PublicContent } from "./types";
 
 /**
  * Koncept z pracovních tabulek (odpověď `get_public_site` pro roli `preview`) na obsah webu.
@@ -25,6 +25,10 @@ const previewSchema = z.object({
     starts_on: z.string().nullable(),
     ends_on: z.string().nullable(),
     timezone: z.string(),
+    /** Nastavení RSVP pro fázi náhledu (stejná pravidla jako `se_vezmou.phase`); starší odpověď je nemá. */
+    rsvp_configured: z.boolean().optional(),
+    rsvp_opens_at: z.string().nullable().optional(),
+    rsvp_closes_at: z.string().nullable().optional(),
   }),
   pages: z.array(
     z.object({
@@ -66,6 +70,41 @@ const previewSchema = z.object({
   ),
 });
 
+/**
+ * Blok pracovní kopie pro náhled: chráněný odkaz na galerii nemá ve veřejném snímku adresu ani kartu (ukazuje se
+ * až po PINu), pracovní kopie je ale drží; bez úpravy by blok neprošel schématem.
+ */
+function previewBlock(block: Record<string, unknown>): Record<string, unknown> {
+  if (block.type !== "gallery" || typeof block.data !== "object" || block.data === null)
+    return block;
+  const data = block.data as Record<string, unknown>;
+  const link = data.link as Record<string, unknown> | null | undefined;
+  if (!link || link.protected !== true) return block;
+  return { ...block, data: { ...data, link: { ...link, url: null, card: null } } };
+}
+
+/**
+ * Fáze náhledu podle stejných pravidel jako zveřejněný web (`se_vezmou.phase`): den svatby a poděkování podle
+ * dnů v pásmu svatby, potvrzení účasti uzavřené přesně v okamžiku `closes_at`, před `opens_at` nebo bez
+ * nastavení RSVP `save_the_date`. Starší odpověď bez údajů o RSVP: fáze jen z dat.
+ */
+function previewPhase(wedding: z.infer<typeof previewSchema>["wedding"], now: Date): Phase {
+  const byDates = phaseFromDates(
+    { startsOn: wedding.starts_on ?? "", endsOn: wedding.ends_on },
+    now,
+    wedding.timezone,
+  );
+  if (byDates !== "rsvp_open" || wedding.rsvp_configured === undefined) return byDates;
+  if (!wedding.rsvp_configured) return "save_the_date";
+  if (wedding.rsvp_closes_at && now.getTime() >= new Date(wedding.rsvp_closes_at).getTime()) {
+    return "rsvp_closed";
+  }
+  if (!wedding.rsvp_opens_at || now.getTime() >= new Date(wedding.rsvp_opens_at).getTime()) {
+    return "rsvp_open";
+  }
+  return "save_the_date";
+}
+
 /** `null`, když odpověď nemá očekávaný tvar nebo koncept není vykreslitelný (např. chybí datum). */
 export function previewToPublicContent(
   raw: unknown,
@@ -89,7 +128,7 @@ export function previewToPublicContent(
     defaultLocale: wedding.default_locale,
     template: wedding.template,
     palette: wedding.palette,
-    phase: phaseFromDates({ startsOn: wedding.starts_on, endsOn: wedding.ends_on }, now),
+    phase: previewPhase(wedding, now),
     quickNotice: null,
     thanksMessage: null,
     venues: venues
@@ -114,12 +153,14 @@ export function previewToPublicContent(
       venueId: event.venue_id,
     })),
     media: [],
-    // Dotaz vrací jen zapnuté bloky v pořadí; pozice se odvodí z pořadí.
-    blocks: home.blocks.map((block, index) => ({
-      ...block,
-      enabled: true,
-      position: index + 1,
-    })),
+    // Dotaz vrací jen zapnuté bloky v pořadí; pozice se odvodí z pořadí. Pracovní kopie není normalizovaná
+    // jako zveřejněný snímek: blok, který neprojde schématem, se vynechá (dřív shodil celý náhled na 404).
+    blocks: home.blocks.flatMap((block, index) => {
+      const parsed = blockSchema.safeParse(
+        previewBlock({ ...block, enabled: true, position: index + 1 }),
+      );
+      return parsed.success ? [parsed.data] : [];
+    }),
   });
   return content.success ? content.data : null;
 }

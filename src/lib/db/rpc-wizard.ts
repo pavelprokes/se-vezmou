@@ -12,16 +12,28 @@ import type { CheckSlugReason } from "./types";
 // --- čekací listina a analytika ------------------------------------------------------------
 
 /** `true` při novém e-mailu, `false` při opakovaném (volající to uživateli nesděluje). */
+/** `true`, když se má poslat e-mail s odkazem pro potvrzení (nový nebo obnovený nepotvrzený zápis). */
 export function waitlistAdd(
   email: string,
   locale: Locale | null,
   consentTextVersion: string,
+  tokenHash: Buffer,
 ): Promise<boolean> {
   return call<boolean>(
     "waitlist_add",
-    { p_email: email, p_locale: locale, p_consent_text_version: consentTextVersion },
+    {
+      p_email: email,
+      p_locale: locale,
+      p_consent_text_version: consentTextVersion,
+      p_token_hash: tokenHash,
+    },
     "scalar",
   );
+}
+
+/** Potvrzení zápisu odkazem z e-mailu; `false` pro neplatný, prošlý nebo už použitý odkaz. */
+export function waitlistConfirm(tokenHash: Buffer): Promise<boolean> {
+  return call<boolean>("waitlist_confirm", { p_token_hash: tokenHash }, "scalar");
 }
 
 export type AnalyticsEvent =

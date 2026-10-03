@@ -88,7 +88,15 @@ Sentry je další zpracovatel. Bez `NEXT_PUBLIC_SENTRY_DSN` se nic neodesílá. 
 1. Doména `se-vezmou.cz` ověřená v SES (`eu-central-1`), **Easy DKIM** zapnutý, CNAME záznamy ve Vercel DNS; SPF (TXT s `include` pro SES), vlastní MAIL FROM doména (např. `bounce.se-vezmou.cz`), DMARC nejdřív `p=none` s reportem, po několika týdnech `quarantine`, pak `reject` (`docs/adr/0005-email.md`).
 2. Nový účet SES je v **sandboxu**: odesílá jen na ověřené adresy. Požádejte o **produkční přístup** s předstihem (schvaluje se dny); bez něj kódy nedorazí běžným uživatelům.
 3. IAM uživatel jen s právem odesílat; klíče do Vercelu. Zkouška: přihlášení na `app.se-vezmou.cz` na cizí adresu (gmail) a kontrola, že e-mail není ve spamu.
-4. V produkci bez SES se **nic neodešle** (a obsah se nevypisuje); chybějící SES je tedy tichá chyba, ne chyba v logu s kódem.
+4. V produkci bez SES se **nic neodešle** a obsah se nikdy nevypisuje: odeslání selže, do logu Vercelu se zapíše chyba
+   (bez obsahu e-mailu) a záznam e-mailu dostane stav `failed`. Kontrola: po zkoušce z bodu 3 v logu není `[e-mail] odeslání selhalo`.
+5. **Vrácené e-maily a stížnosti:** zapněte potlačení na úrovni účtu SES, aby se na trvale nedoručitelné adresy
+   a adresy, ze kterých přišla stížnost, už neposílalo (jinak hrozí kontrola nebo pozastavení účtu SES, a s ním
+   i nedoručené přihlašovací kódy):
+   `aws sesv2 put-account-suppression-attributes --region eu-central-1 --suppressed-reasons BOUNCE COMPLAINT`.
+   V konzoli SES sledujte podíl vrácených (pod 5 %) a stížností (pod 0,1 %). Události doručení do aplikace
+   (webhook `/api/email/events` přes SNS, `src/lib/email/events.ts`) zatím nejsou; pokud je zavedete, nastavte
+   konfigurační sadu s cílem SNS a její název do `SES_CONFIGURATION_SET`.
 
 ## 11. Poslední kontrola v den spuštění
 

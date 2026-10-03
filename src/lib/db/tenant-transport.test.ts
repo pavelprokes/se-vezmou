@@ -157,6 +157,26 @@ describe("přímý PostgreSQL: totožnost svatby jako claimy transakce", () => {
     expect((raw as Error).message).not.toContain("Jan Novák");
   });
 
+  it("správce: v téže transakci se ověří, že je pořád aktivní (assert_admin_session)", async () => {
+    const { getTransport } = await import("./transport");
+    await getTransport().call("admin_guest_list", {}, "scalar", {
+      weddingId: WEDDING,
+      weddingRole: "admin",
+      subject: "11111111-1111-4111-8111-111111111111",
+    });
+    const sql = queries.list.map((q) => q.sql);
+    expect(sql[0]).toMatch(
+      /^begin; set local role authenticated; select set_config\('request\.jwt\.claims', '.*', true\); select se_vezmou\.assert_admin_session\(\)$/,
+    );
+    // návštěvník kontrolu nemá (není správce)
+    queries.list.length = 0;
+    await getTransport().call("rsvp_info", {}, "scalar", {
+      weddingId: WEDDING,
+      weddingRole: "visitor",
+    });
+    expect(queries.list[0]?.sql).not.toContain("assert_admin_session");
+  });
+
   describe("čtení (readOnly): bez čekání na commit", () => {
     const visitor = { weddingId: WEDDING, weddingRole: "visitor" as const };
 

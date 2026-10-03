@@ -712,6 +712,7 @@ function GuestForm({
                 labels={labels}
                 diet={values.diet[prefix] ?? ""}
                 allergies={values.allergies[prefix] ?? ""}
+                saved={values.savedHealth?.[prefix] === true}
                 errors={errors}
                 onDiet={(value) =>
                   setValues((c) => ({ ...c, diet: { ...c.diet, [prefix]: value } }))
@@ -815,6 +816,8 @@ function GuestForm({
                 labels={labels}
                 diet={extra.diet}
                 allergies={extra.allergies}
+                saved={extra.savedHealth === true}
+                savedName={extra.savedName}
                 errors={errors}
                 onDiet={(value) => setExtra(index, { diet: value })}
                 onAllergies={(value) => setExtra(index, { allergies: value })}
@@ -1006,18 +1009,21 @@ function EmailField({
   errors: FieldErrors;
 }) {
   return (
-    <TextField
-      field="email"
-      label={labels.email.label}
-      hint={labels.email.hint}
-      type="email"
-      inputMode="email"
-      autoComplete="email"
-      value={values.email}
-      maxLength={254}
-      error={errors.email ? errorText("email", errors.email, labels) : undefined}
-      onChange={(value) => setValues((current) => ({ ...current, email: value }))}
-    />
+    <>
+      {values.savedEmail ? <input type="hidden" name="emailSaved" value="1" /> : null}
+      <TextField
+        field="email"
+        label={labels.email.label}
+        hint={values.savedEmail ? `${labels.email.hint} ${labels.email.saved}` : labels.email.hint}
+        type="email"
+        inputMode="email"
+        autoComplete="email"
+        value={values.email}
+        maxLength={254}
+        error={errors.email ? errorText("email", errors.email, labels) : undefined}
+        onChange={(value) => setValues((current) => ({ ...current, email: value }))}
+      />
+    </>
   );
 }
 
@@ -1220,6 +1226,8 @@ function HealthFields({
   errors,
   onDiet,
   onAllergies,
+  saved = false,
+  savedName,
 }: {
   prefix: string;
   name: string;
@@ -1229,6 +1237,10 @@ function HealthFields({
   errors: FieldErrors;
   onDiet: (value: string) => void;
   onAllergies: (value: string) => void;
+  /** Dřívější odpověď má uložené údaje, které se hostovi z ochrany soukromí nezobrazují. */
+  saved?: boolean;
+  /** Jméno z dřívější odpovědi (doprovod, dítě): podle něj se uložené údaje najdou i po přejmenování. */
+  savedName?: string;
 }) {
   const dietField = `${prefix}.diet`;
   const allergiesField = `${prefix}.allergies`;
@@ -1236,6 +1248,15 @@ function HealthFields({
     <fieldset className="site-fieldset site-health">
       <legend className="site-legend">{fill(labels.health.legend, { name })}</legend>
       <p className="site-muted site-hint">{labels.health.notice}</p>
+      {saved ? (
+        <>
+          <input type="hidden" name={`${prefix}.savedHealth`} value="1" />
+          {savedName ? (
+            <input type="hidden" name={`${prefix}.savedName`} value={savedName} />
+          ) : null}
+          <p className="site-muted site-hint">{labels.health.saved}</p>
+        </>
+      ) : null}
       <TextField
         field={dietField}
         label={labels.health.diet}
@@ -1259,6 +1280,12 @@ function HealthFields({
         }
         onChange={onAllergies}
       />
+      {saved ? (
+        <label className="site-choice">
+          <input type="checkbox" name={`${prefix}.clearHealth`} value="1" />
+          <span>{labels.health.clear}</span>
+        </label>
+      ) : null}
     </fieldset>
   );
 }

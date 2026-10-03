@@ -140,6 +140,19 @@ export function authOperatorMfaAccept(input: {
   );
 }
 
+/** Ověření kódem z aplikace mimo přihlášení: jen posune použitý časový krok (bez záznamu přihlášení). */
+export function authOperatorTotpStep(input: {
+  operatorId: string;
+  sessionId: string;
+  step: number;
+}): Promise<boolean> {
+  return call<boolean>(
+    "auth_operator_totp_step",
+    { p_operator_id: input.operatorId, p_session_id: input.sessionId, p_step: input.step },
+    "scalar",
+  );
+}
+
 /** Počet zbývajících záložních kódů, nebo -1 pro neplatný či už použitý kód. */
 export function authOperatorUseBackupCode(input: {
   operatorId: string;

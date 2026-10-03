@@ -140,6 +140,7 @@ export async function verifyLoginCode(input: {
     purpose: PURPOSE,
     codeHash: codeHash(authSecret, input.email, input.code),
     maxAttempts: LOGIN_CODE.maxAttempts,
+    clientKey: rateKey(limitSecret, "challenge-client", input.ip),
   });
   if (!valid) return { status: "invalid" };
 

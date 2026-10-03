@@ -4,7 +4,9 @@ import { verifyPin } from "@/auth/pin";
 import { normalizePinInput } from "@/auth/pin-format";
 import { assertSameOrigin, getHost, getUiLocale } from "@/auth/request";
 import { getSession } from "@/auth/session";
+import { RATE_RULES } from "@/auth/config";
 import { authPinGet, authSessionContext } from "@/lib/db/rpc";
+import { limited } from "@/lib/rate-guard";
 import { getPublicContent } from "@/site/content";
 import { renderAnnouncementPdf } from "@/wizard/pdf/announcement";
 import { displayHost, siteUrl } from "@/wizard/urls";
@@ -24,6 +26,16 @@ export async function POST(request: Request): Promise<Response> {
 
   const session = await getSession();
   if (!session) return new Response(null, { status: 401 });
+
+  // Každé stažení ověřuje PIN (argon2id): bez omezení by šlo smyčkou vytěžovat server a zkoušet PINy.
+  const retryAfter = await limited(
+    "announcement-pdf",
+    session.weddingId,
+    RATE_RULES.announcementPdfWedding,
+  );
+  if (retryAfter !== null) {
+    return new Response(null, { status: 429, headers: { "Retry-After": String(retryAfter) } });
+  }
 
   const context = await authSessionContext(session.weddingId);
   if (!context || context.status !== "published" || !context.slug) {

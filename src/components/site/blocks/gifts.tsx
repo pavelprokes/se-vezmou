@@ -85,6 +85,9 @@ export function Gifts({
             </figure>
           </div>
         </UnlockedRegion>
+      ) : ctx.sensitiveUnlocked && ctx.sensitive !== null ? (
+        // Host je po PINu, ale údaje o daru nejsou k dispozici: žádný nový formulář PINu (smyčka)
+        <p className="site-lead">{t("site.gifts.unavailable")}</p>
       ) : (
         <div className="site-gate">
           <Icon icon={Lock} size={28} />

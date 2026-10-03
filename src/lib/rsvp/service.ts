@@ -191,7 +191,8 @@ export async function submitStep(input: {
   const duplicate = outcome.duplicate;
   if (firstResponse && !duplicate) input.defer(() => recordRsvpCompleted(input.locale));
 
-  const email = parsed.payload.contact_email ?? null;
+  // Ponechaný e-mail (host ho neviděl) dostane potvrzení úpravy stejně jako nově zadaný.
+  const email = parsed.payload.contact_email ?? outcome.keptEmail ?? null;
   const emailSent = email !== null && model.flags.emailConfirmation;
   if (emailSent && !duplicate) {
     input.defer(() =>

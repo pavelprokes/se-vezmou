@@ -403,7 +403,8 @@ begin
   perform tap.reset();
   perform tap.eq((v_res ->> 'abandoned_drafts')::bigint, 1, 'úklid převede opuštěný koncept do stavu deleted');
   perform tap.ok((select status from se_vezmou.weddings where id = v_old) = 'deleted', 'opuštěný koncept je ve stavu deleted');
-  perform tap.ok((select purge_at <= now() from se_vezmou.weddings where id = v_old), 'purge_at je okamžitě splatné');
+  perform tap.ok((select purge_at > now() + interval '29 days' from se_vezmou.weddings where id = v_old),
+    'opuštěný koncept má běžnou lhůtu pro obnovení (není okamžitě splatný)');
   perform tap.ok((select status from se_vezmou.weddings where id = v_fresh) = 'draft', 'čerstvý koncept zůstal');
   perform tap.ok((select status from se_vezmou.weddings where id = tap.wa()) = 'draft', 'koncept se zveřejněnou verzí zůstal');
   perform tap.ok(exists (select 1 from se_vezmou.wedding_status_history where wedding_id = v_old and to_status = 'deleted'
@@ -411,7 +412,8 @@ begin
   perform tap.ok(exists (select 1 from se_vezmou.audit_log where wedding_id = v_old and action = 'wedding.status_change'
                           and reason = 'draft_abandoned' and meta ->> 'inactive_days' = '14'), 'zapsán audit bez osobních údajů');
 
-  -- trvale ho smaže stávající mechanismus retence
+  -- po lhůtě pro obnovení ho trvale smaže stávající mechanismus retence
+  update se_vezmou.weddings set purge_at = now() - interval '1 minute' where id = v_old;
   set local role service_role;
   perform tap.ok((select count(*) from se_vezmou.retention_due_weddings(now(), 20, v_old)) = 1, 'retention_due_weddings koncept nabídne');
   v_n := se_vezmou.purge_deleted_weddings(20, now(), v_old);

@@ -1,4 +1,4 @@
--- rate_limit_hit (ADR 0010, kap. 3.8): čítač s pevným oknem, nezávislé klíče, nové okno, neplatné vstupy.
+-- rate_limit_hit (ADR 0010, kap. 3.8): čítač s posuvným oknem, nezávislé klíče, nové okno, neplatné vstupy.
 -- Souběžnou atomicitu ověřuje scripts/db-test.sh (skutečná paralelní spojení).
 begin;
 
@@ -71,11 +71,15 @@ begin
 end
 $$;
 
--- Nové okno: po uplynutí okna se čítač nuluje (okno 2 s, mezi voláními pg_sleep)
+-- Posuvné okno (okno 2 s, mezi voláními pg_sleep): hned za hranicí oken se předchozí okno ještě počítá,
+-- takže limit nejde vyčerpat dvakrát za sebou; po uplynutí celého posuvného okna je čítač nový.
 do $$
 declare
   v_first boolean;
   v_second boolean;
+  v_boundary boolean;
+  v_boundary_first boolean;
+  v_flood boolean;
   v_third boolean;
   v_deadline timestamptz;
 begin
@@ -87,12 +91,31 @@ begin
   end loop;
   select allowed into v_first from se_vezmou.rate_limit_hit('test:window', 1, interval '2 seconds');
   select allowed into v_second from se_vezmou.rate_limit_hit('test:window', 1, interval '2 seconds');
-  perform pg_sleep(2.2);
+  -- klíč s limitem 3 vyčerpaný ve stejném okně (u limitu 1 podíl předchozího okna zaokrouhlí dolů na nulu)
+  perform se_vezmou.rate_limit_hit('test:sliding', 3, interval '2 seconds') from generate_series(1, 3);
+  -- přetížení: 10 požadavků na limit 2, zamítnuté se do dalšího okna nepřenášejí
+  perform se_vezmou.rate_limit_hit('test:flood', 2, interval '2 seconds') from generate_series(1, 10);
+  -- těsně za hranicí oken (do 0,4 s nového okna): z předchozího okna se počítá většina. Nejdřív se počká do
+  -- druhé půlky okna, aby se další smyčka nemohla ukončit ještě ve stejném okně.
+  while extract(epoch from clock_timestamp())::numeric % 2 < 1.2 loop
+    perform pg_sleep(0.02);
+  end loop;
+  while extract(epoch from clock_timestamp())::numeric % 2 > 0.4 loop
+    perform pg_sleep(0.02);
+  end loop;
+  -- pevné okno by tu povolilo znovu 3; posuvné započte většinu předchozího okna (2 ze 3), takže projde jen jeden
+  select allowed into v_boundary_first from se_vezmou.rate_limit_hit('test:sliding', 3, interval '2 seconds');
+  select allowed into v_boundary from se_vezmou.rate_limit_hit('test:sliding', 3, interval '2 seconds');
+  select allowed into v_flood from se_vezmou.rate_limit_hit('test:flood', 2, interval '2 seconds');
+  perform pg_sleep(4.2);
   select allowed into v_third from se_vezmou.rate_limit_hit('test:window', 1, interval '2 seconds');
   perform tap.reset();
   perform tap.ok(v_first, 'okno: první pokus projde');
   perform tap.ok(not v_second, 'okno: druhý pokus ve stejném okně je zamítnut');
-  perform tap.ok(v_third, 'okno: po uplynutí okna je čítač nový');
+  perform tap.ok(v_boundary_first, 'posuvné okno: za hranicí oken projde jen zbytek limitu');
+  perform tap.ok(not v_boundary, 'posuvné okno: hned za hranicí oken se předchozí okno počítá (žádný dvojnásobek)');
+  perform tap.ok(v_third, 'okno: po uplynutí celého posuvného okna je čítač nový');
+  perform tap.ok(v_flood, 'přetížení: zamítnuté požadavky se do dalšího okna nepočítají (klíč se nezablokuje)');
 end
 $$;
 

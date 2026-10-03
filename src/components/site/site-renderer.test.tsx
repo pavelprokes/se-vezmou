@@ -565,6 +565,16 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
     expect(container.textContent).not.toContain("Největší radost nám uděláte");
   });
 
+  it("po PINu bez údajů o daru (neplatná část snímku) se formulář PINu znovu neukáže", () => {
+    renderSite(eukalyptusFixture, "cs", {
+      sensitiveUnlocked: true,
+      sensitive: { ...sensitiveFixture, gifts: null },
+    });
+    const gifts = screen.getByRole("region", { name: "Dary" });
+    expect(within(gifts).queryByLabelText("PIN z pozvánky")).toBeNull();
+    expect(gifts).toHaveTextContent("Údaje o daru teď nejsou k dispozici");
+  });
+
   it("příznak bez citlivých údajů nic neodemkne", () => {
     renderSite(eukalyptusFixture, "cs", { sensitiveUnlocked: true, sensitive: null });
     const gifts = screen.getByRole("region", { name: "Dary" });

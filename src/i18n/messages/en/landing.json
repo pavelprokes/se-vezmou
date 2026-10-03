@@ -7,7 +7,6 @@
   "nav.cta": "Create your site",
   "nav.menu": "Menu",
   "nav.home": "se-vezmou.cz, home page",
-
   "hero.eyebrow": "A wedding website without the fuss",
   "hero.title": "Your wedding. Everything that matters <b>in one place.</b>",
   "hero.lead": "The schedule, the venue, RSVPs and all the practical details for your guests. Build your own website in a single evening.",
@@ -24,19 +23,16 @@
   "hero.art.invite": "You are invited",
   "hero.art.chipTitle": "RSVP received",
   "hero.art.chipText": "Guests reply right on the site",
-
   "sample.first": "Klára",
   "sample.second": "Matěj",
   "sample.dateplace": "[DD MM YYYY] · [venue]",
   "sample.rsvp": "Confirm attendance",
   "sample.names": "Klára and Matěj",
   "sample.monogram": "K&M",
-
   "intro.title": "What is se-vezmou.cz?",
   "intro.lead": "Se-vezmou.cz is a Czech service for building wedding websites. Couples put their site together from ready-made templates, and guests find the schedule, venue and accommodation and reply without signing up.",
   "intro.more": "Every couple gets an address like first-name-and-first-name.se-vezmou.cz. It reads like a sentence, so it looks good on an invitation and is easy to remember.",
   "intro.formLabel": "Try out what your address will look like",
-
   "form.first": "First name",
   "form.second": "Second name",
   "form.firstPlaceholder": "Klára",
@@ -44,7 +40,6 @@
   "form.address": "Your website address",
   "form.continue": "Continue to the guide",
   "form.ctaSubmit": "Create your site for free",
-
   "problem.title": "Guests keep asking the same things. <b>Your website answers for you.</b>",
   "problem.lead": "Most messages before a wedding are about the same few questions: where to go, when it starts and what to wear. A wedding website answers them before your guests have to ask.",
   "problem.q1.title": "Where am I going?",
@@ -53,7 +48,6 @@
   "problem.q2.text": "The schedule hour by hour. If anything changes, you update it and everyone sees the latest version.",
   "problem.q3.title": "What do I wear and where do I sleep?",
   "problem.q3.text": "The dress code, accommodation tips and RSVPs with dietary needs, all on the website.",
-
   "steps.title": "How the website comes together",
   "steps.lead": "Steps 1 to 3 are enough for your website to exist. You can add the rest whenever you like.",
   "steps.1.title": "Names and date",
@@ -67,7 +61,6 @@
   "steps.save": "Save",
   "steps.publish": "Publish",
   "steps.list": "Four steps",
-
   "templates.title": "Templates for every wedding style",
   "templates.lead": "Every template is built from the same blocks and stays easy to read for older guests.",
   "templates.editorial.name": "Editorial",
@@ -79,7 +72,6 @@
   "templates.modern.name": "Modern",
   "templates.modern.text": "Big type and a bold accent",
   "templates.preview": "Preview of the {name} template: the names Klára and Matěj, the date and a Confirm attendance button",
-
   "features.title": "What your website can do",
   "features.lead": "Everything guests need for the wedding is at one address, with no sign-up.",
   "features.rsvp.title": "RSVPs",
@@ -109,7 +101,6 @@
   "features.edit.text": "From your phone or computer, using your email or a PIN.",
   "features.after.title": "After the wedding",
   "features.after.text": "The website switches to a thank-you mode.",
-
   "trust.title": "Private and accessible from the very first click",
   "trust.lead": "Couples’ websites do not appear in search engines, and sensitive details are shown to guests only after they enter a PIN. We design every site so that anyone can read it.",
   "trust.hidden.title": "Hidden from search engines",
@@ -118,7 +109,6 @@
   "trust.pin.text": "Print it on the invitation next to the address. Sensitive details appear only once it is entered.",
   "trust.accessible.title": "Readable by everyone",
   "trust.accessible.text": "We follow the WCAG 2.2 AA accessibility rules: contrast, large targets, screen readers and no account for guests.",
-
   "pricing.title": "Free <b>during the launch period</b>",
   "pricing.lead": "Creating and publishing your website costs nothing for now. Publishing will be charged for later, and we will announce the price in advance.",
   "pricing.concept.label": "Draft",
@@ -132,7 +122,6 @@
   "pricing.published.item4": "Afterwards: {conditions}",
   "pricing.published.cta": "Create your site",
   "pricing.priceLabel": "Price",
-
   "references.title": "What couples say",
   "references.lead": "We will add real reviews, with their authors’ permission, once we have them. For now this is placeholder text.",
   "references.placeholder": "Placeholder text, to be replaced by a real review",
@@ -141,21 +130,19 @@
   "references.q3": "“How older guests and guests from abroad got on with the website.”",
   "references.author": "[Couple’s names] · [town], wedding in [month year]",
   "references.note": "Real reviews will appear here, with their authors’ permission. Until then there is a programme for friendly couples and a waiting list.",
-
   "waitlist.title": "Waiting list",
   "waitlist.lead": "Leave your email and we will let you know when the guide opens.",
   "waitlist.email": "Email",
   "waitlist.consent": "I agree that you may send me an email announcing the launch of the service. I can withdraw my consent at any time.",
   "waitlist.submit": "Join the list",
   "waitlist.pending": "Sending…",
-  "waitlist.success": "Thank you, you are on the list. We will be in touch when the guide opens.",
+  "waitlist.success": "Thank you. We have sent you an email with a link: please confirm your signup, only then will we send you the launch announcement.",
   "waitlist.error.email.required": "Enter your email.",
   "waitlist.error.email.invalid": "Check your email, it looks incomplete.",
   "waitlist.error.consent.required": "We cannot add you without your consent.",
   "waitlist.error.rateLimited": "Too many attempts. Please try again in a moment.",
   "waitlist.error.generic": "Something went wrong. Please try again.",
   "waitlist.honeypot": "Leave this field empty",
-
   "faq.title": "Frequently asked questions",
   "faq.lead": "Cannot find your answer? Write to us: {contact}.",
   "faq.1.q": "How much does it cost?",
@@ -170,10 +157,8 @@
   "faq.5.a": "Yes. It can stay as a draft with a private preview link, and you publish it whenever you are ready.",
   "faq.6.q": "What happens to my guests’ details?",
   "faq.6.a": "Only you, as the wedding’s organiser, can see the details from RSVPs, and we store them only to help you run the wedding. The privacy policy, which the operator will add, will set out the specifics.",
-
   "cta.title": "Start with your names and the date. We will fill in the rest.",
   "cta.lead": "Two names are enough. The guide takes you through the rest.",
-
   "footer.about": "Wedding websites for couples. Run by wedding photographer {operator}, {address}.",
   "footer.product": "Service",
   "footer.legal": "Legal information",
@@ -181,5 +166,11 @@
   "footer.privacy": "Privacy policy",
   "footer.terms": "Terms of service",
   "footer.accessibility": "Accessibility statement",
-  "footer.language": "Language, footer"
+  "footer.language": "Language, footer",
+  "waitlist.confirm.title": "Confirm the waitlist",
+  "waitlist.confirm.lead": "Please confirm that you want to receive the Se vezmou launch announcement at the address this link was sent to.",
+  "waitlist.confirm.submit": "Confirm signup",
+  "waitlist.confirm.done": "Done, your signup is confirmed. We will let you know when the guide opens.",
+  "waitlist.confirm.invalid": "This link is not valid: it has already been used or has expired. Please sign up again on the home page.",
+  "waitlist.confirm.missing": "This page opens from the link in our email. If you wanted to sign up, please do so on the home page."
 }

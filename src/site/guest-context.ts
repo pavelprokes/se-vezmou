@@ -28,6 +28,25 @@ export interface GuestContext {
   sensitive: SensitiveContent | null;
 }
 
+/**
+ * Citlivá část snímku po částech: neplatná část (např. starší snímek s IBAN, který neprojde kontrolou) se
+ * vynechá, ostatní zůstanou. Dřív neplatná část zahodila všechno a host se po správném PINu vracel na formulář.
+ */
+export function parseSensitiveLeniently(raw: unknown): SensitiveContent {
+  const source = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
+  const shape = sensitiveContentSchema.shape;
+  const part = <K extends keyof typeof shape>(key: K): SensitiveContent[K] => {
+    const parsed = shape[key].safeParse(source[key]);
+    return (parsed.success ? parsed.data : shape[key].parse(undefined)) as SensitiveContent[K];
+  };
+  return {
+    venues: part("venues"),
+    gallery: part("gallery"),
+    photos: part("photos"),
+    gifts: part("gifts"),
+  };
+}
+
 export async function loadGuestContext(slug: string, locale: Locale): Promise<GuestContext | null> {
   try {
     const resolved = await resolveSlug(slug);
@@ -50,8 +69,7 @@ export async function loadGuestContext(slug: string, locale: Locale): Promise<Gu
         "scalar",
         READ_ONLY,
       );
-      const parsed = sensitiveContentSchema.safeParse(site?.sensitive ?? {});
-      sensitive = parsed.success ? parsed.data : sensitiveContentSchema.parse({});
+      sensitive = parseSensitiveLeniently(site?.sensitive);
       // Smazaná fotografie zmizí i z chráněné části hned (viz `getPublicContent`)
       if (sensitive.photos.length > 0) {
         try {

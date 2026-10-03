@@ -55,6 +55,8 @@ export const RATE_RULES = {
   wizardCodeEmail: { limit: 5, windowSeconds: HOUR },
   /** Ověření kódu při prvním uložení podle IP. */
   wizardVerifyIp: { limit: 30, windowSeconds: HOUR },
+  /** PDF oznámení s PINem podle svatby: každé stažení ověřuje PIN (argon2id), proto omezeně. */
+  announcementPdfWedding: { limit: 30, windowSeconds: HOUR },
   /** Vytvoření konceptu (první uložení) podle IP; chrání před hromaděním rezervací adres. */
   wizardCreateIp: { limit: 10, windowSeconds: DAY },
   /** Průběžné ukládání a zveřejnění podle svatby (autosave je častý, ale ne neomezený). */

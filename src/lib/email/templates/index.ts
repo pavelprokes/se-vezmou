@@ -3,6 +3,7 @@ export { renderBackupLoginNotice, type BackupLoginNoticeParams } from "./backup-
 export { renderLoginCode, type LoginCodeParams } from "./login-code";
 export type { RenderedEmail } from "./shared";
 export { renderWizardCode, type WizardCodeParams } from "./wizard-code";
+export { renderWaitlistConfirm, type WaitlistConfirmParams } from "./waitlist-confirm";
 export { renderRsvpConfirmation, type RsvpConfirmationParams } from "./rsvp-confirmation";
 export {
   renderOperatorCode,

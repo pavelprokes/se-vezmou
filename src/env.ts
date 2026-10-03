@@ -56,6 +56,8 @@ const schema = z.object({
   AWS_ACCESS_KEY_ID: z.string().min(1).optional(),
   AWS_SECRET_ACCESS_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(1).optional(),
+  /** Konfigurační sada SES (události doručení, vlastní potlačení); nepovinná. */
+  SES_CONFIGURATION_SET: z.string().min(1).optional(),
 
   // Jen pro automatické testy (nikdy v produkci, viz src/lib/email/transport.ts)
   /** `outbox`: e-maily se zapisují jako soubory JSON do EMAIL_OUTBOX_DIR. */

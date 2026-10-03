@@ -33,12 +33,12 @@ Jedna aplikace na Vercelu obsluhuje `se-vezmou.cz`, `app.se-vezmou.cz`, `admin.s
 
 `src/proxy.ts` podle `Host` přepíše na interní segmenty:
 
-| Hostitel              | Segment                     |
-| --------------------- | --------------------------- |
-| `se-vezmou.cz`        | `/h/marketing/{cs           | en}` |
-| `app.se-vezmou.cz`    | `/h/app`                    |
-| `admin.se-vezmou.cz`  | `/h/admin`                  |
-| `<slug>.se-vezmou.cz` | `/h/tenant/<slug>/{locale}` |
+| Hostitel              | Segment                                       |
+| --------------------- | --------------------------------------------- |
+| `se-vezmou.cz`        | `/h/marketing/{cs                             | en}` |
+| `app.se-vezmou.cz`    | `/h/app`                                      |
+| `admin.se-vezmou.cz`  | `/h/admin` (jazyk z předpony `/en`, ADR 0013) |
+| `<slug>.se-vezmou.cz` | `/h/tenant/<slug>/{locale}`                   |
 
 - Interní prefixy zvenku blokovat (404), stejně jako neznámé hostitele a víceúrovňové subdomény.
 - Lokálně `*.localhost`; pro náhledy předvolby v env (`HOST_PRESET`, `PREVIEW_TENANT_SLUG`), které produkce nikdy nečte.

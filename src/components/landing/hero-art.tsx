@@ -1,5 +1,5 @@
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 
 /**
  * Ilustrace v heru: okno prohlížeče se svatebním webem páru Klára a Matěj, za ním karta
@@ -7,8 +7,8 @@ import { createTranslator } from "@/i18n/translator";
  * Jen plné plochy. Animace (zatržítko, plovoucí karta) jsou v `globals.css` a běží bez
  * `prefers-reduced-motion: reduce`.
  */
-export function HeroArt({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function HeroArt({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
   const initial = t("landing.sample.first").charAt(0);
 
   return (

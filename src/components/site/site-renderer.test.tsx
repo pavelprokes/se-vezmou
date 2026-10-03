@@ -20,16 +20,26 @@ import {
 } from "@/site/fixtures/klara-a-matej";
 import { templateKeys, templates } from "@/site/themes/palettes";
 import type { Phase, PublicContent } from "@/site/types";
+import { locales, type Locale } from "@/i18n/config";
+import { getTranslator } from "@/i18n/load";
+import { SITE_NAMESPACES, type SiteTranslator } from "./context";
 import { SiteRenderer } from "./site-renderer";
 
 const NOW = new Date("2026-10-02T10:00:00+02:00");
 
+/** Překlady webu páru v každém jazyce (stejně jako je stránka načte na serveru). */
+const translators = Object.fromEntries(
+  await Promise.all(
+    locales.map(async (locale) => [locale, await getTranslator(locale, SITE_NAMESPACES)] as const),
+  ),
+) as Record<Locale, SiteTranslator>;
+
 function renderSite(
   content: PublicContent,
-  locale: "cs" | "en" = "cs",
+  locale: Locale = "cs",
   extra: Partial<Parameters<typeof SiteRenderer>[0]> = {},
 ) {
-  return render(<SiteRenderer content={content} locale={locale} now={NOW} {...extra} />);
+  return render(<SiteRenderer content={content} t={translators[locale]} now={NOW} {...extra} />);
 }
 
 function withPhase(phase: Phase, content = eukalyptusFixture): PublicContent {
@@ -237,7 +247,11 @@ describe("SiteRenderer: jazyk a náhradní jazyk", () => {
     expect(links[1]).not.toHaveAttribute("aria-current");
 
     rerender(
-      <SiteRenderer content={{ ...eukalyptusFixture, locales: ["cs"] }} locale="cs" now={NOW} />,
+      <SiteRenderer
+        content={{ ...eukalyptusFixture, locales: ["cs"] }}
+        t={translators.cs}
+        now={NOW}
+      />,
     );
     expect(screen.queryByRole("navigation", { name: "Jazyk" })).toBeNull();
   });

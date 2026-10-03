@@ -1,17 +1,19 @@
 import type { Metadata } from "next";
 import { Card } from "@/components/ui/card";
-import { createTranslator } from "@/i18n/translator";
 import { opListOperators } from "@/lib/db/rpc-ops";
 import { formatMoment } from "@/ops/format";
 import { requireOperator } from "@/ops/session";
 import { OpsShell, SectionTitle, TableRegion, tableClass, tdClass, thClass } from "@/ops/ui/shell";
 import { CreateOperatorForm, DisableOperatorForm, ResetMfaForm } from "@/ops/ui/operator-forms";
+import { getOpsTranslator } from "@/ops/i18n";
 
-const t = createTranslator("cs");
-
-export const metadata: Metadata = { title: t("ops.operators.title") };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getOpsTranslator();
+  return { title: t("ops.operators.title") };
+}
 
 export default async function OperatorsPage() {
+  const t = await getOpsTranslator();
   const session = await requireOperator("manage_operators");
   const operators = await opListOperators(session.operatorId);
   const others = operators
@@ -78,7 +80,7 @@ export default async function OperatorsPage() {
                     {o.totpConfirmed ? t("ops.operators.factor.on") : t("ops.operators.factor.off")}
                   </td>
                   <td className={tdClass}>{o.backupCodesLeft}</td>
-                  <td className={tdClass}>{formatMoment(o.lastLoginAt, never)}</td>
+                  <td className={tdClass}>{formatMoment(o.lastLoginAt, never, t.locale)}</td>
                   <td className={tdClass}>
                     {o.disabledAt
                       ? t("ops.operators.state.disabled")

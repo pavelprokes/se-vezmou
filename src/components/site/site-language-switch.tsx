@@ -1,4 +1,4 @@
-import { htmlLang, type Locale } from "@/i18n/config";
+import { htmlLang, localeNames, type Locale } from "@/i18n/config";
 import type { Translator } from "@/i18n/translator";
 
 export interface SiteLanguageSwitchProps {
@@ -7,7 +7,7 @@ export interface SiteLanguageSwitchProps {
   current: Locale;
   /** Adresa téže stránky v každém jazyce webu. */
   hrefs: Record<Locale, string>;
-  t: Translator;
+  t: Translator<"common">;
 }
 
 /**
@@ -16,10 +16,6 @@ export interface SiteLanguageSwitchProps {
  */
 export function SiteLanguageSwitch({ locales, current, hrefs, t }: SiteLanguageSwitchProps) {
   if (locales.length < 2) return null;
-  const names: Record<Locale, string> = {
-    cs: t("common.language.cs"),
-    en: t("common.language.en"),
-  };
   return (
     <nav aria-label={t("common.language.label")} className="site-lang">
       <ul>
@@ -32,7 +28,7 @@ export function SiteLanguageSwitch({ locales, current, hrefs, t }: SiteLanguageS
               aria-current={locale === current ? "true" : undefined}
               className="site-nav-link"
             >
-              {names[locale]}
+              {localeNames[locale]}
             </a>
           </li>
         ))}

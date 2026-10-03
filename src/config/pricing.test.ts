@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { catalogs } from "@/i18n/messages";
+import { locales } from "@/i18n/config";
+import { pickMessages } from "@/i18n/load";
 import { operator, isPlaceholder } from "./operator";
 import { lowestPrice, pricing, PLAN_IDS } from "./pricing";
+
+/** Texty úvodní stránky (jmenné prostory `landing` a `marketing`) v každém jazyce. */
+const catalogs = Object.fromEntries(
+  await Promise.all(
+    locales.map(async (locale) => [locale, await pickMessages(locale, ["landing", "marketing"])]),
+  ),
+) as Record<(typeof locales)[number], Record<string, string | Record<string, string>>>;
 
 describe("config/pricing", () => {
   it("obě karty ceny stojí 0 Kč po dobu zaváděcího provozu", () => {
@@ -45,9 +53,8 @@ describe("config/operator", () => {
 describe("texty ceny", () => {
   it("nikdy neslibují „zdarma navždy“ (česky ani anglicky)", () => {
     const forbidden = /navždy|\bforever\b|\bfor ever\b|\bfor life\b|\blifetime\b/i;
-    for (const locale of ["cs", "en"] as const) {
-      for (const [key, value] of catalogs[locale]) {
-        if (!key.startsWith("landing.") && !key.startsWith("marketing.")) continue;
+    for (const locale of locales) {
+      for (const [key, value] of Object.entries(catalogs[locale])) {
         const text = typeof value === "string" ? value : Object.values(value).join(" ");
         expect(text, `${locale} ${key}`).not.toMatch(forbidden);
       }
@@ -55,7 +62,7 @@ describe("texty ceny", () => {
   });
 
   it("nabídka je vždy vázaná na zaváděcí provoz", () => {
-    expect(catalogs.cs.get("landing.pricing.title")).toContain("po dobu zaváděcího provozu");
-    expect(catalogs.en.get("landing.pricing.title")).toContain("during the launch period");
+    expect(catalogs.cs["landing.pricing.title"]).toContain("po dobu zaváděcího provozu");
+    expect(catalogs.en["landing.pricing.title"]).toContain("during the launch period");
   });
 });

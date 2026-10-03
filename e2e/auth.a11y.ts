@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 import { codeOf, linkOf, waitForMail } from "./support/mail";
 import { seedWedding } from "./support/db";
 import { app, expect, requestCode, submitAndWait, test } from "./support/fixtures";
+import { localeNames } from "../src/i18n/config";
 
 /**
  * Přístupnost obrazovek přihlášení (WCAG 2.2 AA, M4): axe na každém kroku včetně chybových stavů,
@@ -88,12 +89,19 @@ test.describe("axe: obrazovky přihlášení", () => {
     await expectNoViolations(page);
   });
 
-  test("angličtina", async ({ browser }) => {
+  test("angličtina (anglický prohlížeč skončí na /en, přepínač jazyka je součástí kontroly)", async ({
+    browser,
+  }) => {
     const context = await browser.newContext({ locale: "en-GB" });
     const page = await context.newPage();
     await page.goto(app("/prihlaseni"));
+    await expect(page).toHaveURL(app("/en/prihlaseni"));
+    await expect(page.getByRole("navigation", { name: "Language", exact: true })).toBeVisible();
     await expectNoViolations(page);
     await page.goto(app("/prihlaseni/pin"));
+    await expect(page).toHaveURL(app("/en/prihlaseni/pin"));
+    await expectNoViolations(page);
+    await page.goto(app("/en/odhlaseni"));
     await expectNoViolations(page);
     await context.close();
   });
@@ -106,6 +114,12 @@ test.describe("ovládání a zobrazení", () => {
     const wedding = await seedWedding();
     await page.goto(app("/prihlaseni"));
     await page.keyboard.press("Tab"); // odkaz Přeskočit na obsah
+    // Přepínač jazyka v hlavičce: jeden odkaz na každý jazyk, pak formulář.
+    const switcher = page.getByRole("navigation", { name: "Jazyk", exact: true });
+    for (const name of Object.values(localeNames)) {
+      await page.keyboard.press("Tab");
+      await expect(switcher.getByRole("link", { name })).toBeFocused();
+    }
     await page.keyboard.press("Tab");
     await expect(page.getByLabel("E-mail")).toBeFocused();
     await page.keyboard.type(wedding.adminEmail);

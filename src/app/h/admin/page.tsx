@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { createTranslator } from "@/i18n/translator";
 import { opAnalyticsSummary, opOverview, type AnalyticsRow } from "@/lib/db/rpc-ops";
 import { WEDDING_STATUSES } from "@/lib/db/types";
 import { ANALYTICS_WINDOW_DAYS } from "@/ops/config";
@@ -7,12 +6,14 @@ import { formatMonth } from "@/ops/format";
 import { EVENT_KEYS, LOCALE_KEYS, STATUS_KEYS, TEMPLATE_KEYS, label } from "@/ops/labels";
 import { requireOperator } from "@/ops/session";
 import { OpsShell, SectionTitle, TableRegion, tableClass, tdClass, thClass } from "@/ops/ui/shell";
+import { getOpsTranslator } from "@/ops/i18n";
 
-const t = createTranslator("cs");
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getOpsTranslator();
+  return { title: t("ops.overview.title") };
+}
 
-export const metadata: Metadata = { title: t("ops.overview.title") };
-
-function CountTable({
+async function CountTable({
   caption,
   firstColumn,
   rows,
@@ -21,6 +22,7 @@ function CountTable({
   firstColumn: string;
   rows: { label: string; count: number }[];
 }) {
+  const t = await getOpsTranslator();
   return (
     <TableRegion label={caption}>
       <table className={tableClass.replace("min-w-[40rem]", "min-w-[18rem]")}>
@@ -64,6 +66,7 @@ function summarize(rows: AnalyticsRow[]) {
 }
 
 export default async function OverviewPage() {
+  const t = await getOpsTranslator();
   const session = await requireOperator("view");
   const [overview, analytics] = await Promise.all([
     opOverview(session.operatorId),
@@ -93,7 +96,7 @@ export default async function OverviewPage() {
               caption={t("ops.overview.months.title")}
               firstColumn={t("ops.overview.col.month")}
               rows={overview.by_month.map((m) => ({
-                label: formatMonth(m.month),
+                label: formatMonth(m.month, t.locale),
                 count: m.count,
               }))}
             />

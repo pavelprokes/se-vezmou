@@ -1,5 +1,6 @@
 "use server";
 
+import { toLocale } from "@/i18n/config";
 import { cookies } from "next/headers";
 import { after } from "next/server";
 import { z } from "zod";
@@ -310,7 +311,7 @@ export type RenewPreviewResult =
 /** Nový odkaz na náhled (starý přestane platit). Jen s relací a jen pro svatbu z relace. */
 export async function renewPreviewLinkAction(rawLocale: unknown): Promise<RenewPreviewResult> {
   if (!(await originAllowed())) return { status: "error" };
-  const locale = rawLocale === "en" ? "en" : "cs";
+  const locale = toLocale(typeof rawLocale === "string" ? rawLocale : null);
   try {
     const session = await getSession();
     if (!session) return { status: "unauthorized" };

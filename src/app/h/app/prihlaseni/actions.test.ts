@@ -178,11 +178,25 @@ describe("requestCodeAction", () => {
     expect(state.set).toHaveLength(0);
   });
 
-  it("jazyk e-mailu se bere z Accept-Language", async () => {
-    state.headers.set("accept-language", "en-GB,en;q=0.9");
+  it("jazyk e-mailu je jazyk požadavku z proxy (hlavička x-ui-locale) a přesměrování ho nese", async () => {
+    state.headers.set("x-ui-locale", "en");
     login.requestLoginCode.mockResolvedValue({ status: "sent" });
-    await redirectTarget(requestCodeAction(null, form({ email: "klara@example.cz" })));
+    const target = await redirectTarget(
+      requestCodeAction(null, form({ email: "klara@example.cz" })),
+    );
     expect(login.requestLoginCode).toHaveBeenCalledWith(expect.objectContaining({ locale: "en" }));
+    expect(target).toBe("/en/prihlaseni/kod");
+  });
+
+  it("Accept-Language server nečte: bez jazyka z proxy je e-mail ve výchozím jazyce", async () => {
+    state.headers.set("accept-language", "en-GB,en;q=0.9");
+    state.headers.set("x-ui-locale", "nesmysl");
+    login.requestLoginCode.mockResolvedValue({ status: "sent" });
+    const target = await redirectTarget(
+      requestCodeAction(null, form({ email: "klara@example.cz" })),
+    );
+    expect(login.requestLoginCode).toHaveBeenCalledWith(expect.objectContaining({ locale: "cs" }));
+    expect(target).toBe("/prihlaseni/kod");
   });
 });
 

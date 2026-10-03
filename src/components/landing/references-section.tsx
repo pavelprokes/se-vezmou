@@ -1,5 +1,5 @@
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { Section, SectionHeading } from "./section";
 import { WaitlistForm } from "./waitlist-form";
 
@@ -7,8 +7,8 @@ import { WaitlistForm } from "./waitlist-form";
  * Reference: zatím jen zástupný text, žádné vymyšlené recenze a žádná strukturovaná data `Review`.
  * Pod nimi je čekací listina (zástupný program přátelských párů).
  */
-export function ReferencesSection({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function ReferencesSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
   const quotes = [
     t("landing.references.q1"),
     t("landing.references.q2"),

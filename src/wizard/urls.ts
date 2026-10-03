@@ -1,4 +1,4 @@
-import type { Locale } from "@/i18n/config";
+import { defaultLocale, type Locale, localePath } from "@/i18n/config";
 
 /**
  * Adresy webu páru a odkazu na náhled konceptu. Čistý modul: doména závisí na prostředí
@@ -24,29 +24,29 @@ export function tenantOrigin(
   return `${isLocal(domain) ? "http" : "https"}://${slug}.${domain}${port}`;
 }
 
-/** Cesta úvodní stránky webu v jazyce (čeština bez předpony, angličtina pod `/en`). */
+/** Cesta úvodní stránky webu v jazyce (výchozí jazyk bez předpony, ostatní pod `/<jazyk>`). */
 export function sitePath(locale: Locale): string {
-  return locale === "cs" ? "/" : "/en";
+  return localePath("/", locale);
 }
 
 export function siteUrl(
   slug: string,
   appHost: string | null | undefined,
-  locale: Locale = "cs",
+  locale: Locale = defaultLocale,
   fallbackDomain?: string,
 ): string {
   return `${tenantOrigin(slug, appHost, fallbackDomain)}${sitePath(locale)}`;
 }
 
-/** Odkaz na náhled konceptu: `/nahled/<token>` (česky) nebo `/en/nahled/<token>`. */
+/** Odkaz na náhled konceptu: `/nahled/<token>` (výchozí jazyk) nebo `/<jazyk>/nahled/<token>`. */
 export function previewUrl(
   slug: string,
   token: string,
   appHost: string | null | undefined,
-  locale: Locale = "cs",
+  locale: Locale = defaultLocale,
   fallbackDomain?: string,
 ): string {
-  const path = locale === "cs" ? `/nahled/${token}` : `/en/nahled/${token}`;
+  const path = localePath(`/nahled/${token}`, locale);
   return `${tenantOrigin(slug, appHost, fallbackDomain)}${path}`;
 }
 

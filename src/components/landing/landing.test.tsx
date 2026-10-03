@@ -38,6 +38,21 @@ describe("NameForm", () => {
     expect(form.querySelector('input[name="jazyk"]')).toHaveValue("cs");
   });
 
+  it("v jiném než výchozím jazyce vede na průvodce s předponou jazyka", () => {
+    render(
+      <NameForm
+        appUrl="https://app.se-vezmou.cz"
+        locale="en"
+        domain="se-vezmou.cz"
+        labels={labels}
+        variant="cta"
+      />,
+    );
+    const form = screen.getByRole("form", { name: "Jména páru" });
+    expect(form).toHaveAttribute("action", "https://app.se-vezmou.cz/en/vytvorit");
+    expect(form.querySelector('input[name="jazyk"]')).toHaveValue("en");
+  });
+
   it("pole mají viditelné popisky a nejsou povinná", () => {
     renderForm("cta");
     expect(screen.getByLabelText("První jméno")).not.toBeRequired();

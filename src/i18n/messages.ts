@@ -1,84 +1,91 @@
-import type { Locale } from "./config";
 import type { MessageValue } from "./format";
 
-import csAdmin from "./messages/cs/admin.json";
-import csAdminGuests from "./messages/cs/admin.guests.json";
-import csAuth from "./messages/cs/auth.json";
-import csCatalog from "./messages/cs/catalog.json";
-import csCommon from "./messages/cs/common.json";
-import csLanding from "./messages/cs/landing.json";
-import csLegal from "./messages/cs/legal.json";
-import csMarketing from "./messages/cs/marketing.json";
-import csOps from "./messages/cs/ops.json";
-import csPlaceholder from "./messages/cs/placeholder.json";
-import csRsvp from "./messages/cs/rsvp.json";
-import enAdmin from "./messages/en/admin.json";
-import enAdminGuests from "./messages/en/admin.guests.json";
-import enAuth from "./messages/en/auth.json";
-import csSite from "./messages/cs/site.json";
-import csWizard from "./messages/cs/wizard.json";
-import enCatalog from "./messages/en/catalog.json";
-import enCommon from "./messages/en/common.json";
-import enLanding from "./messages/en/landing.json";
-import enLegal from "./messages/en/legal.json";
-import enMarketing from "./messages/en/marketing.json";
-import enOps from "./messages/en/ops.json";
-import enPlaceholder from "./messages/en/placeholder.json";
-import enRsvp from "./messages/en/rsvp.json";
-import enSite from "./messages/en/site.json";
-import enWizard from "./messages/en/wizard.json";
+/**
+ * Jmenné prostory překladů a typy klíčů (ADR 0003, ADR 0013). Jen typy a seznam jmen: zprávy se
+ * nikdy neimportují staticky, načítá je po jmenných prostorech `loadMessages` (`src/i18n/load.ts`).
+ *
+ * Zdrojem pravdy o klíčích je výchozí jazyk (čeština): typy se odvozují z jejích souborů
+ * (`import type` se při sestavení zahodí, nic se nenačte), ostatní jazyky musí mít stejné klíče
+ * (`npm run i18n:check`).
+ */
+import type admin from "./messages/cs/admin.json";
+import type adminGuests from "./messages/cs/admin.guests.json";
+import type auth from "./messages/cs/auth.json";
+import type catalog from "./messages/cs/catalog.json";
+import type common from "./messages/cs/common.json";
+import type errors from "./messages/cs/errors.json";
+import type landing from "./messages/cs/landing.json";
+import type legal from "./messages/cs/legal.json";
+import type marketing from "./messages/cs/marketing.json";
+import type ops from "./messages/cs/ops.json";
+import type placeholder from "./messages/cs/placeholder.json";
+import type rsvp from "./messages/cs/rsvp.json";
+import type site from "./messages/cs/site.json";
+import type wizard from "./messages/cs/wizard.json";
 
-/** Zdrojem pravdy o klíčích je česká verze; angličtina musí mít stejné klíče (kontrola při sestavení). */
-const cs = {
-  admin: csAdmin,
-  "admin.guests": csAdminGuests,
-  auth: csAuth,
-  catalog: csCatalog,
-  common: csCommon,
-  landing: csLanding,
-  legal: csLegal,
-  marketing: csMarketing,
-  ops: csOps,
-  placeholder: csPlaceholder,
-  rsvp: csRsvp,
-  site: csSite,
-  wizard: csWizard,
-} as const;
+/**
+ * Jmenné prostory podle stránek, které je zobrazují:
+ *
+ * - `common`: sdílený rámec každé stránky (značka, odkaz na obsah, popisek přepínače jazyka),
+ * - `errors`: stránka 404 a chyba aplikace,
+ * - `marketing` (metadata úvodní stránky), `landing` (sekce úvodní stránky), `legal` (právní stránky),
+ * - `auth` (přihlášení správců), `wizard` (průvodce), `admin` a `admin.guests` (správa),
+ * - `site` a `rsvp` (web páru), `ops` (provozní administrace),
+ * - `catalog` a `placeholder` (vývojářský katalog a ukázky, mimo produkci).
+ */
+export const namespaces = [
+  "admin",
+  "admin.guests",
+  "auth",
+  "catalog",
+  "common",
+  "errors",
+  "landing",
+  "legal",
+  "marketing",
+  "ops",
+  "placeholder",
+  "rsvp",
+  "site",
+  "wizard",
+] as const;
 
-const en: Record<keyof typeof cs, Record<string, MessageValue>> = {
-  admin: enAdmin,
-  "admin.guests": enAdminGuests,
-  auth: enAuth,
-  catalog: enCatalog,
-  common: enCommon,
-  landing: enLanding,
-  legal: enLegal,
-  marketing: enMarketing,
-  ops: enOps,
-  placeholder: enPlaceholder,
-  rsvp: enRsvp,
-  site: enSite,
-  wizard: enWizard,
+export type Namespace = (typeof namespaces)[number];
+
+type CatalogFiles = {
+  admin: typeof admin;
+  "admin.guests": typeof adminGuests;
+  auth: typeof auth;
+  catalog: typeof catalog;
+  common: typeof common;
+  errors: typeof errors;
+  landing: typeof landing;
+  legal: typeof legal;
+  marketing: typeof marketing;
+  ops: typeof ops;
+  placeholder: typeof placeholder;
+  rsvp: typeof rsvp;
+  site: typeof site;
+  wizard: typeof wizard;
 };
 
-type Namespaces = typeof cs;
+/** Každý jmenný prostor ze seznamu musí mít typ souboru (jinak chyba „does not exist“). */
+type Catalog = { [K in Namespace]: CatalogFiles[K] };
+
+/** Klíče jmenných prostorů `N`: `NamespaceKey<"common">` je `"common.brand" | ...`. */
+export type NamespaceKey<N extends Namespace> = {
+  [K in N]: `${K}.${keyof Catalog[K] & string}`;
+}[N];
 
 /** `common.skipToContent`, `landing.hero.title` ... Neexistující klíč neprojde kontrolou typů. */
-export type MessageKey = {
-  [N in keyof Namespaces & string]: `${N}.${keyof Namespaces[N] & string}`;
-}[keyof Namespaces & string];
+export type MessageKey = NamespaceKey<Namespace>;
 
-function flatten(source: Record<string, Record<string, MessageValue>>): Map<string, MessageValue> {
-  const flat = new Map<string, MessageValue>();
-  for (const [namespace, entries] of Object.entries(source)) {
-    for (const [key, value] of Object.entries(entries)) {
-      flat.set(`${namespace}.${key}`, value);
-    }
-  }
-  return flat;
+/** Zprávy jednoho jmenného prostoru (klíč bez jména prostoru -> text nebo tvary množného čísla). */
+export type NamespaceMessages = Readonly<Record<string, MessageValue>>;
+
+/** Ploché zprávy pro prohlížeč (`"wizard.step1.title" -> text`), viz `pickMessages`. */
+export type FlatMessages = Record<string, MessageValue>;
+
+export function isNamespace(value: string): value is Namespace {
+  return (namespaces as readonly string[]).includes(value);
 }
-
-export const catalogs: Record<Locale, Map<string, MessageValue>> = {
-  cs: flatten(cs),
-  en: flatten(en),
-};

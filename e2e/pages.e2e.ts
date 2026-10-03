@@ -40,13 +40,22 @@ test.describe("úvodní stránka a jazyky", () => {
     );
   });
 
-  test("bez automatického přesměrování podle jazyka prohlížeče", async ({ browser }) => {
+  test("vstup s anglickým prohlížečem vede na /en, český zůstane na / (ADR 0013)", async ({
+    browser,
+  }) => {
     const context = await browser.newContext({ locale: "en-GB" });
     const page = await context.newPage();
     await page.goto(pageUrl(HOSTS.marketing, "/"));
-    expect(new URL(page.url()).pathname).toBe("/");
-    await expect(page.locator("html")).toHaveAttribute("lang", "cs");
+    expect(new URL(page.url()).pathname).toBe("/en");
+    await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
     await context.close();
+
+    const czech = await browser.newContext({ locale: "cs-CZ" });
+    const czechPage = await czech.newPage();
+    await czechPage.goto(pageUrl(HOSTS.marketing, "/"));
+    expect(new URL(czechPage.url()).pathname).toBe("/");
+    await expect(czechPage.locator("html")).toHaveAttribute("lang", "cs");
+    await czech.close();
   });
 
   test("přepínač jazyka je navigace s odkazy a funguje oběma směry", async ({ page }) => {

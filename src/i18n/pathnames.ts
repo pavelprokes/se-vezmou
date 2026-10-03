@@ -1,24 +1,52 @@
-import { defaultLocale, locales, type Locale } from "./config";
+import { defaultLocale, localePath, locales, type Locale } from "./config";
 
 /**
- * Jediná tabulka přeložených cest (ADR 0003). Čerpá z ní proxy, odkazy, `hreflang` i mapa webu.
- * Čeština je bez prefixu, angličtina pod `/en`. Nepřeložená varianta vrací 404 (žádné duplicity).
- * Přidání stránky = nový řádek, např. `pricing: { cs: "/cenik", en: "/en/pricing" }`.
+ * Jediná tabulka veřejných cest úvodní stránky (ADR 0003, ADR 0013). Čerpá z ní proxy, odkazy,
+ * `hreflang` i mapa webu. Výchozí jazyk je bez předpony, ostatní pod `/<jazyk>`; předponu přidává
+ * `localePath`, v tabulce se nepíše.
+ *
+ * Řádek je buď jedna cesta, která se nepřekládá (`home: "/"` -> `/` a `/en`), nebo přeložené
+ * cesty pro každý jazyk (`privacy: { cs: "/soukromi", en: "/privacy" }` -> `/soukromi`
+ * a `/en/privacy`); `Record<Locale, ...>` vynutí doplnění po přidání jazyka. Nepřeložená varianta
+ * (`/privacy` česky, `/en/soukromi`) vrací 404 (žádné duplicity).
+ * Přidání stránky = nový řádek, např. `pricing: { cs: "/cenik", en: "/pricing" }`.
  */
-export const pathnames = {
-  home: { cs: "/", en: "/en" },
-  privacy: { cs: "/soukromi", en: "/en/privacy" },
-  terms: { cs: "/podminky", en: "/en/terms" },
-  accessibility: { cs: "/dostupnost", en: "/en/accessibility" },
-} as const satisfies Record<string, Record<Locale, string>>;
+const routes = {
+  home: "/",
+  privacy: { cs: "/soukromi", en: "/privacy" },
+  terms: { cs: "/podminky", en: "/terms" },
+  accessibility: { cs: "/dostupnost", en: "/accessibility" },
+} as const satisfies Record<string, string | Record<Locale, string>>;
 
-export type RouteName = keyof typeof pathnames;
+export type RouteName = keyof typeof routes;
+
+function build(): Record<RouteName, Record<Locale, string>> {
+  const out = {} as Record<RouteName, Record<Locale, string>>;
+  for (const route of Object.keys(routes) as RouteName[]) {
+    const definition: string | Record<Locale, string> = routes[route];
+    out[route] = Object.fromEntries(
+      locales.map((locale) => [
+        locale,
+        localePath(typeof definition === "string" ? definition : definition[locale], locale),
+      ]),
+    ) as Record<Locale, string>;
+  }
+  return out;
+}
+
+/** Veřejné cesty každé stránky v každém jazyce (s předponou): `pathnames.privacy.en === "/en/privacy"`. */
+export const pathnames: Readonly<Record<RouteName, Readonly<Record<Locale, string>>>> = build();
 
 export function localizedPath(route: RouteName, locale: Locale): string {
   return pathnames[route][locale];
 }
 
-/** Absolutní adresy všech jazykových verzí stránky a `x-default` (česká verze). */
+/** Cesty téže stránky ve všech jazycích (přepínač jazyka). */
+export function localizedPaths(route: RouteName): Record<Locale, string> {
+  return { ...pathnames[route] };
+}
+
+/** Absolutní adresy všech jazykových verzí stránky a `x-default` (výchozí jazyk). */
 export function languageUrls(route: RouteName, siteUrl: string): Record<string, string> {
   const urls: Record<string, string> = {};
   for (const locale of locales) {
@@ -30,7 +58,7 @@ export function languageUrls(route: RouteName, siteUrl: string): Record<string, 
 
 /**
  * Pomocník pro `generateMetadata`: `canonical` na sebe a `hreflang` všech verzí
- * (`cs`, `en`, `x-default`). Používá se jen na marketingovém hostiteli.
+ * (každý jazyk a `x-default`). Používá se jen na marketingovém hostiteli.
  */
 export function hreflangAlternates(route: RouteName, locale: Locale, siteUrl: string) {
   const languages = languageUrls(route, siteUrl);

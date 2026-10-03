@@ -1,3 +1,4 @@
+import type { Locale } from "../src/i18n/config";
 import { HOSTS, pageUrl } from "./hosts";
 
 /**
@@ -13,7 +14,7 @@ export const TEMPLATES = {
 } as const;
 
 export type Template = keyof typeof TEMPLATES;
-export type Lang = "cs" | "en";
+export type Lang = Locale;
 
 export const VIEWPORTS = {
   mobil: { width: 375, height: 812 },

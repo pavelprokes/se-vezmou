@@ -5,17 +5,17 @@ import { requireSession } from "@/auth/session";
 import { AdminFrame } from "@/components/admin/frame";
 import { HELP_KEYS, HELP_TOPICS } from "@/components/admin/help";
 import { Card } from "@/components/ui/card";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("admin.help.title") };
+  return { title: (await getTranslator(await getUiLocale(), ["admin"]))("admin.help.title") };
 }
 
 /** Přehled všech témat nápovědy; stručná nápověda je navíc na každé obrazovce pod nadpisem. */
 export default async function HelpPage() {
   await requireSession();
   const locale = await getUiLocale();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["admin", "admin.guests"]);
   return (
     <AdminFrame
       locale={locale}

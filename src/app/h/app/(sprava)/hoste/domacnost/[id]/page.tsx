@@ -9,12 +9,16 @@ import { AdminFrame } from "@/components/admin/frame";
 import { HouseholdEditor } from "@/components/admin/guests/household-editor";
 import { AdminI18nProvider } from "@/components/admin/i18n";
 import { pickAdminMessages } from "@/components/admin/messages";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { pick } from "@/site/i18n-text";
 import { deleteHouseholdAction, saveHouseholdAction } from "../../actions";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("admin.guests.editor.title") };
+  return {
+    title: (await getTranslator(await getUiLocale(), ["admin.guests"]))(
+      "admin.guests.editor.title",
+    ),
+  };
 }
 
 /** Nová domácnost (`nova`) nebo úprava existující: hosté, děti s věkem a pozvání na události. */
@@ -22,7 +26,7 @@ export default async function HouseholdPage({ params }: PageProps<"/h/app/hoste/
   const { id } = await params;
   const session = await requireSession();
   const locale = await getUiLocale();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["admin.guests"]);
   const data = await loadGuests(session);
 
   const isNew = id === "nova";
@@ -37,7 +41,7 @@ export default async function HouseholdPage({ params }: PageProps<"/h/app/hoste/
   const allEventIds = data.events.filter((event) => event.rsvp_enabled).map((event) => event.id);
 
   return (
-    <AdminI18nProvider locale={locale} messages={pickAdminMessages(locale)}>
+    <AdminI18nProvider locale={locale} messages={await pickAdminMessages(locale)}>
       <AdminFrame
         locale={locale}
         path={isNew ? "/hoste/domacnost/nova" : `/hoste/domacnost/${id}`}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { appHref } from "@/admin/paths";
 import { currentHostConfig } from "@/auth/app-origin";
 import { getHost, getUiLocale } from "@/auth/request";
 import { localHref } from "@/auth/local-href";
@@ -7,16 +8,13 @@ import { getSession } from "@/auth/session";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { WizardLoader } from "@/components/wizard/wizard-loader";
 import { pickWizardMessages } from "@/components/wizard/messages";
-import { isLocale, locales, type Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { defaultLocale, isLocale, locales, type Locale } from "@/i18n/config";
+import { getTranslator } from "@/i18n/load";
 import { wizardLoad } from "@/lib/db/rpc-wizard";
-import { NAME_MAX_LENGTH, WIZARD_PARAMS } from "@/lib/wizard-link";
-
-/** Cesta průvodce v jazycích rozhraní (anglická varianta je pod `/en`, proxy ji přepíše sem). */
-const PATHS: Record<Locale, string> = { cs: "/vytvorit", en: "/en/vytvorit" };
+import { NAME_MAX_LENGTH, WIZARD_PARAMS, wizardPath } from "@/lib/wizard-link";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const t = createTranslator(await getUiLocale());
+  const t = await getTranslator(await getUiLocale(), ["common", "wizard"]);
   return { title: t("wizard.meta.title") };
 }
 
@@ -38,15 +36,15 @@ export default async function WizardPage({ searchParams }: PageProps<"/h/app/vyt
   const params = await searchParams;
   const requested = first(params[WIZARD_PARAMS.locale]);
 
-  // Odkaz z české úvodní stránky s `jazyk=en` patří na anglickou variantu průvodce.
-  if (locale === "cs" && requested === "en") {
+  // Starší odkaz bez předpony s `jazyk=en` (jiný než výchozí jazyk) patří na průvodce v tom jazyce.
+  if (locale === defaultLocale && isLocale(requested) && requested !== defaultLocale) {
     const query = new URLSearchParams();
     for (const key of [WIZARD_PARAMS.first, WIZARD_PARAMS.second]) {
       const value = name(params[key]);
       if (value) query.set(key, value);
     }
-    query.set(WIZARD_PARAMS.locale, "en");
-    redirect(`${PATHS.en}?${query.toString()}`);
+    query.set(WIZARD_PARAMS.locale, requested);
+    redirect(`${wizardPath(requested)}?${query.toString()}`);
   }
 
   const session = await getSession();
@@ -64,28 +62,26 @@ export default async function WizardPage({ searchParams }: PageProps<"/h/app/vyt
     : currentHostConfig().rootDomains[0];
   const siteLocale = isLocale(requested) ? requested : locale;
 
-  const t = createTranslator(locale);
-  const hrefs = Object.fromEntries(locales.map((l) => [l, PATHS[l]])) as Record<Locale, string>;
+  const t = await getTranslator(locale, ["common", "wizard"]);
+  const hrefs = Object.fromEntries(locales.map((l) => [l, wizardPath(l)])) as Record<
+    Locale,
+    string
+  >;
 
   return (
     <>
       <header className="border-hairline flex flex-wrap items-center justify-between gap-4 border-b px-4 py-3 sm:px-8">
         <a
-          href="/"
+          href={appHref("/", locale)}
           className="min-h-target text-ink inline-flex items-center font-serif text-2xl font-medium"
         >
           {t("common.brand")}
         </a>
-        <LanguageSwitcher
-          current={locale}
-          hrefs={hrefs}
-          label={t("common.language.label")}
-          names={{ cs: t("common.language.cs"), en: t("common.language.en") }}
-        />
+        <LanguageSwitcher current={locale} hrefs={hrefs} label={t("common.language.label")} />
       </header>
       <WizardLoader
         uiLocale={locale}
-        messages={pickWizardMessages(locale)}
+        messages={await pickWizardMessages(locale)}
         domain={domain}
         prefill={{
           partnerA: name(params[WIZARD_PARAMS.first]),

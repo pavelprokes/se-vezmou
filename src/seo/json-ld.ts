@@ -1,6 +1,6 @@
 import { isPlaceholder } from "@/config/operator";
 import { lowestPrice, type Pricing } from "@/config/pricing";
-import { htmlLang, type Locale } from "@/i18n/config";
+import { htmlLang, type Locale, locales } from "@/i18n/config";
 
 /**
  * Strukturovaná data (JSON-LD, technical-design 6.3). Čisté funkce bez Reactu: dostanou stejné
@@ -50,7 +50,7 @@ export function organizationLd(input: OrganizationInput): JsonLdNode {
       "@type": "ContactPoint",
       contactType: "customer support",
       email: plain(input.contact),
-      availableLanguage: ["cs", "en"],
+      availableLanguage: [...locales],
     };
   }
   return node;

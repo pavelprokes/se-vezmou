@@ -2,7 +2,10 @@ import type { Translator } from "@/i18n/translator";
 import type { PinGateLabels } from "./pin-gate";
 
 /** Hotové texty formuláře PINu (klient je dostane ze serveru, aby se nenačítaly všechny překlady). */
-export function pinGateLabels(t: Translator, kind: "gifts" | "venue" | "gallery"): PinGateLabels {
+export function pinGateLabels(
+  t: Translator<"rsvp" | "site" | "common">,
+  kind: "gifts" | "venue" | "gallery",
+): PinGateLabels {
   return {
     title: kind === "venue" ? t("site.venue.private.title") : t("site.gifts.gateTitle"),
     body:

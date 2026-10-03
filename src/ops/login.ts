@@ -1,4 +1,5 @@
 import "server-only";
+import { defaultLocale } from "@/i18n/config";
 import { requireEnv } from "@/env";
 import { seal, unseal, generateCode } from "@/auth/crypto";
 import { codeHash, emailHash } from "@/auth/identity";
@@ -95,7 +96,8 @@ export async function requestOperatorCode(input: {
           type: "login_code",
           to: input.email,
           weddingId: null,
-          locale: "cs",
+          // Šablony e-mailů operátorům jsou jen ve výchozím jazyce.
+          locale: defaultLocale,
           email,
           secret: authSecret,
         }),
@@ -166,7 +168,7 @@ function deferNotice(defer: Defer, session: OperatorSession, params: OperatorNot
       type: "operator_notice",
       to: session.email,
       weddingId: null,
-      locale: "cs",
+      locale: defaultLocale,
       email,
       secret: authSecret,
     }),

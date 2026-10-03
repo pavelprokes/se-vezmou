@@ -18,7 +18,7 @@ export function RsvpPrivacyNotice({
   locale,
   partners,
 }: {
-  t: Translator;
+  t: Translator<"rsvp" | "site" | "common">;
   locale: Locale;
   partners: { a: string; b: string };
 }) {

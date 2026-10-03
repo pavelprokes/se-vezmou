@@ -1,27 +1,35 @@
+import { localHref } from "@/auth/local-href";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { createTranslator } from "@/i18n/translator";
 import { logoutAction } from "@/ops/actions/login";
 import { loadEnrollment } from "@/ops/login";
-import { OPERATOR_MFA_PATH, requireFirstFactor } from "@/ops/session";
+import { OPERATOR_ENROLL_PATH, OPERATOR_MFA_PATH, requireFirstFactor } from "@/ops/session";
 import { groupSecret } from "@/ops/totp";
 import { OpsAuthShell } from "@/ops/ui/auth-shell";
 import { EnrollForm } from "@/ops/ui/login-forms";
 import { OtpQr } from "@/ops/ui/qr";
+import { getOpsTranslator } from "@/ops/i18n";
+import { localePath } from "@/i18n/config";
 
-const t = createTranslator("cs");
-
-export const metadata: Metadata = { title: t("ops.enroll.title") };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getOpsTranslator();
+  return { title: t("ops.enroll.title") };
+}
 
 export default async function EnrollFactorPage() {
+  const t = await getOpsTranslator();
   const session = await requireFirstFactor();
   // Potvrzený faktor se znovu nezapisuje (jen přes obnovu majitelem).
   const enrollment = session.totpConfirmed ? null : await loadEnrollment(session);
-  if (!enrollment) redirect(OPERATOR_MFA_PATH);
+  if (!enrollment) redirect(await localHref(OPERATOR_MFA_PATH));
 
   return (
-    <OpsAuthShell title={t("ops.enroll.title")} intro={t("ops.enroll.intro")}>
+    <OpsAuthShell
+      path={OPERATOR_ENROLL_PATH}
+      title={t("ops.enroll.title")}
+      intro={t("ops.enroll.intro")}
+    >
       <div className="flex flex-col gap-6">
         <section aria-labelledby="enroll-step1" className="flex flex-col gap-3">
           <h2 id="enroll-step1" className="text-ink text-xl font-medium">
@@ -55,6 +63,7 @@ export default async function EnrollFactorPage() {
               codesIntro: t("ops.enroll.codes.intro"),
               codesList: t("ops.enroll.codes.list"),
               continue: t("ops.enroll.codes.continue"),
+              continueHref: localePath("/", t.locale),
             }}
           />
         </section>

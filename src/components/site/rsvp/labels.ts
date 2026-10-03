@@ -91,7 +91,7 @@ export function fill(template: string, values: Record<string, string | number>):
   );
 }
 
-export function rsvpLabels(t: Translator): RsvpLabels {
+export function rsvpLabels(t: Translator<"rsvp" | "site" | "common">): RsvpLabels {
   return {
     closesAt: t("rsvp.closesAt", { date: "{date}" }),
     name: {

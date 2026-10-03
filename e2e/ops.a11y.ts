@@ -12,6 +12,7 @@ import {
   seedOpsWedding,
 } from "./support/ops";
 import { totpAt } from "../src/ops/totp";
+import { localeNames } from "../src/i18n/config";
 
 /**
  * Přístupnost provozní administrace (WCAG 2.2 AA, M9): axe na každé obrazovce včetně chybových stavů,
@@ -39,6 +40,24 @@ async function expectNoViolations(page: Page) {
 }
 
 const card = (page: Page, name: string) => page.getByRole("region", { name, exact: true });
+
+test.describe("axe: angličtina (předpona /en a přepínač jazyka)", () => {
+  test("přihlášení, přehled a seznam zakázek anglicky", async ({ page }) => {
+    await page.goto(admin("/en/prihlaseni"));
+    await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
+    await expect(page.getByRole("navigation", { name: "Language", exact: true })).toBeVisible();
+    await expectNoViolations(page);
+
+    const owner = await seedOperator({ role: "owner", enrolled: true });
+    await loginAsOperator(page, owner);
+    for (const path of ["/en", "/en/zakazky", "/en/ucet"]) {
+      await page.goto(admin(path));
+      await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
+      await expect(page.getByRole("navigation", { name: "Language", exact: true })).toBeVisible();
+      await expectNoViolations(page);
+    }
+  });
+});
 
 test.describe("axe: přihlášení operátora", () => {
   test("e-mail, i s chybou", async ({ page }) => {
@@ -96,6 +115,12 @@ test.describe("axe: přihlášení operátora", () => {
     await page.goto(admin("/prihlaseni"));
     await page.keyboard.press("Tab"); // odkaz Přeskočit na obsah
     await expect(page.getByRole("link", { name: "Přeskočit na obsah" })).toBeFocused();
+    // Přepínač jazyka v hlavičce: jeden odkaz na každý jazyk, pak formulář.
+    const switcher = page.getByRole("navigation", { name: "Jazyk", exact: true });
+    for (const name of Object.values(localeNames)) {
+      await page.keyboard.press("Tab");
+      await expect(switcher.getByRole("link", { name })).toBeFocused();
+    }
     await page.keyboard.press("Tab");
     await expect(page.getByLabel("E-mail")).toBeFocused();
     await page.keyboard.type(operator.email);

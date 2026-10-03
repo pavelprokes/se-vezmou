@@ -1,6 +1,6 @@
 import { pricing } from "@/config/pricing";
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 
 export interface FaqItem {
   id: string;
@@ -12,8 +12,8 @@ export interface FaqItem {
  * Šest otázek FAQ. Jediný zdroj pro viditelný seznam i strukturovaná data `FAQPage`,
  * takže se značky nikdy nerozejdou s textem.
  */
-export function getFaqItems(locale: Locale): FaqItem[] {
-  const t = createTranslator(locale);
+export async function getFaqItems(locale: Locale): Promise<FaqItem[]> {
+  const t = await getTranslator(locale, ["landing"]);
   const params = { conditions: pricing.conditionsPlaceholder };
   return [
     {

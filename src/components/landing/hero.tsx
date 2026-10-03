@@ -2,14 +2,14 @@ import { ArrowRight, Check } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { appUrl } from "@/lib/site";
 import { buildWizardUrl } from "@/lib/wizard-link";
 import { HeroArt } from "./hero-art";
 
 /** Hero: jediný `<h1>` stránky, hlavní výzva, odkaz na ukázku a ilustrace. */
-export function Hero({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function Hero({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
   const checks = [
     t("landing.hero.check1"),
     t("landing.hero.check2"),

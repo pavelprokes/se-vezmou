@@ -8,13 +8,15 @@ import { AdminFrame } from "@/components/admin/frame";
 import { ResponseEntry } from "@/components/admin/guests/response-entry";
 import { AdminI18nProvider } from "@/components/admin/i18n";
 import { pickAdminMessages } from "@/components/admin/messages";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { getHouseholdForEntry } from "@/lib/rsvp/admin";
 import { buildListedModel } from "@/lib/rsvp/form";
 import { enterResponseAction } from "../actions";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("admin.guests.entry.title") };
+  return {
+    title: (await getTranslator(await getUiLocale(), ["admin.guests"]))("admin.guests.entry.title"),
+  };
 }
 
 /** Ruční zápis odpovědi domácnosti (host odpověděl telefonem, FR-ADM-5). */
@@ -22,7 +24,7 @@ export default async function EntryPage({ params }: PageProps<"/h/app/odpovedi/[
   const { householdId } = await params;
   const session = await requireSession();
   const locale = await getUiLocale();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["admin.guests"]);
   if (!z.uuid().safeParse(householdId).success) notFound();
 
   const view = await getHouseholdForEntry(session, householdId);
@@ -31,7 +33,7 @@ export default async function EntryPage({ params }: PageProps<"/h/app/odpovedi/[
   const names = model.guests.map((guest) => guest.name).join(", ");
 
   return (
-    <AdminI18nProvider locale={locale} messages={pickAdminMessages(locale)}>
+    <AdminI18nProvider locale={locale} messages={await pickAdminMessages(locale)}>
       <AdminFrame
         locale={locale}
         path={responsePath(householdId)}

@@ -10,13 +10,17 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
 import { intlLocale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { getRsvpOverview } from "@/lib/rsvp/admin";
 import { householdStatus } from "@/lib/rsvp/types";
 import { pick } from "@/site/i18n-text";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("admin.guests.nav.responses") };
+  return {
+    title: (await getTranslator(await getUiLocale(), ["admin.guests"]))(
+      "admin.guests.nav.responses",
+    ),
+  };
 }
 
 const WINDOW = {
@@ -39,7 +43,7 @@ const STATUS = {
 export default async function ResponsesPage({ searchParams }: PageProps<"/h/app/odpovedi">) {
   const session = await requireSession();
   const locale = await getUiLocale();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["admin.guests"]);
   const params = await searchParams;
   const [overview, guests, settings] = await Promise.all([
     getRsvpOverview(session),

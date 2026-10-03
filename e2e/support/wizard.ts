@@ -1,3 +1,4 @@
+import { localePath, type Locale } from "../../src/i18n/config";
 import type { Page } from "@playwright/test";
 import { expect } from "@playwright/test";
 import { HOSTS, pageUrl, PORT } from "../hosts";
@@ -5,8 +6,8 @@ import { codeOf, waitForMail } from "./mail";
 
 /** Pomocníci pro testy průvodce (`app.localhost/vytvorit`, M5). */
 
-export const wizardUrl = (query = "", locale: "cs" | "en" = "cs") =>
-  pageUrl(HOSTS.app, `${locale === "cs" ? "" : "/en"}/vytvorit${query}`);
+export const wizardUrl = (query = "", locale: Locale = "cs") =>
+  pageUrl(HOSTS.app, `${localePath("/vytvorit", locale)}${query}`);
 
 /** Mobilní rozložení: jedna malá skupina otázek na obrazovku (do 48 rem). */
 export function isCompact(page: Page): boolean {

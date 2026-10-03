@@ -2,12 +2,14 @@ import { z } from "zod";
 import { defaultLocale, locales, type Locale } from "@/i18n/config";
 
 /**
- * Text po jazycích (`i18n_text` z docs/data-model.md, kapitola 9): klíče jen `cs` a `en`.
- * Chybějící nebo prázdný překlad je v pořádku, vykreslení pak ukáže dostupný jazyk.
+ * Text po jazycích (`i18n_text` z docs/data-model.md, kapitola 9): klíče jen jazyky z `locales`
+ * (doména `i18n_text` v databázi je musí povolit, ADR 0013). Chybějící nebo prázdný překlad je
+ * v pořádku, vykreslení pak ukáže dostupný jazyk.
  */
-export const i18nTextSchema = z
-  .object({ cs: z.string().optional(), en: z.string().optional() })
-  .strict();
+const shape = Object.fromEntries(
+  locales.map((locale) => [locale, z.string().optional()]),
+) as Record<Locale, z.ZodOptional<z.ZodString>>;
+export const i18nTextSchema = z.object(shape).strict();
 
 export type I18nText = z.infer<typeof i18nTextSchema>;
 

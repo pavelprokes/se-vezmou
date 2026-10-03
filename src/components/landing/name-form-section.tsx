@@ -1,5 +1,5 @@
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { appUrl, siteUrl } from "@/lib/site";
 import { NameForm } from "./name-form";
 
@@ -7,14 +7,14 @@ import { NameForm } from "./name-form";
 const domain = new URL(siteUrl).hostname;
 
 /** Pole jmen se serverem přeloženými popisky (klientský formulář nenačítá katalogy překladů). */
-export function LocalizedNameForm({
+export async function LocalizedNameForm({
   locale,
   variant,
 }: {
   locale: Locale;
   variant: "intro" | "cta";
 }) {
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["landing"]);
   return (
     <NameForm
       appUrl={appUrl}

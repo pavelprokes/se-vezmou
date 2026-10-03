@@ -1,8 +1,8 @@
 import { buttonVariants } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
-import { locales, type Locale } from "@/i18n/config";
-import { localizedPath, type RouteName } from "@/i18n/pathnames";
-import { createTranslator } from "@/i18n/translator";
+import type { Locale } from "@/i18n/config";
+import { localizedPath, localizedPaths, type RouteName } from "@/i18n/pathnames";
+import { getTranslator } from "@/i18n/load";
 import { appUrl } from "@/lib/site";
 import { buildWizardUrl } from "@/lib/wizard-link";
 import { HeaderMenu } from "./header-menu";
@@ -14,8 +14,8 @@ export interface LandingHeaderProps {
 }
 
 /** Hlavička úvodní stránky a právních podstránek: značka, kotvy sekcí, přepínač jazyka a výzva. */
-export function LandingHeader({ locale, route }: LandingHeaderProps) {
-  const t = createTranslator(locale);
+export async function LandingHeader({ locale, route }: LandingHeaderProps) {
+  const t = await getTranslator(locale, ["common", "landing"]);
   const home = localizedPath("home", locale);
   const links = [
     { href: `${home}#how`, label: t("landing.nav.how") },
@@ -23,10 +23,6 @@ export function LandingHeader({ locale, route }: LandingHeaderProps) {
     { href: `${home}#pricing`, label: t("landing.nav.pricing") },
     { href: `${home}#faq`, label: t("landing.nav.faq") },
   ];
-  const hrefs = Object.fromEntries(locales.map((l) => [l, localizedPath(route, l)])) as Record<
-    Locale,
-    string
-  >;
 
   return (
     <header className="bg-parchment text-ink">
@@ -55,10 +51,9 @@ export function LandingHeader({ locale, route }: LandingHeaderProps) {
           </nav>
           <LanguageSwitcher
             current={locale}
-            hrefs={hrefs}
+            hrefs={localizedPaths(route)}
             label={t("common.language.label")}
-            names={{ cs: t("common.language.cs"), en: t("common.language.en") }}
-            shortNames={{ cs: t("common.language.csShort"), en: t("common.language.enShort") }}
+            short
           />
           <a
             href={buildWizardUrl({ appUrl, locale })}

@@ -1,0 +1,7 @@
+{
+  "notFound.title": "Page not found",
+  "notFound.body": "We cannot show this address. Please check it or go back to the start.",
+  "error.title": "Something went wrong",
+  "error.body": "The page could not be shown. Please try loading it again.",
+  "error.retry": "Try again"
+}

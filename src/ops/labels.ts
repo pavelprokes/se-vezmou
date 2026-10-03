@@ -1,5 +1,8 @@
-import type { MessageKey } from "@/i18n/messages";
+import type { Locale } from "@/i18n/config";
+import type { NamespaceKey } from "@/i18n/messages";
 import type { WeddingStatus } from "@/lib/db/types";
+
+type MessageKey = NamespaceKey<"ops">;
 
 /** Klíče popisků výčtů (stavy, šablony, jazyky, události, druhy lhůt); v jednom souboru, aby je sdílely stránky. */
 
@@ -19,7 +22,7 @@ export const TEMPLATE_KEYS: Record<string, MessageKey> = {
   modern: "ops.template.modern",
 };
 
-export const LOCALE_KEYS: Record<string, MessageKey> = {
+export const LOCALE_KEYS: Record<Locale, MessageKey> = {
   cs: "ops.locale.cs",
   en: "ops.locale.en",
 };
@@ -78,7 +81,7 @@ export const NOTICE_STATUS_KEYS: Record<string, MessageKey> = {
 /** Popisek hodnoty výčtu; neznámá hodnota se zobrazí tak, jak je (nikdy nespadne). */
 export function label(
   t: (key: MessageKey) => string,
-  map: Record<string, MessageKey>,
+  map: Readonly<Record<string, MessageKey>>,
   value: string,
 ): string {
   const key = map[value];

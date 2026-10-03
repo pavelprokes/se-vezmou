@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { hreflangAlternates, languageUrls, localizedPath, matchPathname } from "./pathnames";
+import { defaultLocale, locales } from "./config";
+import {
+  hreflangAlternates,
+  languageUrls,
+  localizedPath,
+  localizedPaths,
+  matchPathname,
+  pathnames,
+  type RouteName,
+} from "./pathnames";
 
 describe("pathnames", () => {
   it("čeština je na /, angličtina pod /en", () => {
@@ -42,6 +51,25 @@ describe("pathnames", () => {
       en: "https://se-vezmou.cz/en/privacy",
       "x-default": "https://se-vezmou.cz/soukromi",
     });
+  });
+
+  it("každá stránka má cestu v každém jazyce: výchozí bez předpony, ostatní pod /<jazyk>", () => {
+    for (const route of Object.keys(pathnames) as RouteName[]) {
+      const paths = localizedPaths(route);
+      expect(Object.keys(paths).sort()).toEqual([...locales].sort());
+      for (const locale of locales) {
+        const path = paths[locale];
+        if (locale === defaultLocale) {
+          expect(locales.some((l) => path === `/${l}` || path.startsWith(`/${l}/`))).toBe(false);
+        } else {
+          expect(path === `/${locale}` || path.startsWith(`/${locale}/`)).toBe(true);
+        }
+        expect(matchPathname(path)).toEqual({ route, locale });
+      }
+      const urls = languageUrls(route, "https://se-vezmou.cz");
+      expect(Object.keys(urls).sort()).toEqual([...locales, "x-default"].sort());
+      expect(urls["x-default"]).toBe(urls[defaultLocale]);
+    }
   });
 
   it("matchPathname najde stránku a jazyk, neznámé cesty ne", () => {

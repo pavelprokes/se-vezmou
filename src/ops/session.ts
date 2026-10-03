@@ -1,4 +1,5 @@
 import "server-only";
+import { localHref } from "@/auth/local-href";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -69,17 +70,17 @@ export function pendingFactorPath(session: OperatorSession): string {
  */
 export async function requireOperator(action: OperatorAction = "view"): Promise<OperatorSession> {
   const session = await getOperatorSession();
-  if (!session) redirect(OPERATOR_LOGIN_PATH);
-  if (!session.aal2) redirect(pendingFactorPath(session));
-  if (!can(session.role, action)) redirect("/");
+  if (!session) redirect(await localHref(OPERATOR_LOGIN_PATH));
+  if (!session.aal2) redirect(await localHref(pendingFactorPath(session)));
+  if (!can(session.role, action)) redirect(await localHref("/"));
   return session;
 }
 
 /** Relace AAL1 pro stránky druhého faktoru: bez relace na přihlášení, s AAL2 do administrace. */
 export async function requireFirstFactor(): Promise<OperatorSession> {
   const session = await getOperatorSession();
-  if (!session) redirect(OPERATOR_LOGIN_PATH);
-  if (session.aal2) redirect("/");
+  if (!session) redirect(await localHref(OPERATOR_LOGIN_PATH));
+  if (session.aal2) redirect(await localHref("/"));
   return session;
 }
 

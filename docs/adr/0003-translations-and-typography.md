@@ -1,6 +1,6 @@
 # ADR 0003: Překlady a česká typografie
 
-- Stav: navrženo (2. 10. 2026), čeká na schválení majitelem.
+- Stav: navrženo (2. 10. 2026), čeká na schválení majitelem. Vyjednání jazyka, přepínání a načítání zpráv po jmenných prostorech nahrazuje ADR 0013 (proxy při vstupu vyjednává jazyk na hostitelích úvodní stránky, `app.` a `admin.`; chybějící překlad padá na výchozí jazyk).
 - Související: `docs/technical-design.md` (kapitoly 2, 6), `docs/data-model.md` (kapitola 9), ADR 0004.
 
 ## Kontext
@@ -41,7 +41,7 @@ Důvody: dva jazyky, jedno pravidlo typografie, jednoznačné směrování z `sr
 
 **Směrování jazyka.** `cs` na `/`, `en` pod `/en`. Překlad cest (výchozí hodnota zadání „překládat“: `/cenik` ↔ `/en/pricing`) je v jedné tabulce `src/i18n/pathnames.ts`, z níž čerpá proxy (rewrite), odkazy, `hreflang` i mapa webu. Atribut `lang` stránky a `lang` cizojazyčných částí (WCAG 3.1.1 a 3.1.2); u angličtiny `en-GB` `[OTÁZKA: potvrzení britské angličtiny]`.
 
-**Nabídka jazyka bez přesměrování.** Malý klientský ostrov porovná jazyk prohlížeče s jazykem stránky a nabídne odkaz na druhý jazyk v nenápadném pruhu, který jde zavřít a nekrade zaměření; rozhodnutí se zapamatuje (`localStorage` v `try/catch`, nikdy nutná podmínka). Server nečte `Accept-Language`, aby stránky zůstaly statické.
+**Nabídka jazyka bez přesměrování.** _Nahrazeno ADR 0013: proxy při vstupu na adresu bez předpony vyjedná jazyk (cookie `NEXT_LOCALE`, `Accept-Language`) a přesměruje na předponu; server mimo proxy `Accept-Language` nečte._ Původní návrh: malý klientský ostrov porovná jazyk prohlížeče s jazykem stránky a nabídne odkaz na druhý jazyk v nenápadném pruhu, který jde zavřít a nekrade zaměření; rozhodnutí se zapamatuje (`localStorage` v `try/catch`, nikdy nutná podmínka). Server nečte `Accept-Language`, aby stránky zůstaly statické.
 
 **Chybějící překlad.** Aplikační texty (marketing, průvodce, správa, e-maily) musí mít v obou jazycích všechny klíče; kontrola při sestavení to vynucuje, takže za běhu se chybějící klíč nemá jak objevit. Pro jistotu `t()` při chybě zaloguje (bez osobních údajů) a vrátí text z druhého jazyka, nikdy klíč. Obsah páru (`i18n_text`) čte `pick(text, locale, default_locale)`: požadovaný jazyk, výchozí jazyk svatby, libovolný neprázdný; chybějící překlady se hlásí správci při kontrole a publikaci (FR-WEB-2).
 

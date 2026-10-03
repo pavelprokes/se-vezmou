@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { createTranslator } from "@/i18n/translator";
 import type { WeddingStatus } from "@/lib/db/types";
 import { expiringWeddings, jobRunsSummary } from "@/lib/lifecycle/operator";
 import { RETENTION_WINDOW_DAYS } from "@/ops/config";
@@ -13,16 +12,20 @@ import {
 } from "@/ops/labels";
 import { requireOperator } from "@/ops/session";
 import { OpsShell, SectionTitle, TableRegion, tableClass, tdClass, thClass } from "@/ops/ui/shell";
+import { getOpsTranslator } from "@/ops/i18n";
+import { localePath } from "@/i18n/config";
 
-const t = createTranslator("cs");
-
-export const metadata: Metadata = { title: t("ops.retention.title") };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getOpsTranslator();
+  return { title: t("ops.retention.title") };
+}
 
 /**
  * Weby před vypršením provozu a lhůt pro smazání (FR-OPS-5) a běhy plánovaných úloh (M10). Stránka nic
  * nemaže ani nespouští, jen ukazuje termíny a stav; data dodávají `op_expiring_weddings` a `op_job_runs_summary`.
  */
 export default async function RetentionPage() {
+  const t = await getOpsTranslator();
   const session = await requireOperator("view");
   const [rows, jobs] = await Promise.all([
     expiringWeddings(session.operatorId, RETENTION_WINDOW_DAYS),
@@ -79,7 +82,7 @@ export default async function RetentionPage() {
                   <tr key={`${row.wedding_id}-${row.kind}`}>
                     <th scope="row" className={`${tdClass} font-medium`}>
                       <a
-                        href={`/zakazky/${row.wedding_id}`}
+                        href={localePath(`/zakazky/${row.wedding_id}`, t.locale)}
                         className="text-pine inline-flex min-h-[2.75rem] items-center underline underline-offset-4"
                       >
                         {coupleNames(row.partner_a_name, row.partner_b_name)}

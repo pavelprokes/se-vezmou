@@ -237,7 +237,7 @@ for (const locale of locales) {
       await page.waitForURL(/\/vytvorit\?/);
       const url = new URL(page.url());
       expect(url.origin).toBe(`http://app.localhost:${PORT}`);
-      // Anglická varianta průvodce je pod /en (české adresy s `jazyk=en` se přesměrují).
+      // Anglická varianta průvodce je pod /en (formulář tam vede rovnou).
       expect(url.pathname).toBe(locale.code === "cs" ? "/vytvorit" : "/en/vytvorit");
       expect(url.searchParams.get("jmeno1")).toBe("Anna");
       expect(url.searchParams.get("jmeno2")).toBe("Jiří Novák");
@@ -261,7 +261,9 @@ for (const locale of locales) {
         .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
       expect(hrefs.length).toBeGreaterThanOrEqual(3);
       for (const href of hrefs) {
-        expect(href).toBe(`http://app.localhost:${PORT}/vytvorit?jazyk=${locale.code}`);
+        // Průvodce v jiném než výchozím jazyce je pod předponou jazyka (ADR 0013).
+        const path = locale.code === "cs" ? "/vytvorit" : `/${locale.code}/vytvorit`;
+        expect(href).toBe(`http://app.localhost:${PORT}${path}?jazyk=${locale.code}`);
       }
     });
 

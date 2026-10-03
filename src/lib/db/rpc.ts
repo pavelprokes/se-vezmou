@@ -1,4 +1,5 @@
 import "server-only";
+import type { Locale } from "@/i18n/config";
 import { cache } from "react";
 import {
   getTransport,
@@ -384,7 +385,7 @@ export type EmailLogStatus = "queued" | "sent" | "delivered" | "bounced" | "comp
 export function emailLogInsert(input: {
   type: EmailLogType;
   weddingId: string | null;
-  locale: "cs" | "en";
+  locale: Locale;
   recipientHash: Bytes;
   recipientDomain: string;
 }): Promise<string> {

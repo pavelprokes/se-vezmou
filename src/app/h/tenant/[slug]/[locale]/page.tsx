@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { SITE_NAMESPACES } from "@/components/site/context";
 import { SiteRenderer } from "@/components/site/site-renderer";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localizedPath } from "@/i18n/pathnames";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { getPublicContent } from "@/site/content";
 import { loadGuestContext } from "@/site/guest-context";
 import { languageAlternates, originFromHeaders } from "@/site/origin";
@@ -29,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const h = await headers();
   const origin = originFromHeaders(h.get("host"), h.get("x-forwarded-proto"));
   const languages = languageAlternates(origin, content.locales, content.defaultLocale);
-  const t = createTranslator(loaded.locale);
+  const t = await getTranslator(loaded.locale, ["site"]);
   return {
     title: t("site.title", { a: content.partners.a, b: content.partners.b }),
     // `hreflang` bez indexace: web zůstává `noindex` (hlavička z proxy i meta robots).
@@ -52,14 +53,16 @@ export default async function TenantSite({ params }: Props) {
   const loaded = await load(slug, locale);
   if (!loaded) notFound();
 
+  // Přepínač nabízí jen jazyky, které web páru opravdu má (bez automatického přesměrování).
   const localeHrefs = Object.fromEntries(
     loaded.content.locales.map((l: Locale) => [l, localizedPath("home", l)]),
   );
   const guest = await loadGuestContext(slug, loaded.locale);
+  const t = await getTranslator(loaded.locale, SITE_NAMESPACES);
   return (
     <SiteRenderer
       content={guest ? { ...loaded.content, phase: guest.phase } : loaded.content}
-      locale={loaded.locale}
+      t={t}
       localeHrefs={localeHrefs}
       now={new Date()}
       rsvp={guest?.rsvp ?? null}

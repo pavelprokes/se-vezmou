@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { validatePalette } from "@/site/themes/validate";
 import { getPalette } from "@/site/themes/palettes";
-import { createSiteCtx, renderableBlocks } from "@/components/site/context";
+import { SITE_NAMESPACES, createSiteCtx, renderableBlocks } from "@/components/site/context";
+import { getTranslator } from "@/i18n/load";
 import { publicContentSchema } from "@/site/types";
 import {
   DEFAULT_EVENT_TITLES,
@@ -166,9 +167,9 @@ describe("toPublicContent", () => {
     expect(toPublicContent(base({ endsOn: "2027-06-01" }), { slug: "aaa" }).endsOn).toBeNull();
   });
 
-  it("výsledek se vykreslí: bloky pro vykreslení odpovídají obsahu", () => {
+  it("výsledek se vykreslí: bloky pro vykreslení odpovídají obsahu", async () => {
     const content = toPublicContent(full(), { slug: "klara-a-matej", phase: "rsvp_open" });
-    const ctx = createSiteCtx(content, "cs", { now });
+    const ctx = createSiteCtx(content, await getTranslator("cs", SITE_NAMESPACES), { now });
     expect(renderableBlocks(ctx).map((b) => b.type)).toEqual([
       "hero",
       "program",

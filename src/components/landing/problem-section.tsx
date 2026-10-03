@@ -1,12 +1,12 @@
 import { BedDouble, Clock, MapPin } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import type { Locale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { Section, SectionHeading } from "./section";
 
 /** Problém a řešení: tři otázky, které hosté kladou pořád dokola. */
-export function ProblemSection({ locale }: { locale: Locale }) {
-  const t = createTranslator(locale);
+export async function ProblemSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["landing"]);
   const cards = [
     {
       icon: MapPin,

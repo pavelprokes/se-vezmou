@@ -1,12 +1,13 @@
 "use server";
 
+import { localHref } from "@/auth/local-href";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { cookieSpec, expiredCookieSpec } from "@/auth/cookie";
 import { normalizeEmail, parseCode } from "@/auth/identity";
 import type { Defer } from "@/auth/login";
-import { assertSameOrigin, getClientIp, getHost } from "@/auth/request";
+import { assertSameOrigin, getClientIp, getHost, getUiLocale } from "@/auth/request";
 import { formatPause } from "@/i18n/duration";
 import { OPERATOR_PENDING_SECONDS } from "../config";
 import {
@@ -77,7 +78,7 @@ export async function requestOperatorCodeAction(
   const host = await getHost();
   const spec = cookieSpec("operatorPending", host, OPERATOR_PENDING_SECONDS);
   (await cookies()).set({ name: spec.name, value: sealOperatorPending(email), ...spec.options });
-  redirect("/prihlaseni/kod");
+  redirect(await localHref("/prihlaseni/kod"));
 }
 
 /** 2. krok: šestimístný kód z e-mailu -> relace AAL1 a přesměrování na druhý faktor. */
@@ -100,7 +101,7 @@ export async function verifyOperatorCodeAction(
 
   await startOperatorSession(result.operatorId);
   await clearPending();
-  redirect(result.totpConfirmed ? OPERATOR_MFA_PATH : OPERATOR_ENROLL_PATH);
+  redirect(await localHref(result.totpConfirmed ? OPERATOR_MFA_PATH : OPERATOR_ENROLL_PATH));
 }
 
 /** 3. krok: kód z aplikace TOTP nebo záložní kód -> AAL2. */
@@ -111,7 +112,7 @@ export async function secondFactorAction(
   if (!(await originAllowed())) return { error: "generic" };
   const session = await getOperatorSession();
   if (!session || session.aal2) return { error: "session" };
-  if (!session.totpConfirmed) redirect(OPERATOR_ENROLL_PATH);
+  if (!session.totpConfirmed) redirect(await localHref(OPERATOR_ENROLL_PATH));
 
   const result = await verifySecondFactor({
     session,
@@ -121,13 +122,13 @@ export async function secondFactorAction(
   });
   switch (result.status) {
     case "ok":
-      redirect("/");
+      redirect(await localHref("/"));
     case "format":
       return { error: "format", field: "code" };
     case "invalid":
       return { error: "invalid", field: "code" };
     case "locked":
-      return { error: "locked", pause: formatPause(result.retryAfter, "cs") };
+      return { error: "locked", pause: formatPause(result.retryAfter, await getUiLocale()) };
     case "limited":
       return { error: "limited" };
   }
@@ -158,7 +159,7 @@ export async function enrollAction(
     case "invalid":
       return { error: "invalid", field: "code" };
     case "locked":
-      return { error: "locked", pause: formatPause(result.retryAfter, "cs") };
+      return { error: "locked", pause: formatPause(result.retryAfter, await getUiLocale()) };
     case "limited":
       return { error: "limited" };
   }
@@ -177,5 +178,5 @@ export async function logoutAction(): Promise<void> {
   if (await originAllowed()) {
     await endOperatorSession();
   }
-  redirect(OPERATOR_LOGIN_PATH);
+  redirect(await localHref(OPERATOR_LOGIN_PATH));
 }

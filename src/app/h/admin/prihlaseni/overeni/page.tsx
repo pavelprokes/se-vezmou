@@ -1,22 +1,25 @@
+import { localHref } from "@/auth/local-href";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { createTranslator } from "@/i18n/translator";
 import { logoutAction } from "@/ops/actions/login";
-import { OPERATOR_ENROLL_PATH, requireFirstFactor } from "@/ops/session";
+import { OPERATOR_ENROLL_PATH, OPERATOR_MFA_PATH, requireFirstFactor } from "@/ops/session";
 import { OpsAuthShell } from "@/ops/ui/auth-shell";
 import { SecondFactorForm } from "@/ops/ui/login-forms";
+import { getOpsTranslator } from "@/ops/i18n";
 
-const t = createTranslator("cs");
-
-export const metadata: Metadata = { title: t("ops.mfa.title") };
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getOpsTranslator();
+  return { title: t("ops.mfa.title") };
+}
 
 export default async function SecondFactorPage() {
+  const t = await getOpsTranslator();
   const session = await requireFirstFactor();
-  if (!session.totpConfirmed) redirect(OPERATOR_ENROLL_PATH);
+  if (!session.totpConfirmed) redirect(await localHref(OPERATOR_ENROLL_PATH));
 
   return (
-    <OpsAuthShell title={t("ops.mfa.title")} intro={t("ops.mfa.intro")}>
+    <OpsAuthShell path={OPERATOR_MFA_PATH} title={t("ops.mfa.title")} intro={t("ops.mfa.intro")}>
       <SecondFactorForm
         labels={{
           code: t("ops.mfa.label"),

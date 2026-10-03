@@ -7,7 +7,7 @@ import type { Defer } from "@/auth/login";
 import { normalizePinInput, type PinProblem } from "@/auth/pin";
 import { setPin } from "@/auth/pin-login";
 import { requireEnv } from "@/env";
-import type { Locale } from "@/i18n/config";
+import { type Locale, toLocale } from "@/i18n/config";
 import {
   adminAccessLoad,
   adminAdminAdd,
@@ -340,7 +340,7 @@ export async function notifyGuestDataViewed(input: {
       const key = row.email.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
-      const locale: Locale = row.locale === "en" ? "en" : "cs";
+      const locale: Locale = toLocale(row.locale);
       const email = renderAdminNotice({
         locale,
         kind: "guest_data_viewed",

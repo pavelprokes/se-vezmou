@@ -1,7 +1,7 @@
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
-import { locales, type Locale } from "@/i18n/config";
-import { localizedPath, type RouteName } from "@/i18n/pathnames";
-import { createTranslator } from "@/i18n/translator";
+import type { Locale } from "@/i18n/config";
+import { localizedPath, localizedPaths, type RouteName } from "@/i18n/pathnames";
+import { getTranslator } from "@/i18n/load";
 
 export interface SiteHeaderProps {
   locale: Locale;
@@ -9,12 +9,8 @@ export interface SiteHeaderProps {
   route: RouteName;
 }
 
-export function SiteHeader({ locale, route }: SiteHeaderProps) {
-  const t = createTranslator(locale);
-  const hrefs = Object.fromEntries(locales.map((l) => [l, localizedPath(route, l)])) as Record<
-    Locale,
-    string
-  >;
+export async function SiteHeader({ locale, route }: SiteHeaderProps) {
+  const t = await getTranslator(locale, ["common"]);
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-8">
@@ -26,9 +22,8 @@ export function SiteHeader({ locale, route }: SiteHeaderProps) {
       </a>
       <LanguageSwitcher
         current={locale}
-        hrefs={hrefs}
+        hrefs={localizedPaths(route)}
         label={t("common.language.label")}
-        names={{ cs: t("common.language.cs"), en: t("common.language.en") }}
       />
     </header>
   );

@@ -4,20 +4,25 @@ import { getUiLocale } from "@/auth/request";
 import { localHref } from "@/auth/local-href";
 import { getSession } from "@/auth/session";
 import { buttonVariants } from "@/components/ui/button";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { AuthShell } from "../../shell";
 import { PinForm } from "../forms";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: createTranslator(await getUiLocale())("auth.pin.title") };
+  return { title: (await getTranslator(await getUiLocale(), ["auth"]))("auth.pin.title") };
 }
 
 export default async function PinLoginPage() {
   if (await getSession()) redirect(await localHref("/"));
-  const t = createTranslator(await getUiLocale());
+  const t = await getTranslator(await getUiLocale(), ["auth"]);
   const loginHref = await localHref("/prihlaseni");
   return (
-    <AuthShell title={t("auth.pin.title")} intro={t("auth.pin.intro")}>
+    <AuthShell
+      locale={t.locale}
+      path="/prihlaseni/pin"
+      title={t("auth.pin.title")}
+      intro={t("auth.pin.intro")}
+    >
       <PinForm
         labels={{
           slug: t("auth.pin.slug.label"),

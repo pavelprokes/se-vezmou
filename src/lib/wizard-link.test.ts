@@ -11,10 +11,11 @@ describe("buildWizardUrl", () => {
     );
   });
 
-  it("bez jmen předá jen jazyk", () => {
+  it("bez jmen předá jen jazyk; jiný než výchozí jazyk vede na průvodce s předponou", () => {
     expect(buildWizardUrl({ ...base, locale: "en" })).toBe(
-      "https://app.se-vezmou.cz/vytvorit?jazyk=en",
+      "https://app.se-vezmou.cz/en/vytvorit?jazyk=en",
     );
+    expect(buildWizardUrl(base)).toBe("https://app.se-vezmou.cz/vytvorit?jazyk=cs");
   });
 
   it("vynechá prázdná jména, zahodí přebytečné mezery a omezí délku", () => {

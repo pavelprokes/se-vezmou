@@ -14,7 +14,7 @@ import { HomeStructuredData } from "@/components/landing/structured-data";
 import { TemplatesSection } from "@/components/landing/templates-section";
 import { TrustSection } from "@/components/landing/trust-section";
 import { isLocale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { siteUrl } from "@/lib/site";
 import { pageMetadata } from "@/seo/page-metadata";
 
@@ -23,7 +23,7 @@ export async function generateMetadata({
 }: PageProps<"/h/marketing/[locale]">): Promise<Metadata> {
   const { locale } = await params;
   if (!isLocale(locale)) return {};
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["common", "marketing"]);
   return pageMetadata({
     route: "home",
     locale,

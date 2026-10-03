@@ -25,12 +25,12 @@ function Sample({ t, name, className, children }: PreviewProps & { className: st
 }
 
 interface PreviewProps {
-  t: Translator;
+  t: Translator<"landing">;
   name: string;
   children?: React.ReactNode;
 }
 
-export function EditorialPreview({ t }: { t: Translator }) {
+export function EditorialPreview({ t }: { t: Translator<"landing"> }) {
   return (
     <Sample t={t} name={t("landing.templates.editorial.name")} className="bg-parchment">
       <span className="bg-ink block h-0.5 w-7" />
@@ -48,7 +48,7 @@ export function EditorialPreview({ t }: { t: Translator }) {
   );
 }
 
-export function EucalyptusPreview({ t }: { t: Translator }) {
+export function EucalyptusPreview({ t }: { t: Translator<"landing"> }) {
   return (
     <Sample t={t} name={t("landing.templates.eucalyptus.name")} className="bg-[#e4eee9]">
       <svg
@@ -83,7 +83,7 @@ export function EucalyptusPreview({ t }: { t: Translator }) {
   );
 }
 
-export function ChateauPreview({ t }: { t: Translator }) {
+export function ChateauPreview({ t }: { t: Translator<"landing"> }) {
   return (
     <Sample t={t} name={t("landing.templates.chateau.name")} className="bg-[#e9dfcc]">
       <span
@@ -106,7 +106,7 @@ export function ChateauPreview({ t }: { t: Translator }) {
   );
 }
 
-export function ModernPreview({ t }: { t: Translator }) {
+export function ModernPreview({ t }: { t: Translator<"landing"> }) {
   return (
     <Sample t={t} name={t("landing.templates.modern.name")} className="bg-ink border-ink">
       <p className="text-parchment font-sans text-2xl leading-[1.02] font-extrabold tracking-tight uppercase sm:text-3xl">

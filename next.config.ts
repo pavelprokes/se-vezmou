@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs/config";
+import { defaultLocale, locales } from "./src/i18n/config";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -72,6 +73,9 @@ const csp = [
  */
 const previewFrameCsp = csp.replace("frame-ancestors 'none'", "frame-ancestors 'self'");
 
+/** Předpony jazyků v adrese (všechny kromě výchozího), např. `en` (ADR 0013). */
+const localePrefixes = locales.filter((locale) => locale !== defaultLocale).join("|");
+
 const securityHeaders = [
   { key: "Content-Security-Policy", value: csp },
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -94,7 +98,7 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: securityHeaders },
       {
         // Pozdější pravidlo se stejným klíčem přepíše dřívější (docs: Header Overriding Behavior).
-        source: "/:lang(en)?/vytvorit/nahled",
+        source: `/:lang(${localePrefixes})?/vytvorit/nahled`,
         headers: [
           { key: "Content-Security-Policy", value: previewFrameCsp },
           { key: "X-Frame-Options", value: "SAMEORIGIN" },

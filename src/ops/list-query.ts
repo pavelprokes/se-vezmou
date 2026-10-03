@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { WEDDING_STATUSES, type WeddingStatus } from "@/lib/db/types";
 import { PAGE_SIZE } from "./config";
+import { defaultLocale, localePath, locales, type Locale } from "@/i18n/config";
 
 /**
  * Filtry seznamu zakázek z adresy (`?stav=published&jazyk=cs&sablona=modern&mesic=2027-06&q=klara&strana=2`).
@@ -9,11 +10,12 @@ import { PAGE_SIZE } from "./config";
  */
 
 export const TEMPLATES = ["editorial", "eukalyptus", "chateau", "modern"] as const;
-export const LOCALES = ["cs", "en"] as const;
+/** Jazyky webu ve filtru: všechny jazyky aplikace (`src/i18n/config.ts`). */
+export const LOCALES = locales;
 
 export type ListQuery = {
   status?: WeddingStatus;
-  locale?: (typeof LOCALES)[number];
+  locale?: Locale;
   template?: (typeof TEMPLATES)[number];
   /** `RRRR-MM` z formuláře. */
   month?: string;
@@ -61,7 +63,11 @@ export function toFilters(query: ListQuery) {
 }
 
 /** Adresa seznamu se zadanými filtry (bez prázdných hodnot); `page` 1 se neuvádí. */
-export function listHref(query: ListQuery, page: number = query.page): string {
+export function listHref(
+  query: ListQuery,
+  page: number = query.page,
+  locale: Locale = defaultLocale,
+): string {
   const params = new URLSearchParams();
   if (query.status) params.set("stav", query.status);
   if (query.locale) params.set("jazyk", query.locale);
@@ -70,5 +76,5 @@ export function listHref(query: ListQuery, page: number = query.page): string {
   if (query.query) params.set("q", query.query);
   if (page > 1) params.set("strana", String(page));
   const search = params.toString();
-  return search ? `/zakazky?${search}` : "/zakazky";
+  return localePath(search ? `/zakazky?${search}` : "/zakazky", locale);
 }

@@ -1,3 +1,4 @@
+import { locales } from "@/i18n/config";
 import { z } from "zod";
 import { i18nTextSchema } from "./i18n-text";
 import { phaseFromDates } from "./phase";
@@ -15,8 +16,8 @@ const nullableText = i18nTextSchema.nullable().optional();
 const previewSchema = z.object({
   mode: z.literal("preview"),
   wedding: z.object({
-    default_locale: z.enum(["cs", "en"]),
-    locales: z.array(z.enum(["cs", "en"])).min(1),
+    default_locale: z.enum(locales),
+    locales: z.array(z.enum(locales)).min(1),
     template: z.string(),
     palette: z.string(),
     partner_a_name: z.string(),

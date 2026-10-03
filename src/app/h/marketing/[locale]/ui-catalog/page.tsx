@@ -9,7 +9,7 @@ import { Field, Fieldset } from "@/components/ui/field";
 import { Icon } from "@/components/ui/icon";
 import { SiteHeader } from "@/components/site-header";
 import { isLocale } from "@/i18n/config";
-import { createTranslator } from "@/i18n/translator";
+import { getTranslator } from "@/i18n/load";
 import { devPagesEnabled } from "@/site/dev-gate";
 import { Heart, MapPin } from "lucide-react";
 
@@ -29,7 +29,7 @@ export default async function UiCatalog({ params }: PageProps<"/h/marketing/[loc
 
   const { locale } = await params;
   if (!isLocale(locale)) notFound();
-  const t = createTranslator(locale);
+  const t = await getTranslator(locale, ["catalog"]);
 
   return (
     <>

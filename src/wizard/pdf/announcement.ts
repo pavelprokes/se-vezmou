@@ -171,7 +171,7 @@ export async function renderAnnouncementPdf(input: AnnouncementInput): Promise<U
   pdf.setSubject(copy.title);
   pdf.setCreator("se-vezmou.cz");
   pdf.setProducer("se-vezmou.cz (pdf-lib)");
-  pdf.setLanguage(input.locale === "cs" ? "cs-CZ" : "en-GB");
+  pdf.setLanguage(intlLocale[input.locale]);
   pdf.setCreationDate(new Date());
 
   const page = pdf.addPage([A4.width, A4.height]);

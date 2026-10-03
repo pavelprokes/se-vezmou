@@ -1,5 +1,6 @@
 "use server";
 
+import { localHref } from "@/auth/local-href";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
@@ -9,6 +10,7 @@ import { requireEnv } from "@/env";
 import { currentHostConfig } from "@/auth/app-origin";
 import { getHost } from "@/auth/request";
 import { parseSlug } from "@/auth/identity";
+import { toLocale } from "@/i18n/config";
 import { rateKey } from "@/auth/rate-limit";
 import type { Defer } from "@/auth/login";
 import { rateLimitHit } from "@/lib/db/rpc";
@@ -78,9 +80,9 @@ type Result = "status" | "slug" | "extend" | "restore" | "link" | "note" | "phas
  * Po úspěšném zásahu se stránka zakázky načte znovu s hlášením (`?vysledek=`). Hlášení tak nezávisí na
  * formuláři, který zásah odeslal (po zablokování nebo obnově už nemusí existovat), a funguje i bez JavaScriptu.
  */
-function done(weddingId: string, result: Result): never {
+async function done(weddingId: string, result: Result): Promise<never> {
   revalidatePath(`/h/admin/zakazky/${weddingId}`);
-  redirect(`/zakazky/${weddingId}?vysledek=${result}`);
+  redirect(await localHref(`/zakazky/${weddingId}?vysledek=${result}`));
 }
 
 export async function changeStatusAction(
@@ -109,7 +111,7 @@ export async function changeStatusAction(
   } catch (error) {
     return failure(error, values);
   }
-  done(guarded.weddingId, "status");
+  return done(guarded.weddingId, "status");
 }
 
 export async function changeSlugAction(
@@ -135,7 +137,7 @@ export async function changeSlugAction(
   } catch (error) {
     return failure(error, values);
   }
-  done(guarded.weddingId, "slug");
+  return done(guarded.weddingId, "slug");
 }
 
 export async function extendRetentionAction(
@@ -167,7 +169,7 @@ export async function extendRetentionAction(
   } catch (error) {
     return failure(error, values);
   }
-  done(guarded.weddingId, "extend");
+  return done(guarded.weddingId, "extend");
 }
 
 export async function restoreWeddingAction(
@@ -190,7 +192,7 @@ export async function restoreWeddingAction(
   } catch (error) {
     return failure(error, values);
   }
-  done(guarded.weddingId, "restore");
+  return done(guarded.weddingId, "restore");
 }
 
 export async function addNoteAction(
@@ -213,7 +215,7 @@ export async function addNoteAction(
   } catch (error) {
     return failure(error, values);
   }
-  done(guarded.weddingId, "note");
+  return done(guarded.weddingId, "note");
 }
 
 export async function setPhaseAction(
@@ -239,7 +241,7 @@ export async function setPhaseAction(
   } catch (error) {
     return failure(error, values);
   }
-  done(guarded.weddingId, "phase");
+  return done(guarded.weddingId, "phase");
 }
 
 export async function sendLoginLinkAction(
@@ -262,7 +264,7 @@ export async function sendLoginLinkAction(
       weddingId: guarded.weddingId,
       adminId: admin.id,
       adminEmail: admin.email,
-      locale: detail.wedding.default_locale === "en" ? "en" : "cs",
+      locale: toLocale(detail.wedding.default_locale),
       origin: appOriginForAdminHost(await getHost(), currentHostConfig()),
       defer,
     });
@@ -271,7 +273,7 @@ export async function sendLoginLinkAction(
   } catch (error) {
     return failure(error);
   }
-  done(guarded.weddingId, "link");
+  return done(guarded.weddingId, "link");
 }
 
 export type GuestDataResult = { outcome: "denied" | "empty" | "rows"; rows: GuestDataRow[] };

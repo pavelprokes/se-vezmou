@@ -35,6 +35,23 @@ Stav: návrh k schválení. Právní části ověří skutečný právník (role
 - **Lístek RSVP** (slepé ověření jména): cookie `__Host-sv_rsvp`, host-only, `HttpOnly`, 30 minut jako lístek v databázi, neprodlužuje se; host se kdykoli může ověřit jménem znovu a tlačítko „Zadat jiné jméno“ cookie smaže (sdílené zařízení). Lístek nikdy není v adrese ani ve formuláři.
 - Vázání na IP se **nepoužívá** (mobilní sítě mění IP), jen hrubé upozornění na změnu zařízení u správce.
 
+### 1.4 Seznam cookies
+
+Všechny cookies jsou jen pro konkrétního hostitele (bez atributu `Domain`), `Path=/`, `SameSite=Lax` a mimo `localhost` `Secure`. Názvy relací mají v ostrém provozu prefix `__Host-` (`src/auth/cookie.ts`).
+
+| Cookie                     | Hostitel                         | Účel                                                          | Platnost                       | Druh                 |
+| -------------------------- | -------------------------------- | ------------------------------------------------------------- | ------------------------------ | -------------------- |
+| `__Host-sv_admin`          | `app.`                           | relace správce (neprůhledný token, v databázi jen hash)       | podle relace (14 dní / 60 dní) | nezbytná, `HttpOnly` |
+| `__Host-sv_login`          | `app.`                           | rozpracované přihlášení kódem (zapečetěný e-mail)             | do vypršení kódu               | nezbytná, `HttpOnly` |
+| `__Host-sv_wizard`         | `app.`                           | ověřování e-mailu při prvním uložení v průvodci               | do vypršení kódu               | nezbytná, `HttpOnly` |
+| `__Host-sv_guest`          | web páru                         | relace hosta po PINu (odemčené citlivé bloky)                 | 6 hodin nečinnosti / 2 dny     | nezbytná, `HttpOnly` |
+| `__Host-sv_rsvp`           | web páru                         | lístek RSVP po ověření jména                                  | 30 minut                       | nezbytná, `HttpOnly` |
+| `__Host-sv_operator`       | `admin.`                         | relace operátora                                              | 30 minut nečinnosti / 8 hodin  | nezbytná, `HttpOnly` |
+| `__Host-sv_operator_login` | `admin.`                         | rozpracované přihlášení operátora kódem                       | do vypršení kódu               | nezbytná, `HttpOnly` |
+| `NEXT_LOCALE`              | úvodní stránka, `app.`, `admin.` | zvolený jazyk rozhraní (jen kód jazyka, např. `cs`), ADR 0013 | 1 rok                          | funkční, `HttpOnly`  |
+
+`NEXT_LOCALE` zapisuje jen proxy (`src/proxy.ts`), a to **jen při výslovném přepnutí jazyka** (klik na jiný jazyk, než je dosavadní preference), nikdy při běžné návštěvě. Neobsahuje osobní údaje ani identifikátor, slouží jen k tomu, aby volba jazyka platila i při dalším vstupu; na webech párů se nezapisuje. Jde o funkční cookie na žádost uživatele (zapamatování volby), posouzení souhlasové lišty viz kap. 5.5 `[OTÁZKA]`.
+
 ## 2. CSRF
 
 - Cookies `SameSite` jsou první vrstva, ne jediná.
@@ -158,7 +175,7 @@ Lhůty výše jsou výchozí návrh zadání (30 dní a 12 měsíců), **schvalu
 - Záznamy (logy aplikace) neobsahují e-maily, jména, PINy, kódy, odpovědi RSVP ani IP v čitelné podobě. Chybová hlášení (Sentry) bez adresy, cesty, query, těla požadavku, cookies, hlaviček, uživatele a drobečkové navigace: `src/lib/sentry-scrub.ts` je čistí před odesláním (testy `sentry-scrub.test.ts`), Sentry v prohlížeči je zapnutý **jen na hostiteli úvodní stránky**, nikdy na webech párů, `app.` ani `admin.` (ADR 0007: žádný skript třetí strany u hostů); adresa náhledu (`/nahled/<token>`) a slug tedy Sentry nikdy neopustí.
 - Informace pro hosty o zpracování: krátké sdělení při RSVP (`src/components/site/rsvp/privacy-notice.tsx`, klíč `rsvp.privacy.notice`, česky i anglicky) jmenuje **pár jako správce**, uvádí, že provozovatel údaje zpracovává na pokyn páru, a odkazuje na zásady zpracování. Zásady (`/soukromi`, `/en/privacy`) se obsluhují jen na hostiteli úvodní stránky, proto odkaz na webu páru míří na absolutní adresu `NEXT_PUBLIC_SITE_URL` a otevírá se v nové záložce (host nepřijde o rozepsanou odpověď). Kontakt na pár `[KONTAKT]` doplní pár do svého webu; stránka zásad je zatím zástupná (`[PROVOZOVATEL, IČO]`). Znění `[OTÁZKA]` pro právníka.
 - **Zásady pro hosty musí uvést Cloudflare R2 jako příjemce.** Obrázky na webu páru se doručují přesměrováním z `/media/…` na podepsanou adresu R2, takže **prohlížeč hosta se přímo připojí k Cloudflare R2** a ten vidí jeho IP adresu a user agent (stejně jako Vercel u samotného webu). Nastavení Cloudflare R2 nemá cookies; adresa je podepsaná a časově omezená. Právník posoudí, zda je to nutné uvést v krátkém sdělení, nebo jen v zásadách.
-- Cookies: jen technicky nutné (relace). Analytika bez cookies (ADR 0007). Posouzení nutnosti souhlasové lišty `[OTÁZKA]` pro právníka.
+- Cookies: jen technicky nutné (relace) a funkční volba jazyka `NEXT_LOCALE` po výslovném přepnutí (kap. 1.4). Analytika bez cookies (ADR 0007). Posouzení nutnosti souhlasové lišty `[OTÁZKA]` pro právníka.
 
 ### 5.6 Koncept průvodce v prohlížeči (localStorage)
 

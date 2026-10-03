@@ -134,6 +134,8 @@ export function EnrollForm({
     codesIntro: string;
     codesList: string;
     continue: string;
+    /** Úvod administrace v jazyce stránky (`/`, `/en`). */
+    continueHref: string;
   };
 }) {
   return (
@@ -148,7 +150,7 @@ export function EnrollForm({
           <BackupCodesList codes={state.data?.codes ?? []} label={labels.codesList} />
           <p>
             <a
-              href="/"
+              href={labels.continueHref}
               className="min-h-target rounded-button border-pine bg-pine text-parchment hover:border-ink hover:bg-ink inline-flex items-center justify-center border-2 px-5 py-2 font-medium"
             >
               {labels.continue}

@@ -63,6 +63,8 @@ export type SaveHouseholdResult =
   | { status: "invalid" }
   | { status: "not_found" }
   | { status: "guest_limit" }
+  /** Údaje hostů už byly po svatbě smazané (guest_purge_at): nová domácnost by zmizela při další údržbě. */
+  | { status: "purged" }
   | Limited;
 
 export async function saveHousehold(
@@ -83,6 +85,7 @@ export async function saveHousehold(
     const reason = reasonOf(error);
     if (reason === "household_not_found") return { status: "not_found" };
     if (reason === "guest_limit_exceeded") return { status: "guest_limit" };
+    if (reason === "guests_purged") return { status: "purged" };
     if (reason === "invalid_payload" || reason === "invalid_guest" || reason === "invalid_event") {
       return { status: "invalid" };
     }
@@ -210,6 +213,7 @@ export type CommitImportResult =
   | { status: "invalid" }
   | { status: "nothing" }
   | { status: "guest_limit" }
+  | { status: "purged" }
   | Limited;
 
 /**
@@ -256,6 +260,7 @@ export async function commitImport(
   } catch (error) {
     const reason = reasonOf(error);
     if (reason === "guest_limit_exceeded") return { status: "guest_limit" };
+    if (reason === "guests_purged") return { status: "purged" };
     if (reason === "invalid_payload" || reason === "invalid_event") return { status: "invalid" };
     throw error;
   }

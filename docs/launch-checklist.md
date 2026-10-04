@@ -72,7 +72,7 @@ Dokud jsou zástupné, **nespouštějte veřejně**:
 
 ## 7. Schválení právníkem (skutečným, OQ-22)
 
-Předat `docs/security-privacy.md` kap. 11 a OQ: retence (30 dní dietní údaje, 12 měsíců hosté, koncept 14 dní, archiv po smazání hostů 90 dní, čekací listina 12 měsíců; OQ-10, 58, 59, 60), právní základ zdravotních údajů, zpracovatelské ujednání mezi párem a provozovatelem, seznam dílčích zpracovatelů a přenosy mimo EU, doba záloh, souhlas s nahlédnutím operátora, krátké sdělení pro hosty, souhlasová lišta, výmaz jednoho hosta (OQ-62), oznámení nejlepším úsilím (OQ-63), `localStorage` (OQ-64), podmínky služby a přístupnost. Výsledek zapište do `docs/open-questions.md` se stavem a datem.
+Předat `docs/security-privacy.md` kap. 11 a OQ: retence (30 dní dietní údaje, 3 měsíce hosté, web 12 měsíců, koncept 14 dní, archiv po smazání hostů 365 dní, čekací listina 12 měsíců; OQ-10, 58, 59, 60), právní základ zdravotních údajů, zpracovatelské ujednání mezi párem a provozovatelem, seznam dílčích zpracovatelů a přenosy mimo EU, doba záloh, souhlas s nahlédnutím operátora, krátké sdělení pro hosty, souhlasová lišta, výmaz jednoho hosta (OQ-62), oznámení nejlepším úsilím (OQ-63), `localStorage` (OQ-64), podmínky služby a přístupnost. Výsledek zapište do `docs/open-questions.md` se stavem a datem.
 
 ## 8. Texty, přístupnost a kontrola kvality
 

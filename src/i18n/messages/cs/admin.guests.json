@@ -6,6 +6,7 @@
   "error.generic": "Něco se nepovedlo. Zkuste to prosím znovu za chvíli.",
   "error.limited": "Provedli jste hodně změn za krátkou dobu. Chvíli počkejte a zkuste to znovu.",
   "error.unauthorized": "Přihlášení vypršelo. Přihlaste se znovu, nic z toho, co je uložené, nezmizelo.",
+  "error.purged": "Údaje hostů jsme po svatbě podle stanovené lhůty smazali, nové hosty už přidat nejde.",
   "help.guests.title": "Hosté a domácnosti",
   "help.guests.body": "Hosté jsou v domácnostech (rodina, pár, jednotlivec). Hosta přidáte ručně nebo importem z Excelu či CSV. U každého hosta zvolíte, na které události je pozvaný: jen na ně se ho formulář zeptá. Hosté se na webu nikde nezobrazují.",
   "help.import.title": "Import hostů",

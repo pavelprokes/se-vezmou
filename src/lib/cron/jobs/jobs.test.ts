@@ -39,6 +39,8 @@ vi.mock("@/env", () => ({
 const stubContext = vi.hoisted(() => ({
   send: vi.fn(),
   loginUrl: "https://app.se-vezmou.cz/prihlaseni",
+  exportUrl: (locale: string) =>
+    `https://app.se-vezmou.cz${locale === "cs" ? "" : `/${locale}`}/data`,
   siteOf: (slug: string | null) => (slug ? `${slug}.se-vezmou.cz` : undefined),
 }));
 vi.mock("@/lib/lifecycle/notices", async (importActual) => ({
@@ -152,7 +154,7 @@ describe("úloha životního cyklu", () => {
     );
     expect(rpc.finishNotice).toHaveBeenCalledWith("n1", 2, 0);
     expect(rpc.finishNotice).toHaveBeenCalledWith("n2", 0, 0);
-    // zpráva: čeština, adresa webu, odkaz na přihlášení
+    // zpráva: čeština, adresa webu, odkaz na export ve správě
     const first = stubContext.send.mock.calls[0][0];
     expect(first).toMatchObject({
       type: "expiry_notice",
@@ -161,7 +163,7 @@ describe("úloha životního cyklu", () => {
       locale: "cs",
     });
     expect(first.email.text).toContain("klara-a-matej.se-vezmou.cz");
-    expect(first.email.text).toContain("https://app.se-vezmou.cz/prihlaseni");
+    expect(first.email.text).toContain("https://app.se-vezmou.cz/data");
   });
 
   it("zprávu o provedeném smazání (fáze done) odesílá jako deletion_notice s časem běhu", async () => {

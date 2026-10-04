@@ -124,7 +124,7 @@ test.describe("životní cyklus a retence v simulovaném čase (E2E-22, E2E-23)"
     request,
   }) => {
     test.setTimeout(120_000);
-    // svatba 15. 6. 2030: zdraví 15. 7. 2030, konec provozu 13. 9. 2030, hosté 15. 6. 2031 (půlnoc v Praze)
+    // svatba 15. 6. 2030: zdraví 15. 7. 2030, hosté 15. 9. 2030, konec provozu 15. 6. 2031 (půlnoc v Praze)
     const wedding = await seedLifecycleWedding("2030-06-15");
     const { weddingId, slug, adminEmail } = wedding;
     const mailHash = hmac(E2E_SECRETS.AUTH_SECRET, "email-log", adminEmail);
@@ -149,7 +149,7 @@ test.describe("životní cyklus a retence v simulovaném čase (E2E-22, E2E-23)"
       const state = await weddingState(weddingId, slug);
       expect(state.status).toBe("published");
       expect(state.healthPurgeAt?.toISOString()).toBe("2030-07-14T22:00:00.000Z");
-      expect(state.guestPurgeAt?.toISOString()).toBe("2031-06-14T22:00:00.000Z");
+      expect(state.guestPurgeAt?.toISOString()).toBe("2030-09-14T22:00:00.000Z");
       expect(state.healthRows).toBe(1);
     });
 
@@ -165,7 +165,8 @@ test.describe("životní cyklus a retence v simulovaném čase (E2E-22, E2E-23)"
         /^Dietní a alergické údaje hostů se smažou 15\.\s*července 2030$/,
       );
       expect(mail.text).toContain(`${slug}.localhost`);
-      expect(mail.text).toMatch(/http:\/\/[^\s]+\/prihlaseni/);
+      // odkaz vede na export ve správě (bez přihlášení přes přihlášení)
+      expect(mail.text).toMatch(/http:\/\/[^\s]+\/data/);
       expect(await lifecycleNotices(weddingId)).toEqual([
         { kind: "health_purge", stage: "first", status: "sent", recipients: 1 },
       ]);
@@ -214,19 +215,40 @@ test.describe("životní cyklus a retence v simulovaném čase (E2E-22, E2E-23)"
       expect(readMails(adminEmail)).toHaveLength(mailCount);
     });
 
-    await test.step("14 dní před koncem provozu přijde upozornění, web zatím běží", async () => {
-      const report = await runJobAt(request, "lifecycle", weddingId, "2030-08-30T12:00:00Z");
+    await test.step("před smazáním údajů hostů přijde upozornění, web zatím běží", async () => {
+      const report = await runJobAt(request, "lifecycle", weddingId, "2030-09-01T12:00:00Z");
+      expect(report.counts).toMatchObject({ notices_planned_first: 1, notices_sent: 1 });
+      const mail = await expectNextMail(/^Údaje hostů se smažou 15\.\s*září 2030$/);
+      expect(mail.text).toMatch(/export hostů a odpovědí/);
+      expect((await weddingState(weddingId, slug)).status).toBe("published");
+    });
+
+    await test.step("po 3 měsících se smažou údaje hostů, web běží dál", async () => {
+      const report = await runJobAt(request, "retention", weddingId, "2030-09-16T12:00:00Z");
+      // hosté 2, domácnost, odpověď, osoba (zdravotní údaje už zmizely dřív)
+      expect(report.counts.guest_rows).toBe(5);
+      await expect
+        .poll(async () => (await weddingState(weddingId, slug)).guestRows, { timeout: 10_000 })
+        .toBe(0);
+      const sent = await runJobAt(request, "lifecycle", weddingId, "2030-09-16T12:00:00Z");
+      expect(sent.counts).toMatchObject({ notices_sent: 1 });
+      await expectNextMail(/^Údaje hostů jsme smazali$/);
+      expect((await weddingState(weddingId, slug)).status).toBe("published");
+    });
+
+    await test.step("14 dní před koncem provozu (12 měsíců po svatbě) přijde upozornění, web zatím běží", async () => {
+      const report = await runJobAt(request, "lifecycle", weddingId, "2031-06-01T12:00:00Z");
       expect(report.counts).toMatchObject({
         archived: 0,
         notices_planned_first: 1,
         notices_sent: 1,
       });
-      await expectNextMail(/^Váš svatební web přestane být veřejný 13\.\s*září 2030$/);
+      await expectNextMail(/^Váš svatební web přestane být veřejný 15\.\s*června 2031$/);
       expect((await weddingState(weddingId, slug)).status).toBe("published");
     });
 
     await test.step("po konci provozu se web archivuje a adresa zůstane vyhrazená", async () => {
-      const report = await runJobAt(request, "lifecycle", weddingId, "2030-09-14T12:00:00Z");
+      const report = await runJobAt(request, "lifecycle", weddingId, "2031-06-16T12:00:00Z");
       expect(report.counts).toMatchObject({ archived: 1 });
       await expect
         .poll(async () => (await weddingState(weddingId, slug)).status, { timeout: 10_000 })
@@ -234,29 +256,10 @@ test.describe("životní cyklus a retence v simulovaném čase (E2E-22, E2E-23)"
       expect((await weddingState(weddingId, slug)).slugState).toBe("active");
       // archivace nepřepsala retenční data
       expect((await weddingState(weddingId, slug)).guestPurgeAt?.toISOString()).toBe(
-        "2031-06-14T22:00:00.000Z",
+        "2030-09-14T22:00:00.000Z",
       );
-      const again = await runJobAt(request, "lifecycle", weddingId, "2030-09-15T12:00:00Z");
+      const again = await runJobAt(request, "lifecycle", weddingId, "2031-06-17T12:00:00Z");
       expect(again.counts.archived).toBe(0);
-    });
-
-    await test.step("před smazáním údajů hostů přijde upozornění i u archivovaného webu", async () => {
-      const report = await runJobAt(request, "lifecycle", weddingId, "2031-06-01T12:00:00Z");
-      expect(report.counts).toMatchObject({ notices_planned_first: 1, notices_sent: 1 });
-      const mail = await expectNextMail(/^Údaje hostů se smažou 15\.\s*června 2031$/);
-      expect(mail.text).toMatch(/export hostů a odpovědí/);
-    });
-
-    await test.step("po 12 měsících se smažou údaje hostů", async () => {
-      const report = await runJobAt(request, "retention", weddingId, "2031-06-16T12:00:00Z");
-      // hosté 2, domácnost, odpověď, osoba (zdravotní údaje už zmizely dřív)
-      expect(report.counts.guest_rows).toBe(5);
-      await expect
-        .poll(async () => (await weddingState(weddingId, slug)).guestRows, { timeout: 10_000 })
-        .toBe(0);
-      const sent = await runJobAt(request, "lifecycle", weddingId, "2031-06-16T12:00:00Z");
-      expect(sent.counts).toMatchObject({ notices_sent: 1 });
-      await expectNextMail(/^Údaje hostů jsme smazali$/);
     });
 
     await test.step("smazaný web se před koncem ochranné lhůty netýká trvalého mazání", async () => {
@@ -316,8 +319,8 @@ test.describe("životní cyklus a retence v simulovaném čase (E2E-22, E2E-23)"
         "expiry_notice",
         "deletion_notice",
         "expiry_notice",
-        "expiry_notice",
         "deletion_notice",
+        "expiry_notice",
         // zpráva o smazání webu: svatba už neexistuje, proto bez odkazu na ni
         "deletion_notice",
       ]);

@@ -183,6 +183,17 @@ describe("saveHousehold", () => {
     expect(calls).toEqual([]);
   });
 
+  it("po smazání údajů hostů je nová domácnost stav purged, ne chyba", async () => {
+    fakeDb({
+      fail: { admin_household_save: new DbError("admin_household_save", "55000", "guests_purged") },
+    });
+    expect(
+      await saveHousehold(SESSION, null, { label: "", note: null, guests: [guest()] }),
+    ).toEqual({
+      status: "purged",
+    });
+  });
+
   it("chyby databáze se mapují na stavy, ostatní se vyhodí dál", async () => {
     fakeDb({
       fail: {

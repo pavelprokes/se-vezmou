@@ -932,6 +932,34 @@ test.describe("heslo na celý web", () => {
   });
 });
 
+test.describe("blížící se smazání v přehledu", () => {
+  test("přehled ukáže blížící se smazání údajů hostů s odkazem na export", async ({
+    page,
+    context,
+  }) => {
+    const site = await seedSite();
+    await site.login(context);
+    await page.goto(appUrl("/"));
+    await expect(page.getByTestId("overview-status")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Blíží se" })).toHaveCount(0);
+
+    await seedHouseholds(site.weddingId, [{ label: "Novákovi", guests: [{ name: "Jan Novák" }] }]);
+    await withDb((db) =>
+      db.query(
+        "update se_vezmou.weddings set guest_purge_at = now() + interval '10 days' where id = $1",
+        [site.weddingId],
+      ),
+    );
+    await page.reload();
+    await expect(page.getByRole("heading", { name: "Blíží se" })).toBeVisible();
+    await expect(page.getByTestId("overview-upcoming")).toContainText(
+      /smažeme údaje hostů \(seznam, pozvání a\sodpovědi\)/,
+    );
+    await page.getByRole("link", { name: "Stáhnout export" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Data a smazání" })).toBeVisible();
+  });
+});
+
 test.describe("PIN a PDF oznámení", () => {
   test("PIN správy a hostů: kontroly slovy, uložení, oznámení na záložní e-mail, zapnutí a vypnutí PINu hostů", async ({
     page,

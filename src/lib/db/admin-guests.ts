@@ -77,6 +77,14 @@ export function adminHouseholdInviteReset(
   });
 }
 
+/** Co svatbu čeká v příštích `days` dnech (konec webu, smazání údajů) pro upozornění v přehledu správy. */
+export function adminLifecycleUpcoming(
+  session: AdminIdentity,
+  days = 30,
+): Promise<{ kind: "site_expiry" | "health_purge" | "guest_purge"; event_at: string }[]> {
+  return tenantRpc(identity(session), "admin_lifecycle_upcoming", { p_days: days }, "table");
+}
+
 // --- nastavení RSVP -------------------------------------------------------------------------
 
 export function adminRsvpSettingsGet(session: AdminIdentity): Promise<unknown> {

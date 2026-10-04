@@ -186,13 +186,15 @@ export function HouseholdEditor({
     setError(
       result.status === "guest_limit"
         ? "admin.guests.editor.error.limit"
-        : result.status === "limited"
-          ? "admin.guests.error.limited"
-          : result.status === "unauthorized"
-            ? "admin.guests.error.unauthorized"
-            : result.status === "not_found"
-              ? "admin.guests.editor.error.notFound"
-              : "admin.guests.editor.error.generic",
+        : result.status === "purged"
+          ? "admin.guests.error.purged"
+          : result.status === "limited"
+            ? "admin.guests.error.limited"
+            : result.status === "unauthorized"
+              ? "admin.guests.error.unauthorized"
+              : result.status === "not_found"
+                ? "admin.guests.editor.error.notFound"
+                : "admin.guests.editor.error.generic",
     );
   };
 

@@ -4,6 +4,11 @@
 begin;
 -- testovací hodina (se_vezmou.clock_guard): bez ní by funkce odmítly p_now z budoucnosti; hlídá ji 98_db_hardening
 select set_config('se_vezmou.test_clock', 'on', true);
+-- Vzorce životního cyklu se tu testují s dřívějšími lhůtami (web 90 dní, hosté 12 měsíců, archiv 90 dní);
+-- aktuální výchozí hodnoty hlídá 90_retention_periods.test.sql.
+update se_vezmou.app_settings set value = '90' where key = 'site_online_days_after_wedding';
+update se_vezmou.app_settings set value = '12' where key = 'guest_retention_months_after_wedding';
+update se_vezmou.app_settings set value = '90' where key = 'archived_delete_days_after_guest_purge';
 select tap.seed();
 
 -- svatba A: 2027-06-12 (zdraví 2027-07-12, hosté 2028-06-12), svatba B: 2027-08-01 (zdraví 2027-08-31, hosté 2028-08-01)

@@ -71,6 +71,14 @@ test.describe("web páru na hostiteli webu páru", () => {
     expect(robots.endsWith("User-agent: *\nDisallow: /\n")).toBe(true);
   });
 
+  test("obrázek náhledu blogu: zveřejněný článek ano, neznámý ne", async ({ request }) => {
+    const ok = await request.get(pageUrl(HOSTS.marketing, "/og/blog/potvrzeni-ucasti-na-svatbu"));
+    expect(ok.status()).toBe(200);
+    expect(ok.headers()["content-type"]).toBe("image/png");
+    const missing = await request.get(pageUrl(HOSTS.marketing, "/og/blog/neexistuje"));
+    expect(missing.status()).toBe(404);
+  });
+
   test("přepínač jazyka vede na anglickou verzi a zpět", async ({ page }) => {
     await page.goto(pageUrl(HOSTS.tenant, "/"));
     await page

@@ -118,7 +118,8 @@ export async function ogCard(input: OgCardInput): Promise<ImageResponse> {
         { name: "DM Sans", data: sans, weight: 400, style: "normal" },
         { name: "DM Sans", data: sansBold, weight: 700, style: "normal" },
       ],
-      headers: { "Cache-Control": "public, max-age=3600, s-maxage=3600" },
+      // krátce: po zamčení nebo zrušení webu nesmí sdílená mezipaměť dlouho držet datum a místo
+      headers: { "Cache-Control": "public, max-age=300, s-maxage=600" },
     },
   );
 }

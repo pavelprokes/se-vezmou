@@ -2,6 +2,7 @@ import { isLocale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 import { ogCard } from "@/seo/og-card";
 import { getVisitorSiteState } from "@/site/content";
+import { originFromHeaders } from "@/site/origin";
 import { formatDateRange } from "@/site/format";
 import { pick } from "@/site/i18n-text";
 import { getPalette } from "@/site/themes/palettes";
@@ -20,11 +21,15 @@ export async function GET(
   // vždy jako anonymní návštěvník: odpověď se ukládá do sdílené mezipaměti (relace hosta ji nesmí ovlivnit)
   const state = await getVisitorSiteState(slug);
   if (!state) return new Response(null, { status: 404 });
+  const look = state.kind === "published" ? state.content : state.gate;
+  // jazyk, který web nenabízí, je stejná 404 jako u stránky (FR-PRIV-3)
+  if (!look.locales.includes(locale)) return new Response(null, { status: 404 });
 
   const t = await getTranslator(locale, ["site"]);
-  const look = state.kind === "published" ? state.content : state.gate;
   const { colors } = getPalette(look.template, look.palette);
-  const host = (request.headers.get("host") ?? slug).replace(/:\d+$/, "");
+  const host = new URL(
+    originFromHeaders(request.headers.get("host"), request.headers.get("x-forwarded-proto")),
+  ).hostname;
 
   let subtitle = "";
   if (state.kind === "published") {

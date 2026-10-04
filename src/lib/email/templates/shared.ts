@@ -127,9 +127,9 @@ function footer(locale: Locale, brand: string) {
   const html = `<!--footer--><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border-top:1px solid ${COLORS.line}">
 <tr><td style="padding-top:20px;font-family:${FONT};font-size:13px;line-height:1.5;color:${COLORS.muted}">
 <p style="margin:0 0 4px;color:${COLORS.ink};font-weight:bold">${escapeHtml(brand)}</p>
-<p style="margin:0 0 16px">${escapeHtml(copy.contact)}: <a href="mailto:${escapeHtml(operator.contact)}" style="color:${COLORS.pine}">${escapeHtml(operator.contact)}</a></p>
+<p style="margin:0 0 16px">${escapeHtml(copy.contact)}: <a href="mailto:${escapeHtml(operator.contact)}" style="color:${COLORS.pine};text-decoration:underline">${escapeHtml(operator.contact)}</a></p>
 <p style="margin:0 0 8px;font-size:11px;letter-spacing:1px;text-transform:uppercase">${escapeHtml(copy.projects)}</p>
-${projects.map((p) => `<p style="margin:0 0 10px"><a href="${escapeHtml(p.href)}" style="color:${COLORS.pine};font-weight:bold">${escapeHtml(p.host)}</a><br>${escapeHtml(p.description)}</p>`).join("\n")}
+${projects.map((p) => `<p style="margin:0 0 10px"><a href="${escapeHtml(p.href)}" style="color:${COLORS.pine};font-weight:bold;text-decoration:underline">${escapeHtml(p.host)}</a><br>${escapeHtml(p.description)}</p>`).join("\n")}
 </td></tr></table><!--/footer-->`;
   return { text, html };
 }
@@ -167,7 +167,7 @@ export function composeEmail(
 </head>
 <body style="margin:0;padding:0;background:${COLORS.background};font-family:${FONT}">
 <div style="max-width:560px;margin:0 auto;padding:24px 16px">
-<!--logo--><p style="margin:0 0 20px"><a href="${siteUrl}/"><img src="cid:${LOGO_CID}" width="240" height="65" alt="se-vezmou.cz" style="display:block;border:0;width:240px;height:auto"></a></p><!--/logo-->
+<!--logo--><p style="margin:0 0 20px"><a href="${escapeHtml(siteUrl)}/"><img src="cid:${LOGO_CID}" width="240" height="65" alt="se-vezmou.cz" style="display:block;border:0;width:240px;height:auto"></a></p><!--/logo-->
 <div style="padding:24px;background:${COLORS.card};border-radius:16px">
 ${typed.map(htmlBlock).join("\n")}
 </div>

@@ -10,12 +10,17 @@ import {
   type RequestSaveCodeResult,
   type VerifySaveCodeResult,
 } from "@/app/h/app/vytvorit/actions";
+import { Turnstile, turnstileEnabled, type TurnstileHandle } from "@/components/turnstile";
 import { useT, type WizardKey } from "./i18n";
 
 type Stage = "emails" | "code" | "saving";
 
 type EmailError =
-  Extract<RequestSaveCodeResult, { status: "invalid" }>["field"] | "generic" | "limited";
+  | Extract<RequestSaveCodeResult, { status: "invalid" }>["field"]
+  | "generic"
+  | "limited"
+  | "bot"
+  | "check";
 type CodeError = Exclude<VerifySaveCodeResult["status"], "verified"> | "none";
 
 /**
@@ -43,6 +48,9 @@ export function SaveDialog({
   const [emailError, setEmailError] = useState<EmailError | null>(null);
   const [codeError, setCodeError] = useState<CodeError>("none");
   const [pending, setPending] = useState(false);
+  // ochrana před roboty (Cloudflare Turnstile): token je jednorázový, po každém vyžádání kódu nový
+  const [botToken, setBotToken] = useState("");
+  const turnstile = useRef<TurnstileHandle>(null);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -65,9 +73,17 @@ export function SaveDialog({
     event?.preventDefault();
     // Tlačítka nejsou `disabled` (zaměření by zmizelo), dvojí odeslání se hlídá tady.
     if (pending) return;
+    // ověření ještě neproběhlo (výzva čeká na klepnutí, nebo se teprve načítá)
+    if (turnstileEnabled && !botToken) {
+      setEmailError("check");
+      setStage("emails");
+      focusAlert();
+      return;
+    }
     setPending(true);
     setEmailError(null);
-    const result = await requestSaveCodeAction({ email, backupEmail: backup });
+    const result = await requestSaveCodeAction({ email, backupEmail: backup, token: botToken });
+    turnstile.current?.reset();
     setPending(false);
     switch (result.status) {
       case "sent":
@@ -89,6 +105,11 @@ export function SaveDialog({
         return;
       case "limited":
         setEmailError("limited");
+        focusAlert();
+        return;
+      case "bot":
+        setEmailError("bot");
+        setStage("emails");
         focusAlert();
         return;
       case "error":
@@ -128,9 +149,13 @@ export function SaveDialog({
   const formMessage =
     emailError === "limited"
       ? t("wizard.save.error.limited")
-      : emailError === "generic"
-        ? t("wizard.save.error.generic")
-        : undefined;
+      : emailError === "bot"
+        ? t("wizard.save.error.bot")
+        : emailError === "check"
+          ? t("wizard.save.error.check")
+          : emailError === "generic"
+            ? t("wizard.save.error.generic")
+            : undefined;
 
   return (
     <dialog
@@ -177,6 +202,7 @@ export function SaveDialog({
             spellCheck={false}
             required
           />
+          {open ? <Turnstile ref={turnstile} action="wizard" onToken={setBotToken} /> : null}
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={pending} aria-disabled={pending || undefined}>
               {t("wizard.save.send")}
@@ -216,6 +242,7 @@ export function SaveDialog({
             spellCheck={false}
             required
           />
+          {open ? <Turnstile ref={turnstile} action="wizard" onToken={setBotToken} /> : null}
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={pending} aria-disabled={pending || undefined}>
               {t("wizard.save.code.submit")}

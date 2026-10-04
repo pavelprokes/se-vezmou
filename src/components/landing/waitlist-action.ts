@@ -8,6 +8,7 @@ import { requireEnv } from "@/env";
 import { rateLimitHit } from "@/lib/db/rpc";
 import { waitlistConfirm } from "@/lib/db/rpc-wizard";
 import { dbWaitlistDeps } from "@/lib/waitlist-db";
+import { TURNSTILE_FIELD, verifyTurnstile } from "@/lib/turnstile";
 import { HONEYPOT_FIELD, submitWaitlist } from "@/lib/waitlist";
 import type { WaitlistFormState } from "./waitlist-state";
 
@@ -38,7 +39,12 @@ export async function joinWaitlist(
       honeypot: formData.get(HONEYPOT_FIELD),
       clientKey,
     },
-    dbWaitlistDeps(),
+    {
+      ...dbWaitlistDeps(),
+      // ochrana před roboty (Turnstile): widget vloží token do skrytého pole formuláře
+      verifyHuman: async () =>
+        (await verifyTurnstile(formData.get(TURNSTILE_FIELD), clientKey, "waitlist")) !== "bot",
+    },
   );
 
   switch (result.status) {
@@ -52,6 +58,8 @@ export async function joinWaitlist(
       };
     case "rateLimited":
       return { status: "rateLimited", email: typeof email === "string" ? email : undefined };
+    case "bot":
+      return { status: "bot", email: typeof email === "string" ? email : undefined };
     case "error":
       return { status: "error", email: typeof email === "string" ? email : undefined };
   }

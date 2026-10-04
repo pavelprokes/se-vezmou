@@ -20,6 +20,8 @@ const labels: WaitlistLabels = {
     emailInvalid: "Zkontrolujte e-mail.",
     consentRequired: "Bez souhlasu to nejde.",
     rateLimited: "Příliš mnoho pokusů.",
+    check: "Ještě ověřujeme.",
+    bot: "Robot.",
     generic: "Něco se pokazilo.",
   },
 };

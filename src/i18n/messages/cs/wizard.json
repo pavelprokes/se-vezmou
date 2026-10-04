@@ -266,6 +266,8 @@
   "save.error.backup": "Zadejte platný záložní e-mail, například matej@example.cz.",
   "save.error.same": "Záložní e-mail musí být jiný než váš hlavní e-mail.",
   "save.error.limited": "Zkuste to prosím znovu později.",
+  "save.error.bot": "Nepodařilo se ověřit, že nejste robot. Obnovte stránku a zkuste to znovu; pokud používáte blokování obsahu, povolte pro tuto stránku ověření od Cloudflare.",
+  "save.error.check": "Ještě ověřujeme, že nejste robot. Pokud se nad tlačítky objevilo políčko, klepněte na něj, a pošlete kód znovu.",
   "save.error.generic": "Něco se nepovedlo. Zkuste to prosím znovu.",
   "save.code.title": "Zadejte kód z e-mailu",
   "save.code.intro": "Poslali jsme šestimístný kód na {email}. Kód platí 10 minut a jde použít jen jednou.",

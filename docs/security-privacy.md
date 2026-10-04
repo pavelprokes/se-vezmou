@@ -37,6 +37,11 @@ Stav: návrh k schválení. Právní části ověří skutečný právník (role
 - **Heslo na celý web** (`weddings.site_locked`, jen se zapnutým PINem hostů): `get_public_site` vydá roli `visitor` místo obsahu jen bránu (jména páru, jazyky, šablona a paleta), takže se obsah nedostane do HTML ani RSC. Projde host po PINu (relace hosta) a host s osobním odkazem: odkaz na zamčeném webu vydá relaci hosta stejně jako PIN (kód má stejnou sílu jako PIN na pozvánce), a tím i citlivé bloky. Správce a PDF oznámení čtou web s právy správce. Fotografie (`get_public_media`, `public_media_ids`) mají stejný obal se zámkem. Server Actions RSVP na zamčeném webu bez relace hosta nic neobslouží (akce jde poslat i mimo stránku). Relací z osobního odkazu je nejvýš 30 za hodinu na web a IP. Odkaz na náhled konceptu zámek obchází (ukazuje rozpracovaný obsah komukoli s odkazem); je to přijaté, odkaz je tajný a pár ho může vyměnit.
 - Vázání na IP se **nepoužívá** (mobilní sítě mění IP), jen hrubé upozornění na změnu zařízení u správce.
 
+### 1.3a Ochrana před roboty
+
+- **Cloudflare Turnstile** v režimu „interaction-only“ (běžný člověk nic nevyplňuje) před odesláním kódu při prvním uložení v průvodci (zakládání konceptů) a na čekací listině. Token ověřuje server (`src/lib/turnstile.ts`, siteverify); neplatný nebo chybějící token = odmítnutí. Výpadek Cloudflare formulář nezablokuje (selže otevřeně), dál platí limity a ověření e-mailem. Bez klíčů (vývoj, testy) vypnuté. Turnstile je dílčí zpracovatel (IP adresa a signály prohlížeče), uvést v zásadách.
+- **Další vrstvy:** ověření e-mailu kódem před vznikem konceptu, nejvýš 10 konceptů za den z jedné IP, úklid opuštěných konceptů po 14 dnech, potvrzení čekací listiny e-mailem, limity a skrytá pole u RSVP, pauzy u PINu, žádné vlastní HTML na webech párů a blokace webu provozovatelem.
+
 ### 1.4 Seznam cookies
 
 Všechny cookies jsou jen pro konkrétního hostitele (bez atributu `Domain`), `Path=/`, `SameSite=Lax` a mimo `localhost` `Secure`. Názvy relací mají v ostrém provozu prefix `__Host-` (`src/auth/cookie.ts`).

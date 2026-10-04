@@ -44,6 +44,11 @@ function r2Origin(): string | null {
 }
 const r2 = r2Origin();
 
+/** Cloudflare Turnstile (ochrana formulářů před roboty): skript a rámec výzvy, jen když je nastaven klíč. */
+const turnstile = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
+  ? " https://challenges.cloudflare.com"
+  : "";
+
 /**
  * Content-Security-Policy. Přiměřená výchozí varianta bez nonce, aby zůstaly stránky statické:
  * skripty Next.js jsou vložené do HTML, proto `'unsafe-inline'` (přísná varianta s nonce
@@ -54,7 +59,8 @@ const r2 = r2Origin();
 const csp = [
   "default-src 'self'",
   // Ve vývoji React potřebuje `eval` a Vercel Analytics načítá ladicí skript.
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
+  `script-src 'self' 'unsafe-inline'${turnstile}${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
+  `frame-src 'self'${turnstile}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob:${r2 ? ` ${r2}` : ""}`,
   "font-src 'self'",

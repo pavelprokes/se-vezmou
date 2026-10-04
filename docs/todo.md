@@ -8,6 +8,8 @@ Stav k 3. 10. 2026. Úkoly, které čekají na majitele nebo na dokončení slu�
 - [ ] **Zásady zpracování osobních údajů** (`/soukromi`, `/en/privacy`) a **prohlášení o přístupnosti**: dokončit s podmínkami; poté zrušit `noindex` a přidat do `indexableRoutes` v `src/seo/sitemap.ts`.
 - [ ] **Skutečné reference**: přidat na úvodní stránku sekci s opravdovými recenzemi se souhlasem autorů (např. od párů, kterým Pavel fotil svatbu, nebo od prvních uživatelů zaváděcího provozu). Zástupné karty jsou odstraněné, na úvodní stránce je teď jen sekce Oznámení o spuštění (`news-section.tsx`). Žádné vymyšlené recenze, bez `Review` ve strukturovaných datech, dokud nejsou skutečné.
 
+- [ ] **Zásady zpracování:** uvést Cloudflare Turnstile (ochrana průvodce a čekací listiny před roboty, IP adresa a signály prohlížeče) mezi dílčí zpracovatele.
+
 ## Newsletter (před první rozesílkou)
 
 - [ ] Souhlasy s verzí `2026-10-v1` platí jen pro jedno oznámení o spuštění, ne pro newsletter: do rozesílky brát jen `consent_text_version = '2026-10-v2'` (nebo je požádat o nové potvrzení). Doplnit do OQ-68.

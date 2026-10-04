@@ -78,6 +78,14 @@ const schema = z.object({
   /** Jen automatické testy: `1` povolí vrátka z src/lib/test-hatches.ts i v produkčním sestavení (e2e, CI). */
   ALLOW_TEST_HATCHES: z.string().min(1).optional(),
   ENABLE_UI_CATALOG: z.string().min(1).optional(),
+  /**
+   * Cloudflare Turnstile (ochrana formulářů průvodce a čekací listiny před roboty): tajný klíč pro ověření
+   * tokenu na serveru. Veřejný klíč widgetu je NEXT_PUBLIC_TURNSTILE_SITE_KEY (vkládá se do sestavení).
+   * Bez nich se ověření přeskočí (vývoj, testy); zůstávají limity požadavků a ověření e-mailem.
+   */
+  TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
+  /** Veřejný klíč widgetu Turnstile (do prohlížeče se vkládá při sestavení doslovným `process.env.…`). */
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1).optional(),
   OG_FETCH_TEST_HOST: z.string().min(1).optional(),
   /** Jen automatické testy: `1` = mapa bez sítě (pevné souřadnice, šedé dlaždice), src/site/map/server.ts. */
   MAP_STUB: z.string().min(1).optional(),

@@ -31,6 +31,7 @@ import {
 import { geocodeAddress, type GeocodeResult } from "@/site/map/server";
 import { previewUrl, siteUrl, displayHost } from "@/wizard/urls";
 import { authSessionContext } from "@/lib/db/rpc";
+import { verifyTurnstile } from "@/lib/turnstile";
 import type { WizardSlugStatus } from "@/lib/db/rpc-wizard";
 
 /**
@@ -120,9 +121,11 @@ export type RequestSaveCodeResult =
   | { status: "already_signed_in" }
   | { status: "invalid"; field: "email" | "backupEmail" | "same" }
   | { status: "limited" }
+  /** Ochrana před roboty (Turnstile) token neuznala. */
+  | { status: "bot" }
   | { status: "error" };
 
-const emailsSchema = z.object({ email: z.unknown(), backupEmail: z.unknown() });
+const emailsSchema = z.object({ email: z.unknown(), backupEmail: z.unknown(), token: z.unknown() });
 
 /** Krok 1 prvního uložení: e-mail správce a záložní e-mail (povinný), kód přijde na první z nich. */
 export async function requestSaveCodeAction(input: unknown): Promise<RequestSaveCodeResult> {
@@ -139,9 +142,13 @@ export async function requestSaveCodeAction(input: unknown): Promise<RequestSave
 
   try {
     if (await getSession()) return { status: "already_signed_in" };
+    const ip = await getClientIp();
+    // ochrana před roboty před odesláním e-mailu s kódem (zakládání konceptů ve velkém)
+    if ((await verifyTurnstile(parsed.data.token, ip, "wizard")) === "bot")
+      return { status: "bot" };
     const result = await requestWizardCode({
       email,
-      ip: await getClientIp(),
+      ip,
       locale: await getUiLocale(),
       defer,
     });

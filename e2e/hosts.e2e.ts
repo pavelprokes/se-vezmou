@@ -64,7 +64,16 @@ test.describe("robots.txt podle hostitele", () => {
     expect(blocked).toContain("Disallow: /");
   });
 
-  for (const name of ["app", "admin", "tenant"] as const) {
+  test("tenant: jen roboty náhledů odkazů, ostatní Disallow /", async ({ request }) => {
+    const response = await get(request, HOSTS.tenant, "/robots.txt");
+    expect(response.status()).toBe(200);
+    const body = await response.text();
+    expect(body).toContain("User-agent: WhatsApp\n");
+    expect(body.endsWith("User-agent: *\nDisallow: /\n")).toBe(true);
+    expect(response.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+  });
+
+  for (const name of ["app", "admin"] as const) {
     test(`${name}: Disallow /`, async ({ request }) => {
       const response = await get(request, HOSTS[name], "/robots.txt");
       expect(response.status()).toBe(200);
@@ -85,7 +94,16 @@ test.describe("sitemap.xml", () => {
     expect(body).toContain('hreflang="x-default"');
   });
 
-  for (const name of ["app", "admin", "tenant"] as const) {
+  test("tenant: jen roboty náhledů odkazů, ostatní Disallow /", async ({ request }) => {
+    const response = await get(request, HOSTS.tenant, "/robots.txt");
+    expect(response.status()).toBe(200);
+    const body = await response.text();
+    expect(body).toContain("User-agent: WhatsApp\n");
+    expect(body.endsWith("User-agent: *\nDisallow: /\n")).toBe(true);
+    expect(response.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+  });
+
+  for (const name of ["app", "admin"] as const) {
     test(`${name}: mapa webu neexistuje`, async ({ request }) => {
       expect((await get(request, HOSTS[name], "/sitemap.xml")).status()).toBe(404);
     });

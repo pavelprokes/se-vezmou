@@ -20,6 +20,7 @@ Project Settings, Environment Variables, **Production** (a podle potřeby Previe
 | `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`                   | ano (fotografie) | token omezený na jeden bucket                                                                                                               |
 | `R2_BUCKET`                                                                   | ano (fotografie) | např. `se-vezmou-photos`                                                                                                                    |
 | `R2_ENDPOINT`, `S3_REGION`                                                    | volitelné        | `https://<account-id>.eu.r2.cloudflarestorage.com`, `auto`                                                                                  |
+| `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`                      | doporučená       | Cloudflare Turnstile proti robotům (průvodce, čekací listina); bez nich ochrana vypnutá, viz bod 2a                                         |
 | `NEXT_PUBLIC_SITE_URL`                                                        | ano              | `https://se-vezmou.cz`, shodně s hlavním jménem (apex nebo `www`, viz bod 6)                                                                |
 | `NEXT_PUBLIC_APP_URL`                                                         | ano              | `https://app.se-vezmou.cz`                                                                                                                  |
 | `ROOT_DOMAIN`                                                                 | ano              | `se-vezmou.cz`                                                                                                                              |
@@ -38,6 +39,13 @@ Postup krok za krokem je v `supabase/README.md`, kapitola Fotografie. Stručně:
 5. Proměnné z bodu 1, **nové nasazení** (adresa R2 je i v CSP).
 6. Zkouška: nahrát fotografii s polohou, zveřejnit, ověřit, že se obrázek načte z R2 a že v `incoming/` nic nezůstalo.
 7. Smlouva o zpracování s Cloudflare, rozhodnutí o záloze (R2 samo nezálohuje), OQ-56.
+
+## 2a. Ochrana před roboty
+
+1. Cloudflare dashboard → **Turnstile** → Add widget: název `se-vezmou`, hostnames `se-vezmou.cz` a `app.se-vezmou.cz`, Widget Mode **Managed**.
+2. Site Key do `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, Secret Key do `TURNSTILE_SECRET_KEY` (Vercel, Production), **nové nasazení** (klíč je v sestavení i v CSP).
+3. Zkouška: v průvodci uložit web (dialog s e-mailem) a zapsat se na čekací listinu; v přehledu Turnstile se objeví ověření `wizard` a `waitlist`.
+4. Vercel → Project → **Firewall**: zapnout Bot Protection (spravovaná pravidla) a Attack Challenge Mode mít po ruce pro případ útoku `[OVĚŘIT]` dostupnost podle tarifu.
 
 ## 3. Databáze a migrace
 

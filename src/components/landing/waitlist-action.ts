@@ -8,6 +8,7 @@ import { requireEnv } from "@/env";
 import { rateLimitHit } from "@/lib/db/rpc";
 import { waitlistConfirm } from "@/lib/db/rpc-wizard";
 import { dbWaitlistDeps } from "@/lib/waitlist-db";
+import { TURNSTILE_FIELD, verifyTurnstile } from "@/lib/turnstile";
 import { HONEYPOT_FIELD, submitWaitlist } from "@/lib/waitlist";
 import type { WaitlistFormState } from "./waitlist-state";
 
@@ -29,6 +30,10 @@ export async function joinWaitlist(
     return { status: "error", email: typeof email === "string" ? email.slice(0, 254) : undefined };
   }
   const clientKey = await getClientIp();
+  // ochrana před roboty (Turnstile): widget vloží token do skrytého pole formuláře
+  if ((await verifyTurnstile(formData.get(TURNSTILE_FIELD), clientKey)) === "bot") {
+    return { status: "error", email: typeof email === "string" ? email.slice(0, 254) : undefined };
+  }
 
   const result = await submitWaitlist(
     {

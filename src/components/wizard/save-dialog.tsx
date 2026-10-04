@@ -10,12 +10,13 @@ import {
   type RequestSaveCodeResult,
   type VerifySaveCodeResult,
 } from "@/app/h/app/vytvorit/actions";
+import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { useT, type WizardKey } from "./i18n";
 
 type Stage = "emails" | "code" | "saving";
 
 type EmailError =
-  Extract<RequestSaveCodeResult, { status: "invalid" }>["field"] | "generic" | "limited";
+  Extract<RequestSaveCodeResult, { status: "invalid" }>["field"] | "generic" | "limited" | "bot";
 type CodeError = Exclude<VerifySaveCodeResult["status"], "verified"> | "none";
 
 /**
@@ -43,6 +44,9 @@ export function SaveDialog({
   const [emailError, setEmailError] = useState<EmailError | null>(null);
   const [codeError, setCodeError] = useState<CodeError>("none");
   const [pending, setPending] = useState(false);
+  // ochrana před roboty (Cloudflare Turnstile): token je jednorázový, po každém vyžádání kódu nový
+  const [botToken, setBotToken] = useState("");
+  const turnstile = useRef<TurnstileHandle>(null);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -67,7 +71,8 @@ export function SaveDialog({
     if (pending) return;
     setPending(true);
     setEmailError(null);
-    const result = await requestSaveCodeAction({ email, backupEmail: backup });
+    const result = await requestSaveCodeAction({ email, backupEmail: backup, token: botToken });
+    turnstile.current?.reset();
     setPending(false);
     switch (result.status) {
       case "sent":
@@ -89,6 +94,11 @@ export function SaveDialog({
         return;
       case "limited":
         setEmailError("limited");
+        focusAlert();
+        return;
+      case "bot":
+        setEmailError("bot");
+        setStage("emails");
         focusAlert();
         return;
       case "error":
@@ -128,9 +138,11 @@ export function SaveDialog({
   const formMessage =
     emailError === "limited"
       ? t("wizard.save.error.limited")
-      : emailError === "generic"
-        ? t("wizard.save.error.generic")
-        : undefined;
+      : emailError === "bot"
+        ? t("wizard.save.error.bot")
+        : emailError === "generic"
+          ? t("wizard.save.error.generic")
+          : undefined;
 
   return (
     <dialog
@@ -228,6 +240,10 @@ export function SaveDialog({
             </Button>
           </div>
         </form>
+      ) : null}
+
+      {stage !== "saving" ? (
+        <Turnstile ref={turnstile} action="wizard" onToken={setBotToken} />
       ) : null}
 
       {stage === "saving" ? (

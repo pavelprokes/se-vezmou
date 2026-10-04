@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/choice";
 import { Field } from "@/components/ui/field";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Icon } from "@/components/ui/icon";
+import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { HONEYPOT_FIELD } from "@/lib/waitlist-fields";
 import { joinWaitlist } from "./waitlist-action";
 import { initialWaitlistState } from "./waitlist-state";
@@ -37,6 +38,11 @@ export function WaitlistFormClient({ locale, labels }: { locale: string; labels:
   const consentId = useId();
   const consentErrorId = `${consentId}-error`;
   const formRef = useRef<HTMLFormElement>(null);
+  // token ochrany před roboty je jednorázový: po každém odeslání nový
+  const turnstile = useRef<TurnstileHandle>(null);
+  useEffect(() => {
+    if (state.status !== "idle") turnstile.current?.reset();
+  }, [state]);
 
   const emailError =
     state.errors?.email === "required"
@@ -109,6 +115,8 @@ export function WaitlistFormClient({ locale, labels }: { locale: string; labels:
           ) : null}
         </div>
       </div>
+
+      <Turnstile ref={turnstile} action="waitlist" locale={locale} />
 
       <div>
         <Button type="submit" aria-disabled={pending || undefined}>

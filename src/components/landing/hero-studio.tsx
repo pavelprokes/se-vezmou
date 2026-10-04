@@ -5,8 +5,7 @@ import type { Locale } from "@/i18n/config";
 import { previewSlug } from "@/lib/slug-preview";
 import { cn } from "@/lib/utils";
 import { NameForm, type NameFormLabels, type Names } from "./name-form";
-
-export type TemplateKey = "editorial" | "eucalyptus" | "chateau" | "modern";
+import type { TemplateKey } from "./templates-section";
 
 export interface HeroStudioProps {
   appUrl: string;
@@ -40,6 +39,7 @@ export function HeroStudio(props: HeroStudioProps) {
   const first = names.first.trim() || formLabels.firstPlaceholder;
   const second = names.second.trim() || formLabels.secondPlaceholder;
   const slug = previewSlug(names.first, names.second);
+  const address = slug ?? previewSlug(formLabels.firstPlaceholder, formLabels.secondPlaceholder);
 
   return (
     <div className="grid items-center gap-12 md:grid-cols-[1.05fr_1fr] lg:gap-16">
@@ -64,13 +64,10 @@ export function HeroStudio(props: HeroStudioProps) {
                 <span key={n} className="bg-field-border size-2.5 rounded-full" />
               ))}
             </span>
-            <p className="text-ink min-w-0 flex-1 truncate rounded-full bg-white px-4 py-1 text-center text-sm">
+            <p className="text-ink min-w-0 flex-1 rounded-lg bg-white px-4 py-1 text-center text-sm break-all">
               <span className="sr-only">{props.addressLabel}: </span>
               <span data-testid="address-preview">
-                <span className={slug ? "font-semibold" : undefined}>
-                  {slug ?? previewSlug(first, second)}
-                </span>
-                .{props.domain}
+                <span className={slug ? "font-semibold" : undefined}>{address}</span>.{props.domain}
               </span>
             </p>
           </div>
@@ -117,7 +114,7 @@ interface MockProps {
   rsvp: string;
 }
 
-/** Zjednodušený úvod webu páru ve čtyřech šablonách (barvy a písmo odpovídají šablonám). */
+/** Zjednodušený úvod webu páru ve čtyřech šablonách (barvy a písmo jen přibližně podle šablon, je to ozdoba). */
 function TemplateMock({ template, first, second, dateplace, rsvp }: MockProps) {
   const box = "flex min-h-80 flex-col gap-4 p-8 sm:p-10";
   if (template === "eucalyptus") {

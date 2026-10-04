@@ -5,10 +5,12 @@ import { Section, SectionHeading } from "./section";
 /** Jak se web sestavuje: čtyři kroky (číslovaný seznam) s velkými číslicemi. */
 export async function StepsSection({ locale, number }: { locale: Locale; number?: number }) {
   const t = await getTranslator(locale, ["landing"]);
-  const steps = ([1, 2, 3, 4] as const).map((n) => ({
-    title: t(`landing.steps.${n}.title`),
-    text: t(`landing.steps.${n}.text`),
-  }));
+  const steps = [
+    { title: t("landing.steps.1.title"), text: t("landing.steps.1.text") },
+    { title: t("landing.steps.2.title"), text: t("landing.steps.2.text") },
+    { title: t("landing.steps.3.title"), text: t("landing.steps.3.text") },
+    { title: t("landing.steps.4.title"), text: t("landing.steps.4.text") },
+  ];
 
   return (
     <Section id="how" headingId="steps-title" tone="warm">

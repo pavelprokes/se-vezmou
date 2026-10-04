@@ -79,6 +79,15 @@ describe("HeroStudio", () => {
     await user.type(screen.getByLabelText("První jméno"), "Šárka");
     await user.type(screen.getByLabelText("Druhé jméno"), "Ondřej");
     expect(preview).toHaveTextContent("sarka-a-ondrej.se-vezmou.cz");
+    // Náhled webu (ozdoba) ukazuje zadaná jména; hodnota pole se do textContent nepočítá.
+    expect(document.body).toHaveTextContent(/Šárka\s*& Ondřej/);
+  });
+
+  it("jméno bez písmen nerozbije adresu: zůstane ukázková", async () => {
+    const user = userEvent.setup();
+    renderStudio();
+    await user.type(screen.getByLabelText("První jméno"), "!!!");
+    expect(screen.getByTestId("address-preview")).toHaveTextContent("klara-a-matej.se-vezmou.cz");
   });
 
   it("přepínač šablon je skupina tlačítek s aria-pressed", async () => {

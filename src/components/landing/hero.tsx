@@ -4,12 +4,11 @@ import { Icon } from "@/components/ui/icon";
 import type { Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 import { appUrl, siteUrl } from "@/lib/site";
-import { HeroStudio, type TemplateKey } from "./hero-studio";
+import { HeroStudio } from "./hero-studio";
+import { TEMPLATE_KEYS } from "./templates-section";
 
 /** Doména pro náhled adresy páru: kořenová doména z `NEXT_PUBLIC_SITE_URL`. */
 const domain = new URL(siteUrl).hostname;
-
-const TEMPLATES: readonly TemplateKey[] = ["editorial", "eucalyptus", "chateau", "modern"];
 
 /** Hero: jediný `<h1>` stránky, jména páru s živým náhledem webu a odkaz na šablony. */
 export async function Hero({ locale }: { locale: Locale }) {
@@ -38,7 +37,7 @@ export async function Hero({ locale }: { locale: Locale }) {
           }}
           addressLabel={t("landing.form.address")}
           templatesLabel={t("landing.hero.templatesLabel")}
-          templates={TEMPLATES.map((key) => ({
+          templates={TEMPLATE_KEYS.map((key) => ({
             key,
             name: t(`landing.templates.${key}.name`),
           }))}

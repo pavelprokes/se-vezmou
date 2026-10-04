@@ -3,7 +3,8 @@ import { getTranslator } from "@/i18n/load";
 import { Section, SectionHeading, itemTitleClass } from "./section";
 
 /** Šablony: skutečné snímky úvodu webu pro ukázkový pár Klára a Matěj (`public/templates`, cs i en). */
-const KEYS = ["editorial", "eucalyptus", "chateau", "modern"] as const;
+export const TEMPLATE_KEYS = ["editorial", "eucalyptus", "chateau", "modern"] as const;
+export type TemplateKey = (typeof TEMPLATE_KEYS)[number];
 
 export async function TemplatesSection({ locale, number }: { locale: Locale; number?: number }) {
   const t = await getTranslator(locale, ["landing"]);
@@ -18,7 +19,7 @@ export async function TemplatesSection({ locale, number }: { locale: Locale; num
         lead={t("landing.templates.lead")}
       />
       <ul className="mt-12 grid gap-x-8 gap-y-12 md:grid-cols-2">
-        {KEYS.map((key) => {
+        {TEMPLATE_KEYS.map((key) => {
           const name = t(`landing.templates.${key}.name`);
           return (
             <li key={key}>

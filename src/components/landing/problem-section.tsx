@@ -5,10 +5,11 @@ import { Section, SectionHeading, itemTitleClass } from "./section";
 /** Problém a řešení: tři otázky, které hosté kladou pořád dokola (sloupce s linkou nahoře). */
 export async function ProblemSection({ locale, number }: { locale: Locale; number?: number }) {
   const t = await getTranslator(locale, ["landing"]);
-  const items = ([1, 2, 3] as const).map((n) => ({
-    title: t(`landing.problem.q${n}.title`),
-    text: t(`landing.problem.q${n}.text`),
-  }));
+  const items = [
+    { title: t("landing.problem.q1.title"), text: t("landing.problem.q1.text") },
+    { title: t("landing.problem.q2.title"), text: t("landing.problem.q2.text") },
+    { title: t("landing.problem.q3.title"), text: t("landing.problem.q3.text") },
+  ];
 
   return (
     <Section headingId="problem-title">

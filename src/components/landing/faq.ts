@@ -1,4 +1,3 @@
-import { pricing } from "@/config/pricing";
 import type { Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 
@@ -14,12 +13,11 @@ export interface FaqItem {
  */
 export async function getFaqItems(locale: Locale): Promise<FaqItem[]> {
   const t = await getTranslator(locale, ["landing"]);
-  const params = { conditions: pricing.conditionsPlaceholder };
   return [
     {
       id: "price",
       question: t("landing.faq.1.q"),
-      answer: t("landing.faq.1.a", params),
+      answer: t("landing.faq.1.a"),
     },
     { id: "account", question: t("landing.faq.2.q"), answer: t("landing.faq.2.a") },
     { id: "google", question: t("landing.faq.3.q"), answer: t("landing.faq.3.a") },

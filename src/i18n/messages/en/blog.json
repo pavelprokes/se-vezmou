@@ -11,6 +11,7 @@
   "readMoreLabel": "Read the article {title}",
   "meta": "{date} · {minutes} min read",
   "updated": "Updated {date}",
+  "author": "By {name}",
   "toc": "In this article",
   "back": "All articles",
   "more": "More articles"

@@ -5,6 +5,7 @@ import { articlePath, articlePaths, readingMinutes } from "@/blog/article";
 import { parseBlocks } from "@/blog/markdown";
 import { findPublishedBySlug, publishedArticles } from "@/blog/store";
 import { ArticleBody, articleDate } from "@/components/blog/article-body";
+import { operator } from "@/config/operator";
 import { CtaSection } from "@/components/landing/cta-section";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingHeader } from "@/components/landing/landing-header";
@@ -45,7 +46,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     route: articlePaths(article),
     locale,
     siteUrl,
-    title: `${text.title} | ${t("common.brand")}`,
+    // Bez „| Se vezmou“: název webu ukazuje vyhledávač sám a titulek se nezkrátí.
+    title: text.title,
     description: text.description,
     siteName: t("common.brand"),
     imageAlt: text.title,
@@ -87,6 +89,7 @@ export default async function BlogArticle(props: Props) {
             datePublished: article.publishedAt,
             dateModified: article.updatedAt,
             imageUrl: absolute(ogImagePath(locale)),
+            authorName: operator.legalName,
           }),
         ]}
       />
@@ -107,8 +110,12 @@ export default async function BlogArticle(props: Props) {
             >
               {typo(text.title, locale)}
             </h1>
-            <p className="text-muted mt-6 text-xl text-pretty">{typo(text.description, locale)}</p>
+            <p id="article-lead" className="text-muted mt-6 text-xl text-pretty">
+              {typo(text.description, locale)}
+            </p>
             <p className="text-muted border-hairline mt-6 border-t pt-4 text-sm">
+              {t("blog.author", { name: operator.legalName })}
+              {" · "}
               <time dateTime={article.publishedAt}>
                 {t("blog.meta", {
                   date: articleDate(article.publishedAt, locale),

@@ -24,11 +24,6 @@ describe("config/pricing", () => {
     expect(highlighted.map((plan) => plan.id)).toEqual(["published"]);
   });
 
-  it("podmínky po skončení zaváděcího provozu jsou zástupný text", () => {
-    expect(pricing.conditionsPlaceholder).toBe("[PODMÍNKY]");
-    expect(isPlaceholder(pricing.conditionsPlaceholder)).toBe(true);
-  });
-
   it("konec zaváděcího provozu zatím není určen", () => {
     expect(pricing.introEndsOn).toBeNull();
   });

@@ -11,7 +11,6 @@ import { Section, SectionHeading } from "./section";
 /** Cena: dvě karty, obě 0 Kč po dobu zaváděcího provozu. Hodnoty jsou v `config/pricing.ts`. */
 export async function PricingSection({ locale }: { locale: Locale }) {
   const t = await getTranslator(locale, ["landing"]);
-  const conditions = pricing.conditionsPlaceholder;
 
   const cards = {
     concept: {
@@ -28,7 +27,7 @@ export async function PricingSection({ locale }: { locale: Locale }) {
         t("landing.pricing.published.item1"),
         t("landing.pricing.published.item2"),
         t("landing.pricing.published.item3"),
-        t("landing.pricing.published.item4", { conditions }),
+        t("landing.pricing.published.item4"),
       ],
     },
   } as const;

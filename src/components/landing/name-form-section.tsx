@@ -1,34 +1,23 @@
 import type { Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
-import { appUrl, siteUrl } from "@/lib/site";
+import { appUrl } from "@/lib/site";
 import { NameForm } from "./name-form";
 
-/** Doména pro náhled adresy páru: kořenová doména z `NEXT_PUBLIC_SITE_URL`. */
-const domain = new URL(siteUrl).hostname;
-
-/** Pole jmen se serverem přeloženými popisky (klientský formulář nenačítá katalogy překladů). */
-export async function LocalizedNameForm({
-  locale,
-  variant,
-}: {
-  locale: Locale;
-  variant: "intro" | "cta";
-}) {
+/** Pole jmen závěrečné výzvy se serverem přeloženými popisky (klient nenačítá katalogy překladů). */
+export async function LocalizedNameForm({ locale }: { locale: Locale }) {
   const t = await getTranslator(locale, ["landing"]);
   return (
     <NameForm
       appUrl={appUrl}
       locale={locale}
-      domain={domain}
-      variant={variant}
+      variant="cta"
       labels={{
         first: t("landing.form.first"),
         second: t("landing.form.second"),
         firstPlaceholder: t("landing.form.firstPlaceholder"),
         secondPlaceholder: t("landing.form.secondPlaceholder"),
-        address: t("landing.form.address"),
-        submit: variant === "intro" ? t("landing.form.continue") : t("landing.form.ctaSubmit"),
-        form: variant === "intro" ? t("landing.intro.formLabel") : t("landing.cta.title"),
+        submit: t("landing.form.ctaSubmit"),
+        form: t("landing.cta.title"),
       }}
     />
   );

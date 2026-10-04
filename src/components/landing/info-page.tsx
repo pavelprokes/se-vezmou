@@ -11,7 +11,7 @@ import { FaqSection } from "./faq-section";
 import { LandingFooter } from "./landing-footer";
 import { LandingHeader } from "./landing-header";
 import { PricingSection } from "./pricing-section";
-import { Section } from "./section";
+import { Section, itemTitleClass, sectionTitleClass } from "./section";
 import { SubpageStructuredData } from "./structured-data";
 import { TemplatesSection } from "./templates-section";
 
@@ -89,17 +89,14 @@ async function BilingualPoints({ locale }: { locale: Locale }) {
   ];
   return (
     <Section headingId="bilingual-points-title" tone="warm">
-      <h2
-        id="bilingual-points-title"
-        className="font-sans text-3xl leading-tight font-bold tracking-tight text-balance md:text-4xl"
-      >
+      <h2 id="bilingual-points-title" className={sectionTitleClass}>
         {t("marketing.bilingual.points.title")}
       </h2>
-      <ul className="mt-10 grid gap-5 md:grid-cols-3">
+      <ul className="mt-12 grid gap-10 md:grid-cols-3">
         {points.map((point) => (
-          <li key={point.title} className="bg-parchment rounded-2xl p-6">
-            <h3 className="font-sans text-xl font-bold">{point.title}</h3>
-            <p className="text-muted mt-2">{point.text}</p>
+          <li key={point.title} className="border-ink border-t-2 pt-5">
+            <h3 className={itemTitleClass}>{point.title}</h3>
+            <p className="text-muted mt-3 text-lg">{point.text}</p>
           </li>
         ))}
       </ul>
@@ -136,11 +133,11 @@ export async function InfoPage({
         <Section headingId="page-title">
           <h1
             id="page-title"
-            className="font-sans text-4xl leading-tight font-bold tracking-tight text-balance md:text-5xl"
+            className="font-display text-5xl leading-[1.02] font-normal tracking-tight text-balance md:text-6xl lg:text-7xl"
           >
             {t(keys.h1)}
           </h1>
-          <p className="text-muted mt-4 max-w-2xl text-lg text-pretty">{t(keys.lead)}</p>
+          <p className="text-muted mt-5 max-w-2xl text-lg text-pretty md:text-xl">{t(keys.lead)}</p>
         </Section>
         {route === "pricing" ? (
           <>

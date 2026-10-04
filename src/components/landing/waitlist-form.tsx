@@ -11,7 +11,7 @@ export async function WaitlistForm({ locale }: { locale: Locale }) {
       aria-labelledby="waitlist-title"
       className="border-hairline rounded-2xl border bg-white p-6 md:p-8"
     >
-      <h3 id="waitlist-title" className="font-sans text-xl font-bold">
+      <h3 id="waitlist-title" className="font-display text-2xl font-medium">
         {t("landing.waitlist.title")}
       </h3>
       <p className="text-muted mt-2">{t("landing.waitlist.lead")}</p>

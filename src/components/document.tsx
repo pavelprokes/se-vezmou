@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { DM_Sans, Newsreader } from "next/font/google";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import "@/app/globals.css";
 
 // Písma se stáhnou při sestavení a hostují se spolu s aplikací; prohlížeč nevolá Google.
@@ -26,15 +27,20 @@ export interface DocumentProps {
   children: ReactNode;
   /** Měření návštěvnosti a výkonu. Weby párů ho nemají (soukromí hostů). */
   measure?: boolean;
+  /** Další třídy `<html>`, např. proměnná písma, které načítá jen jeden hostitel. */
+  className?: string;
 }
 
 /**
  * Obal `<html>` a `<body>` pro kořenové layouty jednotlivých hostitelů
  * (aplikace nemá jeden společný kořenový layout, protože `lang` závisí na jazyce).
  */
-export function Document({ lang, children, measure = true }: DocumentProps) {
+export function Document({ lang, children, measure = true, className }: DocumentProps) {
   return (
-    <html lang={lang} className={`${dmSans.variable} ${newsreader.variable} h-full antialiased`}>
+    <html
+      lang={lang}
+      className={cn(dmSans.variable, newsreader.variable, "h-full antialiased", className)}
+    >
       <body className="flex min-h-full flex-col">
         {children}
         {measure ? (

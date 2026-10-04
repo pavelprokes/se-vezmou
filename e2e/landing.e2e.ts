@@ -135,21 +135,48 @@ for (const locale of locales) {
   });
 
   test.describe(`úvodní stránka ${locale.code}: obsah a ovládání`, () => {
-    test("hero: štítek, nadpis, výzva, ukázka a ilustrace s popisem", async ({ page }) => {
+    test("hero: nadpis, jména s živým náhledem webu a přepínač šablon", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       await expect(page.locator("html")).toHaveAttribute("lang", locale.lang);
       const h1 = page.getByRole("heading", { level: 1 });
       await expect(h1).toHaveCount(1);
       await expect(h1).toHaveText(locale.h1);
-      const art = page.getByRole("img", { name: /Klára/ }).first();
-      await expect(art).toBeVisible();
-      await expect(art).toHaveAttribute("aria-describedby", "hero-art-desc");
-      await expect(page.locator("#hero-art-desc")).not.toBeEmpty();
-      await expect(
-        page.locator("section[aria-labelledby='hero-title']").getByRole("link", {
-          name: locale.code === "cs" ? "Vytvořit web" : "Create your site",
-        }),
-      ).toBeVisible();
+
+      const hero = page.locator("section[aria-labelledby='hero-title']");
+      const preview = hero.getByTestId("address-preview");
+      await expect(preview).toHaveText("klara-a-matej.se-vezmou.cz");
+      await hero.getByLabel(locale.code === "cs" ? "První jméno" : "First name").fill("Šárka");
+      await hero.getByLabel(locale.code === "cs" ? "Druhé jméno" : "Second name").fill("Ondřej");
+      await expect(preview).toHaveText("sarka-a-ondrej.se-vezmou.cz");
+
+      const templates = hero.getByRole("group", {
+        name: locale.code === "cs" ? "Šablona náhledu" : "Preview template",
+      });
+      await expect(templates.getByRole("button")).toHaveCount(4);
+      await expect(templates.getByRole("button", { name: "Editorial" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      const modern = templates.getByRole("button", { name: "Modern" });
+      await modern.click();
+      await expect(modern).toHaveAttribute("aria-pressed", "true");
+      await expect(templates.getByRole("button", { name: "Editorial" })).toHaveAttribute(
+        "aria-pressed",
+        "false",
+      );
+    });
+
+    test("hero: formulář jmen předvyplní průvodce", async ({ page }) => {
+      await page.goto(pageUrl(HOSTS.marketing, locale.path));
+      const hero = page.locator("section[aria-labelledby='hero-title']");
+      await hero.getByLabel(locale.code === "cs" ? "První jméno" : "First name").fill("Šárka");
+      await hero
+        .getByRole("button", { name: locale.code === "cs" ? "Vytvořit web" : "Create your site" })
+        .click();
+      await page.waitForURL(/\/vytvorit\?/);
+      const url = new URL(page.url());
+      expect(url.searchParams.get("jmeno1")).toBe("Šárka");
+      expect(url.searchParams.get("jazyk")).toBe(locale.code);
     });
 
     test("sekce jsou v zadaném pořadí", async ({ page }) => {
@@ -248,27 +275,25 @@ for (const locale of locales) {
       expect(url.searchParams.get("jazyk")).toBe(locale.code);
     });
 
-    test("pole jmen u úvodu živě skládá náhled adresy", async ({ page }) => {
-      await page.goto(pageUrl(HOSTS.marketing, locale.path));
-      const form = page.locator("#intro-title").locator("xpath=ancestor::section").locator("form");
-      const preview = form.getByTestId("address-preview");
-      await expect(preview).toHaveText("klara-a-matej.se-vezmou.cz");
-      await form.getByLabel(locale.code === "cs" ? "První jméno" : "First name").fill("Šárka");
-      await form.getByLabel(locale.code === "cs" ? "Druhé jméno" : "Second name").fill("Ondřej");
-      await expect(preview).toHaveText("sarka-a-ondrej.se-vezmou.cz");
-    });
-
     test("hlavní výzvy vedou na adresu průvodce z konfigurace", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       const hrefs = await page
         .locator('a[href*="/vytvorit"]')
         .evaluateAll((links) => links.map((link) => link.getAttribute("href")));
-      expect(hrefs.length).toBeGreaterThanOrEqual(3);
+      // Hlavička a cena; hero a závěrečná výzva jsou formuláře jmen (GET na průvodce).
+      expect(hrefs.length).toBeGreaterThanOrEqual(2);
+      // Průvodce v jiném než výchozím jazyce je pod předponou jazyka (ADR 0013).
+      const path = locale.code === "cs" ? "/vytvorit" : `/${locale.code}/vytvorit`;
       for (const href of hrefs) {
-        // Průvodce v jiném než výchozím jazyce je pod předponou jazyka (ADR 0013).
-        const path = locale.code === "cs" ? "/vytvorit" : `/${locale.code}/vytvorit`;
         expect(href).toBe(`http://app.localhost:${PORT}${path}?jazyk=${locale.code}`);
       }
+      const actions = await page
+        .locator("main form[method='get']")
+        .evaluateAll((forms) => forms.map((form) => form.getAttribute("action")));
+      expect(actions).toEqual([
+        `http://app.localhost:${PORT}${path}`,
+        `http://app.localhost:${PORT}${path}`,
+      ]);
     });
 
     test("navigace: odkazy na sekce, přepínač jazyka a mobilní nabídka klávesnicí", async ({
@@ -627,26 +652,6 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
     expect(response.headers()["content-type"]).toContain("text/plain");
     expect(html).toMatch(/^# Se vezmou/);
     for (const entry of pages) expect(html).toContain(`(https://se-vezmou.cz${entry.path})`);
-  });
-});
-
-test.describe("animace respektují prefers-reduced-motion", () => {
-  test("bez omezení pohybu ilustrace běží, při omezení stojí", async ({ browser, isMobile }) => {
-    const animationName = async (reducedMotion: "reduce" | "no-preference") => {
-      const context = await browser.newContext({
-        reducedMotion,
-        viewport: isMobile ? { width: 412, height: 900 } : { width: 1280, height: 900 },
-      });
-      const page = await context.newPage();
-      await page.goto(pageUrl(HOSTS.marketing, "/"));
-      const name = await page
-        .locator(".art-check")
-        .evaluate((el) => getComputedStyle(el).animationName);
-      await context.close();
-      return name;
-    };
-    expect(await animationName("no-preference")).toBe("art-draw");
-    expect(await animationName("reduce")).toBe("none");
   });
 });
 

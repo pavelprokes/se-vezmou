@@ -21,6 +21,8 @@
 
   --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
   --font-serif: var(--font-newsreader), ui-serif, Georgia, serif;
+  /* Nadpisy úvodního webu (Fraunces načítá jen layout marketingu); jinde zůstane Newsreader. */
+  --font-display: var(--font-fraunces, var(--font-newsreader)), ui-serif, Georgia, serif;
 
   --radius-button: 10px;
   /* Minimální cíl dotyku (WCAG 2.5.8 vyžaduje 24 px, my držíme 44 px). */
@@ -115,41 +117,5 @@ html:has(.wizard-page) {
  */
 @utility heading-accent {
   color: var(--color-cinnamon);
-}
-
-/*
- * Jemná animace ilustrace v heru. Běží jen bez `prefers-reduced-motion: reduce`
- * (WCAG 2.3.3); při omezeném pohybu zůstane ilustrace nehybná.
- */
-.art-check {
-  stroke-dasharray: 26;
-  stroke-dashoffset: 0;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .art-check {
-    animation: art-draw 900ms ease-out 500ms both;
-  }
-
-  .art-card {
-    animation: art-float 7s ease-in-out infinite alternate;
-  }
-
-  @keyframes art-draw {
-    from {
-      stroke-dashoffset: 26;
-    }
-    to {
-      stroke-dashoffset: 0;
-    }
-  }
-
-  @keyframes art-float {
-    from {
-      transform: translateY(0);
-    }
-    to {
-      transform: translateY(-6px);
-    }
-  }
+  font-style: italic;
 }

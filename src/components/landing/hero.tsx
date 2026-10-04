@@ -1,13 +1,17 @@
-import { ArrowRight, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import type { Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
-import { appUrl } from "@/lib/site";
-import { buildWizardUrl } from "@/lib/wizard-link";
-import { HeroArt } from "./hero-art";
+import { appUrl, siteUrl } from "@/lib/site";
+import { HeroStudio, type TemplateKey } from "./hero-studio";
 
-/** Hero: jediný `<h1>` stránky, hlavní výzva, odkaz na ukázku a ilustrace. */
+/** Doména pro náhled adresy páru: kořenová doména z `NEXT_PUBLIC_SITE_URL`. */
+const domain = new URL(siteUrl).hostname;
+
+const TEMPLATES: readonly TemplateKey[] = ["editorial", "eucalyptus", "chateau", "modern"];
+
+/** Hero: jediný `<h1>` stránky, jména páru s živým náhledem webu a odkaz na šablony. */
 export async function Hero({ locale }: { locale: Locale }) {
   const t = await getTranslator(locale, ["landing"]);
   const checks = [
@@ -19,41 +23,64 @@ export async function Hero({ locale }: { locale: Locale }) {
 
   return (
     <section aria-labelledby="hero-title" className="bg-parchment text-ink">
-      <div className="mx-auto grid w-full max-w-6xl items-center gap-12 px-4 pt-8 pb-16 sm:px-8 md:grid-cols-[1.05fr_1fr] md:pt-16 md:pb-24">
-        <div>
-          <p className="text-cinnamon-deep text-sm font-bold tracking-widest uppercase">
-            {t("landing.hero.eyebrow")}
-          </p>
-          <h1
-            id="hero-title"
-            className="mt-4 text-5xl leading-[1.05] font-medium tracking-tight text-balance md:text-6xl lg:text-7xl"
-          >
-            {t.rich("landing.hero.title", {
-              b: (children) => <span className="heading-accent">{children}</span>,
-            })}
-          </h1>
-          <p className="text-muted mt-6 max-w-md text-lg text-pretty">{t("landing.hero.lead")}</p>
-          <div className="mt-8 flex flex-wrap items-center gap-4">
-            <a href={buildWizardUrl({ appUrl, locale })} className={buttonVariants()}>
-              {t("landing.hero.cta")}
-              <Icon icon={ArrowRight} size={18} />
-            </a>
-            <a href="#templates" className={buttonVariants({ variant: "text" })}>
-              {t("landing.hero.demo")}
-            </a>
-          </div>
-          <ul aria-label={t("landing.hero.checks")} className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
-            {checks.map((text) => (
-              <li key={text} className="text-muted flex items-center gap-2 text-sm">
-                <Icon icon={Check} size={16} className="text-pine" />
-                {text}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="mx-auto w-full max-w-xl">
-          <HeroArt locale={locale} />
-        </div>
+      <div className="mx-auto w-full max-w-6xl px-4 pt-8 pb-16 sm:px-8 md:pt-16 md:pb-24">
+        <HeroStudio
+          appUrl={appUrl}
+          locale={locale}
+          domain={domain}
+          formLabels={{
+            first: t("landing.form.first"),
+            second: t("landing.form.second"),
+            firstPlaceholder: t("landing.form.firstPlaceholder"),
+            secondPlaceholder: t("landing.form.secondPlaceholder"),
+            submit: t("landing.hero.cta"),
+            form: t("landing.hero.formLabel"),
+          }}
+          addressLabel={t("landing.form.address")}
+          templatesLabel={t("landing.hero.templatesLabel")}
+          templates={TEMPLATES.map((key) => ({
+            key,
+            name: t(`landing.templates.${key}.name`),
+          }))}
+          dateplace={t("landing.sample.dateplace")}
+          rsvp={t("landing.sample.rsvp")}
+          intro={
+            <div>
+              <p className="text-cinnamon-deep text-sm font-bold tracking-widest uppercase">
+                {t("landing.hero.eyebrow")}
+              </p>
+              <h1
+                id="hero-title"
+                className="font-display mt-4 text-5xl leading-[0.98] font-normal tracking-tight text-balance md:text-6xl lg:text-[5.5rem]"
+              >
+                {t.rich("landing.hero.title", {
+                  b: (children) => <span className="heading-accent">{children}</span>,
+                })}
+              </h1>
+              <p className="text-muted mt-6 max-w-md text-lg text-pretty md:text-xl">
+                {t("landing.hero.lead")}
+              </p>
+            </div>
+          }
+          outro={
+            <div className="flex flex-col items-start gap-5">
+              <a
+                href="#templates"
+                className={buttonVariants({ variant: "text", className: "px-0" })}
+              >
+                {t("landing.hero.demo")}
+              </a>
+              <ul aria-label={t("landing.hero.checks")} className="flex flex-wrap gap-x-6 gap-y-2">
+                {checks.map((text) => (
+                  <li key={text} className="text-muted flex items-center gap-2 text-base">
+                    <Icon icon={Check} size={16} className="text-pine" />
+                    {text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          }
+        />
       </div>
     </section>
   );

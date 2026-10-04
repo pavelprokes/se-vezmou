@@ -57,9 +57,9 @@ for (const locale of locales) {
       expect(response.status()).toBe(200);
       expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
       expect(html).toContain(`<html lang="${locale.lang}"`);
-      // Sekce jsou v HTML už při první odpovědi: dvanáct oblastí (11 sekcí a patička).
-      expect(html.match(/<section[\s>]/g)?.length).toBeGreaterThanOrEqual(11);
-      expect(html.match(/<h2[\s>]/g)).toHaveLength(10);
+      // Sekce jsou v HTML už při první odpovědi: čtrnáct oblastí (13 sekcí a patička).
+      expect(html.match(/<section[\s>]/g)?.length).toBeGreaterThanOrEqual(13);
+      expect(html.match(/<h2[\s>]/g)).toHaveLength(12);
       expect(html).toContain("<footer");
     });
 
@@ -146,7 +146,7 @@ for (const locale of locales) {
       await expect(art).toHaveAttribute("aria-describedby", "hero-art-desc");
       await expect(page.locator("#hero-art-desc")).not.toBeEmpty();
       await expect(
-        page.getByRole("link", {
+        page.locator("section[aria-labelledby='hero-title']").getByRole("link", {
           name: locale.code === "cs" ? "Vytvořit web" : "Create your site",
         }),
       ).toBeVisible();
@@ -405,7 +405,7 @@ for (const locale of locales) {
       expect(stored).toMatchObject({
         email: address.toLowerCase(),
         locale: locale.code,
-        consent_text_version: "2026-10-v1",
+        consent_text_version: "2026-10-v2",
       });
 
       // Opakování: žádné prozrazení, odpověď i záznam zůstávají stejné.

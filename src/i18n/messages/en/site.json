@@ -12,6 +12,11 @@
   "nav.gallery": "Photos",
   "nav.rsvp": "RSVP",
   "hero.saveTheDate": "We are getting married",
+  "hero.when": "When",
+  "hero.where": "Where",
+  "hero.from": "from {time}",
+  "hero.replyBy": "Reply by",
+  "hero.reply": "Reply",
   "hero.countdown": {
     "one": "{count} day to go",
     "other": "{count} days to go"

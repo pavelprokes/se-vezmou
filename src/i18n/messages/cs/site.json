@@ -12,6 +12,11 @@
   "nav.gallery": "Fotografie",
   "nav.rsvp": "Potvrdit účast",
   "hero.saveTheDate": "Budeme se brát",
+  "hero.when": "Kdy",
+  "hero.where": "Kde",
+  "hero.from": "od {time}",
+  "hero.replyBy": "Odpovězte do",
+  "hero.reply": "Odpověď",
   "hero.countdown": {
     "one": "Do svatby zbývá {count} den",
     "few": "Do svatby zbývají {count} dny",

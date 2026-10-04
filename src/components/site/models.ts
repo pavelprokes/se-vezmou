@@ -53,11 +53,22 @@ export function heroModel(block: BlockOf<"hero">, ctx: SiteCtx) {
   const { content } = ctx;
   const thanks = content.phase === "thanks";
   const days = daysUntil(content.startsOn, content.timezone, ctx.now);
+  // začátek jen z prvního svatebního dne (uvítací večer den předem by k datu svatby nepatřil)
+  const first = [...content.events]
+    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
+    .find((event) => dayInZone(event.startsAt, content.timezone) === content.startsOn);
+  // stejný zdroj jako ukotvené tlačítko a navigace (vykreslované bloky)
+  const rsvpBlock = renderableBlocks(ctx).find((b) => b.type === "rsvp");
+  const rsvp = rsvpModel(ctx);
   return {
     thanks,
     venue: content.venues[0] as PublicVenue | undefined,
     days,
     showCountdown: block.data.countdown && !thanks && days >= 0,
+    /** Začátek prvního bodu programu v pásmu svatby (pruh „Kdy“). */
+    start: first ? formatTime(first.startsAt, ctx.locale, content.timezone) : null,
+    /** Odpověď v pruhu úvodu: jen při otevřeném RSVP a zapnutém bloku, s termínem, když je znám. */
+    reply: rsvp.open && rsvpBlock ? { anchor: rsvpBlock.anchor, closes: rsvp.closes } : null,
   };
 }
 

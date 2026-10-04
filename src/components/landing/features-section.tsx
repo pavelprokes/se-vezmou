@@ -1,4 +1,6 @@
+import { Check } from "lucide-react";
 import type { ReactNode } from "react";
+import { Icon } from "@/components/ui/icon";
 import type { Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 import { cn } from "@/lib/utils";
@@ -20,7 +22,7 @@ interface Feature {
   mock?: ReactNode;
 }
 
-/** Co web umí: sedm funkcí a pruh o režimu po svatbě. Náhledy jsou dekorace, text nese význam. */
+/** Co web umí: sedm funkcí a pruh toho, čím se lišíme. Náhledy jsou dekorace, text nese význam. */
 export async function FeaturesSection({ locale }: { locale: Locale }) {
   const t = await getTranslator(locale, ["landing"]);
   const programRows = [
@@ -138,9 +140,16 @@ export async function FeaturesSection({ locale }: { locale: Locale }) {
             {feature.mock}
           </li>
         ))}
-        <li className="bg-cinnamon-deep text-parchment rounded-2xl p-6 sm:col-span-2 lg:col-span-4">
-          <h3 className="font-sans text-lg font-bold">{t("landing.features.after.title")}</h3>
-          <p className="mt-1 text-sm">{t("landing.features.after.text")}</p>
+        <li className="bg-ink text-parchment rounded-2xl p-6 sm:col-span-2 lg:col-span-4">
+          <h3 className="font-sans text-lg font-bold">{t("landing.features.extra.title")}</h3>
+          <ul className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            {([1, 2, 3, 4, 5, 6, 7, 8] as const).map((n) => (
+              <li key={n} className="flex items-start gap-2">
+                <Icon icon={Check} size={16} className="text-linen mt-0.5 shrink-0" />
+                {t(`landing.features.extra.${n}`)}
+              </li>
+            ))}
+          </ul>
         </li>
       </ul>
     </Section>

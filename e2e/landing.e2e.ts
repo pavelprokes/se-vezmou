@@ -147,7 +147,7 @@ for (const locale of locales) {
       await expect(page.locator("#hero-art-desc")).not.toBeEmpty();
       await expect(
         page.getByRole("link", {
-          name: locale.code === "cs" ? "Vytvořit web zdarma" : "Create your site for free",
+          name: locale.code === "cs" ? "Vytvořit web" : "Create your site",
         }),
       ).toBeVisible();
     });
@@ -166,9 +166,11 @@ for (const locale of locales) {
         "steps-title",
         "templates-title",
         "features-title",
+        "after-title",
         "trust-title",
         "pricing-title",
-        "launch-title",
+        "about-title",
+        "news-title",
         "faq-title",
         "cta-title",
       ]);
@@ -187,19 +189,17 @@ for (const locale of locales) {
       await expect(pricing).not.toContainText("[");
     });
 
-    test("sekce oznámení o spuštění nemá zástupné texty ani vymyšlené recenze", async ({
-      page,
-    }) => {
+    test("sekce novinek a kontaktu nemá zástupné texty ani vymyšlené recenze", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
-      const launch = page.locator("#launch");
+      const launch = page.locator("#news");
       await expect(launch.locator("blockquote")).toHaveCount(0);
       await expect(launch.getByText(/\[.*\]|Zástupný text|Placeholder text/)).toHaveCount(0);
       await expect(launch.locator("#waitlist form")).toBeVisible();
     });
 
-    test("šablony: čtyři živé ukázky se jmény Klára a Matěj", async ({ page }) => {
+    test("šablony: čtyři skutečné snímky se jmény Klára a Matěj", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
-      const previews = page.locator("#templates [role='img']");
+      const previews = page.locator("#templates img");
       await expect(previews).toHaveCount(4);
       for (const name of [
         "Editorial",
@@ -338,12 +338,12 @@ for (const locale of locales) {
     });
   });
 
-  test.describe(`čekací listina ${locale.code}`, () => {
+  test.describe(`newsletter ${locale.code}`, () => {
     const labels =
       locale.code === "cs"
         ? {
             email: "E-mail",
-            submit: "Zapsat se",
+            submit: "Odebírat novinky",
             consent: /Souhlasím/,
             success: /Klikněte\sv\sněm\sna\sodkaz/,
             required: "Vyplňte e-mail.",
@@ -352,7 +352,7 @@ for (const locale of locales) {
           }
         : {
             email: "Email",
-            submit: "Join the list",
+            submit: "Subscribe to news",
             consent: /I agree/,
             success: /Click\sthe\slink\sin\sit/,
             required: "Enter your email.",
@@ -448,10 +448,12 @@ for (const locale of locales) {
         new RegExp(`\\?t=${link.searchParams.get("t")}$`),
       );
       await page
-        .getByRole("button", { name: locale.code === "cs" ? "Potvrdit zápis" : "Confirm signup" })
+        .getByRole("button", {
+          name: locale.code === "cs" ? "Potvrdit odběr" : "Confirm subscription",
+        })
         .click();
       await expect(page.getByRole("status")).toContainText(
-        locale.code === "cs" ? "zápis je potvrzený" : "your signup is confirmed",
+        locale.code === "cs" ? "odběr novinek je potvrzený" : "your subscription is confirmed",
       );
       expect(await confirmed()).toBe(true);
     });

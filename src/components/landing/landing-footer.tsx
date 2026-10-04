@@ -3,6 +3,7 @@ import { operator } from "@/config/operator";
 import type { Locale } from "@/i18n/config";
 import { localizedPath, localizedPaths, type PageRef } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
+import { authorProjects } from "./about-section";
 
 export interface LandingFooterProps {
   locale: Locale;
@@ -32,7 +33,7 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
 
   return (
     <footer className="bg-parchment text-ink">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-8 md:grid-cols-[1.2fr_1fr_1fr_auto]">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-8 md:grid-cols-[1.2fr_1fr_1fr_1.2fr_auto]">
         <div>
           <p className="font-sans text-xl font-extrabold tracking-tight">
             se-vezmou<span className="text-cinnamon-deep">.cz</span>
@@ -61,6 +62,17 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
               <li key={link.href}>
                 <a href={link.href} className={linkClass}>
                   {link.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <nav aria-label={t("landing.footer.projects")}>
+          <ul className="flex flex-col">
+            {authorProjects.map(({ host }) => (
+              <li key={host}>
+                <a href={`https://${host}/`} className={linkClass}>
+                  {host}
                 </a>
               </li>
             ))}

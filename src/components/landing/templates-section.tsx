@@ -1,38 +1,13 @@
 import type { Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 import { Section, SectionHeading } from "./section";
-import {
-  ChateauPreview,
-  EditorialPreview,
-  EucalyptusPreview,
-  ModernPreview,
-} from "./template-previews";
 
-/** Šablony: čtyři živé ukázky s ukázkovými jmény Klára a Matěj. */
+/** Šablony: skutečné snímky úvodu webu pro ukázkový pár Klára a Matěj (`public/templates`, cs i en). */
+const KEYS = ["editorial", "eucalyptus", "chateau", "modern"] as const;
+
 export async function TemplatesSection({ locale }: { locale: Locale }) {
   const t = await getTranslator(locale, ["landing"]);
-  const templates = [
-    {
-      name: t("landing.templates.editorial.name"),
-      text: t("landing.templates.editorial.text"),
-      preview: <EditorialPreview t={t} />,
-    },
-    {
-      name: t("landing.templates.eucalyptus.name"),
-      text: t("landing.templates.eucalyptus.text"),
-      preview: <EucalyptusPreview t={t} />,
-    },
-    {
-      name: t("landing.templates.chateau.name"),
-      text: t("landing.templates.chateau.text"),
-      preview: <ChateauPreview t={t} />,
-    },
-    {
-      name: t("landing.templates.modern.name"),
-      text: t("landing.templates.modern.text"),
-      preview: <ModernPreview t={t} />,
-    },
-  ];
+  const suffix = locale === "en" ? "-en" : "";
 
   return (
     <Section id="templates" headingId="templates-title">
@@ -41,18 +16,31 @@ export async function TemplatesSection({ locale }: { locale: Locale }) {
         title={t("landing.templates.title")}
         lead={t("landing.templates.lead")}
       />
-      <ul className="mt-10 grid grid-cols-2 gap-5 lg:grid-cols-4">
-        {templates.map((template) => (
-          <li key={template.name}>
-            <figure>
-              {template.preview}
-              <figcaption className="mt-4">
-                <h3 className="font-sans text-lg font-bold">{template.name}</h3>
-                <p className="text-muted mt-1 text-sm">{template.text}</p>
-              </figcaption>
-            </figure>
-          </li>
-        ))}
+      <ul className="mt-10 grid gap-8 md:grid-cols-2">
+        {KEYS.map((key) => {
+          const name = t(`landing.templates.${key}.name`);
+          return (
+            <li key={key}>
+              <figure>
+                {/* Hotový WebP: `next/image` by ho jen znovu překódoval. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`/templates/${key}${suffix}.webp`}
+                  alt={t("landing.templates.preview", { name })}
+                  width={960}
+                  height={600}
+                  loading="lazy"
+                  decoding="async"
+                  className="border-hairline w-full rounded-2xl border"
+                />
+                <figcaption className="mt-4">
+                  <h3 className="font-sans text-lg font-bold">{name}</h3>
+                  <p className="text-muted mt-1 text-sm">{t(`landing.templates.${key}.text`)}</p>
+                </figcaption>
+              </figure>
+            </li>
+          );
+        })}
       </ul>
     </Section>
   );

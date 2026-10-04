@@ -9,7 +9,7 @@ export async function WaitlistForm({ locale }: { locale: Locale }) {
     <section
       id="waitlist"
       aria-labelledby="waitlist-title"
-      className="border-hairline mt-12 max-w-2xl rounded-2xl border bg-white p-6 md:p-8"
+      className="border-hairline rounded-2xl border bg-white p-6 md:p-8"
     >
       <h3 id="waitlist-title" className="font-sans text-xl font-bold">
         {t("landing.waitlist.title")}

@@ -80,3 +80,48 @@ export function czAccountToIban(value: string): string | null {
   for (const digit of `${bban}123500`) remainder = (remainder * 10 + Number(digit)) % 97;
   return `CZ${String(98 - remainder).padStart(2, "0")}${bban}`;
 }
+
+/** Text do EPC QR: jeden řádek (bez konců řádků), ořez a strop délky. */
+function epcLine(value: string, max: number): string {
+  return value
+    .replace(/[\r\n]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+}
+
+/**
+ * EPC QR („GiroCode“, EPC069-12 verze 002) pro převod SEPA v eurech ze zahraničí: BIC (nepovinný), jméno
+ * příjemce (povinné, nejvýš 70 znaků), IBAN, bez částky (zvolí dárce) a zpráva (nejvýš 140 znaků).
+ * Kódování UTF-8. Bez jména příjemce formát QR nedovoluje: `null`.
+ */
+export function buildEpcQr({
+  iban,
+  bic,
+  name,
+  message,
+}: {
+  iban: string;
+  bic?: string | null;
+  name: string | null | undefined;
+  message?: string | null;
+}): string | null {
+  const recipient = epcLine(name ?? "", 70);
+  if (recipient === "") return null;
+  const lines = [
+    "BCD",
+    "002",
+    "1",
+    "SCT",
+    bic ? normalizeBic(bic) : "",
+    recipient,
+    iban.replace(/\s+/g, "").toUpperCase(),
+    "",
+    "",
+    "",
+    epcLine(message ?? "", 140),
+  ];
+  // prázdné řádky na konci se podle normy vynechávají
+  while (lines.at(-1) === "") lines.pop();
+  return lines.join("\n");
+}

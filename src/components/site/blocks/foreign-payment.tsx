@@ -1,6 +1,8 @@
+import { buildEpcQr } from "@/site/payment";
 import type { SensitiveContent } from "@/site/types";
 import type { SiteCtx } from "../context";
 import { CopyButton } from "../copy-button";
+import { PaymentQr } from "./payment-qr";
 
 /** IBAN po čtveřicích pro čitelnost; kopíruje se tvar bez mezer. */
 function groupIban(iban: string): string {
@@ -8,8 +10,10 @@ function groupIban(iban: string): string {
 }
 
 /**
- * Údaje pro převod ze zahraničí (jen anglická verze): zahraniční bankovní aplikace QR platbu
- * zpravidla nečtou, takže příjemce, IBAN, BIC a zpráva jsou i jako text s tlačítkem „Kopírovat“.
+ * Údaje pro převod ze zahraničí (jen anglická verze): zahraniční bankovní aplikace českou QR platbu
+ * zpravidla nečtou, takže příjemce, IBAN, BIC a zpráva jsou i jako text s tlačítkem „Kopírovat“
+ * a s vyplněným příjemcem i jako EPC QR (GiroCode) pro převod SEPA v eurech, který čte většina
+ * evropských bank.
  * `facts` je třída seznamu údajů šablony (`site-facts`, `eu-facts`).
  */
 export function ForeignPayment({
@@ -49,6 +53,12 @@ export function ForeignPayment({
       copy: gifts.paymentMessage,
     });
   }
+  const epc = buildEpcQr({
+    iban: gifts.iban,
+    bic: gifts.bic,
+    name: gifts.holder,
+    message: gifts.paymentMessage,
+  });
   return (
     <section aria-labelledby="gifts-foreign">
       <h3 id="gifts-foreign" className="site-h3">
@@ -71,6 +81,12 @@ export function ForeignPayment({
           </div>
         ))}
       </dl>
+      {epc ? (
+        <figure className="site-qr-figure">
+          <PaymentQr payload={epc} label={t("site.gifts.epcLabel", { name: gifts.holder ?? "" })} />
+          <figcaption className="site-muted">{t("site.gifts.epcHint")}</figcaption>
+        </figure>
+      ) : null}
     </section>
   );
 }

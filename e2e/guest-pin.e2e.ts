@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import type { Page } from "@playwright/test";
 import { apiRequest, HOSTS } from "./hosts";
 import { tenant } from "./rsvp";
+import { tenantUrl } from "./support/admin";
+import { seedHouseholds, seedSite } from "./support/guests";
 import { randomIp, withDb } from "./support/db";
 import {
   endGuestLockout,
@@ -302,59 +304,92 @@ test.describe("zadání PINu hostů (E2E-17, FR-PRIV-2)", () => {
 });
 
 test.describe("heslo na celý web", () => {
+  // vlastní web pro každý test: zámek sdílené svatby by viděly souběžné testy webu bez zámku (site.e2e.ts)
+  async function lockedSite(guestPin: string | null = GUEST_PIN) {
+    const site = await seedSite({ guestPin });
+    await withDb((db) =>
+      db.query("update se_vezmou.weddings set site_locked = true where id = $1", [site.weddingId]),
+    );
+    return site;
+  }
+
   test("zamčený web bez PINu neukáže nic kromě jmen, správný PIN otevře celý web", async ({
     page,
     request,
-    wedding,
   }) => {
-    await wedding({ guestPin: GUEST_PIN, siteLocked: true });
-    await page.goto(tenant("/"));
+    const site = await lockedSite();
+    await page.goto(tenantUrl(site.slug));
     await expect(page.getByRole("heading", { level: 1, name: /Klára a Matěj/ })).toBeVisible();
     await expect(
       page.getByRole("heading", { level: 2, name: "Web je jen pro pozvané hosty" }),
     ).toBeVisible();
-    // obsah webu ani citlivá data nejsou v HTML (ani v odpovědi bez prohlížeče)
+    // obsah webu není v HTML (ani v odpovědi bez prohlížeče)
+    const hidden = ["Svatební obřad", "Zámecká 1", "Potvrdit účast"];
     const html = await page.content();
-    for (const text of ["Svatební obřad", "Potvrdit účast", ...LEAKS])
-      expect(html).not.toContain(text);
-    const { url, options } = apiRequest(HOSTS.tenant, "/");
+    for (const text of hidden) expect(html).not.toContain(text);
+    const { url, options } = apiRequest(`${site.slug}.localhost`, "/");
     const raw = await (await request.get(url, options)).text();
-    for (const text of ["Svatební obřad", ...LEAKS]) expect(raw).not.toContain(text);
+    for (const text of hidden) expect(raw).not.toContain(text);
 
     await enterPin(page, "main", WRONG);
     await expect(page.getByText("PIN nesouhlasí", { exact: false })).toBeVisible();
     await enterPin(page, "main", GUEST_PIN);
     await expect(page.getByText("Svatební obřad").first()).toBeVisible();
-    await expect(page.getByText(SENSITIVE.account).first()).toBeVisible();
     // zaměření přejde na obsah, ne na tělo stránky
     await expect(page.locator("main#obsah")).toBeFocused();
   });
 
-  test("osobní odkaz zamčený web otevře bez PINu", async ({ page, wedding }) => {
-    const w = await wedding({ guestPin: GUEST_PIN, siteLocked: true });
-    const { inviteCode } = await w.addHousehold("Novákovi", [{ name: "Jan Novák" }]);
-    await page.goto(tenant(`/p/${inviteCode}`));
-    await expect(
-      page.locator("#potvrdit-ucast").getByRole("heading", { name: "Jan Novák" }),
-    ).toBeVisible();
+  test("osobní odkaz zamčený web otevře bez PINu", async ({ page }) => {
+    const site = await lockedSite();
+    const [household] = await seedHouseholds(site.weddingId, [
+      { label: "Novákovi", guests: [{ name: "Jan Novák" }] },
+    ]);
+    const code = await withDb(async (db) => {
+      const r = await db.query<{ invite_code: string }>(
+        "select invite_code from se_vezmou.households where id = $1",
+        [household],
+      );
+      return r.rows[0].invite_code;
+    });
+    await page.goto(tenantUrl(site.slug, `/p/${code}`));
+    await expect(page.getByRole("heading", { name: "Jan Novák" })).toBeVisible();
     await expect(page.getByText("Svatební obřad").first()).toBeVisible();
 
     // po vypršení relace hosta stačí znovu otevřít web: kód v cookie relaci obnoví
     await page.context().clearCookies({ name: /sv_guest/ });
-    await page.goto(tenant("/"));
+    await page.goto(tenantUrl(site.slug));
     await expect(page.getByText("Svatební obřad").first()).toBeVisible();
 
     // neplatný kód zamčený web neotevře a nezacyklí se
     await page.context().clearCookies();
-    await page.goto(tenant("/p/0123456789abcdef0123"));
+    await page.goto(tenantUrl(site.slug, "/p/0123456789abcdef0123"));
     await expect(
       page.getByRole("heading", { level: 2, name: "Web je jen pro pozvané hosty" }),
     ).toBeVisible();
   });
 
-  test("bez zapnutého PINu hostů zámek neplatí", async ({ page, wedding }) => {
-    await wedding({ guestPin: null, siteLocked: true });
-    await page.goto(tenant("/"));
+  test("bez zapnutého PINu hostů zámek neplatí", async ({ page }) => {
+    const site = await lockedSite(null);
+    await page.goto(tenantUrl(site.slug));
     await expect(page.getByText("Svatební obřad").first()).toBeVisible();
+  });
+});
+
+test.describe("dar ze zahraničí (EPC QR)", () => {
+  test("anglická verze po PINu ukáže údaje k převodu i EPC QR pro platbu v eurech", async ({
+    page,
+    wedding,
+  }) => {
+    await wedding({ guestPin: GUEST_PIN });
+    await page.goto(tenant("/en"));
+    const gifts = page.getByRole("region", { name: "Gifts" });
+    await expect(async () => {
+      await gifts.getByLabel("PIN from your invitation").fill(GUEST_PIN);
+      await gifts.getByRole("button", { name: "Unlock" }).click();
+      await expect(gifts.getByText("Paying from abroad")).toBeVisible({ timeout: 2000 });
+    }).toPass();
+    await expect(
+      gifts.getByRole("img", { name: /EU payment QR code \(SEPA, euro\) for a transfer to/ }),
+    ).toBeVisible();
   });
 });

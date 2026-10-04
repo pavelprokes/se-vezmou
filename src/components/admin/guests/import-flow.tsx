@@ -150,13 +150,15 @@ export function ImportFlow({
     setError(
       outcome.status === "guest_limit"
         ? t("admin.guests.import.error.limit")
-        : outcome.status === "nothing"
-          ? t("admin.guests.import.error.nothing")
-          : outcome.status === "limited"
-            ? t("admin.guests.error.limited")
-            : outcome.status === "unauthorized"
-              ? t("admin.guests.error.unauthorized")
-              : t("admin.guests.error.generic"),
+        : outcome.status === "purged"
+          ? t("admin.guests.error.purged")
+          : outcome.status === "nothing"
+            ? t("admin.guests.import.error.nothing")
+            : outcome.status === "limited"
+              ? t("admin.guests.error.limited")
+              : outcome.status === "unauthorized"
+                ? t("admin.guests.error.unauthorized")
+                : t("admin.guests.error.generic"),
     );
   };
 

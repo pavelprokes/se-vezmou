@@ -6,6 +6,7 @@
   "error.generic": "Something went wrong. Please try again in a moment.",
   "error.limited": "You have made many changes in a short time. Wait a moment and try again.",
   "error.unauthorized": "Your sign-in has expired. Sign in again; nothing that was saved is lost.",
+  "error.purged": "Guest data was deleted after the wedding as scheduled, so new guests can no longer be added.",
   "help.guests.title": "Guests and households",
   "help.guests.body": "Guests belong to households (a family, a couple, a single person). You add a guest by hand or by importing an Excel or CSV file. For each guest you choose which events they are invited to: the form asks only about those. Guests are never shown on the website.",
   "help.import.title": "Importing guests",

@@ -34,6 +34,17 @@ begin
   perform tap.eq(v_rows, 1, 'smazání údajů hostů do 30 dní je v přehledu');
   perform tap.ok(not has_function_privilege('service_role', 'se_vezmou.admin_lifecycle_upcoming(integer)', 'execute'),
     'admin_lifecycle_upcoming jen pro authenticated');
+
+  -- minulá událost se v přehledu nenabízí (časovaný text „smažeme“)
+  update se_vezmou.weddings set guest_purge_at = now() - interval '1 day' where id = tap.wa();
+  perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
+  perform tap.eq((select count(*)::integer from se_vezmou.admin_lifecycle_upcoming(30) where kind = 'guest_purge'), 0,
+    'proběhlé smazání se v přehledu neukazuje');
+  -- po smazání údajů hostů se nová domácnost nezaloží (zmizela by při příští údržbě)
+  perform tap.throws('select se_vezmou.admin_household_save(null, ''{"label": "Pozdě", "guests": [{"display_name": "Host"}]}'')',
+    'guests_purged', 'po guest_purge_at nová domácnost nejde založit');
+  perform tap.reset();
+
 end
 $$;
 

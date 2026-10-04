@@ -39,7 +39,8 @@ vi.mock("@/env", () => ({
 const stubContext = vi.hoisted(() => ({
   send: vi.fn(),
   loginUrl: "https://app.se-vezmou.cz/prihlaseni",
-  exportUrl: "https://app.se-vezmou.cz/data",
+  exportUrl: (locale: string) =>
+    `https://app.se-vezmou.cz${locale === "cs" ? "" : `/${locale}`}/data`,
   siteOf: (slug: string | null) => (slug ? `${slug}.se-vezmou.cz` : undefined),
 }));
 vi.mock("@/lib/lifecycle/notices", async (importActual) => ({

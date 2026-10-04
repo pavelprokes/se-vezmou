@@ -14,21 +14,55 @@ update se_vezmou.app_settings set value = '365'
 
 -- Uložené datum smazání údajů hostů u existujících svateb podle nové lhůty, jen když ho provozovatel
 -- výslovně neprodloužil a smazání je teprve v budoucnu. Nikdy dřív než za retention_notice_days_before + 1 den,
--- aby správci stihli dostat upozornění a stáhnout export. Spouštěč weddings_before_write se na tuto změnu
+-- aby správci stihli dostat upozornění a stáhnout export, a nikdy později než dosavadní datum (least). Spouštěč weddings_before_write se na tuto změnu
 -- vypne: jinak by ji označil jako prodloužení provozovatelem (guest_purge_extended) a přepočty by ji jen prodlužovaly.
 alter table se_vezmou.weddings disable trigger weddings_before_write;
 update se_vezmou.weddings w
-   set guest_purge_at = greatest(
+   set guest_purge_at = least(w.guest_purge_at, greatest(
          ((coalesce(w.ends_on, w.starts_on)
            + pg_catalog.make_interval(months => se_vezmou.setting_int('guest_retention_months_after_wedding', 3)))::timestamp
           at time zone w.timezone),
          pg_catalog.now()
-           + pg_catalog.make_interval(days => se_vezmou.setting_int('retention_notice_days_before', 14) + 1))
+           + pg_catalog.make_interval(days => se_vezmou.setting_int('retention_notice_days_before', 14) + 1)))
  where not w.guest_purge_extended
    and w.guest_purge_at > pg_catalog.now()
    and coalesce(w.ends_on, w.starts_on) is not null
    and w.deleted_at is null;
 alter table se_vezmou.weddings enable trigger weddings_before_write;
+
+-- Nevyřízená upozornění (první a závěrečné) na datum, které po změně lhůt už neplatí (posunuté smazání hostů,
+-- prodloužený konec webu), se neodešlou se starým datem: označí se jako přeskočená. Na nové datum úloha
+-- životního cyklu naplánuje nová upozornění.
+update se_vezmou.lifecycle_notices n
+   set status = 'skipped'
+ where n.status in ('pending', 'failed')
+   and n.stage in ('first', 'final')
+   and not exists (
+     select 1 from se_vezmou.lifecycle_events(n.wedding_id) e
+      where e.kind = n.kind and e.event_at = n.event_at);
+
+-- ---------------------------------------------------------------------------
+-- Po smazání údajů hostů (guest_purge_at) se nová domácnost nezaloží: web je ještě veřejný, ale údaje hostů
+-- by při příští noční údržbě tiše zmizely. Ruční zápis, import i RSVP domácnosti tak dostanou jasnou chybu.
+-- ---------------------------------------------------------------------------
+create function se_vezmou.households_guard_purged() returns trigger
+  language plpgsql set search_path = ''
+  as $$
+begin
+  if exists (select 1 from se_vezmou.weddings w
+              where w.id = new.wedding_id and w.guest_purge_at is not null
+                and w.guest_purge_at <= pg_catalog.now()) then
+    raise exception 'guests_purged' using errcode = '55000';
+  end if;
+  return new;
+end
+$$;
+
+revoke all on function se_vezmou.households_guard_purged() from public, anon, authenticated, service_role;
+
+create trigger households_guard_purged
+  before insert on se_vezmou.households
+  for each row execute function se_vezmou.households_guard_purged();
 
 -- ---------------------------------------------------------------------------
 -- admin_lifecycle_upcoming: co svatbu správce čeká v příštích p_days dnech (konec veřejného webu, smazání
@@ -49,7 +83,7 @@ begin
   select e.kind, e.event_at
     from se_vezmou.lifecycle_events(se_vezmou.wedding_id()) e
    where e.kind in ('site_expiry', 'health_purge', 'guest_purge')
-     and e.event_at is not null
+     and e.event_at > pg_catalog.now()
      and e.event_at <= pg_catalog.now() + pg_catalog.make_interval(days => p_days)
    order by e.event_at, e.kind;
 end

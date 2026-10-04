@@ -76,6 +76,12 @@ async function horizontalOverflow(page: Page): Promise<number> {
   );
 }
 
+// Axe hodnotí ustálenou stránku: s omezeným pohybem (web ho podporuje) nejsou animace vjíždějících prvků
+// a schovávání ukotveného tlačítka, při kterých by se cíle na okamžik překrývaly (target-size v pomalém CI).
+test.beforeEach(async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+});
+
 for (const [viewportName, viewport] of Object.entries(VIEWPORTS)) {
   for (const lang of ["cs", "en"] as const) {
     const t = lang === "cs";

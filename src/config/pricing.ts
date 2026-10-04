@@ -3,8 +3,8 @@
  * Čerpá z nich viditelný text, karty ceny i strukturovaná data `SoftwareApplication`,
  * takže se číslo na stránce a ve značkách nikdy nerozejde.
  *
- * Nikdy neslibujeme „zdarma navždy“: nabídka platí jen po dobu zaváděcího provozu
- * a cenu i podmínky po jeho skončení provozovatel oznámí předem (OQ-11).
+ * Nikdy neslibujeme „zdarma navždy“ a veřejně nemluvíme o „zaváděcím provozu“: cena je „teď 0 Kč“
+ * a její případnou změnu provozovatel oznámí předem (OQ-11).
  */
 
 export const CURRENCY = "CZK";

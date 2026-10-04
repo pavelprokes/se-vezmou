@@ -15,7 +15,7 @@ Stav k 3. 10. 2026. Úkoly, které čekají na majitele nebo na dokončení slu�
 
 ## Cena po zaváděcím provozu (rozhodnout)
 
-Na webu je dnes všude „0 Kč po dobu zaváděcího provozu“ (slovo „zdarma“ záměrně nepoužíváme kvůli reklamám a SEO). Návrh, který je třeba schválit a pak zapsat do `src/config/pricing.ts` a podmínek (OQ-11):
+Na webu je dnes „0 Kč“ a „teď“ (slovo „zdarma“ záměrně nepoužíváme kvůli reklamám a SEO a o „zaváděcím provozu“ veřejně nemluvíme, služba funguje a používají ji první páry). Návrh, který je třeba schválit a pak zapsat do `src/config/pricing.ts` a podmínek (OQ-11):
 
 - **Koncept**: 0 Kč vždy (průvodce, všechny šablony, soukromý náhled).
 - **Zveřejnění webu**: **990 Kč jednorázově** za svatbu (ne měsíčně, bez poplatků z darů); web běží do svatby a 12 měsíců po ní.

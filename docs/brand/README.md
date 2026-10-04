@@ -1,6 +1,6 @@
 # Logo se-vezmou.cz (návrh, kolo 2)
 
-Zbývají dvě varianty: **A (prsteny)** a **C (adresa)**. Po výběru ostatní soubory smazat.
+Varianty: **A (prsteny)**, **C (adresa)**, **D (monogram)** a **E (smyčka)**. Po výběru ostatní soubory smazat.
 
 | Soubor                 | Použití                                      |
 | ---------------------- | -------------------------------------------- |

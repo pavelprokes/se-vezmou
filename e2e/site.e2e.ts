@@ -1,5 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import { HOSTS, pageUrl } from "./hosts";
+import { test as lockedTest } from "./support/rsvp-fixtures";
 import { TEMPLATES, VIEWPORTS, previewUrl, type Lang, type Template } from "./site";
 
 /** Vykreslení webu páru: odkazy, jazyky, klávesnice, reflow, režim poděkování a dary za PINem. */
@@ -186,8 +187,12 @@ test.describe("klávesnice", () => {
     expect(steps).toBeGreaterThan(15);
     await context.close();
   });
+});
 
-  test("ukotvené tlačítko vede na sekci Potvrdit účast", async ({ page }) => {
+lockedTest.describe("klávesnice: ukotvené tlačítko", () => {
+  lockedTest("ukotvené tlačítko vede na sekci Potvrdit účast", async ({ page, wedding }) => {
+    // ukotvené tlačítko je jen při otevřeném RSVP: zámek sdílené svatby, aby ji souběžný test RSVP nezavřel
+    await wedding();
     await page.goto(pageUrl(HOSTS.tenant, "/"));
     await page
       .getByRole("complementary", { name: "Rychlý odkaz na potvrzení účasti" })

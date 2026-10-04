@@ -16,6 +16,7 @@ import { Story } from "../blocks/story";
 import { Venue } from "../blocks/venue";
 import type { SiteLayout } from "../models";
 import { paletteStyle } from "../palette-style";
+import { NavFocusScroll } from "../nav-focus";
 import { SiteLanguageSwitch } from "../site-language-switch";
 import "../site.css";
 
@@ -93,6 +94,7 @@ export function ClassicSite({ ctx: base, layout, decor }: TemplateProps & { deco
               ))}
             </ul>
           </nav>
+          <NavFocusScroll selector=".site-header .site-nav" />
           <SiteLanguageSwitch locales={content.locales} current={locale} hrefs={hrefs} t={t} />
         </div>
       </header>

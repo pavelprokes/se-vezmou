@@ -2,9 +2,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   tenantFromRequest: vi.fn(),
-  readTicket: vi.fn(),
+  currentTicket: vi.fn(),
   setTicket: vi.fn(),
   clearTicket: vi.fn(),
+  clearInvite: vi.fn(),
   matchStep: vi.fn(),
   submitStep: vi.fn(),
   unlistedStep: vi.fn(),
@@ -16,9 +17,10 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/site/tenant-request", () => ({
   tenantFromRequest: mocks.tenantFromRequest,
-  readTicket: mocks.readTicket,
+  currentTicket: mocks.currentTicket,
   setTicket: mocks.setTicket,
   clearTicket: mocks.clearTicket,
+  clearInvite: mocks.clearInvite,
 }));
 vi.mock("@/lib/rsvp/service", () => ({
   matchStep: mocks.matchStep,
@@ -89,11 +91,15 @@ describe("Server Actions webu páru: RSVP", () => {
     });
     await matchAction(form({ name: "Jan" }));
     expect(mocks.setTicket).toHaveBeenCalledWith("t".repeat(64));
+    // ověřené jméno zapomene osobní odkaz: odpověď jde domácnosti podle jména
+    expect(mocks.clearInvite).toHaveBeenCalledTimes(1);
 
     mocks.matchStep.mockResolvedValue({ state: { stage: "name", error: "not_found" } });
     mocks.setTicket.mockClear();
+    mocks.clearInvite.mockClear();
     await matchAction(form({ name: "Jan" }));
     expect(mocks.setTicket).not.toHaveBeenCalled();
+    expect(mocks.clearInvite).not.toHaveBeenCalled();
     expect(mocks.clearTicket).not.toHaveBeenCalled();
 
     mocks.submitStep.mockResolvedValue({ state: { stage: "closed" }, ticket: { clear: true } });
@@ -101,11 +107,12 @@ describe("Server Actions webu páru: RSVP", () => {
     expect(mocks.clearTicket).toHaveBeenCalledTimes(1);
   });
 
-  it("odeslání čte lístek z cookie, ne z formuláře; host mimo seznam lístek nemá", async () => {
-    mocks.readTicket.mockResolvedValue("c".repeat(64));
+  it("odeslání bere lístek z cookie nebo osobního odkazu, ne z formuláře; host mimo seznam lístek nemá", async () => {
+    mocks.currentTicket.mockResolvedValue("c".repeat(64));
     mocks.submitStep.mockResolvedValue({ state: { stage: "form" } });
     const data = form({ mode: "listed", ticket: "podvržený", locale: "cs" });
     await submitAction(data);
+    expect(mocks.currentTicket).toHaveBeenCalledWith(tenant.weddingId);
     expect(mocks.submitStep.mock.calls[0][0]).toMatchObject({
       mode: "listed",
       ticket: "c".repeat(64),
@@ -146,9 +153,10 @@ describe("Server Actions webu páru: RSVP", () => {
     expect(logged).not.toMatch(/Jan Novák|Karel/);
   });
 
-  it('"Zadat jiné jméno" smaže lístek', async () => {
+  it('"Zadat jiné jméno" smaže lístek i kód osobního odkazu', async () => {
     expect(await resetAction(form({}))).toEqual({ stage: "name" });
     expect(mocks.clearTicket).toHaveBeenCalledTimes(1);
+    expect(mocks.clearInvite).toHaveBeenCalledTimes(1);
   });
 });
 

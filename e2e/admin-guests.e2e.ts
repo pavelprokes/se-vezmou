@@ -55,9 +55,11 @@ test.describe("seznam hostů a domácností", () => {
     await page.getByRole("link", { name: "Přidat domácnost" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Nová domácnost" })).toBeVisible();
 
-    // prázdné jméno: chyba u pole slovy, nic se neuloží
-    await page.getByRole("button", { name: "Uložit domácnost" }).click();
-    await expect(page.getByText("Vyplňte jméno hosta.")).toBeVisible();
+    // prázdné jméno: chyba u pole slovy, nic se neuloží (opakovat, dokud stránka není hydratovaná)
+    await expect(async () => {
+      await page.getByRole("button", { name: "Uložit domácnost" }).click();
+      await expect(page.getByText("Vyplňte jméno hosta.")).toBeVisible({ timeout: 1000 });
+    }).toPass();
     await expect(page.getByLabel("Jméno a příjmení")).toBeFocused();
     expect(await guestRows(site.weddingId)).toHaveLength(0);
 
@@ -165,14 +167,16 @@ test.describe("skupiny hostů", () => {
 
     // nová domácnost: skupinu zapíšu a druhou přidám z nabídky už používaných
     await page.getByRole("link", { name: "Přidat domácnost" }).click();
-    await page.getByLabel("Název domácnosti").fill("Dvořákovi");
-    await page.getByLabel("Skupiny", { exact: true }).fill("Rodina nevěsty");
-    await page.getByRole("button", { name: "Přidat skupinu Kolegové" }).click();
-    await expect(page.getByLabel("Skupiny", { exact: true })).toHaveValue(
-      "Rodina nevěsty, Kolegové",
-    );
+    // nabídka funguje až po hydrataci; dřív vyplněná pole by React přepsal počátečním stavem
+    const tagsField = page.getByLabel("Skupiny", { exact: true });
+    await expect(async () => {
+      await page.getByRole("button", { name: "Přidat skupinu Kolegové" }).click();
+      await expect(tagsField).toHaveValue("Kolegové", { timeout: 1000 });
+    }).toPass();
     await expect(page.getByRole("button", { name: "Přidat skupinu Kolegové" })).toHaveCount(0);
-    await expect(page.getByLabel("Skupiny", { exact: true })).toBeFocused();
+    await expect(tagsField).toBeFocused();
+    await tagsField.fill("Rodina nevěsty, Kolegové");
+    await page.getByLabel("Název domácnosti").fill("Dvořákovi");
     await page.getByLabel("Jméno a příjmení").fill("Karel Dvořák");
     await page.getByRole("button", { name: "Uložit domácnost" }).click();
     await waitSaved(page);
@@ -226,6 +230,68 @@ test.describe("skupiny hostů", () => {
       "Karel Černý": 1,
       "Karel Dvořák": 2,
     });
+  });
+});
+
+test.describe("osobní odkazy a kartičky s QR", () => {
+  test("odkaz u domácnosti, kartičky skupiny k tisku a výměna odkazu", async ({
+    page,
+    context,
+  }) => {
+    const site = await seedSite();
+    await site.login(context);
+    const [novak] = await seedHouseholds(site.weddingId, [
+      { label: "Novákovi", tags: ["Kolegové"], guests: [{ name: "Jan Novák" }] },
+      { label: "Černí", guests: [{ name: "Karel Černý" }] },
+    ]);
+    const code = async () =>
+      withDb(async (db) => {
+        const r = await db.query<{ invite_code: string }>(
+          "select invite_code from se_vezmou.households where id = $1",
+          [novak],
+        );
+        return r.rows[0].invite_code;
+      });
+    const first = await code();
+
+    await page.goto(appUrl("/hoste"));
+    const card = page.getByRole("article", { name: "Novákovi" });
+    await expect(card.getByTestId("invite-url")).toHaveText(new RegExp(`/p/${first}$`));
+    await expect(
+      card.getByRole("button", { name: "Kopírovat osobní odkaz domácnosti Novákovi" }),
+    ).toBeVisible();
+
+    // kartičky jen pro skupinu
+    const cardsLink = page.getByRole("link", { name: "Kartičky s QR pro skupinu Kolegové" });
+    await expect(async () => {
+      await page.getByLabel("Skupina", { exact: true }).selectOption("Kolegové");
+      await expect(cardsLink).toBeVisible({ timeout: 1000 });
+    }).toPass();
+    await cardsLink.click();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Kartičky s QR: Kolegové" }),
+    ).toBeVisible();
+    await expect(page.getByRole("img", { name: /QR kód osobního odkazu domácnosti/ })).toHaveCount(
+      1,
+    );
+    await expect(page.getByRole("heading", { level: 2, name: "Novákovi" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Vytisknout" })).toBeVisible();
+    await page.emulateMedia({ media: "print" });
+    await expect(page.getByRole("navigation")).toBeHidden();
+    await expect(page.getByRole("button", { name: "Vytisknout" })).toBeHidden();
+    await page.emulateMedia({ media: "screen" });
+
+    // výměna odkazu: nový kód, starý přestane platit
+    await page.goto(appUrl(`/hoste/domacnost/${novak}`));
+    await page.getByRole("button", { name: "Vyměnit osobní odkaz" }).click();
+    await expect(page.getByText(/Starý odkaz i\svytištěný QR kód přestanou platit/)).toBeVisible();
+    await page.getByRole("button", { name: "Ano, vyměnit" }).click();
+    await waitSaved(page, /Osobní odkaz je vyměněný/);
+    const second = await code();
+    expect(second).not.toBe(first);
+    await expect(
+      page.getByRole("article", { name: "Novákovi" }).getByTestId("invite-url"),
+    ).toHaveText(new RegExp(`/p/${second}$`));
   });
 });
 

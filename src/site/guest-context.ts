@@ -3,11 +3,11 @@ import { getGuestSession, guestIdentity } from "@/auth/guest-session";
 import type { Locale } from "@/i18n/config";
 import { publicMediaIds } from "@/lib/db/media";
 import { READ_ONLY, resolveSlug, tenantRpc } from "@/lib/db/rpc";
-import { fetchRsvpInfo } from "@/lib/rsvp/db";
+import { fetchInviteInfo, fetchRsvpInfo } from "@/lib/rsvp/db";
 import type { RsvpSiteState } from "@/lib/rsvp/form";
 import { initialState } from "@/lib/rsvp/service";
 import { liveMedia } from "./live-media";
-import { readTicket } from "./tenant-request";
+import { readInvite, readTicket } from "./tenant-request";
 import { sensitiveContentSchema, type Phase, type SensitiveContent } from "./types";
 
 /**
@@ -26,6 +26,8 @@ export interface GuestContext {
   rsvp: RsvpSiteState;
   sensitiveUnlocked: boolean;
   sensitive: SensitiveContent | null;
+  /** Host přišel osobním odkazem: události, na které je jeho domácnost pozvaná, a všechny s potvrzováním. */
+  invite: { invited: string[]; rsvp: string[] } | null;
 }
 
 /**
@@ -56,7 +58,11 @@ export async function loadGuestContext(slug: string, locale: Locale): Promise<Gu
     const info = await fetchRsvpInfo(weddingId);
     if (!info) return null;
 
-    const { state } = await initialState({ weddingId, ticket: await readTicket(), locale });
+    const code = await readInvite();
+    const [{ state }, invite] = await Promise.all([
+      readTicket().then((ticket) => initialState({ weddingId, ticket, invite: code, locale })),
+      code ? fetchInviteInfo(weddingId, code) : null,
+    ]);
 
     // Host s platnou relací po PINu dostane citlivou část snímku; bez ní se nenačítá vůbec.
     let sensitive: SensitiveContent | null = null;
@@ -88,6 +94,7 @@ export async function loadGuestContext(slug: string, locale: Locale): Promise<Gu
       rsvp: { initial: state, allowUnlisted: info.allow_unlisted, closesAt: info.closes_at },
       sensitiveUnlocked: access !== null,
       sensitive,
+      invite: invite ? { invited: invite.event_ids, rsvp: invite.rsvp_event_ids } : null,
     };
   } catch (error) {
     // Bez osobních údajů: jen druh chyby. Stránka se vykreslí bez živých údajů.

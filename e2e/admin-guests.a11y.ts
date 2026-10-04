@@ -84,6 +84,15 @@ test.describe("axe: hosté", () => {
     await expectNoViolations(page);
   });
 
+  test("kartičky s QR k tisku", async ({ page, context }) => {
+    const { site } = await seedWithGuests();
+    await site.login(context);
+    await page.goto(appUrl("/hoste/karty"));
+    await expect(page.getByRole("heading", { level: 1, name: "Kartičky s QR" })).toBeVisible();
+    await expect(page.getByRole("img", { name: /QR kód osobního odkazu/ }).first()).toBeVisible();
+    await expectNoViolations(page);
+  });
+
   test("úprava domácnosti: nová s chybami, existující s dítětem, angličtina", async ({
     page,
     context,

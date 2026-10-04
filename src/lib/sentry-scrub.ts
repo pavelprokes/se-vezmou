@@ -21,6 +21,8 @@ const PATH_SECRETS: readonly [RegExp, string][] = [
   [/\/nahled\/[^/\s?#"')]+/gi, "/nahled/:token"],
   [/\/(?:en\/)?preview\/[^/\s?#"')]+/gi, "/preview/:token"],
   [/\/media\/[^/\s?#"')]+\/[^/\s?#"')]+/gi, "/media/:id/:width"],
+  // osobní odkaz domácnosti (`/p/<kód>`): kód je přístup k jejímu RSVP
+  [/\/p\/[0-9a-f]{20}\b/gi, "/p/:code"],
 ];
 
 /** Adresa (http, https) kdekoli v textu se nahradí zástupným znakem: zahrnuje hostitele (slug) i query. */

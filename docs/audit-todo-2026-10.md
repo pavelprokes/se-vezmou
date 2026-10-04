@@ -9,9 +9,9 @@ Stav k 4. 10. 2026, `main` = `32a5ddc` (první verze auditu 3. 10. nad `092efad`
 - ✅ **Vlastní otázky.** `rsvp_questions` (text, výběr, ano/ne, lokalizovaný popisek, volitelně vázané na akci), max 10: `src/components/admin/guests/rsvp-settings.tsx`.
 - ✅ **Více akcí.** `events` (obřad, hostina, jiné), `rsvp_attendance`; `invitations` určují, ke kterým akcím je host pozván.
 - ✅ **Skupiny a štítky hostů.** `households.tags` (migrace `20261014120000_household_tags.sql`): skupiny v editoru domácnosti, filtr seznamu podle skupiny s počty hostů (přijde, nepřijde, neodpověděli), sloupec Skupiny v exportu.
-- 🟡 **Program podle skupiny.** Hromadné pozvání skupiny na událost (`admin_invitations_bulk_tag`); pozvání po hostech (`invited_event_ids`) určují, na co se formulář ptá. Program na webu podle hosta přijde s osobním odkazem.
-- ❌ **Unikátní odkaz nebo QR hosta.** Host se najde zadáním jména, krátké `rsvp_tickets`. QR je jen na adresu webu (`src/components/wizard/done.tsx`) a platební.
-- 🟡 **Jazyk hosta.** `guests.locale` (cs/en), plní import (`src/admin/guests/import-parse.ts`), používá e-mail s potvrzením. Bez osobního odkazu se jinde neuplatní.
+- ✅ **Program podle skupiny.** Hromadné pozvání skupiny na událost (`admin_invitations_bulk_tag`); host z osobního odkazu vidí v programu jen události s potvrzováním, na které je pozvaný.
+- ✅ **Osobní odkaz a QR domácnosti.** `households.invite_code` (migrace `20261015120000_household_invite_code.sql`), odkaz `/p/<kód>` otevře formulář domácnosti bez hledání jména, v jazyce hosta a s programem jen z jejích událostí (`src/site/invite.ts`); odkaz v seznamu hostů, výměna v editoru, kartičky s QR k tisku `/hoste/karty` (i pro skupinu).
+- ✅ **Jazyk hosta.** `guests.locale` (cs/en), plní import, používá e-mail s potvrzením a osobní odkaz (web se otevře v jazyce hosta).
 - ✅ **Upozornění páru na novou odpověď.** Volitelné (`notify_couple`, migrace `20261013120000_rsvp_notify_couple.sql`), e-mail `src/lib/email/templates/rsvp-notice.ts` jen se jmény a účastí, bez diet a kontaktů; odesílá `src/lib/rsvp/service.ts`.
 - ✅ **Export hostů.** CSV i xlsx: `src/app/h/app/(sprava)/hoste/export/route.ts`, `src/lib/export/*`. Rate limit, audit, diety jen na výslovnou žádost.
 

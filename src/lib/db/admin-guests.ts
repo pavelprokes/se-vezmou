@@ -67,6 +67,16 @@ export function adminInvitationsBulkTag(
   });
 }
 
+/** Nový kód osobního odkazu domácnosti (starý přestane platit). */
+export function adminHouseholdInviteReset(
+  session: AdminIdentity,
+  householdId: string,
+): Promise<string> {
+  return tenantRpc<string>(identity(session), "admin_household_invite_reset", {
+    p_household_id: householdId,
+  });
+}
+
 // --- nastavení RSVP -------------------------------------------------------------------------
 
 export function adminRsvpSettingsGet(session: AdminIdentity): Promise<unknown> {

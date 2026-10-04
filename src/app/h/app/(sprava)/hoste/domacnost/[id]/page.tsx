@@ -12,7 +12,7 @@ import { AdminI18nProvider } from "@/components/admin/i18n";
 import { pickAdminMessages } from "@/components/admin/messages";
 import { getTranslator } from "@/i18n/load";
 import { pick } from "@/site/i18n-text";
-import { deleteHouseholdAction, saveHouseholdAction } from "../../actions";
+import { deleteHouseholdAction, resetInviteAction, saveHouseholdAction } from "../../actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -71,7 +71,11 @@ export default async function HouseholdPage({ params }: PageProps<"/h/app/hoste/
           answered={Boolean(household?.response)}
           listHref={appHref(ADMIN_PATHS.guests, locale)}
           eventsHref={appHref(ADMIN_PATHS.site, locale)}
-          actions={{ save: saveHouseholdAction, remove: deleteHouseholdAction }}
+          actions={{
+            save: saveHouseholdAction,
+            remove: deleteHouseholdAction,
+            resetInvite: resetInviteAction,
+          }}
         />
       </AdminFrame>
     </AdminI18nProvider>

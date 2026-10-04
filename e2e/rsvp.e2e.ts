@@ -747,3 +747,92 @@ test.describe("zaměření po změně kroku a počtu osob (WCAG 2.4.3, 3.3.7)", 
     await expect(section.getByText(/Novomanželé\spovolili/)).toBeFocused();
   });
 });
+
+test.describe("osobní odkaz domácnosti (QR na pozvánce)", () => {
+  test("odkaz otevře formulář domácnosti v jazyce hosta a program jen s jejími událostmi", async ({
+    page,
+    wedding,
+  }) => {
+    const w = await wedding();
+    await w.addHousehold("Svobodovi", [{ name: "Petr Svoboda" }]);
+    const { inviteCode } = await w.addHousehold("Smithovi", [
+      { name: "John Smith", events: ["obrad"], locale: "en" },
+    ]);
+
+    // bez odkazu vidí host celý program
+    await page.goto(tenant("/en"));
+    await expect(page.getByText("Wedding dinner").first()).toBeVisible();
+
+    await page.goto(tenant(`/p/${inviteCode}`));
+    await expect(page).toHaveURL(/\/en#potvrdit-ucast$/);
+    const section = rsvpSection(page);
+    await expect(section.getByRole("heading", { name: "John Smith" })).toBeVisible();
+    await expect(section.getByLabel("Your name")).toHaveCount(0);
+    // hostina, na kterou pozvaný není, z programu zmizí; události bez potvrzování zůstanou
+    await expect(page.getByText("Wedding dinner")).toHaveCount(0);
+    await expect(page.getByText("Toast and refreshments").first()).toBeVisible();
+    expect(await page.content()).not.toContain("Petr Svoboda");
+
+    await choose(section, "John Smith", "Wedding ceremony", "yes", "en");
+    await send(page, "en");
+    await expect(section.getByRole("status")).toContainText("Thank you");
+    const state = await w.state();
+    expect(state.responses).toHaveLength(1);
+
+    // po návratu na web (bez odkazu) se formulář otevře znovu, odpověď jde upravit
+    await page.goto(tenant("/en"));
+    await expect(rsvpSection(page).getByRole("heading", { name: "John Smith" })).toBeVisible();
+
+    // „Zadat jiné jméno“ zapomene odkaz: celý program a první krok
+    await rsvpSection(page).getByRole("button", { name: "Enter a different name" }).click();
+    await expect(rsvpSection(page).getByLabel("Your name")).toBeVisible();
+    await page.reload();
+    await expect(page.getByText("Wedding dinner").first()).toBeVisible();
+    await expect(rsvpSection(page).getByLabel("Your name")).toBeVisible();
+  });
+
+  test("ověření jiného jména po otevření odkazu: odpověď jde domácnosti podle jména", async ({
+    page,
+    wedding,
+  }) => {
+    const w = await wedding();
+    const { inviteCode } = await w.addHousehold("Novákovi", [{ name: "Jan Novák" }]);
+    const { householdId } = await w.addHousehold("Svobodovi", [{ name: "Petr Svoboda" }]);
+
+    // první panel čeká na zadání jména, ve druhém host otevře odkaz Novákových
+    const first = await page.context().newPage();
+    await openRsvp(first);
+    await page.goto(tenant(`/p/${inviteCode}`));
+    await expect(rsvpSection(page).getByRole("heading", { name: "Jan Novák" })).toBeVisible();
+
+    // v prvním panelu ověří jiné jméno: platí to novější
+    await identify(first, "Petr Svoboda");
+    const section = rsvpSection(first);
+    await expect(section.getByRole("heading", { name: "Petr Svoboda" })).toBeVisible();
+    await choose(section, "Petr Svoboda", OBRAD, "yes");
+    await choose(section, "Petr Svoboda", HOSTINA, "no");
+    await send(first);
+    await expect(section.getByRole("status")).toContainText("Děkujeme");
+    expect((await w.state()).responses.map((r) => r.household_id)).toEqual([householdId]);
+  });
+
+  test("neplatný kód jen přesměruje na úvod, nic neprozradí", async ({ page, wedding }) => {
+    await wedding();
+    await page.goto(tenant("/p/0123456789abcdef0123"));
+    await expect(page).toHaveURL(/klara-a-matej\.localhost:\d+\/#potvrdit-ucast$/);
+    await expect(rsvpSection(page).getByLabel("Vaše jméno")).toBeVisible();
+    await page.goto(tenant("/p/nesmysl"));
+    await expect(rsvpSection(page).getByLabel("Vaše jméno")).toBeVisible();
+  });
+
+  test("po uzavření odpovědí odkaz dál zúží program", async ({ page, wedding }) => {
+    const w = await wedding();
+    const { inviteCode } = await w.addHousehold("Novákovi", [
+      { name: "Jan Novák", events: ["obrad"] },
+    ]);
+    await w.closeNow();
+    await page.goto(tenant(`/p/${inviteCode}`));
+    await expect(page.getByText("Svatební obřad").first()).toBeVisible();
+    await expect(page.getByText("Svatební hostina")).toHaveCount(0);
+  });
+});

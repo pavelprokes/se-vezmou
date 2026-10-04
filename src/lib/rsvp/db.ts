@@ -1,4 +1,5 @@
 import "server-only";
+import { z } from "zod";
 import { READ_ONLY, tenantRpc } from "@/lib/db/rpc";
 import { DbError, type TenantIdentity } from "@/lib/db/transport";
 import {
@@ -39,6 +40,43 @@ export async function matchName(weddingId: string, name: string): Promise<string
     "table",
   );
   return rows[0]?.ticket ?? null;
+}
+
+const inviteInfoSchema = z.object({
+  locale: z.string().nullable(),
+  event_ids: z.array(z.string()),
+  /** Události s potvrzováním podle databáze (ne podle zveřejněného snímku). */
+  rsvp_event_ids: z.array(z.string()).default([]),
+});
+export type InviteInfo = z.infer<typeof inviteInfoSchema>;
+
+/** Osobní odkaz domácnosti: jazyk hosta a události, na které je pozvaná; `null` pro neplatný kód. */
+export async function fetchInviteInfo(weddingId: string, code: string): Promise<InviteInfo | null> {
+  const raw = await tenantRpc<unknown>(
+    visitor(weddingId),
+    "rsvp_invite_info",
+    { p_code: code },
+    "scalar",
+    READ_ONLY,
+  );
+  return raw === null ? null : inviteInfoSchema.parse(raw);
+}
+
+/** Formulář domácnosti z kódu osobního odkazu pro vykreslení (jen čtení); `null` mimo otevřené RSVP. */
+export async function fetchInviteView(weddingId: string, code: string): Promise<RsvpView | null> {
+  const raw = await tenantRpc<unknown>(
+    visitor(weddingId),
+    "rsvp_invite_get",
+    { p_code: code },
+    "scalar",
+    READ_ONLY,
+  );
+  return raw === null ? null : rsvpViewSchema.parse(raw);
+}
+
+/** Lístek RSVP z kódu osobního odkazu (zapisuje, jen při odeslání); `null` mimo otevřené RSVP. */
+export async function inviteTicket(weddingId: string, code: string): Promise<string | null> {
+  return tenantRpc<string | null>(visitor(weddingId), "rsvp_invite_ticket", { p_code: code });
 }
 
 /** Domácnost a dřívější odpověď podle lístku; `null` pro neplatný nebo prošlý lístek. */

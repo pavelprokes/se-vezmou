@@ -11,6 +11,7 @@ export const ADMIN_PATHS = {
   history: "/web/historie",
   guests: "/hoste",
   guestsImport: "/hoste/import",
+  guestCards: "/hoste/karty",
   responses: "/odpovedi",
   rsvpSettings: "/odpovedi/nastaveni",
   access: "/pristup",

@@ -10,7 +10,13 @@ import { getClientIp } from "@/auth/request";
 import { formatPause } from "@/i18n/duration";
 import type { RsvpState } from "@/lib/rsvp/form";
 import { matchStep, submitStep, unlistedStep, type StepResult } from "@/lib/rsvp/service";
-import { clearTicket, readTicket, setTicket, tenantFromRequest } from "@/site/tenant-request";
+import {
+  clearInvite,
+  clearTicket,
+  currentTicket,
+  setTicket,
+  tenantFromRequest,
+} from "@/site/tenant-request";
 
 /**
  * Server Actions webu páru: slepé ověření jména a RSVP (FR-RSVP-1 až 7) a PIN hostů (FR-PRIV-2).
@@ -42,16 +48,17 @@ export async function matchAction(formData: FormData): Promise<RsvpState> {
   try {
     const tenant = await tenantFromRequest(formData.get("locale"));
     if (!tenant) return GENERIC;
-    return applyTicket(
-      await matchStep({
-        weddingId: tenant.weddingId,
-        slug: tenant.slug,
-        ip: await getClientIp(),
-        name: field(formData, "name"),
-        locale: tenant.locale,
-        honeypot: field(formData, "website"),
-      }),
-    );
+    const result = await matchStep({
+      weddingId: tenant.weddingId,
+      slug: tenant.slug,
+      ip: await getClientIp(),
+      name: field(formData, "name"),
+      locale: tenant.locale,
+      honeypot: field(formData, "website"),
+    });
+    // ověřené jméno je novější volba než osobní odkaz: odpověď musí jít jeho domácnosti
+    if (result.ticket && "set" in result.ticket) await clearInvite();
+    return applyTicket(result);
   } catch (error) {
     console.error("[rsvp] ověření jména selhalo", error instanceof Error ? error.name : "");
     return GENERIC;
@@ -85,7 +92,7 @@ export async function submitAction(formData: FormData): Promise<RsvpState> {
         slug: tenant.slug,
         ip: await getClientIp(),
         mode,
-        ticket: mode === "listed" ? await readTicket() : null,
+        ticket: mode === "listed" ? await currentTicket(tenant.weddingId) : null,
         form: formData,
         locale: tenant.locale,
         origin: tenant.origin,
@@ -98,12 +105,13 @@ export async function submitAction(formData: FormData): Promise<RsvpState> {
   }
 }
 
-/** "Zadat jiné jméno": zahodí lístek (sdílené zařízení) a vrátí první krok. */
+/** "Zadat jiné jméno": zahodí lístek i kód osobního odkazu (sdílené zařízení) a vrátí první krok. */
 export async function resetAction(formData: FormData): Promise<RsvpState> {
   try {
     const tenant = await tenantFromRequest(formData.get("locale"));
     if (!tenant) return GENERIC;
     await clearTicket();
+    await clearInvite();
     return { stage: "name" };
   } catch (error) {
     console.error("[rsvp] zahození lístku selhalo", error instanceof Error ? error.name : "");

@@ -1,6 +1,15 @@
 "use client";
 
-import { Baby, CircleCheck, CircleHelp, CircleX, Pencil, UserPlus } from "lucide-react";
+import {
+  Baby,
+  CircleCheck,
+  CircleHelp,
+  CircleX,
+  Link2,
+  Pencil,
+  Printer,
+  UserPlus,
+} from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import type { BulkInviteAction } from "@/admin/guests/action-types";
 import { guestStats, weddingTags } from "@/admin/guests/tags";
@@ -15,7 +24,9 @@ import {
   type GuestList as GuestListData,
   type HouseholdStatus,
 } from "@/lib/rsvp/types";
+import { CopyButton } from "@/components/site/copy-button";
 import { pick } from "@/site/i18n-text";
+import { invitePath } from "@/site/invite";
 import { ConfirmButton } from "../confirm-button";
 import { useAdminT, type AdminKey } from "../i18n";
 import { go } from "./navigate";
@@ -53,13 +64,16 @@ export function GuestList({
   hrefs,
   actions,
   saved,
+  inviteOrigin,
 }: {
   data: GuestListData;
   locale: Locale;
   /** Předpony adres (s jazykem), za které se přidá identifikátor domácnosti. */
-  hrefs: { add: string; householdPrefix: string; responsePrefix: string };
+  hrefs: { add: string; householdPrefix: string; responsePrefix: string; cards: string };
+  /** Původ zveřejněného webu pro osobní odkazy; `null`, dokud web není zveřejněný. */
+  inviteOrigin: string | null;
   actions: { bulkInvite: BulkInviteAction };
-  saved: "saved" | "deleted" | null;
+  saved: "saved" | "deleted" | "invite" | null;
 }) {
   const t = useAdminT();
   const id = useId();
@@ -128,7 +142,11 @@ export function GuestList({
         <div role="status" className="text-ink flex items-center gap-2 font-medium">
           <Icon icon={CircleCheck} />
           <span>
-            {saved === "saved" ? t("admin.guests.list.saved") : t("admin.guests.list.deleted")}
+            {saved === "saved"
+              ? t("admin.guests.list.saved")
+              : saved === "invite"
+                ? t("admin.guests.list.inviteReset")
+                : t("admin.guests.list.deleted")}
           </span>
         </div>
       ) : null}
@@ -199,6 +217,24 @@ export function GuestList({
           <p role="status" className="text-muted mt-3">
             {t("admin.guests.list.shown", { n: shown.length })}
           </p>
+          {/* „Bez skupiny“ kartičky nenabízí: tiskly by se všechny, ne jen zobrazené domácnosti */}
+          {inviteOrigin && group !== NO_GROUP ? (
+            <p className="mt-3">
+              <a
+                href={
+                  bulkTag === null
+                    ? hrefs.cards
+                    : `${hrefs.cards}?skupina=${encodeURIComponent(bulkTag)}`
+                }
+                className={buttonVariants({ variant: "secondary" })}
+              >
+                <Icon icon={Printer} size={18} />
+                {bulkTag === null
+                  ? t("admin.guests.list.cards")
+                  : t("admin.guests.list.cardsGroup", { group: bulkTag })}
+              </a>
+            </p>
+          ) : null}
           {group !== ALL_GROUPS ? (
             <p className="mt-1" data-testid="group-stats">
               {t("admin.guests.list.groupStats", {
@@ -223,7 +259,7 @@ export function GuestList({
           const heading =
             household.label.trim() || household.guests.map((g) => g.display_name).join(", ");
           return (
-            <li key={household.id}>
+            <li key={household.id} id={household.id}>
               <Card as="article" aria-labelledby={`${id}-h-${household.id}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <h2 id={`${id}-h-${household.id}`} className="text-xl font-medium">
@@ -279,6 +315,25 @@ export function GuestList({
                     </li>
                   ))}
                 </ul>
+                {inviteOrigin && household.invite_code ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="text-muted flex items-center gap-1">
+                      <Icon icon={Link2} size={16} />
+                      {t("admin.guests.list.invite")}
+                    </span>
+                    <span className="font-mono text-sm break-all" data-testid="invite-url">
+                      {`${inviteOrigin}${invitePath(household.invite_code)}`}
+                    </span>
+                    <CopyButton
+                      value={`${inviteOrigin}${invitePath(household.invite_code)}`}
+                      label={t("admin.guests.list.inviteCopyLabel", { name: heading })}
+                      copiedLabel={t("admin.guests.list.inviteCopied")}
+                      text={t("admin.guests.list.inviteCopy")}
+                      className={buttonVariants({ variant: "text" })}
+                      statusClassName="text-muted"
+                    />
+                  </div>
+                ) : null}
                 <div className="mt-4 flex flex-wrap gap-3">
                   <a
                     href={`${hrefs.householdPrefix}${household.id}`}

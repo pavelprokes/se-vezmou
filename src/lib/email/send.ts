@@ -46,6 +46,7 @@ export async function sendTemplatedEmail(input: SendTemplatedInput): Promise<boo
         to: input.to,
         subject: input.email.subject,
         html: input.email.html,
+        inline: input.email.inline,
         text: input.email.text,
       },
       { requireDelivery: input.requireDelivery },

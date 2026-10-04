@@ -1,10 +1,9 @@
 import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
-import { operator } from "@/config/operator";
+import { authorProjects, operator, projectUrl } from "@/config/operator";
 import type { Locale } from "@/i18n/config";
 import { localizedPath, localizedPaths, type PageRef } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
-import { authorProjects } from "./about-section";
 
 export interface LandingFooterProps {
   locale: Locale;
@@ -70,7 +69,7 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
           <ul className="flex flex-col">
             {authorProjects.map(({ host }) => (
               <li key={host}>
-                <a href={`https://${host}/`} className={linkClass}>
+                <a href={projectUrl(host, "web", "paticka")} className={linkClass}>
                   {host}
                 </a>
               </li>

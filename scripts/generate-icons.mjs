@@ -34,6 +34,19 @@ await write("public/icons/icon-192.png", tile(192, 0.82));
 await write("public/icons/icon-512.png", tile(512, 0.82));
 await write("public/icons/icon-maskable-512.png", tile(512, 0.6));
 
+// Logo do e-mailů: vkládá se přes Content-ID (src/lib/email/logo-data.ts), zobrazí se 240 px široké, 2x rozlišení.
+const emailLogo = await sharp(join(root, "docs/brand/logo-a-prsteny.svg"), { density: 600 })
+  .resize(480, 131)
+  .png({ compressionLevel: 9 })
+  .toBuffer();
+writeFileSync(
+  join(root, "src/lib/email/logo-data.ts"),
+  `/** Vygenerováno \`scripts/generate-icons.mjs\` z docs/brand/logo-a-prsteny.svg; neupravovat ručně. */
+export const LOGO_PNG_BASE64 =
+  "${emailLogo.toString("base64")}";
+`,
+);
+
 // ICO s PNG obsahem (16, 32, 48 px), průhledné pozadí.
 const sizes = [16, 32, 48];
 const pngs = await Promise.all(

@@ -14,6 +14,7 @@ vi.mock("@/lib/email/send", () => ({
   },
 }));
 
+import { coreText } from "@/lib/email/templates/test-helpers";
 import { setTransport } from "@/lib/db/rpc";
 import { createDraft, type WizardDraft } from "../draft";
 import { publicContentSchema } from "@/site/types";
@@ -310,7 +311,7 @@ describe("firstSave", () => {
     expect(mail.sent[0].text).toMatch(/ignorujte/);
     expect(mail.sent[0].text).not.toContain("482915");
     expect(mail.sent[0].text).not.toContain("klara@example.test");
-    expect(mail.sent[0].text).not.toMatch(/https?:\/\//);
+    expect(coreText(mail.sent[0].text)).not.toMatch(/https?:\/\//);
   });
 
   it("při kolizi adresy se záložní adrese nepíše", async () => {

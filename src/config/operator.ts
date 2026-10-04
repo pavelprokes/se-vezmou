@@ -18,3 +18,19 @@ export const operator = {
 export function isPlaceholder(value: string): boolean {
   return /^\[.*\]$/.test(value.trim());
 }
+
+/** Další projekty autora: patička webu, sekce „O autorovi“ a patička každého e-mailu. */
+export const authorProjects = [
+  { key: "site", host: "svatebni-fotograf-cechy.cz" },
+  { key: "photos", host: "photos.svatebni-fotograf-cechy.cz" },
+] as const;
+
+/** Adresa projektu s UTM značkami (zdroj `se-vezmou`, médium a kampaň podle místa odkazu). */
+export function projectUrl(host: string, medium: string, campaign: string): string {
+  const params = new URLSearchParams({
+    utm_source: "se-vezmou",
+    utm_medium: medium,
+    utm_campaign: campaign,
+  });
+  return `https://${host}/?${params.toString()}`;
+}

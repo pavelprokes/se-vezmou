@@ -181,7 +181,7 @@ for (const locale of locales) {
     test("cena: jedna karta 0 Kč a nikdy „zdarma navždy“", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       const pricing = page.locator("#pricing");
-      const prices = await pricing.locator("li > p").allInnerTexts();
+      const prices = await pricing.locator("li > div > p").allInnerTexts();
       expect(prices).toHaveLength(1);
       for (const price of prices) expect(price).toMatch(/0/);
       const text = (await page.locator("main").innerText()).toLowerCase();

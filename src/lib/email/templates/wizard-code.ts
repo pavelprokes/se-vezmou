@@ -16,7 +16,7 @@ export type WizardCodeParams = {
 const COPY = {
   cs: {
     brand: "Se vezmou",
-    subject: "Ověření e-mailu pro váš svatební web",
+    subject: (code: string) => `${code} je váš ověřovací kód pro Se vezmou`,
     heading: "Ověřte svůj e-mail",
     intro: "Váš ověřovací kód:",
     validity: (ttl: string) => `Kód platí ${ttl} a jde použít jen jednou.`,
@@ -26,7 +26,7 @@ const COPY = {
   },
   en: {
     brand: "Se vezmou",
-    subject: "Verify your email for your wedding website",
+    subject: (code: string) => `${code} is your verification code for Se vezmou`,
     heading: "Verify your email",
     intro: "Your verification code:",
     validity: (ttl: string) => `The code is valid for ${ttl} and can be used only once.`,
@@ -46,5 +46,5 @@ export function renderWizardCode({ locale, code, ttlSeconds }: WizardCodeParams)
     { kind: "paragraph", text: copy.next },
     { kind: "small", text: copy.ignore },
   ];
-  return composeEmail(locale, copy.subject, blocks, copy.brand);
+  return composeEmail(locale, copy.subject(code), blocks, copy.brand);
 }

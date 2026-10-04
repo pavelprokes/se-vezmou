@@ -9,7 +9,7 @@ let client: SESv2Client | undefined;
 export function createSesTransport(): EmailTransport {
   return {
     name: "ses",
-    async send({ to, subject, html, text, replyTo }) {
+    async send({ to, subject, html, text, replyTo, inline }) {
       if (!env.EMAIL_FROM) throw new Error("EMAIL_FROM není nastaven");
       client ??= new SESv2Client({ region: env.AWS_REGION });
       const result = await client.send(
@@ -21,6 +21,14 @@ export function createSesTransport(): EmailTransport {
           ReplyToAddresses: replyTo ? [replyTo] : undefined,
           Content: {
             Simple: {
+              Attachments: inline?.map((image) => ({
+                FileName: `${image.cid.split("@")[0]}.png`,
+                RawContent: image.content,
+                ContentType: image.contentType,
+                ContentDisposition: "INLINE" as const,
+                ContentId: image.cid,
+                ContentTransferEncoding: "BASE64" as const,
+              })),
               Subject: { Data: subject, Charset: "UTF-8" },
               Body: {
                 Html: { Data: html, Charset: "UTF-8" },

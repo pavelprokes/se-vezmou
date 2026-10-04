@@ -1,6 +1,9 @@
 import { htmlLang, intlLocale, type Locale } from "@/i18n/config";
 import { formatPause } from "@/i18n/duration";
+import { authorProjects, operator, projectUrl } from "@/config/operator";
 import { typo } from "@/i18n/typo";
+import { env } from "@/env";
+import { LOGO_PNG_BASE64 } from "../logo-data";
 
 export { formatPause };
 
@@ -10,8 +13,21 @@ export { formatPause };
  * Každý text (i dosazené hodnoty) prochází `typo()`.
  */
 
+/** Obrázek vložený do zprávy přes Content-ID (`<img src="cid:...">`), ne vzdálený odkaz. */
+export type InlineImage = { cid: string; contentType: string; content: Uint8Array };
+
+export const LOGO_CID = "logo@se-vezmou.cz";
+
+const logoImage: InlineImage = {
+  cid: LOGO_CID,
+  contentType: "image/png",
+  content: Buffer.from(LOGO_PNG_BASE64, "base64"),
+};
+
 export type RenderedEmail = {
   subject: string;
+  /** Vložené obrázky (logo); doprava je přibalí k zprávě. */
+  inline?: InlineImage[];
   /** Prostý text: kód a odkaz na samostatných řádcích, aby šly vložit ze schránky. */
   text: string;
   html: string;
@@ -33,6 +49,7 @@ const COLORS = {
   ink: "#1b2a23",
   pine: "#365c4e",
   muted: "#4b5a52",
+  line: "#d9e1d7",
 } as const;
 
 export type Block =
@@ -53,7 +70,8 @@ function htmlBlock(block: Block): string {
     case "paragraph":
       return `<p style="margin:0 0 16px;font-size:16px;line-height:1.5;color:${COLORS.ink}">${escapeHtml(block.text)}</p>`;
     case "code":
-      return `<p style="margin:0 0 16px;font-size:32px;line-height:1.3;letter-spacing:4px;font-weight:bold;color:${COLORS.ink}">${escapeHtml(block.text)}</p>`;
+      // Kód je živý text na jednom řádku (jde označit a zkopírovat), jen vizuálně jako karta.
+      return `<p style="margin:0 0 16px"><span style="display:inline-block;padding:14px 22px;background:#ffffff;border:1px solid ${COLORS.line};border-radius:12px;font-size:32px;line-height:1.2;letter-spacing:6px;font-weight:bold;color:${COLORS.ink}">${escapeHtml(block.text)}</span></p>`;
     case "link":
       // Text odkazu popisuje cíl; adresa je v textové verzi i viditelně pod tlačítkem.
       return `<p style="margin:0 0 16px;font-size:16px;line-height:1.5"><a href="${escapeHtml(block.href)}" style="display:inline-block;padding:12px 20px;background:${COLORS.pine};color:${COLORS.background};text-decoration:underline;border-radius:10px">${escapeHtml(block.text)}</a></p>`;
@@ -78,6 +96,44 @@ function textBlock(block: Block): string {
   }
 }
 
+const FOOTER = {
+  cs: {
+    contact: "Kontakt",
+    projects: "Další projekty autora",
+    site: "Svatební fotograf: ukázky práce a kontakt.",
+    photos: "Sdílená galerie pro hosty a finální galerie od fotografa.",
+  },
+  en: {
+    contact: "Contact",
+    projects: "More projects by the author",
+    site: "Wedding photographer: samples of work and contact.",
+    photos: "A shared gallery for guests and the photographer’s final gallery.",
+  },
+} as const;
+
+/** Patička každého e-mailu: kontakt a dva projekty autora s popisem a odkazem (UTM značky, bez sledování). */
+function footer(locale: Locale, brand: string) {
+  const copy = FOOTER[locale];
+  const projects = authorProjects.map(({ key, host }) => ({
+    host,
+    description: typo(copy[key], locale),
+    href: projectUrl(host, "email", "paticka-emailu"),
+  }));
+  const text = [
+    `${copy.contact}: ${operator.contact}`,
+    `${copy.projects}:`,
+    ...projects.map((p) => `- ${p.host}: ${p.description}\n  ${p.href}`),
+  ].join("\n");
+  const html = `<!--footer--><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;border-top:1px solid ${COLORS.line}">
+<tr><td style="padding-top:20px;font-family:${FONT};font-size:13px;line-height:1.5;color:${COLORS.muted}">
+<p style="margin:0 0 4px;color:${COLORS.ink};font-weight:bold">${escapeHtml(brand)}</p>
+<p style="margin:0 0 16px">${escapeHtml(copy.contact)}: <a href="mailto:${escapeHtml(operator.contact)}" style="color:${COLORS.pine}">${escapeHtml(operator.contact)}</a></p>
+<p style="margin:0 0 8px;font-size:11px;letter-spacing:1px;text-transform:uppercase">${escapeHtml(copy.projects)}</p>
+${projects.map((p) => `<p style="margin:0 0 10px"><a href="${escapeHtml(p.href)}" style="color:${COLORS.pine};font-weight:bold">${escapeHtml(p.host)}</a><br>${escapeHtml(p.description)}</p>`).join("\n")}
+</td></tr></table><!--/footer-->`;
+  return { text, html };
+}
+
 /** Složí e-mail z bloků: text i HTML vznikají ze stejných dat, takže se nemohou rozejít. */
 export function composeEmail(
   locale: Locale,
@@ -98,7 +154,9 @@ export function composeEmail(
   const typedSubject = typo(subject, locale);
   const typedBrand = typo(brand, locale);
 
-  const text = [...typed.map(textBlock), `-- \n${typedBrand}`].join("\n\n") + "\n";
+  const extra = footer(locale, typedBrand);
+  const siteUrl = (env.NEXT_PUBLIC_SITE_URL ?? "https://se-vezmou.cz").replace(/\/+$/, "");
+  const text = [...typed.map(textBlock), `-- \n${typedBrand}`, extra.text].join("\n\n") + "\n";
   const html = `<!doctype html>
 <html lang="${htmlLang[locale]}">
 <head>
@@ -109,15 +167,16 @@ export function composeEmail(
 </head>
 <body style="margin:0;padding:0;background:${COLORS.background};font-family:${FONT}">
 <div style="max-width:560px;margin:0 auto;padding:24px 16px">
+<!--logo--><p style="margin:0 0 20px"><a href="${siteUrl}/"><img src="cid:${LOGO_CID}" width="240" height="65" alt="se-vezmou.cz" style="display:block;border:0;width:240px;height:auto"></a></p><!--/logo-->
 <div style="padding:24px;background:${COLORS.card};border-radius:16px">
 ${typed.map(htmlBlock).join("\n")}
 </div>
-<p style="margin:16px 0 0;font-size:14px;line-height:1.5;color:${COLORS.muted}">${escapeHtml(typedBrand)}</p>
+${extra.html}
 </div>
 </body>
 </html>
 `;
-  return { subject: typedSubject, text, html };
+  return { subject: typedSubject, inline: [logoImage], text, html };
 }
 
 /** Kalendářní den okamžiku v zadaném pásmu ("12. července 2027"), s typografií. */

@@ -1,12 +1,7 @@
+import { authorProjects, projectUrl } from "@/config/operator";
 import type { Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 import { Section, SectionHeading } from "./section";
-
-/** Další projekty autora (patička i sekce „O autorovi“). */
-export const authorProjects = [
-  { key: "site", host: "svatebni-fotograf-cechy.cz" },
-  { key: "photos", host: "photos.svatebni-fotograf-cechy.cz" },
-] as const;
 
 /** O autorovi: svatební fotograf, ze kterého služba vzešla, a odkazy na jeho dva weby. */
 export async function AboutSection({ locale }: { locale: Locale }) {
@@ -23,7 +18,7 @@ export async function AboutSection({ locale }: { locale: Locale }) {
           <li key={key} className="border-hairline rounded-2xl border bg-white p-6">
             <h3 className="font-sans text-lg font-bold">
               <a
-                href={`https://${host}/`}
+                href={projectUrl(host, "web", "o-autorovi")}
                 className="min-h-target text-ink inline-flex items-center underline underline-offset-4"
               >
                 {t(`landing.about.${key}.name`)}

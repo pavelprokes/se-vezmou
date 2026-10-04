@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { htmlLang, locales } from "@/i18n/config";
+import { coreText } from "./test-helpers";
 import { renderAdminNotice, type AdminNoticeKind } from "./admin-notice";
 
 const KINDS: AdminNoticeKind[] = [
@@ -84,7 +85,7 @@ describe.each(locales)("oznámení o změně přístupu (%s)", (locale) => {
   it("e-mailová adresa dotčené osoby se do zpráv nikdy nevkládá", () => {
     for (const kind of KINDS) {
       const email = renderAdminNotice({ locale, kind, at: AT, site: "klara-a-matej.se-vezmou.cz" });
-      expect(email.text).not.toContain("@");
+      expect(coreText(email.text)).not.toContain("@");
     }
   });
 });

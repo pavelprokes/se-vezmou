@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { locales, type Locale } from "@/i18n/config";
+import { coreHtml, coreText, expectLogoAndFooter } from "./test-helpers";
 import { NBSP, findTypoViolations, typo } from "@/i18n/typo";
 import {
   renderDeletionNotice,
@@ -70,9 +71,11 @@ describe.each(locales)("e-maily o retenci a mazání (%s)", (locale) => {
   it.each(Object.entries(emails))(
     "%s: bez sledování a cizích zdrojů, jediný odkaz je přihlášení",
     (_name, email) => {
-      expect(email.html).not.toMatch(/<img|<script|<link|<iframe|url\(|src=/i);
-      const hrefs = [...email.html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+      const core = coreHtml(email.html);
+      expect(core).not.toMatch(/<img|<script|<link|<iframe|url\(|src=/i);
+      const hrefs = [...core.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
       for (const href of hrefs) expect(href).toBe(LOGIN);
+      expectLogoAndFooter(email, expect);
     },
   );
 
@@ -126,13 +129,15 @@ describe.each(locales)("e-maily o retenci a mazání (%s)", (locale) => {
 
   it("zprávy neobsahují osobní údaje hostů ani jména (jen datum, adresu webu a odkaz)", () => {
     for (const email of Object.values(emails)) {
-      expect(`${email.subject}${email.text}${email.html}`).not.toMatch(/Novák|Klára|Matěj|@/);
+      expect(`${email.subject}${coreText(email.text)}${coreHtml(email.html)}`).not.toMatch(
+        /Novák|Klára|Matěj|@/,
+      );
     }
   });
 
   it("zpráva o smazání webu nemá odkaz na přihlášení a slibuje, že se adresa nepřidělí", () => {
     const purge = emails["deleted:site_purge"];
-    expect(purge.html).not.toMatch(/<a /);
+    expect(coreHtml(purge.html)).not.toMatch(/<a /);
     expect(purge.text).not.toContain(LOGIN);
     expect(purge.text).toMatch(
       locale === "cs" ? /nikomu dalšímu nepřidělí/ : /not be given to anyone else/,

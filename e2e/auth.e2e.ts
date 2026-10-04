@@ -46,7 +46,7 @@ test.describe("přihlášení kódem z e-mailu", () => {
 
     await requestCode(page, wedding.adminEmail);
     const mail = await waitForMail(wedding.adminEmail);
-    expect(mail.subject).toBe("Váš přihlašovací kód do správy svatby");
+    expect(mail.subject).toMatch(/^\d{6} je váš přihlašovací kód do Se vezmou$/);
     const code = codeOf(mail);
 
     // kód vložený i s mezerou (jak ho uživatel opíše nebo vloží ze schránky)
@@ -586,7 +586,7 @@ test.describe("angličtina", () => {
     await page.waitForURL(app("/en/prihlaseni/kod"));
 
     const mail = await waitForMail(wedding.adminEmail);
-    expect(mail.subject).toBe("Your sign-in code for managing your wedding");
+    expect(mail.subject).toMatch(/^\d{6} is your sign-in code for Se vezmou$/);
     expect(mail.html).toContain('lang="en-GB"');
     expect(mail.html).toContain("/en/prihlaseni/odkaz?t=");
     await page.getByLabel("Six-digit code").fill(codeOf(mail));

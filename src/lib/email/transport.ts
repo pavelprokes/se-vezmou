@@ -23,6 +23,8 @@ export type EmailMessage = {
   html: string;
   text: string;
   replyTo?: string;
+  /** Obrázky vložené přes Content-ID (`cid:`). */
+  inline?: { cid: string; contentType: string; content: Uint8Array }[];
 };
 
 export type SendResult = { providerMessageId?: string };
@@ -62,7 +64,15 @@ const outboxTransport: EmailTransport = {
     // Název řadí soubory podle času odeslání; test čte nejnovější zprávu pro příjemce.
     await writeFile(
       join(dir, `${Date.now()}-${id}.json`),
-      JSON.stringify({ ...message, id, sentAt: new Date().toISOString() }),
+      JSON.stringify({
+        ...message,
+        inline: message.inline?.map((i) => ({
+          ...i,
+          content: Buffer.from(i.content).toString("base64"),
+        })),
+        id,
+        sentAt: new Date().toISOString(),
+      }),
     );
     return { providerMessageId: id };
   },

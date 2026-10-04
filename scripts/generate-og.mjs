@@ -4,13 +4,17 @@
  * Používá `sharp` (nainstaluje ho Next.js) a systémová písma (serif, sans-serif), takže výsledek
  * se kontroluje okem a PNG se commitují. Barvy jsou tokeny značky z `src/app/globals.css`.
  */
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const out = join(root, "public/og");
+// Logo A (docs/brand): tělo SVG bez obalu, text je převedený na křivky.
+const logo = readFileSync(join(root, "docs/brand/logo-a-prsteny.svg"), "utf8")
+  .replace(/^<svg[^>]*>\n?/, "")
+  .replace(/<\/svg>\s*$/, "");
 mkdirSync(out, { recursive: true });
 
 const c = {
@@ -33,7 +37,7 @@ const texts = {
     line3: "na jednom místě.",
     invite: "ZVEME VÁS",
     rsvp: "POTVRDIT ÚČAST",
-    dateplace: "[DD. MM. RRRR] · [místo]",
+    dateplace: "12. června 2027 · Praha",
   },
   en: {
     size: 50,
@@ -44,14 +48,14 @@ const texts = {
     line3: "in one place.",
     invite: "YOU ARE INVITED",
     rsvp: "CONFIRM ATTENDANCE",
-    dateplace: "[DD MM YYYY] · [venue]",
+    dateplace: "12 June 2027 · Prague",
   },
 };
 
 function svg(t) {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <rect width="1200" height="630" fill="${c.parchment}"/>
-  <text x="72" y="92" font-family="sans-serif" font-size="34" font-weight="800" fill="${c.ink}">se-vezmou<tspan fill="${c.cinnamonDeep}">.cz</tspan></text>
+  <g transform="translate(60 28) scale(0.5)">${logo}</g>
   <text x="72" y="190" font-family="sans-serif" font-size="${t.eyebrowSize}" font-weight="700" letter-spacing="3" fill="${c.cinnamonDeep}">${t.eyebrow}</text>
   <text x="72" y="280" font-family="serif" font-size="${t.size}" fill="${c.ink}">${t.line1}</text>
   <text x="72" y="352" font-family="serif" font-size="${t.size}" fill="${c.ink}">${t.line2}</text>

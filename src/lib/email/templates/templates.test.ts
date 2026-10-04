@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { locales, type Locale } from "@/i18n/config";
+import { coreHtml, coreText, expectLogoAndFooter } from "./test-helpers";
 import { NBSP, findTypoViolations, typo } from "@/i18n/typo";
 import {
   renderBackupLoginNotice,
@@ -114,10 +115,13 @@ describe.each(locales)("e-mailové šablony (%s)", (locale) => {
     "%s: bez rovných uvozovek, sledování a cizích zdrojů",
     (_name, email) => {
       expect(email.text).not.toMatch(/["']/);
-      expect(email.html).not.toMatch(/<img|<script|<link|<iframe|url\(|src=/i);
-      // jediné odkazy vedou na naši adresu
-      const hrefs = [...email.html.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+      // Tělo zprávy: bez obrázků, skriptů a cizích zdrojů; jediné odkazy vedou na naši adresu.
+      // Logo (cid) a patička (kontakt, projekty autora s UTM) se ověřují zvlášť.
+      const core = coreHtml(email.html);
+      expect(core).not.toMatch(/<img|<script|<link|<iframe|url\(|src=/i);
+      const hrefs = [...core.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
       for (const href of hrefs) expect(href).toBe(LINK);
+      expectLogoAndFooter(email, expect);
     },
   );
 
@@ -140,7 +144,7 @@ describe.each(locales)("e-mailové šablony (%s)", (locale) => {
 
   it("potvrzení hosta mimo seznam neslibuje úpravu a nemá odkaz na web", () => {
     const { text, html } = emails.rsvpConfirmationUnlisted;
-    expect(html).not.toMatch(/<a /);
+    expect(coreHtml(html)).not.toMatch(/<a /);
     expect(text).not.toContain(LINK);
     expect(text).toMatch(locale === "cs" ? /nejde na webu změnit/ : /can no longer be changed/);
   });
@@ -155,8 +159,8 @@ describe.each(locales)("e-mailové šablony (%s)", (locale) => {
     const { text, html } = emails.wizardCode;
     expect(text.split("\n")).toContain("731905");
     expect(html).toContain(">731905<");
-    expect(html).not.toContain("<a ");
-    expect(text).not.toMatch(/https?:/);
+    expect(coreHtml(html)).not.toContain("<a ");
+    expect(coreText(text)).not.toMatch(/https?:/);
   });
 
   it("odkaz je v textové verzi na vlastním řádku a v HTML jako odkaz s popisem", () => {

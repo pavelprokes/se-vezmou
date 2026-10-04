@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { coreText } from "@/lib/email/templates/test-helpers";
 import { NBSP } from "@/i18n/typo";
 import { DbError } from "@/lib/db/transport";
 import { createMemoryStorage, type MemoryStorage } from "@/lib/storage/memory";
@@ -356,7 +357,7 @@ describe("úloha retence", () => {
       to: "jan@example.test",
     });
     expect(sent.email.subject).toBe("Svatební web jsme trvale smazali");
-    expect(sent.email.text).not.toContain("https://");
+    expect(coreText(sent.email.text)).not.toContain("https://");
   });
 
   it("selhání mazání souborů web NEoznačí za vymazaný: řádky zůstanou a další web pokračuje", async () => {

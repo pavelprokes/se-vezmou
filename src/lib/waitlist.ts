@@ -14,7 +14,7 @@ export { EMAIL_MAX_LENGTH, HONEYPOT_FIELD };
  * Verze textu souhlasu, který se uživateli u formuláře zobrazil (`waitlist.consent_text_version`).
  * Při každé změně textu souhlasu v `landing.json` ji zvyšte, aby šlo doložit, s čím pár souhlasil.
  */
-export const WAITLIST_CONSENT_VERSION = "2026-10-v1";
+export const WAITLIST_CONSENT_VERSION = "2026-10-v2";
 
 export type WaitlistFieldError = "required" | "invalid";
 

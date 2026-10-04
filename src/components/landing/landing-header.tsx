@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/brand-logo";
 import { buttonVariants } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import type { Locale } from "@/i18n/config";
@@ -36,7 +37,7 @@ export async function LandingHeader({ locale, route, query }: LandingHeaderProps
           aria-label={t("landing.nav.home")}
           className="min-h-target text-ink inline-flex items-center font-sans text-xl font-extrabold tracking-tight"
         >
-          se-vezmou<span className="text-cinnamon-deep">.cz</span>
+          <BrandLogo />
         </a>
         <HeaderMenu buttonLabel={t("landing.nav.menu")}>
           <nav aria-label={t("landing.nav.label")} className="md:ml-auto">

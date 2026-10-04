@@ -12,10 +12,10 @@ const catalogs = Object.fromEntries(
 ) as Record<(typeof locales)[number], Record<string, string | Record<string, string>>>;
 
 describe("config/pricing", () => {
-  it("obě karty ceny stojí 0 Kč po dobu zaváděcího provozu", () => {
+  it("jediná karta ceny stojí 0 Kč", () => {
     expect(pricing.currency).toBe("CZK");
     expect(pricing.plans.map((plan) => plan.id)).toEqual([...PLAN_IDS]);
-    expect(pricing.plans).toHaveLength(2);
+    expect(pricing.plans).toHaveLength(1);
     for (const plan of pricing.plans) expect(plan.price).toBe(0);
   });
 
@@ -31,7 +31,7 @@ describe("config/pricing", () => {
   it("lowestPrice bere nejnižší cenu z karet", () => {
     expect(lowestPrice()).toBe(0);
     expect(
-      lowestPrice({ ...pricing, plans: [{ id: "concept", price: 99, highlighted: false }] }),
+      lowestPrice({ ...pricing, plans: [{ id: "published", price: 99, highlighted: false }] }),
     ).toBe(99);
   });
 });
@@ -58,8 +58,8 @@ describe("texty ceny", () => {
     }
   });
 
-  it("nabídka je vždy vázaná na zaváděcí provoz", () => {
-    expect(catalogs.cs["landing.pricing.title"]).toContain("po dobu zaváděcího provozu");
-    expect(catalogs.en["landing.pricing.title"]).toContain("during the launch period");
+  it("nadpis ceny uvádí 0 Kč", () => {
+    expect(catalogs.cs["landing.pricing.title"]).toContain("0 Kč");
+    expect(catalogs.en["landing.pricing.title"]).toContain("0 CZK");
   });
 });

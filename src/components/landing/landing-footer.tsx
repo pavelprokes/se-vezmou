@@ -1,5 +1,6 @@
+import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
-import { operator } from "@/config/operator";
+import { authorProjects, operator, projectUrl } from "@/config/operator";
 import type { Locale } from "@/i18n/config";
 import { localizedPath, localizedPaths, type PageRef } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
@@ -32,11 +33,9 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
 
   return (
     <footer className="bg-parchment text-ink">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-8 md:grid-cols-[1.2fr_1fr_1fr_auto]">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-8 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1.2fr_auto]">
         <div>
-          <p className="font-sans text-xl font-extrabold tracking-tight">
-            se-vezmou<span className="text-cinnamon-deep">.cz</span>
-          </p>
+          <BrandLogo className="text-xl" />
           <p className="text-muted mt-3 max-w-xs">
             {t("landing.footer.about", { operator: operator.nameAndId, address: operator.address })}
           </p>
@@ -66,12 +65,23 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
             ))}
           </ul>
         </nav>
+        <nav aria-label={t("landing.footer.projects")}>
+          <ul className="flex flex-col">
+            {authorProjects.map(({ host }) => (
+              <li key={host}>
+                <a href={projectUrl(host, "web", "paticka")} className={linkClass}>
+                  {host}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
         <LanguageSwitcher
           current={locale}
           hrefs={typeof route === "string" ? localizedPaths(route) : route}
           label={t("landing.footer.language")}
           short
-          className="md:justify-self-end"
+          className="lg:justify-self-end"
         />
       </div>
     </footer>

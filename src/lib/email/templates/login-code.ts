@@ -14,7 +14,7 @@ export type LoginCodeParams = {
 const COPY = {
   cs: {
     brand: "Se vezmou",
-    subject: "Váš přihlašovací kód do správy svatby",
+    subject: (code: string) => `${code} je váš přihlašovací kód do Se vezmou`,
     heading: "Přihlášení do správy svatby",
     intro: "Váš přihlašovací kód:",
     validity: (ttl: string) => `Kód platí ${ttl} a jde použít jen jednou.`,
@@ -25,7 +25,7 @@ const COPY = {
   },
   en: {
     brand: "Se vezmou",
-    subject: "Your sign-in code for managing your wedding",
+    subject: (code: string) => `${code} is your sign-in code for Se vezmou`,
     heading: "Sign in to manage your wedding",
     intro: "Your sign-in code:",
     validity: (ttl: string) => `The code is valid for ${ttl} and can be used only once.`,
@@ -52,5 +52,5 @@ export function renderLoginCode({
     { kind: "link", text: copy.linkText, href: link },
     { kind: "small", text: copy.ignore },
   ];
-  return composeEmail(locale, copy.subject, blocks, copy.brand);
+  return composeEmail(locale, copy.subject(code), blocks, copy.brand);
 }

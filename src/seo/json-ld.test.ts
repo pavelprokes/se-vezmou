@@ -115,7 +115,7 @@ describe("SoftwareApplication", () => {
   it("cena sleduje změnu konfigurace", () => {
     const node = softwareApplicationLd({
       ...input,
-      pricing: { ...pricing, plans: [{ id: "concept", price: 149, highlighted: false }] },
+      pricing: { ...pricing, plans: [{ id: "published", price: 149, highlighted: false }] },
     });
     expect(node.offers).toMatchObject({ price: "149" });
   });

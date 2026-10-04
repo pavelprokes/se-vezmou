@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { AboutSection } from "@/components/landing/about-section";
+import { AfterSection } from "@/components/landing/after-section";
 import { CtaSection } from "@/components/landing/cta-section";
 import { FaqSection } from "@/components/landing/faq-section";
 import { FeaturesSection } from "@/components/landing/features-section";
@@ -6,9 +8,9 @@ import { Hero } from "@/components/landing/hero";
 import { IntroSection } from "@/components/landing/intro-section";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingHeader } from "@/components/landing/landing-header";
+import { NewsSection } from "@/components/landing/news-section";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { ProblemSection } from "@/components/landing/problem-section";
-import { LaunchSection } from "@/components/landing/launch-section";
 import { StepsSection } from "@/components/landing/steps-section";
 import { HomeStructuredData } from "@/components/landing/structured-data";
 import { TemplatesSection } from "@/components/landing/templates-section";
@@ -36,9 +38,9 @@ export async function generateMetadata({
 }
 
 /**
- * Úvodní stránka (FR-LP-1 až FR-LP-6): dvanáct sekcí v pevném pořadí, celá vykreslená na serveru.
+ * Úvodní stránka (FR-LP-1 až FR-LP-6): čtrnáct sekcí v pevném pořadí, celá vykreslená na serveru.
  * Pořadí: hero, co je služba, problém a řešení, jak se web sestavuje, šablony, co web umí,
- * soukromí a přístupnost, cena, reference (s čekací listinou), FAQ, závěrečná výzva, patička.
+ * po svatbě, soukromí a přístupnost, cena, o autorovi, novinky a kontakt, FAQ, závěrečná výzva, patička.
  */
 export default async function MarketingHome({ params }: PageProps<"/h/marketing/[locale]">) {
   const { locale } = await params;
@@ -55,9 +57,11 @@ export default async function MarketingHome({ params }: PageProps<"/h/marketing/
         <StepsSection locale={locale} />
         <TemplatesSection locale={locale} />
         <FeaturesSection locale={locale} />
+        <AfterSection locale={locale} />
         <TrustSection locale={locale} />
         <PricingSection locale={locale} />
-        <LaunchSection locale={locale} />
+        <AboutSection locale={locale} />
+        <NewsSection locale={locale} />
         <FaqSection locale={locale} />
         <CtaSection locale={locale} />
       </main>

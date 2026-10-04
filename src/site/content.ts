@@ -68,6 +68,8 @@ async function getSiteStateUncached(
     quick_notice?: unknown;
     locked?: unknown;
   } | null;
+  // totožnost, se kterou se web čte; stejná se použije i pro seznam živých fotografií
+  let reader: TenantIdentity = as ?? visitorIdentity(resolved.weddingId);
   let site = (
     as
       ? await tenantRpc<Raw>(as, "get_public_site", {}, "scalar", READ_ONLY)
@@ -84,7 +86,8 @@ async function getSiteStateUncached(
       }
       return { kind: "locked", gate: gate.data, weddingId: resolved.weddingId };
     }
-    site = await tenantRpc<Raw>(guestIdentity(access), "get_public_site", {}, "scalar", READ_ONLY);
+    reader = guestIdentity(access);
+    site = await tenantRpc<Raw>(reader, "get_public_site", {}, "scalar", READ_ONLY);
   }
   if (!site || site.mode !== "published" || typeof site.content !== "object" || !site.content) {
     return null;
@@ -100,7 +103,7 @@ async function getSiteStateUncached(
     console.error("[site] zveřejněný snímek neodpovídá schématu");
     return null;
   }
-  return { kind: "published", content: await withLiveMedia(parsed.data, resolved.weddingId) };
+  return { kind: "published", content: await withLiveMedia(parsed.data, reader) };
 }
 
 /**
@@ -127,12 +130,13 @@ export async function getPublicContent(
  * Smazaná fotografie zmizí z webu hned, i když zveřejněný snímek na ni ještě odkazuje: média, která už v databázi
  * nejsou hotová, se vyřadí (`public_media_ids`). Selhání dotazu snímek nemění (obrázek by se nedoručil, 404).
  */
-async function withLiveMedia(content: PublicContent, weddingId: string): Promise<PublicContent> {
+async function withLiveMedia(
+  content: PublicContent,
+  reader: TenantIdentity,
+): Promise<PublicContent> {
   if (content.media.every((item) => item.widths.length === 0)) return content;
   try {
-    const alive = new Set(
-      (await publicMediaIds(visitorIdentity(weddingId))).map((id) => id.toLowerCase()),
-    );
+    const alive = new Set((await publicMediaIds(reader)).map((id) => id.toLowerCase()));
     return { ...content, media: liveMedia(content.media, alive) };
   } catch {
     return content;

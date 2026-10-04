@@ -86,3 +86,51 @@ revoke all on function se_vezmou.admin_site_lock_get(), se_vezmou.admin_site_loc
   from public, anon, service_role;
 grant execute on function se_vezmou.admin_site_lock_get(), se_vezmou.admin_site_lock_set(boolean)
   to authenticated;
+
+-- ---------------------------------------------------------------------------
+-- Fotografie zamčeného webu: návštěvník bez relace hosta nedostane ani seznam hotových médií, ani jejich
+-- varianty (jinak by šly fotografie stáhnout podle identifikátorů bez PINu). Stejný postup jako u
+-- get_public_site: původní těla beze změny pod interními jmény, obal kontroluje zámek.
+-- ---------------------------------------------------------------------------
+create function se_vezmou.site_locked_for_visitor() returns boolean
+  language sql stable security definer set search_path = ''
+  as $$
+  select se_vezmou.wedding_role() is not distinct from 'visitor'
+     and exists (select 1 from se_vezmou.weddings w
+                  where w.id = se_vezmou.wedding_id() and w.site_locked and w.guest_pin_enabled)
+$$;
+
+revoke all on function se_vezmou.site_locked_for_visitor() from public, anon, authenticated, service_role;
+
+alter function se_vezmou.get_public_media(uuid, integer, text) rename to get_public_media_unlocked;
+alter function se_vezmou.public_media_ids() rename to public_media_ids_unlocked;
+revoke all on function se_vezmou.get_public_media_unlocked(uuid, integer, text), se_vezmou.public_media_ids_unlocked()
+  from public, anon, authenticated, service_role;
+
+create function se_vezmou.get_public_media(p_media_id uuid, p_width integer, p_format text)
+  returns table (storage_key text, bytes bigint)
+  language plpgsql stable security definer set search_path = ''
+  as $$
+begin
+  if se_vezmou.site_locked_for_visitor() then
+    return;
+  end if;
+  return query select * from se_vezmou.get_public_media_unlocked(p_media_id, p_width, p_format);
+end
+$$;
+
+create function se_vezmou.public_media_ids() returns uuid[]
+  language plpgsql stable security definer set search_path = ''
+  as $$
+begin
+  if se_vezmou.site_locked_for_visitor() then
+    return '{}';
+  end if;
+  return se_vezmou.public_media_ids_unlocked();
+end
+$$;
+
+revoke all on function se_vezmou.get_public_media(uuid, integer, text), se_vezmou.public_media_ids()
+  from public, anon, service_role;
+grant execute on function se_vezmou.get_public_media(uuid, integer, text), se_vezmou.public_media_ids()
+  to authenticated;

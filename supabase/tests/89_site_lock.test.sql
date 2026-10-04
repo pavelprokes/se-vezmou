@@ -40,6 +40,7 @@ begin
 
   perform tap.become('authenticated', tap.wa(), 'visitor');
   v_locked := se_vezmou.get_public_site();
+  perform tap.ok(cardinality(se_vezmou.public_media_ids()) = 0, 'zamčeno: seznam médií je prázdný');
   perform tap.reset();
   perform tap.ok(v_locked ->> 'mode' = 'locked', 'zamčeno: návštěvník dostane režim locked');
   perform tap.ok(not (v_locked ? 'content') and not (v_locked ? 'sensitive'), 'zamčeno: žádný obsah ani citlivá část');
@@ -47,6 +48,12 @@ begin
                  and v_locked -> 'locked' -> 'partners' = coalesce(v_open -> 'content' -> 'partners', 'null'::jsonb)
                  and v_locked -> 'locked' -> 'locales' = coalesce(v_open -> 'content' -> 'locales', 'null'::jsonb),
     'zamčeno: jména a jazyky pro bránu');
+
+  perform tap.ok(
+    not has_function_privilege('authenticated', 'se_vezmou.get_public_media_unlocked(uuid, integer, text)', 'execute')
+    and not has_function_privilege('authenticated', 'se_vezmou.public_media_ids_unlocked()', 'execute')
+    and has_function_privilege('authenticated', 'se_vezmou.get_public_media(uuid, integer, text)', 'execute'),
+    'původní funkce médií jsou interní, obaly mají stejná práva');
 
   perform tap.become('authenticated', tap.wa(), 'guest_pin', tap.u('guest-session'));
   perform tap.ok(se_vezmou.get_public_site() ->> 'mode' = 'published', 'host po PINu vidí web');

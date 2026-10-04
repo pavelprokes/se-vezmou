@@ -28,7 +28,7 @@ declare
 begin
   perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
   v_h1 := se_vezmou.admin_household_save(null, jsonb_build_object('label', 'Dvořákovi',
-    'tags', jsonb_build_array('  Rodina   nevěsty ', 'Kolegové', 'kolegové', ''),
+    'tags', jsonb_build_array('  Rodina   nevěsty ', 'Kolegové', 'Kolegové ', ''),
     'guests', jsonb_build_array(jsonb_build_object('display_name', 'Karel Dvořák', 'invited_event_ids', '[]'::jsonb))));
   v_h2 := se_vezmou.admin_household_save(null, jsonb_build_object('label', 'Malí',
     'guests', jsonb_build_array(jsonb_build_object('display_name', 'Petr Malý', 'invited_event_ids', '[]'::jsonb))));
@@ -36,6 +36,8 @@ begin
 
   perform tap.ok((select tags from se_vezmou.households where id = v_h1) = array['Rodina nevěsty', 'Kolegové'],
     'štítky: ořez, sloučení mezer, bez duplicit a prázdných');
+  -- svatba B má domácnost se stejnou skupinou: hromadné pozvání A na ni nesmí sáhnout
+  insert into se_vezmou.households (wedding_id, label, tags) values (tap.wb(), 'Cizí', array['Kolegové']);
   perform tap.ok((select tags from se_vezmou.households where id = v_h2) = '{}', 'bez štítků: prázdné pole');
 
   -- úprava bez klíče tags štítky nemění, s prázdným polem je smaže
@@ -55,6 +57,8 @@ begin
     'tags', (select jsonb_agg('t' || n) from generate_series(1, 11) n),
     'guests', jsonb_build_array(jsonb_build_object('display_name', 'Host')))), '22023', 'víc než 10 štítků se odmítne');
   perform tap.throws(format('select se_vezmou.admin_household_save(null, %L::jsonb)', jsonb_build_object('label', 'x',
+    'tags', jsonb_build_array('Rodina, přátelé'), 'guests', jsonb_build_array(jsonb_build_object('display_name', 'Host')))), '22023', 'čárka v názvu skupiny se odmítne');
+  perform tap.throws(format('select se_vezmou.admin_household_save(null, %L::jsonb)', jsonb_build_object('label', 'x',
     'tags', jsonb_build_array(1), 'guests', jsonb_build_array(jsonb_build_object('display_name', 'Host')))), '22023', 'štítek musí být text');
   perform tap.reset();
   perform tap.ok((select label from se_vezmou.households where id = v_h1) = 'Dvořákovi', 'odmítnutý zápis nic nezměnil');
@@ -71,9 +75,10 @@ begin
   perform tap.ok((select p -> 'tags' from jsonb_array_elements(v_export -> 'people') p where p ->> 'name' = 'Karel Dvořák')
                  = '["Rodina nevěsty", "Kolegové"]'::jsonb, 'admin_export_guests: štítky u osoby');
 
-  -- hromadné pozvání jen skupiny (bez ohledu na velikost písmen)
+  -- hromadné pozvání jen skupiny (přesná shoda názvu)
   perform tap.become('authenticated', tap.wa(), 'admin', tap.u('A:admin'));
-  v_rows := se_vezmou.admin_invitations_bulk_tag(tap.u('A:event2'), true, 'KOLEGOVÉ');
+  perform tap.eq(se_vezmou.admin_invitations_bulk_tag(tap.u('A:event2'), true, 'KOLEGOVÉ'), 0, 'bulk_tag: jiný zápis skupiny nikoho nepozve');
+  v_rows := se_vezmou.admin_invitations_bulk_tag(tap.u('A:event2'), true, ' Kolegové ');
   perform tap.reset();
   perform tap.eq(v_rows, 1, 'bulk_tag: pozván jen host skupiny');
   perform tap.ok(exists (select 1 from se_vezmou.invitations where guest_id = v_g1 and event_id = tap.u('A:event2'))

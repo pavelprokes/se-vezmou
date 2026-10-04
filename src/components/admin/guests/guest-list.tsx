@@ -3,7 +3,7 @@
 import { Baby, CircleCheck, CircleHelp, CircleX, Pencil, UserPlus } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import type { BulkInviteAction } from "@/admin/guests/action-types";
-import { guestStats, hasTag, weddingTags } from "@/admin/guests/tags";
+import { guestStats, weddingTags } from "@/admin/guests/tags";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -84,7 +84,7 @@ export function GuestList({
           ? true
           : group === NO_GROUP
             ? household.tags.length === 0
-            : hasTag(household, group),
+            : household.tags.includes(group),
       ),
     [data.households, group],
   );
@@ -302,7 +302,8 @@ export function GuestList({
         })}
       </ul>
 
-      {data.events.length > 0 && data.households.length > 0 ? (
+      {/* „Bez skupiny“ hromadné pozvání skrývá: šlo by všem, ne jen zobrazeným domácnostem */}
+      {data.events.length > 0 && data.households.length > 0 && group !== NO_GROUP ? (
         <Card as="section" aria-labelledby={`${id}-bulk`}>
           <h2 id={`${id}-bulk`} className="text-2xl font-medium">
             {t("admin.guests.list.bulkTitle")}

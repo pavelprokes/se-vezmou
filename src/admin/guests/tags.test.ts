@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { guestStats, hasTag, splitTags, tagsValid, weddingTags } from "./tags";
+import { canonicalTags, guestStats, splitTags, tagsValid, weddingTags } from "./tags";
 
 const guest = (attendance: { event_id: string; attending: boolean }[]) => ({
   id: "g",
@@ -35,11 +35,17 @@ describe("skupiny hostů", () => {
     expect(tagsValid(Array.from({ length: 11 }, (_, i) => `t${i}`))).toBe(false);
   });
 
-  it("seznam skupin svatby abecedně a bez ohledu na velikost písmen", () => {
+  it("seznam skupin svatby abecedně, bez opakování", () => {
     expect(
-      weddingTags([{ tags: ["Kolegové", "Rodina"] }, { tags: ["kolegové", "Čtenáři"] }]),
+      weddingTags([{ tags: ["Kolegové", "Rodina"] }, { tags: ["Kolegové", "Čtenáři"] }]),
     ).toEqual(["Čtenáři", "Kolegové", "Rodina"]);
-    expect(hasTag({ tags: ["Kolegové"] }, "KOLEGOVÉ")).toBe(true);
+  });
+
+  it("napsaná skupina převezme zápis už používané", () => {
+    expect(canonicalTags(["KOLEGOVÉ", "Noví"], ["Kolegové", "Rodina"])).toEqual([
+      "Kolegové",
+      "Noví",
+    ]);
   });
 
   it("počty hostů podle odpovědi", () => {

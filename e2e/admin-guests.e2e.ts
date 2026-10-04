@@ -172,6 +172,7 @@ test.describe("skupiny hostů", () => {
       "Rodina nevěsty, Kolegové",
     );
     await expect(page.getByRole("button", { name: "Přidat skupinu Kolegové" })).toHaveCount(0);
+    await expect(page.getByLabel("Skupiny", { exact: true })).toBeFocused();
     await page.getByLabel("Jméno a příjmení").fill("Karel Dvořák");
     await page.getByRole("button", { name: "Uložit domácnost" }).click();
     await waitSaved(page);
@@ -204,6 +205,8 @@ test.describe("skupiny hostů", () => {
     await page.getByLabel("Skupina", { exact: true }).selectOption({ label: "Bez skupiny" });
     await expect(page.getByText("Zobrazeno domácností: 1")).toBeVisible();
     await expect(page.getByRole("heading", { level: 2, name: "Černí" })).toBeVisible();
+    // hromadné pozvání by šlo všem, ne jen zobrazeným: v tomto výběru se nenabízí
+    await expect(page.getByRole("heading", { name: "Pozvání na události" })).toHaveCount(0);
 
     // pozvání jen skupiny na hostinu (program podle skupiny), ostatní beze změny
     await page.getByLabel("Skupina", { exact: true }).selectOption("Kolegové");

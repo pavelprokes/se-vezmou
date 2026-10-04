@@ -3,8 +3,9 @@ import { GUEST_LIMITS } from "./types";
 
 /**
  * Skupiny hostů (štítky domácností): rozdělení textu z pole na skupiny, seznam skupin svatby a počty
- * pro filtr. Skupiny vidí jen správce. Porovnání bez ohledu na velikost písmen, jako v SQL
- * (`tags_from_payload`, `admin_invitations_bulk_tag`).
+ * pro filtr. Skupiny vidí jen správce. Skupina se porovnává přesně, jako v SQL (`admin_invitations_bulk_tag`;
+ * `lower()` v databázi závisí na jejím nastavení). Jednotný zápis drží editor: napsaná skupina, která se od
+ * už používané liší jen velikostí písmen, převezme její zápis (`canonicalTags`).
  */
 
 type Household = GuestList["households"][number];
@@ -21,6 +22,11 @@ export function splitTags(text: string): string[] {
   return result;
 }
 
+/** Skupiny se zápisem už používaných skupin svatby (liší-li se jen velikostí písmen). */
+export function canonicalTags(tags: string[], known: string[]): string[] {
+  return tags.map((tag) => known.find((k) => key(k) === key(tag)) ?? tag);
+}
+
 /** Je pole skupin platné pro uložení (počet a délka jako v databázi)? */
 export function tagsValid(tags: string[]): boolean {
   return (
@@ -29,17 +35,11 @@ export function tagsValid(tags: string[]): boolean {
   );
 }
 
-export function hasTag(household: Pick<Household, "tags">, tag: string): boolean {
-  return household.tags.some((t) => key(t) === key(tag));
-}
-
-/** Všechny skupiny svatby abecedně, každá jednou (první zápis vyhrává). */
+/** Všechny skupiny svatby abecedně, každá jednou. */
 export function weddingTags(households: Pick<Household, "tags">[]): string[] {
-  const seen = new Map<string, string>();
-  for (const household of households) {
-    for (const tag of household.tags) if (!seen.has(key(tag))) seen.set(key(tag), tag);
-  }
-  return [...seen.values()].sort((a, b) => a.localeCompare(b, "cs"));
+  return [...new Set(households.flatMap((household) => household.tags))].sort((a, b) =>
+    a.localeCompare(b, "cs"),
+  );
 }
 
 export type GuestStats = {

@@ -3,7 +3,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { DeleteHouseholdAction, SaveHouseholdAction } from "@/admin/guests/action-types";
-import { splitTags, tagsValid } from "@/admin/guests/tags";
+import { canonicalTags, splitTags, tagsValid } from "@/admin/guests/tags";
 import { GUEST_LIMITS } from "@/admin/guests/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -137,7 +137,7 @@ export function HouseholdEditor({
       if (problem.name || problem.age) found[row.key] = problem;
     }
     setProblems(found);
-    const tags = splitTags(tagsText);
+    const tags = canonicalTags(splitTags(tagsText), knownTags);
     setTagsProblem(!tagsValid(tags));
     if (!tagsValid(tags)) {
       document.getElementById(`${idPrefix}-tags`)?.focus();
@@ -239,7 +239,11 @@ export function HouseholdEditor({
                     type="button"
                     variant="text"
                     aria-label={t("admin.guests.editor.tagsAdd", { tag })}
-                    onClick={() => setTagsText(splitTags(`${tagsText},${tag}`).join(", "))}
+                    onClick={() => {
+                      setTagsText(splitTags(`${tagsText},${tag}`).join(", "));
+                      // tlačítko po přidání zmizí: fokus zpět do pole, ať se klávesnice neztratí
+                      document.getElementById(`${idPrefix}-tags`)?.focus();
+                    }}
                   >
                     <Icon icon={Plus} size={16} />
                     {tag}

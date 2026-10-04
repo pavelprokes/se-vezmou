@@ -6,6 +6,7 @@ import {
   adminGuestsImport,
   adminHouseholdDelete,
   adminHouseholdSave,
+  adminInvitationsBulk,
   adminInvitationsBulkTag,
   adminRsvpNotifyGet,
   adminRsvpNotifySet,
@@ -126,7 +127,11 @@ export async function bulkInvite(
   try {
     return {
       status: "ok",
-      rows: await adminInvitationsBulkTag(session, event.data, invited, group.data),
+      // bez skupiny původní funkce: funguje i v okamžiku nasazení před doběhnutím migrace
+      rows:
+        group.data === null
+          ? await adminInvitationsBulk(session, event.data, invited)
+          : await adminInvitationsBulkTag(session, event.data, invited, group.data),
     };
   } catch (error) {
     const reason = reasonOf(error);

@@ -32,8 +32,13 @@ export const guestInputSchema = z.object({
   invitedEventIds: eventIds,
 });
 
-/** Název skupiny (štítku) domácnosti. */
-export const tagSchema = z.string().trim().min(1).max(GUEST_LIMITS.tag);
+/** Název skupiny (štítku) domácnosti; čárka ne, editor podle ní skupiny odděluje. */
+export const tagSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(GUEST_LIMITS.tag)
+  .refine((tag) => !tag.includes(","));
 
 export const householdInputSchema = z.object({
   label: z.string().trim().max(GUEST_LIMITS.label),

@@ -8,8 +8,10 @@ alter table se_vezmou.households
     check (pg_catalog.cardinality(tags) <= 10);
 
 -- ---------------------------------------------------------------------------
--- tags_from_payload: pole štítků z JSON (ořez, sloučení mezer, bez duplicit bez ohledu na velikost
--- písmen, pořadí zachované). Neplatný vstup = invalid_payload. Volají jen funkce níže.
+-- tags_from_payload: pole štítků z JSON (ořez, sloučení mezer, bez prázdných a přesných duplicit, pořadí
+-- zachované). Čárka v názvu je zakázaná (editor podle ní skupiny odděluje). Velikost písmen se tu nesjednocuje
+-- (lower() závisí na nastavení databáze); jednotný zápis skupiny drží editor, který nabízí už používané.
+-- Neplatný vstup = invalid_payload. Volají jen funkce níže.
 -- ---------------------------------------------------------------------------
 create function se_vezmou.tags_from_payload(p_tags jsonb) returns text[]
   language plpgsql immutable security definer set search_path = ''
@@ -32,10 +34,10 @@ begin
     if v_tag = '' then
       continue;
     end if;
-    if pg_catalog.char_length(v_tag) > c_max_length then
+    if pg_catalog.char_length(v_tag) > c_max_length or pg_catalog.strpos(v_tag, ',') > 0 then
       raise exception 'invalid_payload' using errcode = '22023';
     end if;
-    if not exists (select 1 from pg_catalog.unnest(v_result) as x where pg_catalog.lower(x) = pg_catalog.lower(v_tag)) then
+    if not (v_tag = any (v_result)) then
       v_result := v_result || v_tag;
     end if;
   end loop;
@@ -83,7 +85,7 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- admin_invitations_bulk_tag: pozvat na událost (nebo pozvání zrušit) hosty domácností se štítkem;
--- p_tag null = všichni hosté (jako admin_invitations_bulk). Štítek se porovnává bez ohledu na velikost písmen.
+-- p_tag null = všichni hosté (jako admin_invitations_bulk). Štítek se porovnává přesně.
 -- ---------------------------------------------------------------------------
 create function se_vezmou.admin_invitations_bulk_tag(p_event_id uuid, p_invited boolean, p_tag text)
   returns integer
@@ -91,7 +93,7 @@ create function se_vezmou.admin_invitations_bulk_tag(p_event_id uuid, p_invited 
   as $$
 declare
   v_wedding_id uuid := se_vezmou.wedding_id();
-  v_tag text := pg_catalog.lower(pg_catalog.btrim(p_tag));
+  v_tag text := pg_catalog.btrim(p_tag);
   v_count integer;
 begin
   if not se_vezmou.is_wedding_admin() then
@@ -110,7 +112,7 @@ begin
       from se_vezmou.guests g
       join se_vezmou.households h on h.id = g.household_id and h.wedding_id = g.wedding_id
      where g.wedding_id = v_wedding_id
-       and (v_tag is null or exists (select 1 from pg_catalog.unnest(h.tags) as x where pg_catalog.lower(x) = v_tag))
+       and (v_tag is null or v_tag = any (h.tags))
     on conflict (guest_id, event_id) do nothing;
   else
     delete from se_vezmou.invitations i
@@ -118,7 +120,7 @@ begin
      where i.event_id = p_event_id and i.wedding_id = v_wedding_id
        and g.id = i.guest_id and g.wedding_id = i.wedding_id
        and h.id = g.household_id and h.wedding_id = g.wedding_id
-       and (v_tag is null or exists (select 1 from pg_catalog.unnest(h.tags) as x where pg_catalog.lower(x) = v_tag));
+       and (v_tag is null or v_tag = any (h.tags));
   end if;
   get diagnostics v_count = row_count;
   -- audit bez názvu štítku (může nést jméno rodiny), jen zda šlo o skupinu

@@ -42,6 +42,17 @@ export function adminGuestsImport(
   return tenantRpc(identity(session), "admin_guests_import", { p_payload: payload });
 }
 
+export function adminInvitationsBulk(
+  session: AdminIdentity,
+  eventId: string,
+  invited: boolean,
+): Promise<number> {
+  return tenantRpc<number>(identity(session), "admin_invitations_bulk", {
+    p_event_id: eventId,
+    p_invited: invited,
+  });
+}
+
 /** Hromadné pozvání hostů skupiny (štítku); `tag` null = všichni hosté. */
 export function adminInvitationsBulkTag(
   session: AdminIdentity,

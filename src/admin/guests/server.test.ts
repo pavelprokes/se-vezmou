@@ -86,6 +86,7 @@ function fakeDb(
           return null;
         case "admin_rsvp_settings_save":
           return [{ key: "menu", id: "66666666-6666-4666-8666-666666666666" }];
+        case "admin_invitations_bulk":
         case "admin_invitations_bulk_tag":
           return 3;
         case "admin_guests_import":
@@ -259,10 +260,14 @@ describe("deleteHousehold a bulkInvite", () => {
       status: "ok",
       rows: 3,
     });
-    expect(calls.filter((c) => c.fn === "admin_invitations_bulk_tag").map((c) => c.args)).toEqual([
-      { p_event_id: EVENT, p_invited: true, p_tag: null },
-      { p_event_id: EVENT, p_invited: false, p_tag: "Kolegové" },
+    expect(calls.filter((c) => c.fn.startsWith("admin_invitations_bulk"))).toMatchObject([
+      { fn: "admin_invitations_bulk", args: { p_event_id: EVENT, p_invited: true } },
+      {
+        fn: "admin_invitations_bulk_tag",
+        args: { p_event_id: EVENT, p_invited: false, p_tag: "Kolegové" },
+      },
     ]);
+    expect(await bulkInvite(SESSION, EVENT, true, "a,b")).toEqual({ status: "invalid" });
     expect(await bulkInvite(SESSION, "x", true)).toEqual({ status: "invalid" });
     expect(await bulkInvite(SESSION, EVENT, "ano")).toEqual({ status: "invalid" });
     expect(await bulkInvite(SESSION, EVENT, true, "x".repeat(41))).toEqual({ status: "invalid" });

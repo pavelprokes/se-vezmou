@@ -82,6 +82,24 @@ describe("klasické šablony: pruh Kdy / Kde / Odpovězte do a čísla sekcí", 
     expect(within(facts).queryByRole("link")).toBeNull();
   });
 
+  it("začátek jen z prvního svatebního dne, soukromé místo bez adresy, poděkování bez odpovědi", () => {
+    const events = [
+      { ...classic.events[0], id: "pred", startsAt: "2027-06-18T16:00:00Z" },
+      ...classic.events,
+    ];
+    const venues = classic.venues.map((v, i) => (i === 0 ? { ...v, address: null } : v));
+    const { unmount } = renderSite({ ...classic, events, venues });
+    const facts = screen.getByRole("heading", { level: 1 }).parentElement!.querySelector("dl")!;
+    expect(facts).not.toHaveTextContent("od 18:00");
+    expect(facts.querySelectorAll(".site-hero-fact-sub").length).toBeLessThanOrEqual(1);
+    unmount();
+    renderSite({ ...classic, phase: "thanks" });
+    const thanksFacts = screen
+      .getByRole("heading", { level: 1 })
+      .parentElement!.querySelector("dl")!;
+    expect(within(thanksFacts).queryByText(/Odpověď|Odpovězte/)).toBeNull();
+  });
+
   it("číslo sekce je jen dekor (skryté pro čtečky), nadpis zůstává h2", () => {
     const { container } = renderSite(classic);
     const numbers = container.querySelectorAll(".site-section-no");

@@ -436,7 +436,7 @@ html:has(.site-root[data-sticky="true"]) {
 @media (min-width: 64rem) {
   .site-section-grid {
     display: grid;
-    grid-template-columns: 15rem minmax(0, 1fr);
+    grid-template-columns: 17rem minmax(0, 1fr);
     column-gap: 3rem;
     align-items: start;
   }
@@ -444,9 +444,12 @@ html:has(.site-root[data-sticky="true"]) {
   .site-section-head .site-section-no {
     text-align: left;
   }
+  /* dlouhé nadpisy („Ubytování a doprava“, „Accommodation and transport“) se zalomí uvnitř sloupce,
+     nikdy nepřetečou pod obsah */
   .site-section-head .site-h2 {
-    font-size: min(var(--s-h2-size), 2.75rem);
-    hyphens: manual;
+    font-size: min(var(--s-h2-size), 2.5rem);
+    overflow-wrap: break-word;
+    hyphens: auto;
   }
   .site-section-head .site-divider {
     margin-inline: 0;
@@ -1561,7 +1564,11 @@ html:has(dialog.site-lightbox[open]) {
 @media (min-width: 64rem) {
   /* tučné verzálky Modernu: v levém sloupci menší, aby se nejdelší nadpis vešel na řádek */
   .site-root[data-template="modern"] .site-section-head .site-h2 {
-    font-size: 2rem;
+    font-size: 1.75rem;
+  }
+  .site-root[data-template="chateau"] .site-section-head .site-h2 {
+    font-size: 1.75rem;
+    letter-spacing: 0.05em;
   }
 }
 .site-root[data-template="chateau"] .site-hero-facts {

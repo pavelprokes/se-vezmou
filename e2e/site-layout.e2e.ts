@@ -42,7 +42,9 @@ for (const template of CLASSIC) {
     if (wide) {
       expect(body.x).toBeGreaterThan(head.x + head.width);
     } else {
-      expect(body.y).toBeGreaterThanOrEqual(head.y + head.height - 1);
+      // pod sebou: obsah začíná na stejném levém okraji jako nadpis (ozdoba může mít záporný okraj)
+      expect(Math.abs(body.x - head.x)).toBeLessThan(2);
+      expect(body.y).toBeGreaterThan(head.y);
     }
 
     // stránka se do strany neposouvá, navigace je v jednom řádku
@@ -56,6 +58,20 @@ for (const template of CLASSIC) {
       .evaluate((el) => el.clientHeight);
     expect(navHeight).toBeLessThan(70);
   });
+}
+
+for (const lang of ["cs", "en"] as const) {
+  for (const template of CLASSIC) {
+    test(`${template}, ${lang}: nadpisy sekcí se vejdou do svého sloupce`, async ({ page }) => {
+      await page.goto(previewUrl(lang, { template }));
+      const overflowing = await page
+        .locator(".site-section-head .site-h2")
+        .evaluateAll((headings) =>
+          headings.filter((h) => h.scrollWidth > h.clientWidth + 1).map((h) => h.textContent ?? ""),
+        );
+      expect(overflowing).toEqual([]);
+    });
+  }
 }
 
 test("anglicky: pruh pod jmény v angličtině", async ({ page }) => {

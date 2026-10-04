@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { articlePath } from "@/blog/article";
+import { articlePath, articleState } from "@/blog/article";
 import { allArticles, canWriteArticles } from "@/blog/store";
 import { buttonVariants } from "@/components/ui/button";
 import { localePath, localeShortNames, locales } from "@/i18n/config";
@@ -60,42 +60,47 @@ export default async function BlogAdminPage() {
               </tr>
             </thead>
             <tbody>
-              {articles.map((article) => (
-                <tr key={article.id}>
-                  <th scope="row" className={`${tdClass} font-medium`}>
-                    <a href={localePath(`/blog/${article.id}`, t.locale)} className={linkClass}>
-                      {article.translations.cs.title}
-                    </a>
-                  </th>
-                  <td className={tdClass}>
-                    {t(
-                      article.status === "published"
-                        ? "ops.blog.status.published"
-                        : "ops.blog.status.draft",
-                    )}
-                  </td>
-                  <td className={tdClass}>{article.publishedAt}</td>
-                  <td className={tdClass}>{article.updatedAt}</td>
-                  <td className={tdClass}>
-                    {article.status === "published" ? (
-                      <span className="flex gap-3">
-                        {locales.map((locale) => (
-                          <a
-                            key={locale}
-                            href={new URL(articlePath(article, locale), siteUrl).toString()}
-                            className={linkClass}
-                            lang={locale}
-                          >
-                            {localeShortNames[locale]}
-                          </a>
-                        ))}
-                      </span>
-                    ) : (
-                      t("ops.none")
-                    )}
-                  </td>
-                </tr>
-              ))}
+              {articles.map((article) => {
+                const state = articleState(article);
+                return (
+                  <tr key={article.id}>
+                    <th scope="row" className={`${tdClass} font-medium`}>
+                      <a href={localePath(`/blog/${article.id}`, t.locale)} className={linkClass}>
+                        {article.translations.cs.title}
+                      </a>
+                    </th>
+                    <td className={tdClass}>
+                      {state === "scheduled"
+                        ? t("ops.blog.status.scheduled", { date: article.publishedAt })
+                        : t(
+                            state === "published"
+                              ? "ops.blog.status.published"
+                              : "ops.blog.status.draft",
+                          )}
+                    </td>
+                    <td className={tdClass}>{article.publishedAt}</td>
+                    <td className={tdClass}>{article.updatedAt}</td>
+                    <td className={tdClass}>
+                      {state === "published" ? (
+                        <span className="flex gap-3">
+                          {locales.map((locale) => (
+                            <a
+                              key={locale}
+                              href={new URL(articlePath(article, locale), siteUrl).toString()}
+                              className={linkClass}
+                              lang={locale}
+                            >
+                              {localeShortNames[locale]}
+                            </a>
+                          ))}
+                        </span>
+                      ) : (
+                        t("ops.none")
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </TableRegion>

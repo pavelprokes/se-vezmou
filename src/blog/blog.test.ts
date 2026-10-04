@@ -1,10 +1,13 @@
+import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
+import { ArticleBody } from "@/components/blog/article-body";
 import { locales } from "@/i18n/config";
 import { localizedPath } from "@/i18n/pathnames";
 import { findTypoViolations } from "@/i18n/typo";
-import { articlePath, articleSchema, NEW_ARTICLE_ID } from "./article";
+import { indexableRoutes } from "@/seo/sitemap";
+import { articlePath, articleSchema, articleState, NEW_ARTICLE_ID, pragueToday } from "./article";
 import { anchorId, parseBlocks, parseInline, plainText } from "./markdown";
-import { allArticles } from "./store";
+import { allArticles, publishedArticles } from "./store";
 
 describe("zápis textu článku", () => {
   it("rozloží bloky", () => {
@@ -70,13 +73,13 @@ describe("články v content/blog", () => {
     }
   });
 
-  it("vnitřní odkazy vedou na existující stránku ve stejném jazyce", () => {
+  // Odkaz na článek, který ještě nevyšel (koncept, naplánovaný), se na webu vykreslí jako text.
+  it("vnitřní odkazy vedou na existující stránku nebo článek ve stejném jazyce", () => {
     for (const article of articles) {
       for (const locale of locales) {
         const known = new Set([
-          localizedPath("home", locale),
-          localizedPath("blog", locale),
-          ...published.map((a) => articlePath(a, locale)),
+          ...indexableRoutes.map((route) => localizedPath(route, locale)),
+          ...articles.map((a) => articlePath(a, locale)),
         ]);
         const links = parseBlocks(article.translations[locale].body)
           .flatMap((block) => ("items" in block ? block.items : [block.text]))
@@ -98,5 +101,39 @@ describe("články v content/blog", () => {
         expect(new Set(ids).size, `${article.id} ${locale}`).toBe(ids.length);
       }
     }
+  });
+});
+
+describe("naplánované zveřejnění", () => {
+  const base = { status: "published", publishedAt: "2026-10-07" } as const;
+
+  it("zveřejněný článek s budoucím datem je naplánovaný, v den vydání zveřejněný", () => {
+    expect(articleState(base, "2026-10-06")).toBe("scheduled");
+    expect(articleState(base, "2026-10-07")).toBe("published");
+    expect(articleState({ ...base, status: "draft" }, "2026-12-01")).toBe("draft");
+  });
+
+  it("den vydání se počítá podle pražského času", () => {
+    // 6. 10. ve 22:30 UTC je v Praze už 7. 10. (letní čas, UTC+2).
+    expect(pragueToday(new Date("2026-10-06T22:30:00Z"))).toBe("2026-10-07");
+    expect(pragueToday(new Date("2026-10-06T21:59:00Z"))).toBe("2026-10-06");
+  });
+
+  it("na webu jsou jen články, jejichž den už nastal", () => {
+    const early = publishedArticles("2000-01-01");
+    expect(early).toEqual([]);
+    for (const article of publishedArticles()) {
+      expect(articleState(article)).toBe("published");
+    }
+  });
+
+  it("odkaz na nezveřejněný článek se vykreslí jako text", () => {
+    const blocks = parseBlocks("Viz [dar](/blog/dar) a [web](/blog/web).");
+    const html = renderToStaticMarkup(
+      ArticleBody({ blocks, locale: "cs", unpublished: new Set(["/blog/dar"]) }),
+    );
+    expect(html).not.toContain('href="/blog/dar"');
+    expect(html).toContain("dar");
+    expect(html).toContain('href="/blog/web"');
   });
 });

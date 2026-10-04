@@ -3,8 +3,9 @@ import { publishedArticles } from "@/blog/store";
 import { siteUrl } from "@/lib/site";
 import { buildSitemap, indexableRoutes } from "@/seo/sitemap";
 
-// Články se čtou ze souborů při sestavení; nový článek přijde s novým nasazením.
+// Články se čtou ze souborů při sestavení a jednou za hodinu znovu (naplánované zveřejnění).
 export const dynamic = "force-static";
+export const revalidate = 3600;
 
 export function GET() {
   const pages = [...indexableRoutes, ...publishedArticles().map(articlePaths)];

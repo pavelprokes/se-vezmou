@@ -32,7 +32,10 @@ export const NEW_ARTICLE_ID = "novy";
 export const articleSchema = z.object({
   /** Stálý identifikátor a název souboru; nemění se ani při změně adres. */
   id: slug.refine((id) => id !== NEW_ARTICLE_ID, `id „${NEW_ARTICLE_ID}“ je vyhrazené`),
-  /** Koncept se nikde nezobrazí (ani v mapě webu), vidí ho jen administrace. */
+  /**
+   * Koncept se nikde nezobrazí (ani v mapě webu), vidí ho jen administrace. Zveřejněný článek
+   * s datem vydání v budoucnosti je naplánovaný: na webu se objeví sám ten den (`articleState`).
+   */
   status: z.enum(["draft", "published"]),
   publishedAt: z.iso.date(),
   updatedAt: z.iso.date(),
@@ -46,6 +49,22 @@ export const articleSchema = z.object({
 
 export type ArticleTranslation = z.infer<typeof articleTranslationSchema>;
 export type Article = z.infer<typeof articleSchema>;
+
+/** Stav článku pro web: koncept, naplánovaný (zveřejněný s budoucím datem) nebo zveřejněný. */
+export type ArticleState = "draft" | "scheduled" | "published";
+
+/** Dnešní datum v Praze (`YYYY-MM-DD`); podle něj se naplánované články zveřejňují. */
+export function pragueToday(now: Date = new Date()): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Prague" }).format(now);
+}
+
+export function articleState(
+  article: Pick<Article, "status" | "publishedAt">,
+  today: string = pragueToday(),
+): ArticleState {
+  if (article.status === "draft") return "draft";
+  return article.publishedAt > today ? "scheduled" : "published";
+}
 
 /** Odhad doby čtení v minutách (200 slov za minutu, aspoň 1). */
 export function readingMinutes(body: string): number {

@@ -16,6 +16,9 @@ import { typo } from "@/i18n/typo";
 import { siteUrl } from "@/lib/site";
 import { pageMetadata } from "@/seo/page-metadata";
 
+// Naplánovaný článek se v rozcestníku objeví nejpozději hodinu po půlnoci dne vydání (pražský čas).
+export const revalidate = 3600;
+
 export async function generateMetadata({
   params,
 }: PageProps<"/h/marketing/[locale]/blog">): Promise<Metadata> {

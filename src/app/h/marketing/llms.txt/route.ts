@@ -7,8 +7,9 @@ import { localizedPath } from "@/i18n/pathnames";
 import { siteUrl } from "@/lib/site";
 import { buildLlmsTxt, type LlmsLink } from "@/seo/llms";
 
-// Stejně jako mapa webu: články se čtou ze souborů při sestavení.
+// Stejně jako mapa webu: články se čtou při sestavení a jednou za hodinu znovu.
 export const dynamic = "force-static";
+export const revalidate = 3600;
 
 /** Stránky z mapy webu a klíč jejich titulku a popisu v překladech. */
 const pages = [

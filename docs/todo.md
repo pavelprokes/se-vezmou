@@ -46,5 +46,5 @@ Stav repa je zmapovaný v `docs/audit-todo-2026-10.md`. Co už stojí, jen odšk
 - [ ] **První verze, zbývá:** tlačítko „přeložit“ se schválením párem.
 - [ ] **Druhá verze:** zasedací pořádek, rozpočet, heslo na jednotlivé stránky (filtr hostů podle skupiny s počty a kartičky s QR jsou hotové v #65 a #66).
 - [x] **Vzhled, hotovo:** přechody mezi stránkami úvodního webu (View Transitions, `prefers-reduced-motion`), nový vzhled úvodní stránky (#61).
-- [ ] **Vzhled, zbývá:** dotažení designu šablon webu páru.
+- [x] **Vzhled šablon webu páru:** navigace v jednom řádku (#70), klasické šablony ve vzhledu „Tiskovina“ (pruh Kdy / Kde / Odpověď pod jmény, číslované sekce, nadpis vlevo a obsah vpravo).
 - [ ] **Později:** vlastní doména páru, placená publikace (jednorázově nebo ročně, bez poplatků z darů), služba „nastavíme web s vámi“, anglický alias domény.

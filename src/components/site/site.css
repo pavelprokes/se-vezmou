@@ -303,17 +303,78 @@ html:has(.site-root[data-sticky="true"]) {
   font-style: italic;
   font-weight: 400;
 }
-.site-date {
-  margin: 0.5rem 0 0;
-  font-size: clamp(1.25rem, 4vw, 1.75rem);
-  font-family: var(--s-font-display);
+/* Pruh „Kdy / Kde / Odpovězte do“ pod jmény (vzhled Tiskovina): datum má váhu jako jména, host najde
+   vše podstatné bez hledání v sekcích. Linky jsou dekor (ornament), text nese text a muted. */
+.site-hero-facts {
+  width: 100%;
+  margin: 1.75rem 0 0;
+  border-top: 2px solid var(--s-text);
+  border-bottom: 1px solid var(--s-border);
+  text-align: left;
 }
-.site-place {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0;
+.site-hero-fact {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.75rem;
+  padding-block: 0.9rem;
+}
+.site-hero-fact + .site-hero-fact {
+  border-top: 1px solid var(--s-ornament);
+}
+.site-hero-fact dt {
+  padding-top: 0.35rem;
   color: var(--s-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.site-hero-fact dd {
+  margin: 0;
+}
+.site-hero-fact-main {
+  display: block;
+  font-family: var(--s-font-display);
+  font-size: clamp(1.25rem, 3.2vw, 1.75rem);
+  line-height: 1.2;
+}
+.site-hero-fact-sub {
+  display: block;
+  margin-top: 0.15rem;
+  color: var(--s-muted);
+  font-size: 0.95rem;
+}
+.site-hero-fact-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--s-accent);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+@media (min-width: 48rem) {
+  .site-hero-facts {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+  }
+  .site-hero-fact {
+    display: block;
+    padding: 1.25rem 1.5rem;
+  }
+  .site-hero-fact:first-child {
+    padding-left: 0;
+  }
+  .site-hero-fact + .site-hero-fact {
+    border-top: 0;
+    border-left: 1px solid var(--s-ornament);
+  }
+  .site-hero-fact dt {
+    padding-top: 0;
+    margin-bottom: 0.4rem;
+  }
 }
 .site-countdown {
   margin: 0.5rem 0 0;
@@ -347,10 +408,60 @@ html:has(.site-root[data-sticky="true"]) {
 }
 
 /* Sekce */
+.site-main {
+  counter-reset: site-section;
+}
 .site-section {
   padding-block: var(--s-section-pad);
   background: var(--s-bg);
   scroll-margin-top: 1rem;
+  counter-increment: site-section;
+}
+/* Číslo sekce (01, 02…): jen dekor, v markupu aria-hidden. */
+.site-section-no {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--s-accent2);
+  font-family: var(--s-font-display);
+  font-size: 1.375rem;
+  font-style: italic;
+  line-height: 1;
+  text-align: var(--s-align);
+}
+.site-section-no::before {
+  content: counter(site-section, decimal-leading-zero);
+}
+/* Široký displej: nadpis vlevo, obsah vpravo (vzhled Tiskovina). Obsah nemá vlastní linku: program,
+   karty a otázky už linky mají a zdvojily by se. */
+@media (min-width: 64rem) {
+  .site-section-grid {
+    display: grid;
+    grid-template-columns: 15rem minmax(0, 1fr);
+    column-gap: 3rem;
+    align-items: start;
+  }
+  .site-section-head .site-h2,
+  .site-section-head .site-section-no {
+    text-align: left;
+  }
+  .site-section-head .site-h2 {
+    font-size: min(var(--s-h2-size), 2.75rem);
+    hyphens: manual;
+  }
+  .site-section-head .site-divider {
+    margin-inline: 0;
+  }
+  .site-section-body {
+    padding-top: 0.6rem;
+  }
+  .site-section-body > :first-child {
+    margin-top: 0;
+  }
+  .site-root .site-section .site-section-body .site-lead,
+  .site-root .site-section .site-section-body .site-rsvp-status {
+    margin-inline: 0;
+    text-align: left;
+  }
 }
 .site-section[data-tone="surface"] {
   background: var(--s-surface);
@@ -1438,6 +1549,38 @@ html:has(dialog.site-lightbox[open]) {
 }
 .site-root[data-template="modern"] .site-h2 {
   color: var(--s-accent);
+}
+.site-root[data-template="modern"] .site-section-no {
+  color: var(--s-text);
+  font-style: normal;
+  font-weight: 800;
+}
+.site-root[data-template="modern"] .site-hero-facts {
+  border-top-width: 3px;
+}
+@media (min-width: 64rem) {
+  /* tučné verzálky Modernu: v levém sloupci menší, aby se nejdelší nadpis vešel na řádek */
+  .site-root[data-template="modern"] .site-section-head .site-h2 {
+    font-size: 2rem;
+  }
+}
+.site-root[data-template="chateau"] .site-hero-facts {
+  text-align: center;
+}
+@media (max-width: 47.99rem) {
+  /* Chateau je souměrný: popisek nad hodnotou, obojí na střed */
+  .site-root[data-template="chateau"] .site-hero-fact {
+    display: block;
+  }
+  .site-root[data-template="chateau"] .site-hero-fact dt {
+    padding-top: 0;
+    margin-bottom: 0.3rem;
+  }
+}
+@media (min-width: 48rem) {
+  .site-root[data-template="chateau"] .site-hero-fact:first-child {
+    padding-left: 1.5rem;
+  }
 }
 .site-root[data-template="modern"] .site-section {
   border-top: 3px solid var(--s-text);

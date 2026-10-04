@@ -46,6 +46,51 @@ function withPhase(phase: Phase, content = eukalyptusFixture): PublicContent {
   return { ...content, phase };
 }
 
+describe("klasické šablony: pruh Kdy / Kde / Odpovězte do a čísla sekcí", () => {
+  const classic = {
+    ...editorialFixture,
+    template: "chateau" as const,
+    phase: "rsvp_open" as const,
+  };
+
+  it("pod jmény datum se začátkem programu, místo s adresou a odkaz na odpověď", () => {
+    renderSite(classic);
+    const facts = screen.getByRole("heading", { level: 1 }).parentElement!.querySelector("dl")!;
+    expect(facts).toHaveTextContent(/Kdy\s*19.\s?června 2027/);
+    expect(facts).toHaveTextContent(/od\s\d{2}:\d{2}/);
+    expect(facts).toHaveTextContent(/Kde/);
+    const link = within(facts).getByRole("link", { name: "Potvrdit účast" });
+    const rsvp = classic.blocks.find((b) => b.type === "rsvp")!;
+    expect(link).toHaveAttribute("href", `#${rsvp.anchor}`);
+  });
+
+  it("termín odpovědi se bere z nastavení RSVP (stejně jako ve formuláři)", () => {
+    renderSite(classic, "cs", {
+      rsvp: {
+        initial: { stage: "name" },
+        allowUnlisted: false,
+        closesAt: "2027-04-30T22:00:00Z",
+      },
+    });
+    const facts = screen.getByRole("heading", { level: 1 }).parentElement!.querySelector("dl")!;
+    expect(facts).toHaveTextContent(/Odpovězte do\s*1.\s?května 2027/);
+  });
+
+  it("bez otevřeného RSVP se odpověď v pruhu nenabízí", () => {
+    renderSite({ ...classic, phase: "save_the_date" });
+    const facts = screen.getByRole("heading", { level: 1 }).parentElement!.querySelector("dl")!;
+    expect(within(facts).queryByRole("link")).toBeNull();
+  });
+
+  it("číslo sekce je jen dekor (skryté pro čtečky), nadpis zůstává h2", () => {
+    const { container } = renderSite(classic);
+    const numbers = container.querySelectorAll(".site-section-no");
+    expect(numbers.length).toBeGreaterThan(3);
+    for (const n of numbers) expect(n).toHaveAttribute("aria-hidden", "true");
+    expect(screen.getAllByRole("heading", { level: 2 }).length).toBe(numbers.length);
+  });
+});
+
 describe("SiteRenderer: bloky a struktura", () => {
   it("vykreslí jména jako jediný h1, datum, místo a odpočet", () => {
     renderSite(eukalyptusFixture);

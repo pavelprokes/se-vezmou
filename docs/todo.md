@@ -41,7 +41,9 @@ Na webu je dnes „0 Kč“ a „teď“ (slovo „zdarma“ záměrně nepouž�
 
 Stav repa je zmapovaný v `docs/audit-todo-2026-10.md`. Co už stojí, jen odškrtnout, částečné dotáhnout.
 
-- [ ] **První verze:** skupiny hostů s programem, osobní odkaz a QR hosta s jazykem, sdílení pozvánky (WhatsApp, SMS, e-mail), tlačítko „přeložit“ se schválením párem, QR galerie na pozvánce, IBAN a BIC jako text s „Kopírovat“ v EN, heslo na web, banner změny termínu, upozornění páru na novou odpověď, politika hostingu po svatbě (rozpor s dnešními lhůtami viz audit A5).
+- [x] **První verze, hotovo (#55 až #57):** sdílení pozvánky (WhatsApp, SMS, e-mail), QR galerie na pozvánce, IBAN a BIC jako text s „Kopírovat“, banner změny termínu, upozornění páru na novou odpověď, ubytování na mapě.
+- [ ] **První verze, zbývá:** skupiny hostů s programem, osobní odkaz a QR hosta s jazykem, tlačítko „přeložit“ se schválením párem, heslo na web, politika hostingu po svatbě (rozpor s dnešními lhůtami viz audit A5).
 - [ ] **Druhá verze:** zasedací pořádek, rozpočet, filtr hostů podle štítku s počty, heslo na jednotlivé stránky, tisknutelná karta s QR, EPC QR (GiroCode).
-- [ ] **Vzhled:** plynulé přechody mezi stránkami (View Transitions, `prefers-reduced-motion`), dotažení designu šablon.
+- [x] **Vzhled, hotovo:** přechody mezi stránkami úvodního webu (View Transitions, `prefers-reduced-motion`), nový vzhled úvodní stránky (#61).
+- [ ] **Vzhled, zbývá:** dotažení designu šablon webu páru.
 - [ ] **Později:** vlastní doména páru, placená publikace (jednorázově nebo ročně, bez poplatků z darů), služba „nastavíme web s vámi“, anglický alias domény.

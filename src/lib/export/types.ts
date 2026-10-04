@@ -12,6 +12,8 @@ export type PersonKind = (typeof personKinds)[number];
 
 const personSchema = z.object({
   household: z.string().nullable(),
+  /** Skupiny (štítky) domácnosti. */
+  tags: z.array(z.string()).default([]),
   name: z.string(),
   kind: z.enum(personKinds),
   age: z.number().nullable(),

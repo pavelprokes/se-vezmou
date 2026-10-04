@@ -156,6 +156,8 @@ export const guestListSchema = z.object({
       id: z.string(),
       label: z.string(),
       invited_note: z.string().nullable(),
+      /** Skupiny (štítky) domácnosti, jen pro správce. */
+      tags: z.array(z.string()).default([]),
       guests: z.array(
         z.object({
           id: z.string(),

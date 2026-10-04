@@ -86,7 +86,7 @@ function fakeDb(
           return null;
         case "admin_rsvp_settings_save":
           return [{ key: "menu", id: "66666666-6666-4666-8666-666666666666" }];
-        case "admin_invitations_bulk":
+        case "admin_invitations_bulk_tag":
           return 3;
         case "admin_guests_import":
           return options.importResult ?? { households: 2, guests: 3, skipped: 0, duplicate: false };
@@ -120,6 +120,7 @@ describe("saveHousehold", () => {
     const calls = fakeDb();
     const result = await saveHousehold(SESSION, null, {
       label: " Novákovi ",
+      tags: [" Rodina nevěsty ", "Kolegové"],
       note: "",
       guests: [guest(), guest({ displayName: "Anička", isChild: true, age: 8 })],
     });
@@ -129,6 +130,7 @@ describe("saveHousehold", () => {
     expect(save.args.p_household_id).toBeNull();
     expect(save.args.p_payload).toEqual({
       label: "Novákovi",
+      tags: ["Rodina nevěsty", "Kolegové"],
       note: null,
       guests: [
         {
@@ -158,6 +160,13 @@ describe("saveHousehold", () => {
       { label: "", note: null, guests: [] },
       { label: "", note: null, guests: [guest({ displayName: "   " })] },
       { label: "", note: null, guests: [guest({ isChild: true, age: 18 })] },
+      { label: "", tags: ["x".repeat(41)], note: null, guests: [guest()] },
+      {
+        label: "",
+        tags: Array.from({ length: 11 }, (_, i) => `t${i}`),
+        note: null,
+        guests: [guest()],
+      },
       { label: "", note: null, guests: [guest({ age: 40 })] },
       { label: "x".repeat(201), note: null, guests: [guest()] },
       { label: "", note: null, guests: [guest({ invitedEventIds: ["neni-uuid"] })] },
@@ -244,10 +253,20 @@ describe("deleteHousehold a bulkInvite", () => {
   });
 
   it("hromadné pozvání vrací počet řádků a odmítne špatný vstup", async () => {
-    fakeDb();
+    const calls = fakeDb();
     expect(await bulkInvite(SESSION, EVENT, true)).toEqual({ status: "ok", rows: 3 });
+    expect(await bulkInvite(SESSION, EVENT, false, " Kolegové ")).toEqual({
+      status: "ok",
+      rows: 3,
+    });
+    expect(calls.filter((c) => c.fn === "admin_invitations_bulk_tag").map((c) => c.args)).toEqual([
+      { p_event_id: EVENT, p_invited: true, p_tag: null },
+      { p_event_id: EVENT, p_invited: false, p_tag: "Kolegové" },
+    ]);
     expect(await bulkInvite(SESSION, "x", true)).toEqual({ status: "invalid" });
     expect(await bulkInvite(SESSION, EVENT, "ano")).toEqual({ status: "invalid" });
+    expect(await bulkInvite(SESSION, EVENT, true, "x".repeat(41))).toEqual({ status: "invalid" });
+    expect(await bulkInvite(SESSION, EVENT, true, "  ")).toEqual({ status: "invalid" });
   });
 });
 

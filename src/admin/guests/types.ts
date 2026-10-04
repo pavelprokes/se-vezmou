@@ -12,6 +12,9 @@ import { i18nTextSchema } from "@/site/i18n-text";
 export const GUEST_LIMITS = {
   label: 200,
   note: 500,
+  /** Skupiny (štítky) domácnosti, stejné meze jako `tags_from_payload` v SQL. */
+  tag: 40,
+  tagsPerHousehold: 10,
   name: 200,
   guestsPerHousehold: 20,
   maxChildAge: 17,
@@ -29,8 +32,12 @@ export const guestInputSchema = z.object({
   invitedEventIds: eventIds,
 });
 
+/** Název skupiny (štítku) domácnosti. */
+export const tagSchema = z.string().trim().min(1).max(GUEST_LIMITS.tag);
+
 export const householdInputSchema = z.object({
   label: z.string().trim().max(GUEST_LIMITS.label),
+  tags: z.array(tagSchema).max(GUEST_LIMITS.tagsPerHousehold).default([]),
   note: z.string().trim().max(GUEST_LIMITS.note).nullable(),
   guests: z.array(guestInputSchema).min(1).max(GUEST_LIMITS.guestsPerHousehold),
 });
@@ -41,6 +48,7 @@ export type GuestInput = z.infer<typeof guestInputSchema>;
 export function householdToPayload(input: HouseholdInput) {
   return {
     label: input.label,
+    tags: input.tags,
     note: input.note && input.note.length > 0 ? input.note : null,
     guests: input.guests.map((guest) => ({
       id: guest.id,

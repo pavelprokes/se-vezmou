@@ -3,6 +3,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { DeleteHouseholdAction, SaveHouseholdAction } from "@/admin/guests/action-types";
+import { splitTags, tagsValid } from "@/admin/guests/tags";
 import { GUEST_LIMITS } from "@/admin/guests/types";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -35,13 +36,14 @@ type Row = EditorGuest & { key: number };
 type Problem = { name?: boolean; age?: boolean };
 
 /**
- * Úprava domácnosti: štítek, poznámka, hosté (jméno, dítě s věkem) a pozvání na události u každého
+ * Úprava domácnosti: název, skupiny, poznámka, hosté (jméno, dítě s věkem) a pozvání na události u každého
  * hosta (FR-ADM-4). Chyby jsou u polí slovy a ikonou, první chybné pole dostane zaměření;
  * po uložení se vrací na seznam. Smazání domácnosti potvrzuje druhý krok.
  */
 export function HouseholdEditor({
   householdId,
   initial,
+  knownTags,
   events,
   answered,
   listHref,
@@ -49,7 +51,9 @@ export function HouseholdEditor({
   actions,
 }: {
   householdId: string | null;
-  initial: { label: string; note: string; guests: EditorGuest[] };
+  initial: { label: string; tags: string[]; note: string; guests: EditorGuest[] };
+  /** Skupiny, které už svatba používá (nabídnou se k přidání jedním klepnutím). */
+  knownTags: string[];
   events: EventOption[];
   /** Domácnost už odpověděla: odebrání hosta smaže i jeho odpověď. */
   answered: boolean;
@@ -60,6 +64,8 @@ export function HouseholdEditor({
   const t = useAdminT();
   const idPrefix = useId();
   const [label, setLabel] = useState(initial.label);
+  const [tagsText, setTagsText] = useState(initial.tags.join(", "));
+  const [tagsProblem, setTagsProblem] = useState(false);
   const [note, setNote] = useState(initial.note);
   const nextKey = useRef(initial.guests.length);
   const [rows, setRows] = useState<Row[]>(initial.guests.map((guest, key) => ({ ...guest, key })));
@@ -74,6 +80,9 @@ export function HouseholdEditor({
       document.getElementById(`${idPrefix}-name-${nextKey.current - 1}`)?.focus();
     }
   }, [rows.length, idPrefix]);
+
+  const current = splitTags(tagsText).map((tag) => tag.toLocaleLowerCase("cs"));
+  const suggestions = knownTags.filter((tag) => !current.includes(tag.toLocaleLowerCase("cs")));
 
   const patch = (key: number, change: Partial<EditorGuest>) =>
     setRows((current) => current.map((row) => (row.key === key ? { ...row, ...change } : row)));
@@ -128,6 +137,13 @@ export function HouseholdEditor({
       if (problem.name || problem.age) found[row.key] = problem;
     }
     setProblems(found);
+    const tags = splitTags(tagsText);
+    setTagsProblem(!tagsValid(tags));
+    if (!tagsValid(tags)) {
+      document.getElementById(`${idPrefix}-tags`)?.focus();
+      setError("admin.guests.editor.error.fix");
+      return;
+    }
     const first = rows.find((row) => found[row.key]);
     if (first) {
       const field = found[first.key].name ? "name" : "age";
@@ -143,6 +159,7 @@ export function HouseholdEditor({
     setState("busy");
     const result = await actions.save(householdId, {
       label: label.trim(),
+      tags,
       note: note.trim() === "" ? null : note.trim(),
       guests: rows.map((row) => ({
         id: row.id,
@@ -202,6 +219,35 @@ export function HouseholdEditor({
             maxLength={GUEST_LIMITS.label}
             onChange={(event) => setLabel(event.target.value)}
           />
+          <div className="flex flex-col gap-2">
+            <Field
+              id={`${idPrefix}-tags`}
+              label={t("admin.guests.editor.tags")}
+              hint={t("admin.guests.editor.tagsHint")}
+              autoComplete="off"
+              value={tagsText}
+              maxLength={500}
+              error={tagsProblem ? t("admin.guests.editor.error.tags") : undefined}
+              onChange={(event) => setTagsText(event.target.value)}
+            />
+            {suggestions.length > 0 ? (
+              <div className="flex flex-wrap items-center gap-x-1 gap-y-0">
+                <span className="text-muted">{t("admin.guests.editor.tagsKnown")}</span>
+                {suggestions.map((tag) => (
+                  <Button
+                    key={tag}
+                    type="button"
+                    variant="text"
+                    aria-label={t("admin.guests.editor.tagsAdd", { tag })}
+                    onClick={() => setTagsText(splitTags(`${tagsText},${tag}`).join(", "))}
+                  >
+                    <Icon icon={Plus} size={16} />
+                    {tag}
+                  </Button>
+                ))}
+              </div>
+            ) : null}
+          </div>
           <TextArea
             label={t("admin.guests.editor.note")}
             hint={t("admin.guests.editor.noteHint")}

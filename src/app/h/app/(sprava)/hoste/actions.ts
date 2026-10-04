@@ -34,8 +34,9 @@ export async function deleteHouseholdAction(
 export async function bulkInviteAction(
   eventId: string,
   invited: boolean,
+  tag: string | null,
 ): Promise<Guarded<BulkInviteResult>> {
-  return guarded("hromadné pozvání", (session) => bulkInvite(session, eventId, invited));
+  return guarded("hromadné pozvání", (session) => bulkInvite(session, eventId, invited, tag));
 }
 
 export async function commitImportAction(input: unknown): Promise<Guarded<CommitImportResult>> {

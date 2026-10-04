@@ -40,7 +40,12 @@ async function seedWithGuests() {
         { name: "Tomáš", child: true, age: 6 },
       ],
     },
-    { label: "Černí", guests: [{ name: "Karel Černý" }], events: ["ceremony"] },
+    {
+      label: "Černí",
+      tags: ["Rodina ženicha"],
+      guests: [{ name: "Karel Černý" }],
+      events: ["ceremony"],
+    },
   ]);
   return { site, household };
 }
@@ -56,6 +61,7 @@ test.describe("axe: hosté", () => {
     await seedHouseholds(site.weddingId, [
       {
         label: "Novákovi",
+        tags: ["Kolegové"],
         guests: [{ name: "Jan Novák" }, { name: "Tomáš", child: true, age: 6 }],
       },
     ]);
@@ -64,6 +70,13 @@ test.describe("axe: hosté", () => {
     await expectNoViolations(page);
     await page.getByLabel("Hledat hosta nebo domácnost").fill("neexistuje");
     await expect(page.getByText("Zobrazeno domácností: 0")).toBeVisible();
+    await expectNoViolations(page);
+    await page.getByLabel("Hledat hosta nebo domácnost").fill("");
+    await page.getByLabel("Skupina", { exact: true }).selectOption("Kolegové");
+    await expect(page.getByTestId("group-stats")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /Pozvat skupinu Kolegové/ }).first(),
+    ).toBeVisible();
     await expectNoViolations(page);
 
     await page.goto(appUrl("/en/hoste"));

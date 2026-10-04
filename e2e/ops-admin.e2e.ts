@@ -557,7 +557,7 @@ test.describe("přihlašovací odkaz správci", () => {
     await expect(banner(page, "Přihlašovací odkaz byl odeslán správci.")).toBeVisible();
 
     const mail = await waitForMail(w.adminEmail);
-    expect(mail.subject).toBe("Váš přihlašovací kód do správy svatby");
+    expect(mail.subject).toMatch(/^\d{6} je váš přihlašovací kód do Se vezmou$/);
     expect(codeOf(mail)).toMatch(/^\d{6}$/);
     const url = linkOf(mail);
     expect(new URL(url).host).toBe(`app.localhost:${PORT}`);

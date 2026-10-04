@@ -1294,8 +1294,9 @@ html:has(dialog.site-lightbox[open]) {
   gap: 0.6rem;
 }
 .site-choice input {
-  width: 1.5rem;
-  height: 1.5rem;
+  /* 26 px: rezerva nad 24 px (WCAG 2.5.8), i když zlomkové umístění v užším sloupci zaokrouhlí rozměr dolů */
+  width: 1.625rem;
+  height: 1.625rem;
   flex: none;
   margin: 0;
   accent-color: var(--s-accent);

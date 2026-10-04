@@ -3,6 +3,9 @@ import type { Page } from "@playwright/test";
 import { choose, identify, openRsvp, rsvpSection, send, tenant } from "./rsvp";
 import { TAGS, VIEWPORTS } from "./site";
 import { GUEST_PIN, type RsvpSetup } from "./support/rsvp-db";
+import { tenantUrl } from "./support/admin";
+import { withDb } from "./support/db";
+import { seedSite } from "./support/guests";
 import { expect, test } from "./support/rsvp-fixtures";
 
 /**
@@ -265,9 +268,13 @@ test.describe("velikost cílů, zvětšení a klávesnice (WCAG 2.5.8, 1.4.10, 2
 });
 
 test.describe("axe: zamčený web", () => {
-  test("brána s PINem (i s chybou) a reflow na 320 px", async ({ page, wedding }) => {
-    await wedding({ guestPin: GUEST_PIN, siteLocked: true });
-    await page.goto(tenant("/"));
+  test("brána s PINem (i s chybou) a reflow na 320 px", async ({ page }) => {
+    // vlastní web: zámek sdílené svatby by viděly souběžné testy webu bez zámku
+    const site = await seedSite({ guestPin: GUEST_PIN });
+    await withDb((db) =>
+      db.query("update se_vezmou.weddings set site_locked = true where id = $1", [site.weddingId]),
+    );
+    await page.goto(tenantUrl(site.slug));
     await expect(
       page.getByRole("heading", { level: 2, name: "Web je jen pro pozvané hosty" }),
     ).toBeVisible();

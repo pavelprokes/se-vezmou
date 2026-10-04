@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildEpcQr,
   buildSpayd,
   czAccountToIban,
   isValidBic,
@@ -69,5 +70,63 @@ describe("tuzemské číslo účtu", () => {
     const iban = czAccountToIban("19-2000145399/0800");
     expect(iban && isValidIban(iban)).toBe(true);
     expect(czAccountToIban("123456789/0100")).toBeNull();
+  });
+});
+
+describe("EPC QR (GiroCode, SEPA)", () => {
+  it("řádky podle EPC069-12 verze 002, bez částky, prázdné řádky na konci vynechané", () => {
+    expect(
+      buildEpcQr({
+        iban: "CZ65 0800 0000 1920 0014 5399",
+        bic: "gibaczpx",
+        name: "Klára Ukázková",
+        message: "Svatební dar\nKlára a Matěj",
+      }),
+    ).toBe(
+      [
+        "BCD",
+        "002",
+        "1",
+        "SCT",
+        "GIBACZPX",
+        "Klára Ukázková",
+        "CZ6508000000192000145399",
+        "",
+        "",
+        "",
+        "Svatební dar Klára a Matěj",
+      ].join("\n"),
+    );
+    expect(buildEpcQr({ iban: "CZ6508000000192000145399", name: "Klára" })).toBe(
+      "BCD\n002\n1\nSCT\n\nKlára\nCZ6508000000192000145399",
+    );
+  });
+
+  it("bez jména příjemce null; jméno a zpráva se zkrátí na limity normy", () => {
+    expect(buildEpcQr({ iban: "CZ6508000000192000145399", name: "  " })).toBeNull();
+    expect(buildEpcQr({ iban: "CZ6508000000192000145399", name: null })).toBeNull();
+    const long = buildEpcQr({
+      iban: "CZ6508000000192000145399",
+      name: "x".repeat(80),
+      message: "y".repeat(200),
+    })!.split("\n");
+    expect(long[5]).toHaveLength(70);
+    expect(long[10]).toHaveLength(140);
+  });
+
+  it("nejvýš 331 bajtů UTF-8 (diakritika) a emoji se při ořezu nerozdělí", () => {
+    const payload = buildEpcQr({
+      iban: "CZ6508000000192000145399",
+      bic: "GIBACZPXXXX",
+      name: "ř".repeat(70),
+      message: "ž".repeat(140),
+    })!;
+    expect(new TextEncoder().encode(payload).length).toBeLessThanOrEqual(331);
+    expect(payload.split("\n")[5]).toBe("ř".repeat(70));
+    const iban = "CZ6508000000192000145399";
+    const fits = buildEpcQr({ iban, name: "Klára", message: "x".repeat(139) + "💍" })!;
+    expect(fits.split("\n")[10]).toBe("x".repeat(139) + "💍");
+    const cut = buildEpcQr({ iban, name: "Klára", message: "x".repeat(140) + "💍" })!;
+    expect(cut).not.toContain("\uFFFD");
   });
 });

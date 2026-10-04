@@ -619,6 +619,22 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
     expect(within(gifts).getByText("GIBACZPX")).toBeInTheDocument();
     expect(within(gifts).getAllByText("Klára Ukázková")).toHaveLength(2);
     expect(within(gifts).getByRole("button", { name: "Copy IBAN" })).toBeInTheDocument();
+    // EPC QR (SEPA) vedle české QR platby
+    expect(
+      within(gifts).getByRole("img", {
+        name: /EU payment QR code \(SEPA, euro\) for a transfer to Klára Ukázková/,
+      }),
+    ).toBeInTheDocument();
+    expect(within(gifts).getAllByRole("img", { name: /QR code/ })).toHaveLength(2);
+  });
+
+  it("bez držitele účtu EPC QR není (formát vyžaduje jméno příjemce)", () => {
+    renderSite(eukalyptusFixture, "en", {
+      sensitiveUnlocked: true,
+      sensitive: { ...sensitiveFixture, gifts: { ...sensitiveFixture.gifts!, holder: null } },
+    });
+    const gifts = screen.getByRole("region", { name: "Gifts" });
+    expect(within(gifts).queryByRole("img", { name: /EU payment QR code/ })).toBeNull();
   });
 
   it("česká verze text IBANu a tlačítko Kopírovat nevykresluje", () => {
@@ -626,6 +642,7 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
     const gifts = screen.getByRole("region", { name: "Dary" });
     expect(within(gifts).queryByText("GIBACZPX")).toBeNull();
     expect(within(gifts).queryByRole("button", { name: /Kopírovat/ })).toBeNull();
+    expect(within(gifts).queryByRole("img", { name: /evropskou platbu/ })).toBeNull();
   });
 
   it("s příznakem vykreslí číslo účtu a QR platbu s popiskem", () => {

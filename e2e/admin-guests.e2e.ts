@@ -912,7 +912,7 @@ test.describe("heslo na celý web", () => {
     await expect(page.getByTestId("guest-pin-state")).toHaveText("PIN hostů je vypnutý.");
     await page.getByRole("button", { name: "Zamknout web" }).click();
     await page.getByRole("button", { name: "Ano, zamknout" }).click();
-    await expect(page.getByText(/Zamknout jde jen se zapnutým PINem hostů/)).toBeVisible();
+    await expect(page.getByText(/Nejdřív PIN hostů nastavte\sa\szapněte/)).toBeVisible();
     expect(await locked()).toBe(false);
 
     await page.getByRole("button", { name: "Zapnout PIN hostů" }).click();

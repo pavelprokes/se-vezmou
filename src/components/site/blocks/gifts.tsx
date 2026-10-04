@@ -1,5 +1,4 @@
 import { Lock } from "lucide-react";
-import qrcode from "qrcode-generator";
 import { Icon } from "@/components/ui/icon";
 import { buildSpayd } from "@/site/payment";
 import type { BlockOf } from "@/site/types";
@@ -8,35 +7,8 @@ import { giftsModel } from "../models";
 import { PinGate, UnlockedRegion } from "../pin-gate";
 import { pinGateLabels } from "../pin-labels";
 import { ForeignPayment } from "./foreign-payment";
+import { PaymentQr } from "./payment-qr";
 import { Paragraphs, Section } from "./section";
-
-/** QR kód jako inline SVG (černá na bílé s tichou zónou, aby šel načíst v každé paletě). */
-export function PaymentQr({ payload, label }: { payload: string; label: string }) {
-  const qr = qrcode(0, "M");
-  qr.addData(payload);
-  qr.make();
-  const count = qr.getModuleCount();
-  const quiet = 4;
-  let path = "";
-  for (let row = 0; row < count; row++) {
-    for (let col = 0; col < count; col++) {
-      if (qr.isDark(row, col)) path += `M${col + quiet} ${row + quiet}h1v1h-1z`;
-    }
-  }
-  const size = count + quiet * 2;
-  return (
-    <svg
-      role="img"
-      aria-label={label}
-      viewBox={`0 0 ${size} ${size}`}
-      className="site-qr"
-      shapeRendering="crispEdges"
-    >
-      <rect width={size} height={size} fill="#ffffff" />
-      <path d={path} fill="#000000" />
-    </svg>
-  );
-}
 
 /**
  * Dary (číslo účtu a QR platba bez pevné částky) jsou citlivý blok za PINem (FR-PRIV-2).

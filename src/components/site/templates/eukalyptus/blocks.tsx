@@ -8,7 +8,7 @@ import type { SurfaceKey } from "@/site/themes/palettes";
 import type { BlockOf } from "@/site/types";
 import { Paragraphs } from "../../blocks/section";
 import { ForeignPayment } from "../../blocks/foreign-payment";
-import { PaymentQr } from "../../blocks/gifts";
+import { PaymentQr } from "../../blocks/payment-qr";
 import { BLOCK_NAV, BLOCK_TITLE, type SiteCtx } from "../../context";
 import { GalleryLightbox, type LightboxLabels } from "../../gallery-lightbox";
 import {
@@ -411,7 +411,13 @@ export function EuGifts({ block, ctx, tone }: EuBlockProps<"gifts">) {
                   </div>
                 ) : null}
               </dl>
-              <ForeignPayment gifts={gifts} ctx={ctx} facts="eu-facts" />
+              <ForeignPayment
+                gifts={gifts}
+                ctx={ctx}
+                facts="eu-facts"
+                figure="eu-qr"
+                muted="eu-muted"
+              />
               <figure className="eu-qr">
                 <PaymentQr
                   payload={buildSpayd({ iban: gifts.iban, message: gifts.paymentMessage })}

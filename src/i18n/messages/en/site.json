@@ -58,6 +58,8 @@
   "gifts.copied": "Copied",
   "gifts.foreignTitle": "Paying from abroad",
   "gifts.foreignHint": "Foreign banking apps usually cannot read the QR payment. Use these details for a bank transfer.",
+  "gifts.epcLabel": "EU payment QR code (SEPA, euro) for a transfer to {name}.",
+  "gifts.epcHint": "Most European banking apps can scan this code (EPC QR, also called GiroCode). It sends euros; you choose the amount yourself.",
   "gifts.qr": "QR payment",
   "gifts.qrLabel": "QR code for a payment to account {account}. You choose the amount in your banking app.",
   "gifts.qrHint": "You choose the amount yourself in your banking app.",

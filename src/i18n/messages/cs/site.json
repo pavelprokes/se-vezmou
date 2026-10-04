@@ -60,6 +60,8 @@
   "gifts.copied": "Zkopírováno",
   "gifts.foreignTitle": "Platba ze zahraničí",
   "gifts.foreignHint": "Zahraniční bankovní aplikace QR platbu zpravidla nečtou. Použijte tyto údaje pro převod.",
+  "gifts.epcLabel": "QR kód pro evropskou platbu (SEPA, eura) příjemci {name}.",
+  "gifts.epcHint": "Tento kód načte většina evropských bankovních aplikací (EPC QR, GiroCode). Posílá eura, částku si zvolíte sami.",
   "gifts.qr": "QR platba",
   "gifts.qrLabel": "QR kód pro platbu na účet {account}. Částku si zvolíte v bankovní aplikaci.",
   "gifts.qrHint": "Částku si zvolíte sami v bankovní aplikaci.",

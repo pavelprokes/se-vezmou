@@ -7,9 +7,9 @@ import { localizedPath } from "@/i18n/pathnames";
 import { siteUrl } from "@/lib/site";
 import { buildLlmsTxt, type LlmsLink } from "@/seo/llms";
 
-// Stejně jako mapa webu: články se čtou při sestavení a jednou za hodinu znovu.
+// Stejně jako mapa webu: ISR po minutě, naplánované články po půlnoci načte cron `/api/cron/blog`.
 export const dynamic = "force-static";
-export const revalidate = 3600;
+export const revalidate = 60;
 
 /** Stránky z mapy webu a klíč jejich titulku a popisu v překladech. */
 const pages = [

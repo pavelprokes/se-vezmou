@@ -51,7 +51,7 @@ Postup krok za krokem je v `supabase/README.md`, kapitola Fotografie. Stručně:
 ## 4. První operátor a plánované úlohy
 
 1. `npm run ops:create-owner -- majitel@example.cz` (se `MIGRATE_DATABASE_URL`). Poté `https://admin.se-vezmou.cz/prihlaseni`: kód z e-mailu, zápis druhého faktoru (TOTP), **záložní kódy uložte mimo telefon**. Doporučeno alespoň dva operátory. Ztracený faktor: `npm run ops:reset-mfa -- …`.
-2. **Cron.** `vercel.json` plánuje jedinou úlohu `/api/cron/daily` (03:17 UTC): retence, životní cyklus, úklid. Bez platného `CRON_SECRET` (min. 32 znaků) vrací 401. Po prvním běhu (nebo ručně _Settings → Cron Jobs → Run_) musí v `se_vezmou.job_runs` přibýt řádek (`select job, status, started_at from se_vezmou.job_runs order by started_at desc limit 5;`). Žádný řádek = chyba, řešte před spuštěním.
+2. **Cron.** `vercel.json` plánuje `/api/cron/daily` (03:17 UTC: retence, životní cyklus, úklid) a `/api/cron/blog` (22:01 a 23:01 UTC, tedy po půlnoci letního i zimního času: zveřejnění naplánovaných článků blogu). Bez platného `CRON_SECRET` (min. 32 znaků) vrací 401. Po prvním běhu (nebo ručně _Settings → Cron Jobs → Run_) musí v `se_vezmou.job_runs` přibýt řádek (`select job, status, started_at from se_vezmou.job_runs order by started_at desc limit 5;`). Žádný řádek = chyba, řešte před spuštěním.
 3. **Limity tarifů** `[OVĚŘIT]`: Vercel Hobby (jen denní cron s hodinovou přesností, omezený počet cron úloh, **nekomerční použití**; pro placený provoz zvolte vhodný tarif), `maxDuration` 60 s; Supabase: velikost poolu a `max_connections` sdílené s jinými aplikacemi (`max` 5 na instanci, OQ-48), délka záloh (právní otázka, `docs/security-privacy.md` kap. 6); R2: ceny a operace (OQ-55).
 
 ## 5. Vercel: doména a DNS

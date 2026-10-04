@@ -396,7 +396,7 @@
   "blog.field.idHint": "Malá písmena bez diakritiky, číslice a pomlčky. Po založení se už nemění.",
   "blog.field.status": "Stav",
   "blog.field.publishedAt": "Datum vydání",
-  "blog.field.publishedAtHint": "Datum v budoucnosti znamená naplánované zveřejnění: článek se na webu objeví sám ten den, obvykle během několika hodin po půlnoci (stránky se obnovují průběžně).",
+  "blog.field.publishedAtHint": "Datum v budoucnosti znamená naplánované zveřejnění: článek se na webu objeví sám ten den krátce po půlnoci (plánovaná úloha; na tarifu Vercel Hobby do hodiny).",
   "blog.field.updatedAt": "Datum poslední úpravy",
   "blog.field.slug": "Adresa článku",
   "blog.field.slugHint": "Část adresy za /blog/. Malá písmena bez diakritiky, číslice a pomlčky.",

@@ -6,8 +6,9 @@ import { articleSchema, articleState, pragueToday, type Article } from "./articl
 
 /**
  * Články blogu jako soubory `content/blog/<id>.json` v repozitáři. Stránky blogu, mapa webu
- * a `llms.txt` se vykreslí při sestavení a na Vercelu se obnovují jednou za hodinu (`revalidate`),
- * takže naplánovaný článek se objeví sám v den vydání bez nového nasazení. Soubory k těmto stránkám
+ * a `llms.txt` se vykreslí při sestavení a na Vercelu se obnovují po minutě (ISR, `revalidate`);
+ * po půlnoci je načte plánovaná úloha `/api/cron/blog`, dokud v nich dnešní články nejsou, takže
+ * naplánovaný článek se objeví sám v den vydání bez nového nasazení i bez čekání na první návštěvu. Soubory k těmto stránkám
  * (i k administraci) přibalí `outputFileTracingIncludes`. Zápis funguje jen mimo Vercel, kde je
  * souborový systém zapisovatelný: článek se upraví lokálně v administraci a do produkce jde commitem.
  */

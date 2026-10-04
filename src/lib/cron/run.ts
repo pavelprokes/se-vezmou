@@ -6,7 +6,7 @@ import { cronLog, errorCode } from "./log";
  * dávky a hlídají časový rozpočet; co se nestihne, dokončí další běh.
  */
 
-export type JobName = "lifecycle" | "retention" | "housekeeping";
+export type JobName = "lifecycle" | "retention" | "housekeeping" | "blog_publish";
 export type JobOutcome = "ok" | "partial" | "failed";
 
 export type JobContext = {

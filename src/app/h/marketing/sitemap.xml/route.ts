@@ -3,9 +3,9 @@ import { publishedArticles } from "@/blog/store";
 import { siteUrl } from "@/lib/site";
 import { buildSitemap, indexableRoutes } from "@/seo/sitemap";
 
-// Články se čtou ze souborů při sestavení a jednou za hodinu znovu (naplánované zveřejnění).
+// Články se čtou ze souborů při sestavení a po minutě znovu (ISR); po půlnoci mapu načte cron `/api/cron/blog`.
 export const dynamic = "force-static";
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export function GET() {
   const pages = [...indexableRoutes, ...publishedArticles().map(articlePaths)];

@@ -16,8 +16,8 @@ import { typo } from "@/i18n/typo";
 import { siteUrl } from "@/lib/site";
 import { pageMetadata } from "@/seo/page-metadata";
 
-// Obnova jednou za hodinu (při první návštěvě po uplynutí): naplánovaný článek se objeví v den vydání.
-export const revalidate = 3600;
+// ISR po minutě; naplánovaný článek po půlnoci zveřejní cron `/api/cron/blog` (načte stránku sám).
+export const revalidate = 60;
 
 export async function generateMetadata({
   params,

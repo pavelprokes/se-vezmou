@@ -117,6 +117,8 @@ const nextConfig: NextConfig = {
     "/h/marketing/[locale]/blog/[slug]": ["./content/blog/*.json"],
     "/h/marketing/sitemap.xml": ["./content/blog/*.json"],
     "/h/marketing/llms.txt": ["./content/blog/*.json"],
+    // Cron po půlnoci zjišťuje, které články dnes vycházejí.
+    "/api/cron/blog": ["./content/blog/*.json"],
   },
 };
 

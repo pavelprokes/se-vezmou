@@ -428,7 +428,16 @@
     margin-inline: auto;
     gap: 0;
   }
-  .eu-nav-link {
+  /* specifičtější než základní .eu-nav-link níže (jinak by ho přebilo pořadí v souboru) */
+  .eu-nav-links .eu-nav-link {
+    /* všechny odkazy i přepínač jazyka se vejdou do 1280 px (dřív se poslední odkaz usekl) */
+    padding-inline: 0.4rem;
+    letter-spacing: 0.08em;
+  }
+}
+@media (min-width: 90rem) {
+  .eu-nav-links .eu-nav-link {
+    padding-inline: 0.5rem;
     letter-spacing: 0.14em;
   }
 }
@@ -436,7 +445,7 @@
   .eu-nav-links ul {
     gap: 0.5rem;
   }
-  .eu-nav-link {
+  .eu-nav-links .eu-nav-link {
     letter-spacing: 0.2em;
   }
 }

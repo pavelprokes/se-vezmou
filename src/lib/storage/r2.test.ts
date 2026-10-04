@@ -26,14 +26,20 @@ const config: R2Config = {
 type Call = { method: string; url: URL; headers: Headers; body: string };
 let calls: Call[];
 let responder: (call: Call) => Response | Promise<Response>;
+let lengthViolations: string[];
 
 beforeEach(() => {
   calls = [];
+  lengthViolations = [];
   responder = () => new Response("", { status: 200 });
   vi.stubGlobal("fetch", async (url: RequestInfo, init?: RequestInit) => {
     // Tělo musí přijít v `init` jako bajty nebo text, ne jako stream v `Request` (Next.js by ho poslal bez délky).
-    expect(typeof url).toBe("string");
-    expect(init?.body === undefined || !(init.body instanceof ReadableStream)).toBe(true);
+    // Kontrola až v `afterEach`: výjimka tady by se v `request()` změnila na chybu úložiště.
+    const body = init?.body;
+    if (typeof url !== "string") lengthViolations.push("Request místo adresy");
+    if (body !== undefined && !(body instanceof Uint8Array) && typeof body !== "string") {
+      lengthViolations.push("tělo bez známé délky");
+    }
     const input = new Request(url, init);
     const call: Call = {
       method: input.method,
@@ -45,7 +51,10 @@ beforeEach(() => {
     return responder(call);
   });
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  expect(lengthViolations).toEqual([]);
+});
 
 describe("nastavení R2 z prostředí", () => {
   const full = {

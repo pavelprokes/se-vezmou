@@ -158,17 +158,18 @@ export function createR2Storage(config: R2Config): PhotoStorage {
     // `aws4fetch` jen podepisuje; `fetch` dostane adresu a tělo v `init`, ne hotový `Request`. Next.js v serverových
     // akcích `fetch` obaluje a `Request` znovu sestaví s tělem jako streamem: PUT pak odejde bez `content-length`
     // a R2 ho odmítne (411 Length Required).
+    // Jeden časový limit na celé volání včetně opakování (i čtení těla odpovědi), ať visící R2 nezdrží funkci na Vercelu.
+    const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
     for (let attempt = 0; ; attempt++) {
       let response: Response;
       try {
         const signed = await aws.sign(url, init);
-        // Každý požadavek má pevný časový limit (i čtení těla odpovědi), ať visící R2 nezdrží funkci na Vercelu.
         response = await fetch(signed.url, {
           method: signed.method,
           headers: signed.headers,
           body: init.body,
           cache: "no-store",
-          signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+          signal,
         });
       } catch {
         throw new StorageError("storage_failed", `Úložiště nedostupné (${what})`);

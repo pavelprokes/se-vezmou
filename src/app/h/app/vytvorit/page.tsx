@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/brand-logo";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { appHref } from "@/admin/paths";
@@ -73,9 +74,9 @@ export default async function WizardPage({ searchParams }: PageProps<"/h/app/vyt
       <header className="border-hairline flex flex-wrap items-center justify-between gap-4 border-b px-4 py-3 sm:px-8">
         <a
           href={appHref("/", locale)}
-          className="min-h-target text-ink inline-flex items-center font-serif text-2xl font-medium"
+          className="min-h-target text-ink inline-flex items-center text-xl"
         >
-          {t("common.brand")}
+          <BrandLogo />
         </a>
         <LanguageSwitcher current={locale} hrefs={hrefs} label={t("common.language.label")} />
       </header>

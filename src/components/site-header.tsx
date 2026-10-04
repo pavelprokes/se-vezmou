@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import type { Locale } from "@/i18n/config";
 import { localizedPath, localizedPaths, type RouteName } from "@/i18n/pathnames";
@@ -16,9 +17,9 @@ export async function SiteHeader({ locale, route }: SiteHeaderProps) {
     <header className="flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-8">
       <a
         href={localizedPath("home", locale)}
-        className="min-h-target text-ink inline-flex items-center font-serif text-2xl font-medium"
+        className="min-h-target text-ink inline-flex items-center text-xl"
       >
-        {t("common.brand")}
+        <BrandLogo />
       </a>
       <LanguageSwitcher
         current={locale}

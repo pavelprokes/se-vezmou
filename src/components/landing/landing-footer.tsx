@@ -1,3 +1,4 @@
+import { BrandLogo } from "@/components/brand-logo";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { operator } from "@/config/operator";
 import type { Locale } from "@/i18n/config";
@@ -35,9 +36,7 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
     <footer className="bg-parchment text-ink">
       <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-8 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1.2fr_auto]">
         <div>
-          <p className="font-sans text-xl font-extrabold tracking-tight">
-            se-vezmou<span className="text-cinnamon-deep">.cz</span>
-          </p>
+          <BrandLogo className="text-xl" />
           <p className="text-muted mt-3 max-w-xs">
             {t("landing.footer.about", { operator: operator.nameAndId, address: operator.address })}
           </p>

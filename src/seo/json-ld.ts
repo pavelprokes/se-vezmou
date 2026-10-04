@@ -47,6 +47,7 @@ export function organizationLd(input: OrganizationInput): JsonLdNode {
     name: plain(input.name),
     url: `${input.siteUrl}/`,
     description: plain(input.description),
+    logo: `${input.siteUrl}/icons/icon-512.png`,
   };
   if (input.alternateName) node.alternateName = input.alternateName;
   if (!isPlaceholder(input.legalName)) node.legalName = plain(input.legalName);

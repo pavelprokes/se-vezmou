@@ -26,8 +26,8 @@ Na webu je dnes „0 Kč“ a „teď“ (slovo „zdarma“ záměrně nepouž�
 ## SEO a provoz
 
 - [ ] **Google Search Console, Bing Webmaster Tools, Seznam Webmaster**: ověřit doménu `se-vezmou.cz` (DNS TXT) a odeslat `sitemap.xml`.
-- [ ] **Logo**: tři návrhy jsou v `docs/brand/` (`logo-a-prsteny.svg`, `logo-b-oblouk.svg`, `logo-c-adresa.svg`, text převedený na křivky, barvy značky). Vybrat jedno, nasadit do hlavičky, favicony a OG obrázku (`scripts/generate-og.mjs`).
-- [ ] **Organization `logo` a `sameAs`**: po výběru loga doplnit do `src/seo/json-ld.ts` logo a odkazy na profily na sítích (kandidáti na `sameAs`: `svatebni-fotograf-cechy.cz`, `photos.svatebni-fotograf-cechy.cz`).
+- [x] **Logo**: vybrána varianta A (`docs/brand/`), nasazeno na web, ikony a OG obrázky.
+- [ ] **Organization `logo` a `sameAs`**: logo už je v `src/seo/json-ld.ts`; zbývá doplnit odkazy na profily na sítích (kandidáti na `sameAs`: `svatebni-fotograf-cechy.cz`, `photos.svatebni-fotograf-cechy.cz`).
 - [ ] **Záložní kontakt** `pavel@pavelprokes.cz`: nastavit jako přeposílání / `Reply-To` u `info@se-vezmou.cz` (nezveřejňovat na webu).
 - [ ] Linkbuilding a měření (CrUX, analytika) po spuštění Search Console; detaily v `docs/seo-audit-2026-10.md`.
 

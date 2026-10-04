@@ -38,6 +38,8 @@ export const RATE_RULES = {
   pinAdminIp: { limit: 20, windowSeconds: HOUR },
   /** PIN hostů podle svatby a IP (hosté na jedné Wi-Fi: volnější než PIN správy). */
   pinGuestIp: { limit: 60, windowSeconds: HOUR },
+  /** Relace hosta z osobního odkazu na zamčeném webu (náhledy odkazů v aplikacích, skripty). */
+  inviteSessionIp: { limit: 30, windowSeconds: HOUR },
   /** PIN hostů: součet chyb za všechny IP jedné svatby. */
   pinGuestWeddingFailures: { limit: 50, windowSeconds: HOUR },
   /** Čekací listina (úvodní stránka) podle IP; stejná odpověď i po překročení kvůli opakovanému e-mailu. */

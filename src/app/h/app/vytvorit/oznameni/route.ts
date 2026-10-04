@@ -41,7 +41,12 @@ export async function POST(request: Request): Promise<Response> {
   if (!context || context.status !== "published" || !context.slug) {
     return new Response(null, { status: 404 });
   }
-  const content = await getPublicContent(context.slug);
+  // jako správce: i zamčený web (heslo na celý web) má pro tisk oznámení svůj obsah
+  const content = await getPublicContent(context.slug, {
+    weddingId: session.weddingId,
+    weddingRole: "admin",
+    subject: session.subjectId,
+  });
   if (!content) return new Response(null, { status: 404 });
 
   let pin: string | null = null;

@@ -122,6 +122,15 @@ export async function adminGuestPinEnabledSet(
   await tenantRpc(identity(session), "admin_guest_pin_enabled_set", { p_enabled: enabled });
 }
 
+/** Zámek celého webu PINem hostů. */
+export function adminSiteLockGet(session: AdminIdentity): Promise<boolean> {
+  return tenantRpc<boolean>(identity(session), "admin_site_lock_get");
+}
+
+export async function adminSiteLockSet(session: AdminIdentity, locked: boolean): Promise<void> {
+  await tenantRpc(identity(session), "admin_site_lock_set", { p_locked: locked });
+}
+
 export function grantOperatorAccess(
   session: AdminIdentity,
   reason: string,

@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   setTicket: vi.fn(),
   clearTicket: vi.fn(),
   clearInvite: vi.fn(),
+  getSiteState: vi.fn(),
   matchStep: vi.fn(),
   submitStep: vi.fn(),
   unlistedStep: vi.fn(),
@@ -22,6 +23,7 @@ vi.mock("@/site/tenant-request", () => ({
   clearTicket: mocks.clearTicket,
   clearInvite: mocks.clearInvite,
 }));
+vi.mock("@/site/content", () => ({ getSiteState: mocks.getSiteState }));
 vi.mock("@/lib/rsvp/service", () => ({
   matchStep: mocks.matchStep,
   submitStep: mocks.submitStep,
@@ -49,6 +51,7 @@ function form(entries: Record<string, string>): FormData {
 
 beforeEach(() => {
   for (const mock of Object.values(mocks)) mock.mockReset();
+  mocks.getSiteState.mockResolvedValue({ kind: "published" });
   mocks.tenantFromRequest.mockResolvedValue(tenant);
   mocks.getClientIp.mockResolvedValue("198.51.100.7");
   vi.spyOn(console, "error").mockImplementation(() => undefined);
@@ -151,6 +154,19 @@ describe("Server Actions webu páru: RSVP", () => {
     });
     const logged = JSON.stringify(vi.mocked(console.error).mock.calls);
     expect(logged).not.toMatch(/Jan Novák|Karel/);
+  });
+
+  it("zamčený web bez relace hosta RSVP neobslouží (akce jde poslat i mimo stránku)", async () => {
+    mocks.getSiteState.mockResolvedValue({ kind: "locked" });
+    expect(await matchAction(form({ name: "Jan Novák" }))).toEqual({
+      stage: "name",
+      error: "generic",
+    });
+    expect(await unlistedAction(form({}))).toEqual({ stage: "name", error: "generic" });
+    await submitAction(form({ mode: "listed" }));
+    expect(mocks.matchStep).not.toHaveBeenCalled();
+    expect(mocks.unlistedStep).not.toHaveBeenCalled();
+    expect(mocks.submitStep).not.toHaveBeenCalled();
   });
 
   it('"Zadat jiné jméno" smaže lístek i kód osobního odkazu', async () => {

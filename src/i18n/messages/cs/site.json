@@ -107,6 +107,8 @@
   "pin.error.locked": "Zadávání PINu je dočasně pozastaveno. Zkuste to znovu za {pause}.",
   "pin.error.limited": "Zkuste to prosím znovu později.",
   "pin.error.generic": "Něco se nepovedlo. Zkuste to prosím znovu.",
+  "lock.gateTitle": "Web je jen pro pozvané hosty",
+  "lock.gateBody": "Zadejte PIN z pozvánky, nebo naskenujte QR kód, který na ní najdete.",
   "venue.private.title": "Adresa je chráněna PINem",
   "venue.private.body": "Přesnou adresu uvidíte po zadání PINu z pozvánky.",
   "countdown.label": {

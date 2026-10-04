@@ -81,6 +81,8 @@ export interface RsvpSetup {
   }[];
   /** PIN hostů (null = vypnuto). */
   guestPin?: string | null;
+  /** Heslo na celý web (platí jen s PINem hostů). */
+  siteLocked?: boolean;
 }
 
 export interface GuestSpec {
@@ -292,10 +294,10 @@ export async function prepareWedding(ip: string, setup: RsvpSetup = {}): Promise
       WEDDING_ID,
       pinHash,
     ]);
-    await db.query("update se_vezmou.weddings set guest_pin_enabled = $2 where id = $1", [
-      WEDDING_ID,
-      pinHash !== null,
-    ]);
+    await db.query(
+      "update se_vezmou.weddings set guest_pin_enabled = $2, site_locked = $3 where id = $1",
+      [WEDDING_ID, pinHash !== null, setup.siteLocked ?? false],
+    );
     await db.query("commit");
   });
 
@@ -368,16 +370,18 @@ export async function prepareWedding(ip: string, setup: RsvpSetup = {}): Promise
 }
 
 /**
- * Po testu sdílená svatba znovu přijímá odpovědi: testy webu (site.e2e.ts) zámek neberou a ukotvené tlačítko
- * Potvrdit účast se ukazuje jen při otevřeném RSVP.
+ * Po testu sdílená svatba znovu přijímá odpovědi a není zamčená: testy webu (site.e2e.ts) zámek sdílené
+ * svatby neberou a ukotvené tlačítko Potvrdit účast se ukazuje jen při otevřeném RSVP.
  */
 export async function reopenRsvp(): Promise<void> {
-  await withDb((db) =>
-    db.query(
+  await withDb(async (db) => {
+    await db.query(
       "update se_vezmou.rsvp_settings set opens_at = null, closes_at = null where wedding_id = $1",
       [WEDDING_ID],
-    ),
-  );
+    );
+    // ani zámek webu nesmí přetrvat do testů bez zámku
+    await db.query("update se_vezmou.weddings set site_locked = false where id = $1", [WEDDING_ID]);
+  });
 }
 
 export async function guestSessions() {

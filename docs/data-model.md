@@ -44,28 +44,29 @@ Sloupce `created_at timestamptz default now()` a `updated_at` jsou u všech tabu
 
 **`weddings`**
 
-| Pole                                       | Typ               | Poznámka                                                                                                                               |
-| ------------------------------------------ | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`                                       | uuid pk           |                                                                                                                                        |
-| `slug`                                     | text null, unique | null jen u konceptu, jehož rezervace vypršela. Check: `^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$` a bez `--`. Zveřejněný web musí mít slug. |
-| `status`                                   | text              | `draft`, `pending_payment`, `published`, `archived`, `deleted`, `blocked` (FR-OPS-2)                                                   |
-| `phase_override`                           | text null         | ruční zásah do fáze (viz kapitola 7), jen operátor, vždy s auditem                                                                     |
-| `default_locale`                           | text              | `cs` nebo `en`                                                                                                                         |
-| `locales`                                  | text[]            | podmnožina `{cs,en}`, obsahuje `default_locale`                                                                                        |
-| `template`                                 | text              | `editorial`, `eukalyptus`, `chateau`, `modern`                                                                                         |
-| `palette`                                  | text              | klíč palety, platnost ve vztahu k šabloně hlídá aplikace a test kontrastu                                                              |
-| `partner_a_name`, `partner_b_name`         | text              | např. Klára a Matěj; nepřekládají se                                                                                                   |
-| `starts_on`, `ends_on`                     | date              | `ends_on` null u jednodenní svatby, vícedenní svatby ji vyplní                                                                         |
-| `timezone`                                 | text              | výchozí `Europe/Prague`; fáze se počítají v tomto pásmu                                                                                |
-| `published_version_id`                     | uuid null         | odkaz na `site_versions` (složený FK)                                                                                                  |
-| `quick_notice`                             | i18n_text null    | „rychlá změna“ (FR-ADM-3)                                                                                                              |
-| `quick_notice_enabled`                     | bool              |                                                                                                                                        |
-| `guest_pin_enabled`                        | bool              |                                                                                                                                        |
-| `preview_token_hash`                       | bytea null        | neuhádnutelný odkaz na náhled konceptu, uložen jen jako hash                                                                           |
-| `last_activity_at`                         | timestamptz       | aktualizuje se při uložení správcem (omezeně, ne při každém úhozu); řídí rezervaci slugu                                               |
-| `published_at`, `blocked_at`, `deleted_at` | timestamptz null  |                                                                                                                                        |
-| `health_purge_at`, `guest_purge_at`        | timestamptz null  | vypočítá trigger z `ends_on`/`starts_on` a `app_settings`; operátor je smí prodloužit s auditem                                        |
-| `purge_at`                                 | timestamptz null  | tvrdé smazání zakázky po měkkém smazání (lhůta `[LHŮTY]`)                                                                              |
+| Pole                                       | Typ               | Poznámka                                                                                                                                |
+| ------------------------------------------ | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                                       | uuid pk           |                                                                                                                                         |
+| `slug`                                     | text null, unique | null jen u konceptu, jehož rezervace vypršela. Check: `^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$` a bez `--`. Zveřejněný web musí mít slug.  |
+| `status`                                   | text              | `draft`, `pending_payment`, `published`, `archived`, `deleted`, `blocked` (FR-OPS-2)                                                    |
+| `phase_override`                           | text null         | ruční zásah do fáze (viz kapitola 7), jen operátor, vždy s auditem                                                                      |
+| `default_locale`                           | text              | `cs` nebo `en`                                                                                                                          |
+| `locales`                                  | text[]            | podmnožina `{cs,en}`, obsahuje `default_locale`                                                                                         |
+| `template`                                 | text              | `editorial`, `eukalyptus`, `chateau`, `modern`                                                                                          |
+| `palette`                                  | text              | klíč palety, platnost ve vztahu k šabloně hlídá aplikace a test kontrastu                                                               |
+| `partner_a_name`, `partner_b_name`         | text              | např. Klára a Matěj; nepřekládají se                                                                                                    |
+| `starts_on`, `ends_on`                     | date              | `ends_on` null u jednodenní svatby, vícedenní svatby ji vyplní                                                                          |
+| `timezone`                                 | text              | výchozí `Europe/Prague`; fáze se počítají v tomto pásmu                                                                                 |
+| `published_version_id`                     | uuid null         | odkaz na `site_versions` (složený FK)                                                                                                   |
+| `quick_notice`                             | i18n_text null    | „rychlá změna“ (FR-ADM-3)                                                                                                               |
+| `quick_notice_enabled`                     | bool              |                                                                                                                                         |
+| `guest_pin_enabled`                        | bool              |                                                                                                                                         |
+| `site_locked`                              | bool              | heslo na celý web: návštěvník bez relace hosta dostane z `get_public_site` jen bránu (jména, jazyky); platí jen se zapnutým PINem hostů |
+| `preview_token_hash`                       | bytea null        | neuhádnutelný odkaz na náhled konceptu, uložen jen jako hash                                                                            |
+| `last_activity_at`                         | timestamptz       | aktualizuje se při uložení správcem (omezeně, ne při každém úhozu); řídí rezervaci slugu                                                |
+| `published_at`, `blocked_at`, `deleted_at` | timestamptz null  |                                                                                                                                         |
+| `health_purge_at`, `guest_purge_at`        | timestamptz null  | vypočítá trigger z `ends_on`/`starts_on` a `app_settings`; operátor je smí prodloužit s auditem                                         |
+| `purge_at`                                 | timestamptz null  | tvrdé smazání zakázky po měkkém smazání (lhůta `[LHŮTY]`)                                                                               |
 
 **`slug_registry`** (trvalá tabulka adres, není vázána na tenant politikami)
 

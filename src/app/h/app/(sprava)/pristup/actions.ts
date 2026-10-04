@@ -11,12 +11,14 @@ import {
   revokeAccess,
   setBackupEmail,
   setGuestPinEnabled,
+  setSiteLocked,
   type AccessActor,
   type AccessContext,
   type AddAdminResult,
   type BackupResult,
   type GrantResult,
   type GuestPinToggleResult,
+  type SiteLockResult,
   type PinResult,
   type RemoveAdminResult,
   type RevokeResult,
@@ -86,6 +88,10 @@ export async function setGuestPinEnabledAction(
   enabled: boolean,
 ): Promise<Guarded<GuestPinToggleResult>> {
   return guarded("přepnutí PINu hostů", (session) => setGuestPinEnabled(actor(session), enabled));
+}
+
+export async function setSiteLockedAction(locked: boolean): Promise<Guarded<SiteLockResult>> {
+  return guarded("zámek webu", (session) => setSiteLocked(actor(session), locked));
 }
 
 export async function grantAccessAction(input: {

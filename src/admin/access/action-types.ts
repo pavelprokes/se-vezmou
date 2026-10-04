@@ -8,6 +8,7 @@ import type {
   PinResult,
   RemoveAdminResult,
   RevokeResult,
+  SiteLockResult,
 } from "./server";
 
 /** Tvary Server Actions přístupu (M7b): prostá data, nikdy výjimka ani adresy. */
@@ -17,6 +18,7 @@ export type AccessActions = {
   setBackupEmail: (email: string) => Promise<Guarded<BackupResult>>;
   changePin: (role: "admin" | "guest", pin: string) => Promise<Guarded<PinResult>>;
   setGuestPinEnabled: (enabled: boolean) => Promise<Guarded<GuestPinToggleResult>>;
+  setSiteLocked: (locked: boolean) => Promise<Guarded<SiteLockResult>>;
   grant: (input: { reason: string; days: number }) => Promise<Guarded<GrantResult>>;
   revoke: (grantId: string) => Promise<Guarded<RevokeResult>>;
 };

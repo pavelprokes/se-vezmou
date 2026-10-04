@@ -9,6 +9,7 @@ import { normalizePinInput } from "@/auth/pin";
 import { getClientIp } from "@/auth/request";
 import { formatPause } from "@/i18n/duration";
 import type { RsvpState } from "@/lib/rsvp/form";
+import { getSiteState } from "@/site/content";
 import { matchStep, submitStep, unlistedStep, type StepResult } from "@/lib/rsvp/service";
 import {
   clearInvite,
@@ -32,6 +33,18 @@ const defer: Defer = (task) =>
 
 const GENERIC: RsvpState = { stage: "name", error: "generic" };
 
+/**
+ * Svatba pro kroky RSVP: jako `tenantFromRequest`, ale zamčený web (heslo na celý web) bez relace hosta
+ * RSVP neobslouží. Akce jde poslat i mimo stránku (identifikátor akce je veřejný), takže skrytý formulář
+ * nestačí: bez PINu by šlo zjistit program a jména hostů.
+ */
+async function rsvpTenant(localeField: unknown) {
+  const tenant = await tenantFromRequest(localeField);
+  if (!tenant) return null;
+  const state = await getSiteState(tenant.slug);
+  return state?.kind === "published" ? tenant : null;
+}
+
 async function applyTicket(result: StepResult): Promise<RsvpState> {
   if (result.ticket && "set" in result.ticket) await setTicket(result.ticket.set);
   else if (result.ticket && "clear" in result.ticket) await clearTicket();
@@ -46,7 +59,7 @@ function field(formData: FormData, name: string): string {
 /** Krok 1: jméno -> domácnost. Neshoda, více shod, limit i zavřené RSVP vrací stejný stav. */
 export async function matchAction(formData: FormData): Promise<RsvpState> {
   try {
-    const tenant = await tenantFromRequest(formData.get("locale"));
+    const tenant = await rsvpTenant(formData.get("locale"));
     if (!tenant) return GENERIC;
     const result = await matchStep({
       weddingId: tenant.weddingId,
@@ -68,7 +81,7 @@ export async function matchAction(formData: FormData): Promise<RsvpState> {
 /** Host mimo seznam: formulář bez ověření jména (jen když to pár povolil). */
 export async function unlistedAction(formData: FormData): Promise<RsvpState> {
   try {
-    const tenant = await tenantFromRequest(formData.get("locale"));
+    const tenant = await rsvpTenant(formData.get("locale"));
     if (!tenant) return GENERIC;
     return applyTicket(await unlistedStep({ weddingId: tenant.weddingId, locale: tenant.locale }));
   } catch (error) {
@@ -83,7 +96,7 @@ export async function unlistedAction(formData: FormData): Promise<RsvpState> {
 /** Odeslání nebo úprava odpovědi. Lístek je v cookie, ne ve formuláři. */
 export async function submitAction(formData: FormData): Promise<RsvpState> {
   try {
-    const tenant = await tenantFromRequest(formData.get("locale"));
+    const tenant = await rsvpTenant(formData.get("locale"));
     if (!tenant) return GENERIC;
     const mode = field(formData, "mode") === "unlisted" ? "unlisted" : "listed";
     return applyTicket(
@@ -108,7 +121,7 @@ export async function submitAction(formData: FormData): Promise<RsvpState> {
 /** "Zadat jiné jméno": zahodí lístek i kód osobního odkazu (sdílené zařízení) a vrátí první krok. */
 export async function resetAction(formData: FormData): Promise<RsvpState> {
   try {
-    const tenant = await tenantFromRequest(formData.get("locale"));
+    const tenant = await rsvpTenant(formData.get("locale"));
     if (!tenant) return GENERIC;
     await clearTicket();
     await clearInvite();

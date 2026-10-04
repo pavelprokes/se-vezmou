@@ -35,7 +35,7 @@ export interface PinGateProps {
   /** Které odemčené místo má po úspěchu dostat zaměření (`gifts`, `venue:<id>`); páruje se s `UnlockedRegion`. */
   unlockKey: string;
   /** Úroveň nadpisu formuláře (uvnitř karty místa je to 4). */
-  headingLevel?: 3 | 4;
+  headingLevel?: 2 | 3 | 4;
 }
 
 const FLAG = "sv-unlocked";
@@ -159,4 +159,22 @@ export function UnlockedRegion({
       {children}
     </div>
   );
+}
+
+/**
+ * Po odemčení zamčeného webu (brána `LockedSite`) formulář zmizí a vykreslí se celý web: zaměření přejde
+ * na hlavní obsah, aby klávesnice a čtečka nezůstaly na odstraněném tlačítku (WCAG 2.4.3).
+ */
+export function SiteUnlockedFocus() {
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem(FLAG) === "site") {
+        window.sessionStorage.removeItem(FLAG);
+        document.getElementById("obsah")?.focus();
+      }
+    } catch {
+      // bez úložiště se zaměření nepřesouvá
+    }
+  }, []);
+  return null;
 }

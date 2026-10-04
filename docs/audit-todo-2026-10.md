@@ -50,7 +50,7 @@ Každý blok má `anchor`, `enabled`, `position`, `sensitive`. Společné prvky:
 - ✅ **QR galerie vedle pozvánky.** Druhý QR kód v PDF oznámení, jen pro zapnutý blok s veřejným odkazem (`galleryUrl` v `src/wizard/pdf/announcement.ts`).
 - ✅ **Svatební dar.** Číslo účtu a držitel jako text, QR SPAYD `SPD*1.0*ACC:<IBAN>*CC:CZK[*MSG:…]` bez částky, zpráva bez diakritiky max 60 znaků, validace IBAN (mod 97): `src/site/payment.ts`, `blocks/gifts.tsx`. Za PINem.
 - ✅ **IBAN a BIC jako text.** Převod ze zahraničí s příjemcem, IBAN, BIC a zprávou, každé s tlačítkem „Kopírovat“: `src/components/site/blocks/foreign-payment.tsx`, `copy-button.tsx`, validace v `src/site/payment.ts`.
-- 🟡 **Heslo na web.** Celý web heslo nemá. PIN odemyká jen citlivé části (dar, soukromá místa, chráněné fotky). Náhled konceptu `/nahled/[token]`.
+- ✅ **Heslo na web.** `weddings.site_locked` (migrace `20261016120000_site_lock.sql`): zamčený web vydá návštěvníkovi bez PINu jen jména a jazyky (`get_public_site` v režimu `locked`), host projde PINem hostů nebo osobním odkazem (ten mu vydá relaci hosta). Přepínač ve správě Přístup, zamknout jde jen se zapnutým PINem hostů. Bez zámku PIN odemyká jen citlivé části. Náhled konceptu `/nahled/[token]`.
 - ✅ **Banner „změna termínu“.** `quickNotice` s předvyplněným textem „Změna termínu“ ve všech jazycích webu podle data svatby: `src/admin/site/date-change-notice.ts`, `src/components/admin/quick-notice.tsx`.
 
 ## A4. Jazyky

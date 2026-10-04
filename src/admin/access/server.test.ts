@@ -24,6 +24,7 @@ import {
   revokeAccess,
   setBackupEmail,
   setGuestPinEnabled,
+  setSiteLocked,
   type AccessContext,
 } from "./server";
 
@@ -64,7 +65,7 @@ const VIEW = {
 
 function fakeDb(
   results: Record<string, unknown> = {},
-  options: { rateAllowed?: boolean; fail?: Record<string, DbError> } = {},
+  options: { rateAllowed?: boolean; fail?: Record<string, DbError>; siteLocked?: boolean } = {},
 ) {
   const calls: Call[] = [];
   setTransport({
@@ -76,6 +77,7 @@ function fakeDb(
         return [{ allowed, retry_after: allowed ? 0 : 55 }];
       }
       if (fn === "admin_access_load") return VIEW;
+      if (fn === "admin_site_lock_get") return options.siteLocked ?? false;
       if (fn === "auth_session_context") {
         return [
           { slug: "klara-a-matej", status: "published", partner_a_name: "K", partner_b_name: "M" },
@@ -301,6 +303,26 @@ describe("PIN", () => {
     );
     expect(await setGuestPinEnabled(ACTOR, true)).toEqual({ status: "pin_missing" });
     expect(await setGuestPinEnabled(ACTOR, "ano")).toEqual({ status: "pin_missing" });
+  });
+});
+
+describe("zámek webu", () => {
+  it("načte stav zámku k přístupu a zamknutí bez PINu hostů je stav pin_missing", async () => {
+    fakeDb({}, { siteLocked: true });
+    expect((await loadAccess(ACTOR)).site_locked).toBe(true);
+    const calls = fakeDb({ admin_site_lock_set: null });
+    expect(await setSiteLocked(ACTOR, true)).toEqual({ status: "ok" });
+    expect(calls.find((c) => c.fn === "admin_site_lock_set")?.args).toEqual({ p_locked: true });
+    fakeDb(
+      {},
+      {
+        fail: {
+          admin_site_lock_set: new DbError("admin_site_lock_set", "55000", "pin_missing"),
+        },
+      },
+    );
+    expect(await setSiteLocked(ACTOR, true)).toEqual({ status: "pin_missing" });
+    expect(await setSiteLocked(ACTOR, "ano")).toEqual({ status: "pin_missing" });
   });
 });
 

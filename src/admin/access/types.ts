@@ -19,6 +19,8 @@ export const accessViewSchema = z.object({
   has_admin_pin: z.boolean(),
   has_guest_pin: z.boolean(),
   guest_pin_enabled: z.boolean(),
+  /** Celý web jen po PINu hostů (vlastní funkce `admin_site_lock_get`, ne součást `admin_access_load`). */
+  site_locked: z.boolean().default(false),
   status: z.string(),
   slug: z.string().nullable(),
   restore_days: z.number().int(),

@@ -21,7 +21,7 @@ import {
  * Po každém kroku se čeká na viditelný výsledek (e-mail v outboxu, stav v databázi), než se jde dál.
  */
 
-const ROUTES = ["daily", "lifecycle", "retention", "housekeeping"] as const;
+const ROUTES = ["daily", "lifecycle", "retention", "housekeeping", "blog"] as const;
 
 test.describe("autorizace cronu", () => {
   for (const route of ROUTES) {
@@ -49,6 +49,16 @@ test.describe("autorizace cronu", () => {
       expect(bare.status, "tajná hodnota bez schématu Bearer").toBe(401);
     });
   }
+
+  // Ostrý běh by načítal stránky produkčního webu (NEXT_PUBLIC_SITE_URL), proto jen dry_run.
+  test("/api/cron/blog: dry_run spočítá dnešní články a nic nenačte", async ({ request }) => {
+    const result = await callCron(request, "/api/cron/blog", { query: { dry_run: "1" } });
+    expect(result.status).toBe(200);
+    expect(result.body.dry_run).toBe(true);
+    const report = result.body.jobs?.find((job) => job.job === "blog_publish");
+    expect(report?.status).toBe("dry_run");
+    expect(report?.counts).toMatchObject({ ready: 0, not_ready: 0 });
+  });
 
   test("simulovaný čas bez tajné hodnoty se neprovede (a nic se nezmění)", async ({ request }) => {
     const wedding = await seedLifecycleWedding("2030-06-15");

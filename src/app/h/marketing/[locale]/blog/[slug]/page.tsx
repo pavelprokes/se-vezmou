@@ -23,9 +23,10 @@ type Props = PageProps<"/h/marketing/[locale]/blog/[slug]">;
 
 // Jen zveřejněné články v jazyce adresy; cizí nebo neznámý slug je 404 (žádné duplicity).
 // Naplánovaný článek nemá stránku ze sestavení: vykreslí se na vyžádání, jakmile je jeho den
-// (do té doby 404), a stránky se obnovují jednou za hodinu (odkazy „další články“, odkazy v textu).
+// (do té doby 404; po půlnoci ho načte cron `/api/cron/blog`). Stránky se obnovují po minutě
+// (odkazy „další články“ a odkazy v textu na nově vydané články).
 export const dynamicParams = true;
-export const revalidate = 3600;
+export const revalidate = 60;
 
 export function generateStaticParams({ params }: { params: { locale: string } }) {
   const locale = params.locale;

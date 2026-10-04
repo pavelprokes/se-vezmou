@@ -45,6 +45,40 @@ test.describe("web páru na hostiteli webu páru", () => {
     );
   });
 
+  test("náhled odkazu: Open Graph s obrázkem, robots.txt pustí jen roboty náhledů", async ({
+    page,
+    request,
+  }) => {
+    await page.goto(pageUrl(HOSTS.tenant, "/"));
+    const og = (property: string) =>
+      page.locator(`meta[property="${property}"]`).getAttribute("content");
+    expect(await og("og:title")).toBe(await page.title());
+    expect(await og("og:description")).toMatch(/^Budeme se brát /);
+    const image = await og("og:image");
+    expect(image).toMatch(/^http:\/\/klara-a-matej\.localhost:\d+\/og$/);
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute(
+      "content",
+      "summary_large_image",
+    );
+
+    const response = await request.get(image!);
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toBe("image/png");
+    expect((await response.body()).length).toBeGreaterThan(10_000);
+
+    const robots = await (await request.get(pageUrl(HOSTS.tenant, "/robots.txt"))).text();
+    expect(robots).toContain("User-agent: WhatsApp\n");
+    expect(robots.endsWith("User-agent: *\nDisallow: /\n")).toBe(true);
+  });
+
+  test("obrázek náhledu blogu: zveřejněný článek ano, neznámý ne", async ({ request }) => {
+    const ok = await request.get(pageUrl(HOSTS.marketing, "/og/blog/potvrzeni-ucasti-na-svatbu"));
+    expect(ok.status()).toBe(200);
+    expect(ok.headers()["content-type"]).toBe("image/png");
+    const missing = await request.get(pageUrl(HOSTS.marketing, "/og/blog/neexistuje"));
+    expect(missing.status()).toBe(404);
+  });
+
   test("přepínač jazyka vede na anglickou verzi a zpět", async ({ page }) => {
     await page.goto(pageUrl(HOSTS.tenant, "/"));
     await page

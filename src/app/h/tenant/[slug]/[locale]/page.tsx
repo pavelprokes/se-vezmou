@@ -6,10 +6,13 @@ import { SITE_NAMESPACES } from "@/components/site/context";
 import { LockedSite } from "@/components/site/locked-site";
 import { SiteUnlockedFocus } from "@/components/site/pin-gate";
 import { SiteRenderer } from "@/components/site/site-renderer";
-import { isLocale, type Locale } from "@/i18n/config";
+import { isLocale, localePath, type Locale } from "@/i18n/config";
 import { localizedPath } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
+import { OG_SIZE } from "@/seo/og-card";
 import { getSiteState } from "@/site/content";
+import { formatDateRange } from "@/site/format";
+import { pick } from "@/site/i18n-text";
 import { loadGuestContext } from "@/site/guest-context";
 import { eventsForGuest, invitePath } from "@/site/invite";
 import { readInvite } from "@/site/tenant-request";
@@ -32,22 +35,52 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, locale } = await params;
   const loaded = await load(slug, locale);
   if (!loaded) return {};
-  if (loaded.state.kind === "locked") {
-    const t = await getTranslator(loaded.locale, ["site"]);
-    const { a, b } = loaded.state.gate.partners;
-    return { title: t("site.title", { a, b }), robots: { index: false, follow: false } };
-  }
-  const loaded2 = { content: loaded.state.content, locale: loaded.locale };
-  const { content } = loaded2;
+  const { state } = loaded;
   const h = await headers();
   const origin = originFromHeaders(h.get("host"), h.get("x-forwarded-proto"));
-  const languages = languageAlternates(origin, content.locales, content.defaultLocale);
-  const t = await getTranslator(loaded2.locale, ["site"]);
-  return {
-    title: t("site.title", { a: content.partners.a, b: content.partners.b }),
+  const t = await getTranslator(loaded.locale, ["site"]);
+  const look = state.kind === "published" ? state.content : state.gate;
+  const title = t("site.title", { a: look.partners.a, b: look.partners.b });
+
+  // Náhled odkazu (WhatsApp, iMessage, Messenger…): datum a místo; zamčený web jen jména, jako jeho brána.
+  let description = t("site.lock.gateTitle");
+  let alternates: Metadata["alternates"] = undefined;
+  if (state.kind === "published") {
+    const { content } = state;
+    const venue = content.venues[0];
+    const place = venue ? pick(venue.name, loaded.locale, content.defaultLocale) : "";
+    description = [
+      `${t("site.hero.saveTheDate")} ${formatDateRange(content.startsOn, content.endsOn, loaded.locale)}`,
+      place,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const languages = languageAlternates(origin, content.locales, content.defaultLocale);
     // `hreflang` bez indexace: web zůstává `noindex` (hlavička z proxy i meta robots).
-    alternates: { canonical: languages[loaded2.locale], languages },
+    alternates = { canonical: languages[loaded.locale], languages };
+  }
+  const url = `${origin}${localizedPath("home", loaded.locale)}`;
+  const image = {
+    url: `${origin}${localePath("/og", loaded.locale)}`,
+    width: OG_SIZE.width,
+    height: OG_SIZE.height,
+    alt: title,
+  };
+  return {
+    title,
+    description,
+    alternates,
     robots: { index: false, follow: false },
+    openGraph: {
+      type: "website",
+      url,
+      siteName: title,
+      title,
+      description,
+      locale: loaded.locale === "cs" ? "cs_CZ" : "en_GB",
+      images: [image],
+    },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
   };
 }
 

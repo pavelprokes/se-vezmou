@@ -69,7 +69,7 @@ test.describe("citlivá data bez PINu (E2E-17)", () => {
     const english = await (await request.get(apiRequest(HOSTS.tenant, "/en").url, options)).text();
     for (const body of [html, english]) {
       for (const secret of LEAKS) expect(body).not.toContain(secret);
-      expect(body).not.toContain("CZ");
+      expect(body).not.toMatch(/CZ\d{2}/); // IBAN (samotné „CZ“ je i v og:locale cs_CZ)
       expect(body).not.toMatch(/SPD\*1\.0/);
     }
     expect(html).toMatch(/PIN z\spozvánky/);

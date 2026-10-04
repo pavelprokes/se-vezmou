@@ -25,6 +25,8 @@ export interface PageMetadataInput {
   noindex?: boolean;
   /** Článek: Open Graph typu `article` s daty vydání a úpravy (`YYYY-MM-DD`). */
   article?: { publishedTime: string; modifiedTime: string };
+  /** Vlastní obrázek pro sdílení (cesta 1200 × 630), jinak obecný obrázek webu v jazyce stránky. */
+  image?: string;
 }
 
 /**
@@ -37,7 +39,7 @@ export function pageMetadata(input: PageMetadataInput): Metadata {
   const links = hreflangAlternates(route, locale, siteUrl);
   const url = links.canonical;
   const image = {
-    url: ogImagePath(locale),
+    url: input.image ?? ogImagePath(locale),
     ...OG_IMAGE_SIZE,
     alt: imageAlt,
   };

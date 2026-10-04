@@ -1,4 +1,4 @@
-import { ALLOWED_BOTS, TRAINING_BOTS } from "@/config/robots";
+import { ALLOWED_BOTS, LINK_PREVIEW_BOTS, TRAINING_BOTS } from "@/config/robots";
 
 function group(agents: readonly string[], rule: string): string {
   return [...agents.map((agent) => `User-agent: ${agent}`), rule].join("\n");
@@ -19,6 +19,11 @@ export function marketingRobots(siteUrl: string): string {
 /** `robots.txt` pro `app.`, `admin.` a weby párů: nikdo nic neindexuje. */
 export function closedRobots(): string {
   return "User-agent: *\nDisallow: /\n";
+}
+
+/** `robots.txt` webu páru: náhledy sdílených odkazů ano (WhatsApp, Messenger…), jinak nikdo; web je `noindex`. */
+export function tenantRobots(): string {
+  return [group(LINK_PREVIEW_BOTS, "Allow: /"), group(["*"], "Disallow: /")].join("\n\n") + "\n";
 }
 
 export function robotsResponse(body: string): Response {

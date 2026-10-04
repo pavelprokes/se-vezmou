@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { articlePath, articlePaths, readingMinutes } from "@/blog/article";
+import { articlePath, articlePaths, articleState, readingMinutes } from "@/blog/article";
 import { parseBlocks } from "@/blog/markdown";
-import { findPublishedBySlug, publishedArticles } from "@/blog/store";
+import { allArticles, findPublishedBySlug, publishedArticles } from "@/blog/store";
 import { ArticleBody, articleDate } from "@/components/blog/article-body";
 import { operator } from "@/config/operator";
 import { CtaSection } from "@/components/landing/cta-section";
@@ -22,7 +22,10 @@ import { ogImagePath, pageMetadata } from "@/seo/page-metadata";
 type Props = PageProps<"/h/marketing/[locale]/blog/[slug]">;
 
 // Jen zveřejněné články v jazyce adresy; cizí nebo neznámý slug je 404 (žádné duplicity).
-export const dynamicParams = false;
+// Naplánovaný článek nemá stránku ze sestavení: vykreslí se na vyžádání, jakmile je jeho den
+// (do té doby 404), a stránky se obnovují jednou za hodinu (odkazy „další články“, odkazy v textu).
+export const dynamicParams = true;
+export const revalidate = 3600;
 
 export function generateStaticParams({ params }: { params: { locale: string } }) {
   const locale = params.locale;
@@ -66,6 +69,12 @@ export default async function BlogArticle(props: Props) {
   const absolute = (path: string) => new URL(path, siteUrl).toString();
   const url = absolute(articlePath(article, locale));
   const blogHref = localizedPath("blog", locale);
+  // Odkazy v textu na články, které ještě nejsou venku (naplánované, koncepty), zůstanou textem.
+  const unpublished = new Set(
+    allArticles()
+      .filter((other) => articleState(other) !== "published")
+      .map((other) => articlePath(other, locale)),
+  );
   const others = publishedArticles()
     .filter((other) => other.id !== article.id)
     .slice(0, 2);
@@ -156,7 +165,7 @@ export default async function BlogArticle(props: Props) {
             ) : null}
 
             <div className="mt-10">
-              <ArticleBody blocks={blocks} locale={locale} />
+              <ArticleBody blocks={blocks} locale={locale} unpublished={unpublished} />
             </div>
           </div>
         </article>

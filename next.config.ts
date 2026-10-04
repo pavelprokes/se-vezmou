@@ -112,6 +112,11 @@ const nextConfig: NextConfig = {
     "/h/app/vytvorit/oznameni": ["./src/wizard/pdf/fonts/**/*"],
     "/h/admin/blog": ["./content/blog/*.json"],
     "/h/admin/blog/[id]": ["./content/blog/*.json"],
+    // Obnovení stránek blogu (ISR) čte články za běhu kvůli naplánovanému zveřejnění.
+    "/h/marketing/[locale]/blog": ["./content/blog/*.json"],
+    "/h/marketing/[locale]/blog/[slug]": ["./content/blog/*.json"],
+    "/h/marketing/sitemap.xml": ["./content/blog/*.json"],
+    "/h/marketing/llms.txt": ["./content/blog/*.json"],
   },
 };
 

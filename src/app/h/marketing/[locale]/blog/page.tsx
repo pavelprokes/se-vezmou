@@ -16,6 +16,9 @@ import { typo } from "@/i18n/typo";
 import { siteUrl } from "@/lib/site";
 import { pageMetadata } from "@/seo/page-metadata";
 
+// Obnova jednou za hodinu (při první návštěvě po uplynutí): naplánovaný článek se objeví v den vydání.
+export const revalidate = 3600;
+
 export async function generateMetadata({
   params,
 }: PageProps<"/h/marketing/[locale]/blog">): Promise<Metadata> {

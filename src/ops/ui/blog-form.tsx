@@ -2,7 +2,7 @@
 
 import { Field, Fieldset } from "@/components/ui/field";
 import { TextArea } from "@/components/ui/textarea";
-import type { Article } from "@/blog/article";
+import { pragueToday, type Article } from "@/blog/article";
 import { localeNames, locales } from "@/i18n/config";
 import { saveArticleAction } from "../actions/blog";
 import { ActionForm } from "./action-form";
@@ -24,6 +24,7 @@ export function BlogArticleForm({
     idHint: string;
     status: string;
     publishedAt: string;
+    publishedAtHint: string;
     updatedAt: string;
     slug: string;
     slugHint: string;
@@ -37,7 +38,7 @@ export function BlogArticleForm({
     success: string;
   };
 }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = pragueToday();
   return (
     <ActionForm
       action={saveArticleAction}
@@ -76,6 +77,7 @@ export function BlogArticleForm({
                 name="publishedAt"
                 type="date"
                 label={labels.publishedAt}
+                hint={labels.publishedAtHint}
                 error={form.error("publishedAt")}
                 defaultValue={value("publishedAt", article?.publishedAt ?? today)}
                 required

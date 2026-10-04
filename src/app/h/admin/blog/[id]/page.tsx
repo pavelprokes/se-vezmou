@@ -62,13 +62,14 @@ export default async function BlogArticleAdminPage({ params }: PageProps<"/h/adm
           }}
           statuses={[
             { value: "draft", label: t("ops.blog.status.draft") },
-            { value: "published", label: t("ops.blog.status.published") },
+            { value: "published", label: t("ops.blog.status.publish") },
           ]}
           labels={{
             id: t("ops.blog.field.id"),
             idHint: t("ops.blog.field.idHint"),
             status: t("ops.blog.field.status"),
             publishedAt: t("ops.blog.field.publishedAt"),
+            publishedAtHint: t("ops.blog.field.publishedAtHint"),
             updatedAt: t("ops.blog.field.updatedAt"),
             slug: t("ops.blog.field.slug"),
             slugHint: t("ops.blog.field.slugHint"),

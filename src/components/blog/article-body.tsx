@@ -15,11 +15,18 @@ export function articleDate(iso: string, locale: Locale): string {
 
 const linkClass = "text-pine font-medium underline underline-offset-4 hover:bg-linen rounded-sm";
 
-function Inline({ text, locale }: { text: string; locale: Locale }) {
+interface InlineProps {
+  text: string;
+  locale: Locale;
+  /** Adresy článků, které ještě nejsou na webu: odkaz na ně se vykreslí jako text. */
+  unpublished?: ReadonlySet<string>;
+}
+
+function Inline({ text, locale, unpublished }: InlineProps) {
   return parseInline(text).map((part, index) => {
     const content = typo(part.text, locale);
     if (part.type === "strong") return <strong key={index}>{content}</strong>;
-    if (part.type === "link") {
+    if (part.type === "link" && !unpublished?.has(part.href)) {
       const external = part.href.startsWith("https://");
       return (
         <a
@@ -37,7 +44,15 @@ function Inline({ text, locale }: { text: string; locale: Locale }) {
 }
 
 /** Text článku z bloků (`parseBlocks`): nadpisy s kotvami pro obsah článku, seznamy a tipy. */
-export function ArticleBody({ blocks, locale }: { blocks: readonly Block[]; locale: Locale }) {
+export function ArticleBody({
+  blocks,
+  locale,
+  unpublished,
+}: {
+  blocks: readonly Block[];
+  locale: Locale;
+  unpublished?: ReadonlySet<string>;
+}) {
   return (
     <div className="text-ink flex flex-col gap-5 text-lg leading-relaxed">
       {blocks.map((block, index) => {
@@ -72,7 +87,7 @@ export function ArticleBody({ blocks, locale }: { blocks: readonly Block[]; loca
               >
                 {block.items.map((item, i) => (
                   <li key={i} className="pl-1">
-                    <Inline text={item} locale={locale} />
+                    <Inline text={item} locale={locale} unpublished={unpublished} />
                   </li>
                 ))}
               </List>
@@ -84,13 +99,13 @@ export function ArticleBody({ blocks, locale }: { blocks: readonly Block[]; loca
                 key={index}
                 className="border-cinnamon bg-warm rounded-r-2xl border-l-4 px-6 py-5 text-pretty"
               >
-                <Inline text={block.text} locale={locale} />
+                <Inline text={block.text} locale={locale} unpublished={unpublished} />
               </p>
             );
           default:
             return (
               <p key={index} className="text-pretty">
-                <Inline text={block.text} locale={locale} />
+                <Inline text={block.text} locale={locale} unpublished={unpublished} />
               </p>
             );
         }

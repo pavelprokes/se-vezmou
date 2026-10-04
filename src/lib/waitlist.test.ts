@@ -70,6 +70,19 @@ describe("waitlistSchema", () => {
 });
 
 describe("submitWaitlist", () => {
+  it("ochrana před roboty až po kontrole vstupu: chybné pole token nespotřebuje, robot se nezapíše", async () => {
+    const { value, added } = deps();
+    const verifyHuman = vi.fn(async () => false);
+    expect(
+      await submitWaitlist({ ...valid, consent: false }, { ...value, verifyHuman }),
+    ).toMatchObject({
+      status: "invalid",
+    });
+    expect(verifyHuman).not.toHaveBeenCalled();
+    expect(await submitWaitlist(valid, { ...value, verifyHuman })).toEqual({ status: "bot" });
+    expect(added).toEqual([]);
+  });
+
   it("platný vstup uloží normalizovaný záznam s časem souhlasu", async () => {
     const { value, added } = deps();
     expect(await submitWaitlist(valid, value)).toEqual({ status: "success" });

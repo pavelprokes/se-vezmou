@@ -84,6 +84,8 @@ const schema = z.object({
    * Bez nich se ověření přeskočí (vývoj, testy); zůstávají limity požadavků a ověření e-mailem.
    */
   TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
+  /** Veřejný klíč widgetu Turnstile (do prohlížeče se vkládá při sestavení doslovným `process.env.…`). */
+  NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1).optional(),
   OG_FETCH_TEST_HOST: z.string().min(1).optional(),
   /** Jen automatické testy: `1` = mapa bez sítě (pevné souřadnice, šedé dlaždice), src/site/map/server.ts. */
   MAP_STUB: z.string().min(1).optional(),

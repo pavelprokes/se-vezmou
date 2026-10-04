@@ -61,6 +61,8 @@ export type WaitlistResult =
   | { status: "success" }
   | { status: "invalid"; errors: WaitlistErrors }
   | { status: "rateLimited" }
+  /** Ochrana před roboty (Turnstile) odeslání neuznala. */
+  | { status: "bot" }
   | { status: "error" };
 
 /** Úložiště čekací listiny (adaptér nad tabulkou `waitlist`, `email citext unique`). */
@@ -78,6 +80,8 @@ export interface WaitlistDeps {
   store: WaitlistStore;
   rateLimiter: RateLimiter;
   now?: () => Date;
+  /** Ochrana před roboty až po kontrole vstupu (chybné pole tak nespotřebuje jednorázový token). */
+  verifyHuman?: () => Promise<boolean>;
 }
 
 /** Převede chyby zodu na kódy chyb podle polí (texty doplňuje formulář z překladů). */
@@ -119,6 +123,7 @@ export async function submitWaitlist(
     locale: input.locale,
   });
   if (!parsed.success) return { status: "invalid", errors: toFieldErrors(parsed.error) };
+  if (deps.verifyHuman && !(await deps.verifyHuman())) return { status: "bot" };
 
   try {
     await deps.store.add({

@@ -1,13 +1,13 @@
 "use client";
 
 import { CircleAlert, CircleCheck } from "lucide-react";
-import { useActionState, useEffect, useId, useRef } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/choice";
 import { Field } from "@/components/ui/field";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Icon } from "@/components/ui/icon";
-import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
+import { Turnstile, turnstileEnabled, type TurnstileHandle } from "@/components/turnstile";
 import { HONEYPOT_FIELD } from "@/lib/waitlist-fields";
 import { joinWaitlist } from "./waitlist-action";
 import { initialWaitlistState } from "./waitlist-state";
@@ -24,13 +24,17 @@ export interface WaitlistLabels {
     emailInvalid: string;
     consentRequired: string;
     rateLimited: string;
+    /** Ochrana před roboty ještě neověřila (výzva čeká na klepnutí). */
+    check: string;
+    /** Ochrana před roboty odeslání neuznala. */
+    bot: string;
     generic: string;
   };
 }
 
 /**
- * Formulář čekací listiny (e-mail a souhlas) přes Server Action a `useActionState`, takže funguje
- * i bez JavaScriptu. Chyby u polí jsou v `aria-live`, výsledek celého odeslání ve vlastní živé oblasti.
+ * Formulář čekací listiny (e-mail a souhlas) přes Server Action a `useActionState`, bez JavaScriptu
+ * funguje jen při vypnuté ochraně před roboty (Turnstile potřebuje skript). Chyby u polí jsou v `aria-live`, výsledek celého odeslání ve vlastní živé oblasti.
  * `noValidate`: chyby ukazuje server jednotně a přístupně, ne bublina prohlížeče.
  */
 export function WaitlistFormClient({ locale, labels }: { locale: string; labels: WaitlistLabels }) {
@@ -40,6 +44,10 @@ export function WaitlistFormClient({ locale, labels }: { locale: string; labels:
   const formRef = useRef<HTMLFormElement>(null);
   // token ochrany před roboty je jednorázový: po každém odeslání nový
   const turnstile = useRef<TurnstileHandle>(null);
+  // widget až při práci s formulářem (ne pro každého návštěvníka úvodní stránky)
+  const [armed, setArmed] = useState(false);
+  const [botToken, setBotToken] = useState("");
+  const [needsCheck, setNeedsCheck] = useState(false);
   useEffect(() => {
     if (state.status !== "idle") turnstile.current?.reset();
   }, [state]);
@@ -51,12 +59,15 @@ export function WaitlistFormClient({ locale, labels }: { locale: string; labels:
         ? labels.errors.emailInvalid
         : undefined;
   const consentError = state.errors?.consent ? labels.errors.consentRequired : undefined;
-  const formError =
-    state.status === "rateLimited"
+  const formError = needsCheck
+    ? labels.errors.check
+    : state.status === "rateLimited"
       ? labels.errors.rateLimited
-      : state.status === "error"
-        ? labels.errors.generic
-        : undefined;
+      : state.status === "bot"
+        ? labels.errors.bot
+        : state.status === "error"
+          ? labels.errors.generic
+          : undefined;
 
   // Po chybě se zaměří první chybné pole (3.3.1); bez chybného pole zůstane zaměření na tlačítku,
   // které se během odesílání jen označuje `aria-disabled`, takže ho neztratí.
@@ -69,9 +80,16 @@ export function WaitlistFormClient({ locale, labels }: { locale: string; labels:
     <form
       ref={formRef}
       action={action}
+      onFocus={() => setArmed(true)}
       onSubmit={(event) => {
         // Dvojité odeslání během čekání zahodit (tlačítko není `disabled`, aby neztratilo zaměření).
         if (pending) event.preventDefault();
+        // ochrana před roboty ještě nedala token (výzva čeká na klepnutí, nebo se načítá)
+        else if (turnstileEnabled && !botToken) {
+          event.preventDefault();
+          setArmed(true);
+          setNeedsCheck(true);
+        } else setNeedsCheck(false);
       }}
       noValidate
       className="mt-5 flex flex-col gap-4"
@@ -116,7 +134,9 @@ export function WaitlistFormClient({ locale, labels }: { locale: string; labels:
         </div>
       </div>
 
-      <Turnstile ref={turnstile} action="waitlist" locale={locale} />
+      {armed ? (
+        <Turnstile ref={turnstile} action="waitlist" locale={locale} onToken={setBotToken} />
+      ) : null}
 
       <div>
         <Button type="submit" aria-disabled={pending || undefined}>

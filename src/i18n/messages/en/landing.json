@@ -111,6 +111,8 @@
   "waitlist.error.email.invalid": "Check your email, it looks incomplete.",
   "waitlist.error.consent.required": "We cannot add you without your consent.",
   "waitlist.error.rateLimited": "Too many attempts. Please try again in a moment.",
+  "waitlist.error.check": "We are still checking that you are not a robot. If a box appeared above the button, tap it, then submit again.",
+  "waitlist.error.bot": "We could not verify that you are not a robot. Reload the page and try again; if you use a content blocker, allow the Cloudflare check on this page.",
   "waitlist.error.generic": "Something went wrong. Please try again.",
   "waitlist.honeypot": "Leave this field empty",
   "faq.title": "Frequently asked questions",

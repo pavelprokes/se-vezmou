@@ -30,10 +30,6 @@ export async function joinWaitlist(
     return { status: "error", email: typeof email === "string" ? email.slice(0, 254) : undefined };
   }
   const clientKey = await getClientIp();
-  // ochrana před roboty (Turnstile): widget vloží token do skrytého pole formuláře
-  if ((await verifyTurnstile(formData.get(TURNSTILE_FIELD), clientKey)) === "bot") {
-    return { status: "error", email: typeof email === "string" ? email.slice(0, 254) : undefined };
-  }
 
   const result = await submitWaitlist(
     {
@@ -43,7 +39,12 @@ export async function joinWaitlist(
       honeypot: formData.get(HONEYPOT_FIELD),
       clientKey,
     },
-    dbWaitlistDeps(),
+    {
+      ...dbWaitlistDeps(),
+      // ochrana před roboty (Turnstile): widget vloží token do skrytého pole formuláře
+      verifyHuman: async () =>
+        (await verifyTurnstile(formData.get(TURNSTILE_FIELD), clientKey, "waitlist")) !== "bot",
+    },
   );
 
   switch (result.status) {
@@ -57,6 +58,8 @@ export async function joinWaitlist(
       };
     case "rateLimited":
       return { status: "rateLimited", email: typeof email === "string" ? email : undefined };
+    case "bot":
+      return { status: "bot", email: typeof email === "string" ? email : undefined };
     case "error":
       return { status: "error", email: typeof email === "string" ? email : undefined };
   }

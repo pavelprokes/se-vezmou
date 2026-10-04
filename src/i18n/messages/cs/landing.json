@@ -111,6 +111,8 @@
   "waitlist.error.email.invalid": "Zkontrolujte e-mail, zdá se, že není celý.",
   "waitlist.error.consent.required": "Bez souhlasu vás zapsat nemůžeme.",
   "waitlist.error.rateLimited": "Příliš mnoho pokusů. Zkuste to prosím za chvíli.",
+  "waitlist.error.check": "Ještě ověřujeme, že nejste robot. Pokud se nad tlačítkem objevilo políčko, klepněte na něj, a odešlete znovu.",
+  "waitlist.error.bot": "Nepodařilo se ověřit, že nejste robot. Obnovte stránku a zkuste to znovu; pokud používáte blokování obsahu, povolte pro tuto stránku ověření od Cloudflare.",
   "waitlist.error.generic": "Zápis se nepovedl. Zkuste to prosím znovu.",
   "waitlist.honeypot": "Toto pole nechte prázdné",
   "faq.title": "Časté dotazy",

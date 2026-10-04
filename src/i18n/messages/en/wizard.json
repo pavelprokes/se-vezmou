@@ -261,6 +261,7 @@
   "save.error.same": "The backup email must be different from your main email.",
   "save.error.limited": "Please try again later.",
   "save.error.bot": "We could not verify that you are not a robot. Reload the page and try again; if you use a content blocker, allow the Cloudflare check on this page.",
+  "save.error.check": "We are still checking that you are not a robot. If a box appeared above the buttons, tap it, then send the code again.",
   "save.error.generic": "Something went wrong. Please try again.",
   "save.code.title": "Enter the code from the email",
   "save.code.intro": "We sent a six-digit code to {email}. The code is valid for 10 minutes and can be used only once.",

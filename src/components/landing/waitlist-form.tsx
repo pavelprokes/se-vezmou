@@ -29,6 +29,8 @@ export async function WaitlistForm({ locale }: { locale: Locale }) {
             emailInvalid: t("landing.waitlist.error.email.invalid"),
             consentRequired: t("landing.waitlist.error.consent.required"),
             rateLimited: t("landing.waitlist.error.rateLimited"),
+            check: t("landing.waitlist.error.check"),
+            bot: t("landing.waitlist.error.bot"),
             generic: t("landing.waitlist.error.generic"),
           },
         }}

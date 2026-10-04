@@ -144,7 +144,8 @@ export async function requestSaveCodeAction(input: unknown): Promise<RequestSave
     if (await getSession()) return { status: "already_signed_in" };
     const ip = await getClientIp();
     // ochrana před roboty před odesláním e-mailu s kódem (zakládání konceptů ve velkém)
-    if ((await verifyTurnstile(parsed.data.token, ip)) === "bot") return { status: "bot" };
+    if ((await verifyTurnstile(parsed.data.token, ip, "wizard")) === "bot")
+      return { status: "bot" };
     const result = await requestWizardCode({
       email,
       ip,

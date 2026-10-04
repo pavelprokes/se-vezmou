@@ -162,10 +162,7 @@ async function presignFor(
   } catch (error) {
     // Podpis se nepodařil (chybné klíče R2): médium se označí za chybné, ať nedrží kvótu.
     await adminMediaFail(session, id, "storage").catch(() => undefined);
-    console.error(
-      "[fotografie] podepsání adresy pro nahrání selhalo",
-      error instanceof Error ? error.name : "",
-    );
+    console.error("[fotografie] podepsání adresy pro nahrání selhalo", storageReason(error));
     return { status: "unavailable" };
   }
 }
@@ -211,6 +208,12 @@ export type FinishUploadResult =
 
 const VARIANT_CACHE = "private, max-age=3600";
 
+/** Důvod chyby úložiště do logu: operace a stav HTTP (`StorageError`), jinak jen název chyby; nikdy obsah souboru. */
+function storageReason(error: unknown): string {
+  if (error instanceof StorageError) return error.message;
+  return error instanceof Error ? error.name : "";
+}
+
 type Begun = { id: string; kind: "photo" | "card" };
 
 /**
@@ -242,7 +245,9 @@ async function processMedia(
   try {
     input = await load();
   } catch (error) {
-    return fail(error instanceof StorageTooLargeError ? "too_large" : "storage");
+    if (error instanceof StorageTooLargeError) return fail("too_large");
+    console.error("[fotografie] čtení originálu z úložiště selhalo", storageReason(error));
+    return fail("storage");
   }
   if (!input) return fail("missing_file");
   if (input.length > limits.maxBytes) return fail("too_large");
@@ -278,7 +283,8 @@ async function processMedia(
         }),
       ),
     );
-  } catch {
+  } catch (error) {
+    console.error("[fotografie] zápis variant do úložiště selhal", storageReason(error));
     return fail("storage");
   }
 

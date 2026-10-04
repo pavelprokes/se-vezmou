@@ -3,7 +3,7 @@ import { operator } from "@/config/operator";
 import type { Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 import { getFaqItems } from "./faq";
-import { Section } from "./section";
+import { Section, sectionTitleClass } from "./section";
 
 /** FAQ: šest otázek v rozbalovacím seznamu; celý text je v HTML i bez JavaScriptu. */
 export async function FaqSection({ locale }: { locale: Locale }) {
@@ -14,10 +14,7 @@ export async function FaqSection({ locale }: { locale: Locale }) {
     <Section id="faq" headingId="faq-title">
       <div className="grid gap-10 md:grid-cols-[1fr_1.7fr] md:gap-16">
         <div>
-          <h2
-            id="faq-title"
-            className="font-sans text-3xl leading-tight font-bold tracking-tight md:text-4xl"
-          >
+          <h2 id="faq-title" className={sectionTitleClass}>
             {t("landing.faq.title")}
           </h2>
           <p className="text-muted mt-4 text-lg text-pretty">

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { HeaderMenu } from "./header-menu";
+import { HeroStudio } from "./hero-studio";
 import { NameForm, type NameFormLabels } from "./name-form";
 
 const labels: NameFormLabels = {
@@ -10,20 +11,13 @@ const labels: NameFormLabels = {
   second: "Druhé jméno",
   firstPlaceholder: "Klára",
   secondPlaceholder: "Matěj",
-  address: "Adresa vašeho webu",
   submit: "Pokračovat",
   form: "Jména páru",
 };
 
-function renderForm(variant: "intro" | "cta") {
+function renderForm(variant: "hero" | "cta") {
   return render(
-    <NameForm
-      appUrl="https://app.se-vezmou.cz"
-      locale="cs"
-      domain="se-vezmou.cz"
-      labels={labels}
-      variant={variant}
-    />,
+    <NameForm appUrl="https://app.se-vezmou.cz" locale="cs" labels={labels} variant={variant} />,
   );
 }
 
@@ -40,13 +34,7 @@ describe("NameForm", () => {
 
   it("v jiném než výchozím jazyce vede na průvodce s předponou jazyka", () => {
     render(
-      <NameForm
-        appUrl="https://app.se-vezmou.cz"
-        locale="en"
-        domain="se-vezmou.cz"
-        labels={labels}
-        variant="cta"
-      />,
+      <NameForm appUrl="https://app.se-vezmou.cz" locale="en" labels={labels} variant="cta" />,
     );
     const form = screen.getByRole("form", { name: "Jména páru" });
     expect(form).toHaveAttribute("action", "https://app.se-vezmou.cz/en/vytvorit");
@@ -58,21 +46,61 @@ describe("NameForm", () => {
     expect(screen.getByLabelText("První jméno")).not.toBeRequired();
     expect(screen.getByLabelText("První jméno")).toHaveAttribute("placeholder", "Klára");
   });
+});
 
-  it("varianta intro skládá živý náhled adresy z jmen", async () => {
+describe("HeroStudio", () => {
+  function renderStudio() {
+    return render(
+      <HeroStudio
+        appUrl="https://app.se-vezmou.cz"
+        locale="cs"
+        domain="se-vezmou.cz"
+        formLabels={labels}
+        addressLabel="Adresa vašeho webu"
+        templatesLabel="Šablona náhledu"
+        templates={[
+          { key: "editorial", name: "Editorial" },
+          { key: "modern", name: "Modern" },
+        ]}
+        dateplace="12. června 2027 · Praha"
+        rsvp="Potvrdit účast"
+        intro={<h1>Nadpis</h1>}
+        outro={null}
+      />,
+    );
+  }
+
+  it("jména z formuláře skládají živý náhled adresy", async () => {
     const user = userEvent.setup();
-    renderForm("intro");
+    renderStudio();
     const preview = screen.getByTestId("address-preview");
     expect(preview).toHaveTextContent("klara-a-matej.se-vezmou.cz");
 
     await user.type(screen.getByLabelText("První jméno"), "Šárka");
     await user.type(screen.getByLabelText("Druhé jméno"), "Ondřej");
     expect(preview).toHaveTextContent("sarka-a-ondrej.se-vezmou.cz");
+    // Náhled webu (ozdoba) ukazuje zadaná jména; hodnota pole se do textContent nepočítá.
+    expect(document.body).toHaveTextContent(/Šárka\s*& Ondřej/);
   });
 
-  it("varianta cta náhled adresy nemá", () => {
-    renderForm("cta");
-    expect(screen.queryByTestId("address-preview")).not.toBeInTheDocument();
+  it("jméno bez písmen nerozbije adresu: zůstane ukázková", async () => {
+    const user = userEvent.setup();
+    renderStudio();
+    await user.type(screen.getByLabelText("První jméno"), "!!!");
+    expect(screen.getByTestId("address-preview")).toHaveTextContent("klara-a-matej.se-vezmou.cz");
+  });
+
+  it("přepínač šablon je skupina tlačítek s aria-pressed", async () => {
+    const user = userEvent.setup();
+    renderStudio();
+    const group = screen.getByRole("group", { name: "Šablona náhledu" });
+    const modern = within(group).getByRole("button", { name: "Modern" });
+    expect(within(group).getByRole("button", { name: "Editorial" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await user.click(modern);
+    expect(modern).toHaveAttribute("aria-pressed", "true");
   });
 });
 

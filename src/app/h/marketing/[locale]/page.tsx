@@ -41,6 +41,7 @@ export async function generateMetadata({
  * Úvodní stránka (FR-LP-1 až FR-LP-6): čtrnáct sekcí v pevném pořadí, celá vykreslená na serveru.
  * Pořadí: hero, co je služba, problém a řešení, jak se web sestavuje, šablony, co web umí,
  * po svatbě, soukromí a přístupnost, cena, o autorovi, novinky a kontakt, FAQ, závěrečná výzva, patička.
+ * Obsahové sekce mají nad nadpisem pořadové číslo (01 až 08); úvod, novinky, FAQ a výzva ne.
  */
 export default async function MarketingHome({ params }: PageProps<"/h/marketing/[locale]">) {
   const { locale } = await params;
@@ -53,14 +54,14 @@ export default async function MarketingHome({ params }: PageProps<"/h/marketing/
       <main id="obsah" tabIndex={-1}>
         <Hero locale={locale} />
         <IntroSection locale={locale} />
-        <ProblemSection locale={locale} />
-        <StepsSection locale={locale} />
-        <TemplatesSection locale={locale} />
-        <FeaturesSection locale={locale} />
-        <AfterSection locale={locale} />
-        <TrustSection locale={locale} />
-        <PricingSection locale={locale} />
-        <AboutSection locale={locale} />
+        <ProblemSection locale={locale} number={1} />
+        <StepsSection locale={locale} number={2} />
+        <TemplatesSection locale={locale} number={3} />
+        <FeaturesSection locale={locale} number={4} />
+        <AfterSection locale={locale} number={5} />
+        <TrustSection locale={locale} number={6} />
+        <PricingSection locale={locale} number={7} />
+        <AboutSection locale={locale} number={8} />
         <NewsSection locale={locale} />
         <FaqSection locale={locale} />
         <CtaSection locale={locale} />

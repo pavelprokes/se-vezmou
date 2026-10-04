@@ -1,25 +1,25 @@
 import type { Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
-import { Section, SectionHeading } from "./section";
+import { Section, SectionHeading, itemTitleClass } from "./section";
 
 /** Po svatbě: režim poděkování (fáze `thanks`: skryje potvrzení účasti a dary, ukáže poděkování a fotky). */
-export async function AfterSection({ locale }: { locale: Locale }) {
+export async function AfterSection({ locale, number }: { locale: Locale; number?: number }) {
   const t = await getTranslator(locale, ["landing"]);
   return (
-    <Section id="after" headingId="after-title" tone="cinnamon">
+    <Section id="after" headingId="after-title">
       <SectionHeading
         id="after-title"
+        number={number}
         title={t.rich("landing.after.title", {
-          b: (children) => <span className="text-linen">{children}</span>,
+          b: (children) => <span className="heading-accent">{children}</span>,
         })}
         lead={t("landing.after.lead")}
-        tone="dark"
       />
-      <ul className="mt-10 grid gap-5 md:grid-cols-3">
+      <ul className="mt-12 grid gap-10 md:grid-cols-3">
         {([1, 2, 3] as const).map((n) => (
-          <li key={n} className="rounded-2xl bg-black/10 p-6">
-            <h3 className="font-sans text-lg font-bold">{t(`landing.after.${n}.title`)}</h3>
-            <p className="mt-2 text-sm">{t(`landing.after.${n}.text`)}</p>
+          <li key={n} className="border-ink border-t-2 pt-5">
+            <h3 className={itemTitleClass}>{t(`landing.after.${n}.title`)}</h3>
+            <p className="text-muted mt-3 text-lg">{t(`landing.after.${n}.text`)}</p>
           </li>
         ))}
       </ul>

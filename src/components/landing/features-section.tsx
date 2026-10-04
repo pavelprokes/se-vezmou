@@ -23,7 +23,7 @@ interface Feature {
 }
 
 /** Co web umí: sedm funkcí a pruh toho, čím se lišíme. Náhledy jsou dekorace, text nese význam. */
-export async function FeaturesSection({ locale }: { locale: Locale }) {
+export async function FeaturesSection({ locale, number }: { locale: Locale; number?: number }) {
   const t = await getTranslator(locale, ["landing"]);
   const programRows = [
     [t("landing.features.program.time1"), t("landing.features.program.what1")],
@@ -102,7 +102,7 @@ export async function FeaturesSection({ locale }: { locale: Locale }) {
       title: t("landing.features.languages.title"),
       text: t("landing.features.languages.text"),
       mock: (
-        <Mock className="bg-warm inline-flex rounded-full p-1 text-xs font-bold">
+        <Mock className="inline-flex rounded-full bg-white p-1 text-xs font-bold">
           <span className="bg-ink text-parchment rounded-full px-3 py-1">
             {t("landing.features.languages.cs")}
           </span>
@@ -123,29 +123,29 @@ export async function FeaturesSection({ locale }: { locale: Locale }) {
     <Section id="features" headingId="features-title" tone="warm">
       <SectionHeading
         id="features-title"
+        number={number}
         title={t("landing.features.title")}
         lead={t("landing.features.lead")}
       />
-      <ul className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <ul className="mt-12 grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
         {features.map((feature) => (
           <li
             key={feature.key}
-            className={cn(
-              "border-hairline bg-parchment min-w-0 rounded-2xl border p-6",
-              feature.className,
-            )}
+            className={cn("border-ink min-w-0 border-t-2 pt-5", feature.className)}
           >
-            <h3 className="font-sans text-lg font-bold">{feature.title}</h3>
-            <p className="text-muted mt-2 text-sm">{feature.text}</p>
+            <h3 className="font-display text-2xl leading-snug font-medium">{feature.title}</h3>
+            <p className="text-muted mt-2 text-base">{feature.text}</p>
             {feature.mock}
           </li>
         ))}
-        <li className="bg-ink text-parchment rounded-2xl p-6 sm:col-span-2 lg:col-span-4">
-          <h3 className="font-sans text-lg font-bold">{t("landing.features.extra.title")}</h3>
-          <ul className="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+        <li className="border-ink border-t-2 pt-5 sm:col-span-2 lg:col-span-4">
+          <h3 className="font-display text-2xl leading-snug font-medium">
+            {t("landing.features.extra.title")}
+          </h3>
+          <ul className="mt-4 grid gap-x-6 gap-y-2 text-base sm:grid-cols-2 lg:grid-cols-4">
             {([1, 2, 3, 4, 5, 6, 7, 8] as const).map((n) => (
               <li key={n} className="flex items-start gap-2">
-                <Icon icon={Check} size={16} className="text-linen mt-0.5 shrink-0" />
+                <Icon icon={Check} size={16} className="text-pine mt-1 shrink-0" />
                 {t(`landing.features.extra.${n}`)}
               </li>
             ))}

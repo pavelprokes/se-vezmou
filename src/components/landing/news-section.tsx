@@ -20,7 +20,7 @@ export async function NewsSection({ locale }: { locale: Locale }) {
           aria-labelledby="news-contact-title"
           className="border-hairline rounded-2xl border bg-white p-6 md:p-8"
         >
-          <h3 id="news-contact-title" className="font-sans text-xl font-bold">
+          <h3 id="news-contact-title" className="font-display text-2xl font-medium">
             {t("landing.news.contact.title")}
           </h3>
           <p className="text-muted mt-2">{t("landing.news.contact.text")}</p>

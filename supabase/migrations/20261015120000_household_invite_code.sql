@@ -1,6 +1,6 @@
 -- Osobní odkaz domácnosti (`https://<slug>.se-vezmou.cz/p/<kód>`, QR na pozvánce): otevře formulář RSVP
 -- domácnosti bez hledání jména, web v jazyce hosta a program jen s událostmi, na které je pozvaná.
--- Kód je náhodný (20 hex znaků, ~76 bitů), platí jen na webu své svatby a správce ho může vyměnit
+-- Kód je náhodný (20 hex znaků, 80 bitů), platí jen na webu své svatby a správce ho může vyměnit
 -- (starý odkaz tím přestane platit). Kód vidí jen správce; hostovi dává stejná práva jako ověření jménem
 -- (žádné zdravotní údaje ani e-mail, viz rsvp_get). Zpětně kompatibilní: nový sloupec s výchozí hodnotou,
 -- nové funkce, admin_guest_list jen vrací pole navíc.
@@ -43,8 +43,8 @@ $$;
 revoke all on function se_vezmou.invite_household(text) from public, anon, authenticated, service_role;
 
 -- ---------------------------------------------------------------------------
--- rsvp_invite_info: platí kód? Jazyk hosta (první vyplněný v domácnosti) a události s potvrzováním,
--- na které je domácnost pozvaná (program podle hosta). Funguje v každé fázi, i po uzavření RSVP.
+-- rsvp_invite_info: platí kód? Jazyk hosta (první vyplněný v domácnosti), události s potvrzováním na webu
+-- a ty z nich, na které je domácnost pozvaná (program podle hosta). Funguje v každé fázi, i po uzavření RSVP.
 -- ---------------------------------------------------------------------------
 create function se_vezmou.rsvp_invite_info(p_code text) returns jsonb
   language plpgsql stable security definer set search_path = ''
@@ -63,13 +63,39 @@ begin
       select coalesce(jsonb_agg(distinct i.event_id), '[]'::jsonb)
         from se_vezmou.invitations i
         join se_vezmou.guests g on g.id = i.guest_id and g.wedding_id = i.wedding_id
-       where g.household_id = v_household));
+       where g.household_id = v_household),
+    'rsvp_event_ids', (
+      select coalesce(jsonb_agg(e.id), '[]'::jsonb)
+        from se_vezmou.events e
+       where e.wedding_id = se_vezmou.wedding_id() and e.rsvp_enabled));
+end
+$$;
+
+-- ---------------------------------------------------------------------------
+-- rsvp_invite_get: formulář domácnosti kódu pro vykreslení stránky (jen čtení, nic nezapisuje), stejný pohled
+-- jako rsvp_get (bez zdravotních údajů a e-mailu); null pro neplatný kód a mimo otevřené RSVP.
+-- ---------------------------------------------------------------------------
+create function se_vezmou.rsvp_invite_get(p_code text) returns jsonb
+  language plpgsql stable security definer set search_path = ''
+  as $$
+declare
+  v_household uuid := se_vezmou.invite_household(p_code);
+  w se_vezmou.weddings;
+begin
+  if v_household is null then
+    return null;
+  end if;
+  select * into w from se_vezmou.weddings x where x.id = se_vezmou.wedding_id();
+  if se_vezmou.phase(w) is distinct from 'rsvp_open' then
+    return null;
+  end if;
+  return se_vezmou.rsvp_guest_view(se_vezmou.rsvp_household_view(v_household));
 end
 $$;
 
 -- ---------------------------------------------------------------------------
 -- rsvp_invite_ticket: lístek RSVP (30 minut, jako po ověření jména) pro domácnost kódu; null pro neplatný
--- kód a mimo otevřené RSVP. Aplikace si ho vydá pokaždé, když lístek v cookie chybí nebo vypršel.
+-- kód a mimo otevřené RSVP. Vydává se jen při odeslání odpovědi (omezené počtem odeslání), ne při zobrazení.
 -- ---------------------------------------------------------------------------
 create function se_vezmou.rsvp_invite_ticket(p_code text) returns text
   language plpgsql volatile security definer set search_path = ''
@@ -122,11 +148,13 @@ end
 $$;
 
 revoke all on function
+  se_vezmou.rsvp_invite_get(text),
   se_vezmou.rsvp_invite_info(text),
   se_vezmou.rsvp_invite_ticket(text),
   se_vezmou.admin_household_invite_reset(uuid)
   from public, anon, service_role;
 grant execute on function
+  se_vezmou.rsvp_invite_get(text),
   se_vezmou.rsvp_invite_info(text),
   se_vezmou.rsvp_invite_ticket(text),
   se_vezmou.admin_household_invite_reset(uuid)

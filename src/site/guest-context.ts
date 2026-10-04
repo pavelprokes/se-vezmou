@@ -7,7 +7,7 @@ import { fetchInviteInfo, fetchRsvpInfo } from "@/lib/rsvp/db";
 import type { RsvpSiteState } from "@/lib/rsvp/form";
 import { initialState } from "@/lib/rsvp/service";
 import { liveMedia } from "./live-media";
-import { currentTicket, readInvite } from "./tenant-request";
+import { readInvite, readTicket } from "./tenant-request";
 import { sensitiveContentSchema, type Phase, type SensitiveContent } from "./types";
 
 /**
@@ -26,8 +26,8 @@ export interface GuestContext {
   rsvp: RsvpSiteState;
   sensitiveUnlocked: boolean;
   sensitive: SensitiveContent | null;
-  /** Host přišel osobním odkazem: události s potvrzováním, na které je jeho domácnost pozvaná. */
-  invitedEventIds: string[] | null;
+  /** Host přišel osobním odkazem: události, na které je jeho domácnost pozvaná, a všechny s potvrzováním. */
+  invite: { invited: string[]; rsvp: string[] } | null;
 }
 
 /**
@@ -60,7 +60,7 @@ export async function loadGuestContext(slug: string, locale: Locale): Promise<Gu
 
     const code = await readInvite();
     const [{ state }, invite] = await Promise.all([
-      currentTicket(weddingId).then((ticket) => initialState({ weddingId, ticket, locale })),
+      readTicket().then((ticket) => initialState({ weddingId, ticket, invite: code, locale })),
       code ? fetchInviteInfo(weddingId, code) : null,
     ]);
 
@@ -94,7 +94,7 @@ export async function loadGuestContext(slug: string, locale: Locale): Promise<Gu
       rsvp: { initial: state, allowUnlisted: info.allow_unlisted, closesAt: info.closes_at },
       sensitiveUnlocked: access !== null,
       sensitive,
-      invitedEventIds: invite?.event_ids ?? null,
+      invite: invite ? { invited: invite.event_ids, rsvp: invite.rsvp_event_ids } : null,
     };
   } catch (error) {
     // Bez osobních údajů: jen druh chyby. Stránka se vykreslí bez živých údajů.

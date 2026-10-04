@@ -91,11 +91,15 @@ describe("Server Actions webu páru: RSVP", () => {
     });
     await matchAction(form({ name: "Jan" }));
     expect(mocks.setTicket).toHaveBeenCalledWith("t".repeat(64));
+    // ověřené jméno zapomene osobní odkaz: odpověď jde domácnosti podle jména
+    expect(mocks.clearInvite).toHaveBeenCalledTimes(1);
 
     mocks.matchStep.mockResolvedValue({ state: { stage: "name", error: "not_found" } });
     mocks.setTicket.mockClear();
+    mocks.clearInvite.mockClear();
     await matchAction(form({ name: "Jan" }));
     expect(mocks.setTicket).not.toHaveBeenCalled();
+    expect(mocks.clearInvite).not.toHaveBeenCalled();
     expect(mocks.clearTicket).not.toHaveBeenCalled();
 
     mocks.submitStep.mockResolvedValue({ state: { stage: "closed" }, ticket: { clear: true } });

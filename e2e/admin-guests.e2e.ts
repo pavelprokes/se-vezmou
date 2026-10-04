@@ -284,7 +284,7 @@ test.describe("osobní odkazy a kartičky s QR", () => {
     await page.getByRole("button", { name: "Vyměnit osobní odkaz" }).click();
     await expect(page.getByText(/Starý odkaz i\svytištěný QR kód přestanou platit/)).toBeVisible();
     await page.getByRole("button", { name: "Ano, vyměnit" }).click();
-    await waitSaved(page);
+    await waitSaved(page, /Osobní odkaz je vyměněný/);
     const second = await code();
     expect(second).not.toBe(first);
     await expect(

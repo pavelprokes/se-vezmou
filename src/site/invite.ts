@@ -29,20 +29,20 @@ export function inviteTarget(
   return `${localizedPath("home", locale)}${rsvp ? `#${rsvp.anchor}` : ""}`;
 }
 
-type ProgramEvent = Pick<PublicContent["events"][number], "id" | "kind" | "rsvpEnabled">;
-
 /**
- * Program pro hosta z osobního odkazu: bez událostí s potvrzováním účasti, na které jeho domácnost pozvaná
- * není (např. hostina jen pro rodinu). Události bez potvrzování vidí všichni. Bez odkazu beze změny.
+ * Program pro hosta z osobního odkazu: bez událostí s potvrzováním účasti (podle databáze, stejně jako
+ * formulář), na které jeho domácnost pozvaná není (např. hostina jen pro rodinu). Ostatní události vidí
+ * všichni. Bez odkazu beze změny.
  */
-export function eventsForGuest<T extends ProgramEvent>(
+export function eventsForGuest<T extends { id: string }>(
   events: T[],
-  invitedEventIds: string[] | null,
+  invite: { invited: string[]; rsvp: string[] } | null,
 ): T[] {
-  if (invitedEventIds === null) return events;
-  const invited = new Set(invitedEventIds.map((id) => id.toLowerCase()));
-  return events.filter(
-    (event) =>
-      !(event.rsvpEnabled ?? event.kind !== "other") || invited.has(event.id.toLowerCase()),
-  );
+  if (invite === null) return events;
+  const invited = new Set(invite.invited.map((id) => id.toLowerCase()));
+  const rsvp = new Set(invite.rsvp.map((id) => id.toLowerCase()));
+  return events.filter((event) => {
+    const id = event.id.toLowerCase();
+    return !rsvp.has(id) || invited.has(id);
+  });
 }

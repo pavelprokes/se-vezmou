@@ -67,7 +67,7 @@ export default async function TenantSite({ params }: Props) {
           ? {
               ...loaded.content,
               phase: guest.phase,
-              events: eventsForGuest(loaded.content.events, guest.invitedEventIds),
+              events: eventsForGuest(loaded.content.events, guest.invite),
             }
           : loaded.content
       }

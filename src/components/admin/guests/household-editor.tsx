@@ -202,7 +202,7 @@ export function HouseholdEditor({
     setState("busy");
     const result = await actions.resetInvite(householdId);
     if (result.status === "reset") {
-      go(`${listHref}${listHref.includes("?") ? "&" : "?"}ulozeno=1`);
+      go(`${listHref}${listHref.includes("?") ? "&" : "?"}odkaz=1#${householdId}`);
       return;
     }
     setState("idle");

@@ -15,6 +15,7 @@ import { renderRsvpConfirmation, renderRsvpNotice } from "@/lib/email/templates"
 import { recordRsvpCompleted } from "./analytics";
 import {
   fetchHouseholdView,
+  fetchInviteView,
   fetchUnlistedForm,
   matchName,
   submitHousehold,
@@ -106,12 +107,25 @@ export async function unlistedStep(input: {
   return { state: { stage: "form", model: buildUnlistedModel(view, input.locale) } };
 }
 
-/** Stav po načtení stránky: platný lístek v cookie otevře formulář s dřívější odpovědí. */
+/**
+ * Stav po načtení stránky: kód osobního odkazu, jinak platný lístek v cookie otevře formulář s dřívější
+ * odpovědí. Kód se čte bez zápisu (lístek si vydá až odeslání), aby zobrazení stránky nic nezapisovalo.
+ */
 export async function initialState(input: {
   weddingId: string;
   ticket: string | null;
+  invite?: string | null;
   locale: Locale;
 }): Promise<{ state: RsvpState; staleTicket: boolean }> {
+  if (input.invite) {
+    const view = await fetchInviteView(input.weddingId, input.invite);
+    if (view !== null) {
+      return {
+        state: { stage: "form", model: buildListedModel(view, input.locale) },
+        staleTicket: false,
+      };
+    }
+  }
   if (!input.ticket) return { state: { stage: "name" }, staleTicket: false };
   const view = await fetchHouseholdView(input.weddingId, input.ticket);
   if (view === null) return { state: { stage: "name" }, staleTicket: true };

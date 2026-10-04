@@ -95,6 +95,7 @@ describe("scrubText a scrubTransactionName", () => {
   it("nahradí adresy a tajné cesty, šablony tras nechá být", () => {
     expect(scrubText("viz https://a.se-vezmou.cz/x?y=1 konec")).toBe("viz [odstraněno] konec");
     expect(scrubText(`/cs/nahled/${TOKEN}/`)).toBe("/cs/nahled/:token/");
+    expect(scrubText("GET /en/p/0123456789abcdef0123")).toBe("GET /en/p/:code");
     expect(scrubText("/media/id1/640")).toBe("/media/:id/:width");
     expect(scrubTransactionName("/h/tenant/[slug]/[locale]")).toBe("/h/tenant/[slug]/[locale]");
     expect(scrubTransactionName("GET /a?token=1#h")).toBe("GET /a");

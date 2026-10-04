@@ -20,13 +20,12 @@ describe("osobní odkaz domácnosti", () => {
   });
 
   it("program bez událostí s potvrzováním, na které domácnost pozvaná není", () => {
-    const events = [
-      { id: "A", kind: "ceremony" as const, rsvpEnabled: true },
-      { id: "b", kind: "reception" as const, rsvpEnabled: true },
-      { id: "c", kind: "other" as const },
-      { id: "d", kind: "reception" as const },
-    ];
+    const events = [{ id: "A" }, { id: "b" }, { id: "c" }];
     expect(eventsForGuest(events, null)).toEqual(events);
-    expect(eventsForGuest(events, ["a"]).map((e) => e.id)).toEqual(["A", "c"]);
+    // potvrzování podle databáze: A a b; pozvaná jen na A; c je bez potvrzování
+    expect(eventsForGuest(events, { invited: ["a"], rsvp: ["a", "B"] }).map((e) => e.id)).toEqual([
+      "A",
+      "c",
+    ]);
   });
 });

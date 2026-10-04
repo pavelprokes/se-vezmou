@@ -48,16 +48,17 @@ export async function matchAction(formData: FormData): Promise<RsvpState> {
   try {
     const tenant = await tenantFromRequest(formData.get("locale"));
     if (!tenant) return GENERIC;
-    return applyTicket(
-      await matchStep({
-        weddingId: tenant.weddingId,
-        slug: tenant.slug,
-        ip: await getClientIp(),
-        name: field(formData, "name"),
-        locale: tenant.locale,
-        honeypot: field(formData, "website"),
-      }),
-    );
+    const result = await matchStep({
+      weddingId: tenant.weddingId,
+      slug: tenant.slug,
+      ip: await getClientIp(),
+      name: field(formData, "name"),
+      locale: tenant.locale,
+      honeypot: field(formData, "website"),
+    });
+    // ověřené jméno je novější volba než osobní odkaz: odpověď musí jít jeho domácnosti
+    if (result.ticket && "set" in result.ticket) await clearInvite();
+    return applyTicket(result);
   } catch (error) {
     console.error("[rsvp] ověření jména selhalo", error instanceof Error ? error.name : "");
     return GENERIC;

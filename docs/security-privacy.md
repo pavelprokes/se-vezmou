@@ -33,6 +33,7 @@ Stav: návrh k schválení. Právní části ověří skutečný právník (role
 - Obnova tokenu při přihlášení (zabránění fixaci relace). Odhlášení smaže záznam na serveru. Změna PINu nebo odebrání správce zruší jeho relace. U operátora zrušení všech relací po obnově druhého faktoru.
 - **Relace hosta** pro PIN hostů: cookie `__Host-sv_guest` jen na hostiteli webu páru, jen pro odemčení citlivých bloků (číslo účtu, QR platba, adresa soukromého místa), nikdy správy. Nečinnost 6 hodin, absolutně 2 dny (`[OTÁZKA]` OQ-41). Odvolá ji změna PINu hostů.
 - **Lístek RSVP** (slepé ověření jména): cookie `__Host-sv_rsvp`, host-only, `HttpOnly`, 30 minut jako lístek v databázi, neprodlužuje se; host se kdykoli může ověřit jménem znovu a tlačítko „Zadat jiné jméno“ cookie smaže (sdílené zařízení). Lístek nikdy není v adrese ani ve formuláři.
+- **Osobní odkaz domácnosti** (`/p/<kód>`, QR na pozvánce): kód (80 bitů, unikátní ve svatbě, vidí ho jen správce a domácnost) se uloží do cookie `__Host-sv_invite` (180 dní) a dává stejná práva jako ověření jménem (formulář domácnosti bez zdravotních údajů a e-mailu, program podle pozvání). Zobrazení stránky nic nezapisuje, lístek se z kódu vydá až při odeslání. Ověření jména a „Zadat jiné jméno“ kód zapomenou; správce kód vymění a starý odkaz přestane platit. Kód se v Sentry nahrazuje `/p/:code`.
 - Vázání na IP se **nepoužívá** (mobilní sítě mění IP), jen hrubé upozornění na změnu zařízení u správce.
 
 ### 1.4 Seznam cookies
@@ -46,6 +47,7 @@ Všechny cookies jsou jen pro konkrétního hostitele (bez atributu `Domain`), `
 | `__Host-sv_wizard`         | `app.`                           | ověřování e-mailu při prvním uložení v průvodci               | do vypršení kódu               | nezbytná, `HttpOnly` |
 | `__Host-sv_guest`          | web páru                         | relace hosta po PINu (odemčené citlivé bloky)                 | 6 hodin nečinnosti / 2 dny     | nezbytná, `HttpOnly` |
 | `__Host-sv_rsvp`           | web páru                         | lístek RSVP po ověření jména                                  | 30 minut                       | nezbytná, `HttpOnly` |
+| `__Host-sv_invite`         | web páru                         | kód osobního odkazu domácnosti (`/p/<kód>`)                   | 180 dní                        | nezbytná, `HttpOnly` |
 | `__Host-sv_operator`       | `admin.`                         | relace operátora                                              | 30 minut nečinnosti / 8 hodin  | nezbytná, `HttpOnly` |
 | `__Host-sv_operator_login` | `admin.`                         | rozpracované přihlášení operátora kódem                       | do vypršení kódu               | nezbytná, `HttpOnly` |
 | `NEXT_LOCALE`              | úvodní stránka, `app.`, `admin.` | zvolený jazyk rozhraní (jen kód jazyka, např. `cs`), ADR 0013 | 1 rok                          | funkční, `HttpOnly`  |

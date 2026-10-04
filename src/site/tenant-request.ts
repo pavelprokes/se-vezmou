@@ -93,10 +93,10 @@ export async function clearInvite(): Promise<void> {
 }
 
 /**
- * Lístek RSVP pro tento požadavek: z kódu osobního odkazu (vydá se nový, takže nevyprší), jinak z cookie
- * po ověření jména. Obojí najednou patří vždy téže domácnosti: otevření odkazu lístek v cookie zahodí
- * a „Zadat jiné jméno“ zahodí kód. Lístek z kódu se do cookie neukládá (při vykreslení stránky to nejde),
- * každý krok si vydá vlastní.
+ * Lístek RSVP pro odeslání odpovědi: nově vydaný z kódu osobního odkazu (nevyprší ani po dlouhém čtení
+ * webu), jinak z cookie po ověření jména. Obojí najednou patří vždy téže domácnosti: otevření odkazu
+ * zahodí lístek v cookie a ověření jména i „Zadat jiné jméno“ zahodí kód. Vydání zapisuje do databáze,
+ * proto jen při odeslání (omezeném počtem odeslání), ne při zobrazení stránky.
  */
 export async function currentTicket(weddingId: string): Promise<string | null> {
   const code = await readInvite();

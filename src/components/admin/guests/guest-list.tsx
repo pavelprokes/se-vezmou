@@ -73,7 +73,7 @@ export function GuestList({
   /** Původ zveřejněného webu pro osobní odkazy; `null`, dokud web není zveřejněný. */
   inviteOrigin: string | null;
   actions: { bulkInvite: BulkInviteAction };
-  saved: "saved" | "deleted" | null;
+  saved: "saved" | "deleted" | "invite" | null;
 }) {
   const t = useAdminT();
   const id = useId();
@@ -142,7 +142,11 @@ export function GuestList({
         <div role="status" className="text-ink flex items-center gap-2 font-medium">
           <Icon icon={CircleCheck} />
           <span>
-            {saved === "saved" ? t("admin.guests.list.saved") : t("admin.guests.list.deleted")}
+            {saved === "saved"
+              ? t("admin.guests.list.saved")
+              : saved === "invite"
+                ? t("admin.guests.list.inviteReset")
+                : t("admin.guests.list.deleted")}
           </span>
         </div>
       ) : null}
@@ -213,7 +217,8 @@ export function GuestList({
           <p role="status" className="text-muted mt-3">
             {t("admin.guests.list.shown", { n: shown.length })}
           </p>
-          {inviteOrigin ? (
+          {/* „Bez skupiny“ kartičky nenabízí: tiskly by se všechny, ne jen zobrazené domácnosti */}
+          {inviteOrigin && group !== NO_GROUP ? (
             <p className="mt-3">
               <a
                 href={
@@ -254,7 +259,7 @@ export function GuestList({
           const heading =
             household.label.trim() || household.guests.map((g) => g.display_name).join(", ");
           return (
-            <li key={household.id}>
+            <li key={household.id} id={household.id}>
               <Card as="article" aria-labelledby={`${id}-h-${household.id}`}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <h2 id={`${id}-h-${household.id}`} className="text-xl font-medium">

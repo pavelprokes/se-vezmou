@@ -29,9 +29,13 @@ begin
   perform tap.ok(se_vezmou.rsvp_invite_info('nesmysl') is null and se_vezmou.rsvp_invite_ticket(null) is null,
     'neplatný tvar: null');
   perform tap.ok(se_vezmou.rsvp_get(v_ticket) is not null, 'lístek z kódu otevře formulář domácnosti');
+  perform tap.ok(se_vezmou.rsvp_invite_get(v_code) = se_vezmou.rsvp_get(v_ticket), 'rsvp_invite_get: stejný pohled jako lístek');
+  perform tap.ok(se_vezmou.rsvp_invite_get(v_b_code) is null, 'rsvp_invite_get: kód cizí svatby neplatí');
   perform tap.reset();
 
-  perform tap.ok(v_info ? 'locale', 'info: jazyk hosta');
+  perform tap.ok(v_info ? 'locale' and jsonb_typeof(v_info -> 'rsvp_event_ids') = 'array', 'info: jazyk hosta a události s potvrzováním');
+  perform tap.ok((select household_id from se_vezmou.rsvp_tickets where token_hash = sha256(convert_to(v_ticket, 'UTF8')))
+                 = tap.u('A:household'), 'lístek patří domácnosti kódu');
   perform tap.ok((select array_agg(x::uuid order by x) from jsonb_array_elements_text(v_info -> 'event_ids') x)
                  is not distinct from
                  (select array_agg(distinct i.event_id order by i.event_id) from se_vezmou.invitations i
@@ -42,8 +46,8 @@ begin
 
   -- jazyk hosta
   update se_vezmou.guests set locale = 'en' where household_id = tap.u('A:household');
-  perform tap.become('authenticated', tap.wa(), 'visitor');
-  perform tap.ok(se_vezmou.rsvp_invite_info(v_code) ->> 'locale' = 'en', 'info: jazyk z hosta domácnosti');
+  perform tap.become('authenticated', tap.wa(), 'guest_pin', tap.u('guest-session'));
+  perform tap.ok(se_vezmou.rsvp_invite_info(v_code) ->> 'locale' = 'en', 'info: jazyk z hosta domácnosti (i host po PINu)');
   perform tap.reset();
 
   -- mimo otevřené RSVP lístek není, informace pro program ano
@@ -53,7 +57,8 @@ begin
   select tap.wa(), now() - interval '1 minute'
    where not exists (select 1 from se_vezmou.rsvp_settings where wedding_id = tap.wa());
   perform tap.become('authenticated', tap.wa(), 'visitor');
-  perform tap.ok(se_vezmou.rsvp_invite_ticket(v_code) is null, 'po uzavření RSVP lístek z kódu není');
+  perform tap.ok(se_vezmou.rsvp_invite_ticket(v_code) is null and se_vezmou.rsvp_invite_get(v_code) is null,
+    'po uzavření RSVP lístek ani formulář z kódu nejsou');
   perform tap.ok(se_vezmou.rsvp_invite_info(v_code) is not null, 'po uzavření RSVP informace pro program platí');
   perform tap.reset();
 

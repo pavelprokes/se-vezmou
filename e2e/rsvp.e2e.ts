@@ -791,6 +791,31 @@ test.describe("osobní odkaz domácnosti (QR na pozvánce)", () => {
     await expect(rsvpSection(page).getByLabel("Your name")).toBeVisible();
   });
 
+  test("ověření jiného jména po otevření odkazu: odpověď jde domácnosti podle jména", async ({
+    page,
+    wedding,
+  }) => {
+    const w = await wedding();
+    const { inviteCode } = await w.addHousehold("Novákovi", [{ name: "Jan Novák" }]);
+    const { householdId } = await w.addHousehold("Svobodovi", [{ name: "Petr Svoboda" }]);
+
+    // první panel čeká na zadání jména, ve druhém host otevře odkaz Novákových
+    const first = await page.context().newPage();
+    await openRsvp(first);
+    await page.goto(tenant(`/p/${inviteCode}`));
+    await expect(rsvpSection(page).getByRole("heading", { name: "Jan Novák" })).toBeVisible();
+
+    // v prvním panelu ověří jiné jméno: platí to novější
+    await identify(first, "Petr Svoboda");
+    const section = rsvpSection(first);
+    await expect(section.getByRole("heading", { name: "Petr Svoboda" })).toBeVisible();
+    await choose(section, "Petr Svoboda", OBRAD, "yes");
+    await choose(section, "Petr Svoboda", HOSTINA, "no");
+    await send(first);
+    await expect(section.getByRole("status")).toContainText("Děkujeme");
+    expect((await w.state()).responses.map((r) => r.household_id)).toEqual([householdId]);
+  });
+
   test("neplatný kód jen přesměruje na úvod, nic neprozradí", async ({ page, wedding }) => {
     await wedding();
     await page.goto(tenant("/p/0123456789abcdef0123"));

@@ -35,7 +35,13 @@ export default async function GuestsPage({ searchParams }: PageProps<"/h/app/hos
   const [data, site] = await Promise.all([loadGuests(session), peekSite(session)]);
   // osobní odkazy vedou na zveřejněný web; před zveřejněním by končily na 404
   const inviteOrigin = site?.meta.status === "published" ? await siteOrigin(site.meta.slug) : null;
-  const flag = params.ulozeno ? "saved" : params.smazano ? "deleted" : null;
+  const flag = params.ulozeno
+    ? "saved"
+    : params.smazano
+      ? "deleted"
+      : params.odkaz
+        ? "invite"
+        : null;
 
   return (
     <AdminI18nProvider locale={locale} messages={await pickAdminMessages(locale)}>

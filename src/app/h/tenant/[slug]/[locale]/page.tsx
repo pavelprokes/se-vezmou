@@ -9,6 +9,7 @@ import { localizedPath } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
 import { getPublicContent } from "@/site/content";
 import { loadGuestContext } from "@/site/guest-context";
+import { eventsForGuest } from "@/site/invite";
 import { languageAlternates, originFromHeaders } from "@/site/origin";
 
 type Props = PageProps<"/h/tenant/[slug]/[locale]">;
@@ -61,7 +62,15 @@ export default async function TenantSite({ params }: Props) {
   const t = await getTranslator(loaded.locale, SITE_NAMESPACES);
   return (
     <SiteRenderer
-      content={guest ? { ...loaded.content, phase: guest.phase } : loaded.content}
+      content={
+        guest
+          ? {
+              ...loaded.content,
+              phase: guest.phase,
+              events: eventsForGuest(loaded.content.events, guest.invitedEventIds),
+            }
+          : loaded.content
+      }
       t={t}
       localeHrefs={localeHrefs}
       now={new Date()}

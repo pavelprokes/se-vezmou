@@ -3,6 +3,7 @@ import type {
   BulkInviteResult,
   CommitImportResult,
   DeleteHouseholdResult,
+  ResetInviteResult,
   SaveHouseholdResult,
   SaveSettingsResult,
 } from "./server";
@@ -22,6 +23,8 @@ export type SaveHouseholdAction = (
 export type DeleteHouseholdAction = (
   householdId: string,
 ) => Promise<Guarded<DeleteHouseholdResult>>;
+
+export type ResetInviteAction = (householdId: string) => Promise<Guarded<ResetInviteResult>>;
 
 export type BulkInviteAction = (
   eventId: string,

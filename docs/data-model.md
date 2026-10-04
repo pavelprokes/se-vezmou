@@ -176,7 +176,7 @@ Tabulka je pracovní kopie pro editor. Hosté ji nikdy nečtou, čtou zveřejně
 
 ### 3.4 Hosté, domácnosti, pozvání
 
-**`households`**: `id`, `wedding_id`, `label text` (např. rodina Novákových, jen pro správce), `invited_note`, `tags text[]` (skupiny hostů, nejvýš 10 po 40 znacích, jen pro správce: filtr seznamu s počty, hromadné pozvání skupiny na událost `admin_invitations_bulk_tag`, sloupec Skupiny v exportu).
+**`households`**: `id`, `wedding_id`, `label text` (např. rodina Novákových, jen pro správce), `invited_note`, `tags text[]` (skupiny hostů, nejvýš 10 po 40 znacích, jen pro správce: filtr seznamu s počty, hromadné pozvání skupiny na událost `admin_invitations_bulk_tag`, sloupec Skupiny v exportu), `invite_code text` (kód osobního odkazu `/p/<kód>`, 20 hex znaků, unikátní ve svatbě, vidí ho jen správce, `admin_household_invite_reset` ho vymění; host s kódem má práva jako po ověření jménem: `rsvp_invite_info`, `rsvp_invite_ticket`).
 
 **`guests`**
 

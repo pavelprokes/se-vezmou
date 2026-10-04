@@ -5,6 +5,7 @@ import { RATE_RULES } from "@/auth/config";
 import {
   adminGuestsImport,
   adminHouseholdDelete,
+  adminHouseholdInviteReset,
   adminHouseholdSave,
   adminInvitationsBulk,
   adminInvitationsBulkTag,
@@ -102,6 +103,26 @@ export async function deleteHousehold(
   try {
     await adminHouseholdDelete(session, id.data);
     return { status: "deleted" };
+  } catch (error) {
+    if (reasonOf(error) === "household_not_found") return { status: "not_found" };
+    throw error;
+  }
+}
+
+export type ResetInviteResult = { status: "reset" } | { status: "not_found" } | Limited;
+
+/** Nový osobní odkaz domácnosti: starý odkaz i vytištěný QR přestanou platit. */
+export async function resetInvite(
+  session: AdminIdentity,
+  householdId: unknown,
+): Promise<ResetInviteResult> {
+  const id = z.uuid().safeParse(householdId);
+  if (!id.success) return { status: "not_found" };
+  const retry = await limited("guests-write", session.weddingId, RATE_RULES.guestsWriteWedding);
+  if (retry !== null) return { status: "limited", retryAfter: retry };
+  try {
+    await adminHouseholdInviteReset(session, id.data);
+    return { status: "reset" };
   } catch (error) {
     if (reasonOf(error) === "household_not_found") return { status: "not_found" };
     throw error;

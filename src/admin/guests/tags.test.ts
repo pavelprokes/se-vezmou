@@ -16,6 +16,7 @@ const household = (tags: string[], guests: ReturnType<typeof guest>[]) => ({
   label: "",
   invited_note: null,
   tags,
+  invite_code: null,
   guests,
   response: null,
 });

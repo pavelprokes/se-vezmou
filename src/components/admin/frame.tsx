@@ -71,7 +71,7 @@ export async function AdminFrame({
 
   return (
     <>
-      <header className="border-hairline border-b px-4 py-3 sm:px-8">
+      <header className="border-hairline border-b px-4 py-3 sm:px-8 print:hidden">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2">
           <a
             href={appHref("/", locale)}
@@ -116,7 +116,9 @@ export async function AdminFrame({
       >
         <h1 className="text-ink text-3xl font-medium sm:text-4xl">{title}</h1>
         {intro ? <p className="text-muted mt-3 max-w-prose text-lg">{intro}</p> : null}
-        <HelpBox locale={locale} topic={help} />
+        <div className="print:hidden">
+          <HelpBox locale={locale} topic={help} />
+        </div>
         <div className="mt-6">{children}</div>
       </main>
     </>

@@ -2,7 +2,11 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
-import type { DeleteHouseholdAction, SaveHouseholdAction } from "@/admin/guests/action-types";
+import type {
+  DeleteHouseholdAction,
+  ResetInviteAction,
+  SaveHouseholdAction,
+} from "@/admin/guests/action-types";
 import { canonicalTags, splitTags, tagsValid } from "@/admin/guests/tags";
 import { GUEST_LIMITS } from "@/admin/guests/types";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -59,7 +63,11 @@ export function HouseholdEditor({
   answered: boolean;
   listHref: string;
   eventsHref: string;
-  actions: { save: SaveHouseholdAction; remove: DeleteHouseholdAction };
+  actions: {
+    save: SaveHouseholdAction;
+    remove: DeleteHouseholdAction;
+    resetInvite: ResetInviteAction;
+  };
 }) {
   const t = useAdminT();
   const idPrefix = useId();
@@ -185,6 +193,25 @@ export function HouseholdEditor({
             : result.status === "not_found"
               ? "admin.guests.editor.error.notFound"
               : "admin.guests.editor.error.generic",
+    );
+  };
+
+  const resetInvite = async () => {
+    if (!householdId) return;
+    setError(null);
+    setState("busy");
+    const result = await actions.resetInvite(householdId);
+    if (result.status === "reset") {
+      go(`${listHref}${listHref.includes("?") ? "&" : "?"}ulozeno=1`);
+      return;
+    }
+    setState("idle");
+    setError(
+      result.status === "limited"
+        ? "admin.guests.error.limited"
+        : result.status === "not_found"
+          ? "admin.guests.editor.error.notFound"
+          : "admin.guests.editor.error.generic",
     );
   };
 
@@ -376,6 +403,16 @@ export function HouseholdEditor({
         >
           {t("admin.guests.editor.cancel")}
         </a>
+        {householdId ? (
+          <ConfirmButton
+            label={t("admin.guests.editor.inviteReset")}
+            question={t("admin.guests.editor.inviteResetQuestion")}
+            confirmLabel={t("admin.guests.editor.inviteResetConfirm")}
+            variant="text"
+            disabled={state === "busy"}
+            onConfirm={resetInvite}
+          />
+        ) : null}
         {householdId ? (
           <ConfirmButton
             label={t("admin.guests.editor.delete")}

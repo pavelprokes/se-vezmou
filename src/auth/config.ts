@@ -126,6 +126,8 @@ export const GUEST_SESSION = {
  * host znovu ověří jménem. Neprodlužuje se, takže cookie nikdy nedrží přístup k odpovědi déle.
  */
 export const RSVP_TICKET_SECONDS = 30 * MINUTE;
+/** Cookie s kódem osobního odkazu: host se vrací na web i měsíce po otevření pozvánky. */
+export const INVITE_COOKIE_SECONDS = 180 * DAY;
 
 /** PIN: nejméně šest číslic (docs/security-privacy.md kap. 1.2). */
 export const PIN_LENGTH = { min: 6, max: 12 } as const;

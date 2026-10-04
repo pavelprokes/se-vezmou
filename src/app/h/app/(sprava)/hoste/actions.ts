@@ -5,10 +5,12 @@ import {
   bulkInvite,
   commitImport,
   deleteHousehold,
+  resetInvite,
   saveHousehold,
   type BulkInviteResult,
   type CommitImportResult,
   type DeleteHouseholdResult,
+  type ResetInviteResult,
   type SaveHouseholdResult,
 } from "@/admin/guests/server";
 import type { Guarded } from "@/admin/site/action-types";
@@ -29,6 +31,10 @@ export async function deleteHouseholdAction(
   householdId: string,
 ): Promise<Guarded<DeleteHouseholdResult>> {
   return guarded("smazání domácnosti", (session) => deleteHousehold(session, householdId));
+}
+
+export async function resetInviteAction(householdId: string): Promise<Guarded<ResetInviteResult>> {
+  return guarded("výměna osobního odkazu", (session) => resetInvite(session, householdId));
 }
 
 export async function bulkInviteAction(

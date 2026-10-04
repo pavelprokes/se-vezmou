@@ -1,12 +1,13 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
 import { currentHostConfig } from "@/auth/app-origin";
-import { RSVP_TICKET_SECONDS } from "@/auth/config";
+import { INVITE_COOKIE_SECONDS, RSVP_TICKET_SECONDS } from "@/auth/config";
 import { cookieSpec, expiredCookieSpec } from "@/auth/cookie";
 import { assertSameOrigin, getHost } from "@/auth/request";
 import { resolveHost } from "@/host/resolve";
 import { isLocale, defaultLocale, type Locale } from "@/i18n/config";
 import { resolveSlug } from "@/lib/db/rpc";
+import { inviteTicket } from "@/lib/rsvp/db";
 import { originFromHeaders } from "./origin";
 
 /**
@@ -64,4 +65,44 @@ export async function setTicket(ticket: string): Promise<void> {
 export async function clearTicket(): Promise<void> {
   const expired = expiredCookieSpec("rsvp", await getHost());
   (await cookies()).set({ name: expired.name, value: expired.value, ...expired.options });
+}
+
+// --- osobní odkaz domácnosti -----------------------------------------------------------------
+
+export const INVITE_PATTERN = /^[0-9a-f]{20}$/;
+
+/** Kód osobního odkazu z cookie (jen tvar; platnost ověří databáze). */
+export async function readInvite(): Promise<string | null> {
+  const value = (await cookies()).get(cookieSpec("invite", await getHost()).name)?.value;
+  return value && INVITE_PATTERN.test(value) ? value : null;
+}
+
+/** Kód do cookie (host-only, `HttpOnly`); dřívější lístek se zahodí, mohl patřit jiné domácnosti. */
+export async function setInvite(code: string): Promise<void> {
+  const host = await getHost();
+  const spec = cookieSpec("invite", host, INVITE_COOKIE_SECONDS);
+  const store = await cookies();
+  store.set({ name: spec.name, value: code, ...spec.options });
+  const expired = expiredCookieSpec("rsvp", host);
+  store.set({ name: expired.name, value: expired.value, ...expired.options });
+}
+
+export async function clearInvite(): Promise<void> {
+  const expired = expiredCookieSpec("invite", await getHost());
+  (await cookies()).set({ name: expired.name, value: expired.value, ...expired.options });
+}
+
+/**
+ * Lístek RSVP pro tento požadavek: z kódu osobního odkazu (vydá se nový, takže nevyprší), jinak z cookie
+ * po ověření jména. Obojí najednou patří vždy téže domácnosti: otevření odkazu lístek v cookie zahodí
+ * a „Zadat jiné jméno“ zahodí kód. Lístek z kódu se do cookie neukládá (při vykreslení stránky to nejde),
+ * každý krok si vydá vlastní.
+ */
+export async function currentTicket(weddingId: string): Promise<string | null> {
+  const code = await readInvite();
+  if (code) {
+    const ticket = await inviteTicket(weddingId, code);
+    if (ticket) return ticket;
+  }
+  return readTicket();
 }

@@ -2,6 +2,8 @@ import { Download, FileSpreadsheet } from "lucide-react";
 import type { Metadata } from "next";
 import { ADMIN_PATHS, appHref, householdPath, responsePath } from "@/admin/paths";
 import { loadGuests } from "@/admin/guests/server";
+import { peekSite } from "@/admin/site/server";
+import { siteOrigin } from "@/admin/site-href";
 import { getUiLocale } from "@/auth/request";
 import { requireSession } from "@/auth/session";
 import { AdminFrame } from "@/components/admin/frame";
@@ -30,7 +32,9 @@ export default async function GuestsPage({ searchParams }: PageProps<"/h/app/hos
   const locale = await getUiLocale();
   const t = await getTranslator(locale, ["admin.guests"]);
   const params = await searchParams;
-  const data = await loadGuests(session);
+  const [data, site] = await Promise.all([loadGuests(session), peekSite(session)]);
+  // osobní odkazy vedou na zveřejněný web; před zveřejněním by končily na 404
+  const inviteOrigin = site?.meta.status === "published" ? await siteOrigin(site.meta.slug) : null;
   const flag = params.ulozeno ? "saved" : params.smazano ? "deleted" : null;
 
   return (
@@ -53,7 +57,9 @@ export default async function GuestsPage({ searchParams }: PageProps<"/h/app/hos
               add: appHref(householdPath("nova"), locale),
               householdPrefix: appHref(householdPath(""), locale),
               responsePrefix: appHref(responsePath(""), locale),
+              cards: appHref(ADMIN_PATHS.guestCards, locale),
             }}
+            inviteOrigin={inviteOrigin}
             actions={{ bulkInvite: bulkInviteAction }}
           />
 

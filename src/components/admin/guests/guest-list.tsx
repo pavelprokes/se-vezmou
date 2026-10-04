@@ -1,6 +1,15 @@
 "use client";
 
-import { Baby, CircleCheck, CircleHelp, CircleX, Pencil, UserPlus } from "lucide-react";
+import {
+  Baby,
+  CircleCheck,
+  CircleHelp,
+  CircleX,
+  Link2,
+  Pencil,
+  Printer,
+  UserPlus,
+} from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import type { BulkInviteAction } from "@/admin/guests/action-types";
 import { guestStats, weddingTags } from "@/admin/guests/tags";
@@ -15,7 +24,9 @@ import {
   type GuestList as GuestListData,
   type HouseholdStatus,
 } from "@/lib/rsvp/types";
+import { CopyButton } from "@/components/site/copy-button";
 import { pick } from "@/site/i18n-text";
+import { invitePath } from "@/site/invite";
 import { ConfirmButton } from "../confirm-button";
 import { useAdminT, type AdminKey } from "../i18n";
 import { go } from "./navigate";
@@ -53,11 +64,14 @@ export function GuestList({
   hrefs,
   actions,
   saved,
+  inviteOrigin,
 }: {
   data: GuestListData;
   locale: Locale;
   /** Předpony adres (s jazykem), za které se přidá identifikátor domácnosti. */
-  hrefs: { add: string; householdPrefix: string; responsePrefix: string };
+  hrefs: { add: string; householdPrefix: string; responsePrefix: string; cards: string };
+  /** Původ zveřejněného webu pro osobní odkazy; `null`, dokud web není zveřejněný. */
+  inviteOrigin: string | null;
   actions: { bulkInvite: BulkInviteAction };
   saved: "saved" | "deleted" | null;
 }) {
@@ -199,6 +213,23 @@ export function GuestList({
           <p role="status" className="text-muted mt-3">
             {t("admin.guests.list.shown", { n: shown.length })}
           </p>
+          {inviteOrigin ? (
+            <p className="mt-3">
+              <a
+                href={
+                  bulkTag === null
+                    ? hrefs.cards
+                    : `${hrefs.cards}?skupina=${encodeURIComponent(bulkTag)}`
+                }
+                className={buttonVariants({ variant: "secondary" })}
+              >
+                <Icon icon={Printer} size={18} />
+                {bulkTag === null
+                  ? t("admin.guests.list.cards")
+                  : t("admin.guests.list.cardsGroup", { group: bulkTag })}
+              </a>
+            </p>
+          ) : null}
           {group !== ALL_GROUPS ? (
             <p className="mt-1" data-testid="group-stats">
               {t("admin.guests.list.groupStats", {
@@ -279,6 +310,25 @@ export function GuestList({
                     </li>
                   ))}
                 </ul>
+                {inviteOrigin && household.invite_code ? (
+                  <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span className="text-muted flex items-center gap-1">
+                      <Icon icon={Link2} size={16} />
+                      {t("admin.guests.list.invite")}
+                    </span>
+                    <span className="font-mono text-sm break-all" data-testid="invite-url">
+                      {`${inviteOrigin}${invitePath(household.invite_code)}`}
+                    </span>
+                    <CopyButton
+                      value={`${inviteOrigin}${invitePath(household.invite_code)}`}
+                      label={t("admin.guests.list.inviteCopyLabel", { name: heading })}
+                      copiedLabel={t("admin.guests.list.inviteCopied")}
+                      text={t("admin.guests.list.inviteCopy")}
+                      className={buttonVariants({ variant: "text" })}
+                      statusClassName="text-muted"
+                    />
+                  </div>
+                ) : null}
                 <div className="mt-4 flex flex-wrap gap-3">
                   <a
                     href={`${hrefs.householdPrefix}${household.id}`}

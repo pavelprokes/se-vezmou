@@ -26,6 +26,21 @@ export const EVENT_IDS = {
 } as const;
 export type EventKey = keyof typeof EVENT_IDS;
 
+/**
+ * Zveřejněný snímek: fixtura s identifikátory obřadu a hostiny z databáze (jako po skutečném zveřejnění),
+ * aby program podle osobního odkazu odpovídal pozváním. Ostatní události potvrzování nemají.
+ */
+const publishedContent = {
+  ...eukalyptusFixture,
+  events: eukalyptusFixture.events.map((event) =>
+    event.id === "e1"
+      ? { ...event, id: EVENT_IDS.obrad, rsvpEnabled: true }
+      : event.id === "e3"
+        ? { ...event, id: EVENT_IDS.hostina, rsvpEnabled: true }
+        : { ...event, rsvpEnabled: false },
+  ),
+};
+
 /** Citlivá data svatby: unikátní řetězce, aby šlo ověřit, že bez PINu nejsou nikde v HTML ani v RSC. */
 export const SENSITIVE = {
   account: "2501234567/2010",
@@ -74,6 +89,8 @@ export interface GuestSpec {
   age?: number;
   /** Události, na které je host pozván (výchozí obřad i hostina). */
   events?: EventKey[];
+  /** Jazyk hosta (import). */
+  locale?: "cs" | "en";
 }
 
 export interface TenantWedding {
@@ -81,7 +98,7 @@ export interface TenantWedding {
   addHousehold(
     label: string,
     guests: GuestSpec[],
-  ): Promise<{ householdId: string; guestIds: string[] }>;
+  ): Promise<{ householdId: string; guestIds: string[]; inviteCode: string }>;
   /** Pár uzavřel potvrzování (bez zásahu do hostů a lístků). */
   closeNow(): Promise<void>;
   /** Stav odpovědí v databázi pro kontrolu testů. */
@@ -172,7 +189,7 @@ export async function ensureWedding(db: Client): Promise<void> {
   );
   await db.query(
     "insert into se_vezmou.site_versions (id, wedding_id, version_no, kind, public_content, created_by) values ($1, $2, 1, 'publish', $4, $3)",
-    [versionId, WEDDING_ID, adminId, JSON.stringify(eukalyptusFixture)],
+    [versionId, WEDDING_ID, adminId, JSON.stringify(publishedContent)],
   );
   await db.query(
     "insert into se_vezmou.site_version_sensitive (version_id, wedding_id, sensitive_content) values ($1, $2, $3)",
@@ -294,8 +311,15 @@ export async function prepareWedding(ip: string, setup: RsvpSetup = {}): Promise
         const guestIds: string[] = [];
         for (const guest of guests) {
           const row = await db.query<{ id: string }>(
-            "insert into se_vezmou.guests (wedding_id, household_id, display_name, is_child, age) values ($1, $2, $3, $4, $5) returning id",
-            [WEDDING_ID, householdId, guest.name, guest.child ?? false, guest.age ?? null],
+            "insert into se_vezmou.guests (wedding_id, household_id, display_name, is_child, age, locale) values ($1, $2, $3, $4, $5, $6) returning id",
+            [
+              WEDDING_ID,
+              householdId,
+              guest.name,
+              guest.child ?? false,
+              guest.age ?? null,
+              guest.locale ?? null,
+            ],
           );
           const guestId = row.rows[0].id;
           guestIds.push(guestId);
@@ -306,7 +330,11 @@ export async function prepareWedding(ip: string, setup: RsvpSetup = {}): Promise
             );
           }
         }
-        return { householdId, guestIds };
+        const code = await db.query<{ invite_code: string }>(
+          "select invite_code from se_vezmou.households where id = $1",
+          [householdId],
+        );
+        return { householdId, guestIds, inviteCode: code.rows[0].invite_code };
       });
     },
     async closeNow() {

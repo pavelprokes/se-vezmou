@@ -8,6 +8,8 @@ export function CopyButton({
   label,
   copiedLabel,
   text,
+  className = "site-btn site-btn-secondary",
+  statusClassName = "site-muted",
 }: {
   value: string;
   /** Přístupný název tlačítka, např. „Kopírovat: IBAN“. */
@@ -15,6 +17,9 @@ export function CopyButton({
   copiedLabel: string;
   /** Viditelný text tlačítka. */
   text: string;
+  /** Třídy tlačítka a hlášení; výchozí jsou pro web páru, správa předává své. */
+  className?: string;
+  statusClassName?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -36,15 +41,10 @@ export function CopyButton({
 
   return (
     <>
-      <button
-        type="button"
-        className="site-btn site-btn-secondary"
-        aria-label={label}
-        onClick={copy}
-      >
+      <button type="button" className={className} aria-label={label} onClick={copy}>
         {text}
       </button>
-      <span role="status" className="site-muted">
+      <span role="status" className={statusClassName}>
         {copied ? copiedLabel : ""}
       </span>
     </>

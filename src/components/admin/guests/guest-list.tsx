@@ -3,6 +3,7 @@
 import { Baby, CircleCheck, CircleHelp, CircleX, Pencil, UserPlus } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import type { BulkInviteAction } from "@/admin/guests/action-types";
+import { guestStats, weddingTags } from "@/admin/guests/tags";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
@@ -22,6 +23,11 @@ import { StatusMessage } from "./status";
 
 type Filter = "all" | HouseholdStatus;
 
+/** Hodnota filtru skupiny: všechny, domácnosti bez skupiny, nebo název skupiny. */
+const ALL_GROUPS = "";
+// skupina nemůže začínat mezerou (ořezává se), proto se hodnota nepotká s názvem skupiny
+const NO_GROUP = " none";
+
 const STATUS_ICON = { no_response: CircleHelp, attending: CircleCheck, declined: CircleX } as const;
 const STATUS_KEY: Record<HouseholdStatus, AdminKey> = {
   no_response: "admin.guests.list.status.no_response",
@@ -36,9 +42,10 @@ const FILTER_KEY: Record<Filter, AdminKey> = {
 };
 
 /**
- * Seznam domácností a hostů s hledáním a filtrem podle odpovědi (FR-ADM-4). Stav odpovědi je vždy
- * slovy a ikonou. Pod seznamem je hromadné pozvání na událost: nová událost bez pozvání by nikomu
- * nedovolila odpovědět.
+ * Seznam domácností a hostů s hledáním a filtrem podle odpovědi a skupiny (FR-ADM-4). Stav odpovědi
+ * je vždy slovy a ikonou, u vybrané skupiny jsou počty hostů podle odpovědi. Pod seznamem je hromadné
+ * pozvání na událost (všech, nebo jen vybrané skupiny): nová událost bez pozvání by nikomu nedovolila
+ * odpovědět a pozvání skupiny dává hostům program podle skupiny.
  */
 export function GuestList({
   data,
@@ -58,6 +65,7 @@ export function GuestList({
   const id = useId();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [group, setGroup] = useState<string>(ALL_GROUPS);
   const [bulk, setBulk] = useState<{ state: "idle" | "busy" | "done"; text: string }>({
     state: "idle",
     text: "",
@@ -68,10 +76,26 @@ export function GuestList({
     [data.events, locale],
   );
   const guestCount = data.households.reduce((sum, h) => sum + h.guests.length, 0);
+  const tags = useMemo(() => weddingTags(data.households), [data.households]);
+  const inGroup = useMemo(
+    () =>
+      data.households.filter((household) =>
+        group === ALL_GROUPS
+          ? true
+          : group === NO_GROUP
+            ? household.tags.length === 0
+            : household.tags.includes(group),
+      ),
+    [data.households, group],
+  );
+  const stats = useMemo(() => guestStats(inGroup), [inGroup]);
+  /** Skupina, na kterou míří hromadné pozvání (jen skutečná skupina, jinak všichni). */
+  const bulkTag = group === ALL_GROUPS || group === NO_GROUP ? null : group;
+  const bulkCount = bulkTag === null ? guestCount : stats.guests;
 
   const shown = useMemo(() => {
     const needle = normalizeName(query);
-    return data.households.filter((household) => {
+    return inGroup.filter((household) => {
       if (filter !== "all" && householdStatus(household) !== filter) return false;
       if (needle === "") return true;
       const hay = normalizeName(
@@ -79,11 +103,11 @@ export function GuestList({
       );
       return hay.includes(needle);
     });
-  }, [data.households, query, filter]);
+  }, [inGroup, query, filter]);
 
   const invite = async (eventId: string, invited: boolean) => {
     setBulk({ state: "busy", text: t("admin.common.saving") });
-    const result = await actions.bulkInvite(eventId, invited);
+    const result = await actions.bulkInvite(eventId, invited, bulkTag);
     if (result.status === "ok") {
       setBulk({ state: "done", text: t("admin.guests.list.bulkDone") });
       go(`${window.location.pathname}?ulozeno=1`);
@@ -150,10 +174,42 @@ export function GuestList({
                 ))}
               </select>
             </div>
+            {tags.length > 0 ? (
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor={`${id}-group`} className="text-ink font-medium">
+                  {t("admin.guests.list.groupLabel")}
+                </label>
+                <select
+                  id={`${id}-group`}
+                  className="min-h-target rounded-button bg-parchment text-ink border-field-border border-2 px-3 py-2 text-base"
+                  value={group}
+                  onChange={(event) => setGroup(event.target.value)}
+                >
+                  <option value={ALL_GROUPS}>{t("admin.guests.list.groupAll")}</option>
+                  {tags.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+                  <option value={NO_GROUP}>{t("admin.guests.list.groupNone")}</option>
+                </select>
+              </div>
+            ) : null}
           </div>
           <p role="status" className="text-muted mt-3">
             {t("admin.guests.list.shown", { n: shown.length })}
           </p>
+          {group !== ALL_GROUPS ? (
+            <p className="mt-1" data-testid="group-stats">
+              {t("admin.guests.list.groupStats", {
+                households: stats.households,
+                guests: stats.guests,
+                attending: stats.attending,
+                declined: stats.declined,
+                pending: stats.noResponse,
+              })}
+            </p>
+          ) : null}
         </Card>
       ) : (
         <Card>
@@ -178,6 +234,21 @@ export function GuestList({
                     {t(STATUS_KEY[status])}
                   </p>
                 </div>
+                {household.tags.length > 0 ? (
+                  <ul
+                    className="mt-2 flex flex-wrap gap-2"
+                    aria-label={t("admin.guests.list.groups")}
+                  >
+                    {household.tags.map((tag) => (
+                      <li
+                        key={tag}
+                        className="bg-linen text-ink rounded-button px-2 py-0.5 text-sm font-medium"
+                      >
+                        {tag}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 {household.invited_note ? (
                   <p className="text-muted mt-1">{household.invited_note}</p>
                 ) : null}
@@ -231,12 +302,17 @@ export function GuestList({
         })}
       </ul>
 
-      {data.events.length > 0 && data.households.length > 0 ? (
+      {/* „Bez skupiny“ hromadné pozvání skrývá: šlo by všem, ne jen zobrazeným domácnostem */}
+      {data.events.length > 0 && data.households.length > 0 && group !== NO_GROUP ? (
         <Card as="section" aria-labelledby={`${id}-bulk`}>
           <h2 id={`${id}-bulk`} className="text-2xl font-medium">
             {t("admin.guests.list.bulkTitle")}
           </h2>
-          <p className="text-muted mt-2">{t("admin.guests.list.bulkIntro")}</p>
+          <p className="text-muted mt-2">
+            {bulkTag === null
+              ? t("admin.guests.list.bulkIntro")
+              : t("admin.guests.list.bulkGroupIntro", { group: bulkTag })}
+          </p>
           <ul className="mt-4 flex flex-col gap-4">
             {data.events.map((event) => {
               const title = eventTitle.get(event.id) ?? "?";
@@ -245,20 +321,54 @@ export function GuestList({
                   <p className="font-medium">{title}</p>
                   <div className="flex flex-wrap gap-3">
                     <ConfirmButton
-                      label={t("admin.guests.list.bulkAdd")}
-                      ariaLabel={t("admin.guests.list.bulkAddLabel", { event: title })}
-                      question={t("admin.guests.list.bulkAddQuestion", {
-                        event: title,
-                        n: guestCount,
-                      })}
+                      label={
+                        bulkTag === null
+                          ? t("admin.guests.list.bulkAdd")
+                          : t("admin.guests.list.bulkGroupAdd")
+                      }
+                      ariaLabel={
+                        bulkTag === null
+                          ? t("admin.guests.list.bulkAddLabel", { event: title })
+                          : t("admin.guests.list.bulkGroupAddLabel", {
+                              event: title,
+                              group: bulkTag,
+                            })
+                      }
+                      question={
+                        bulkTag === null
+                          ? t("admin.guests.list.bulkAddQuestion", { event: title, n: bulkCount })
+                          : t("admin.guests.list.bulkGroupAddQuestion", {
+                              event: title,
+                              group: bulkTag,
+                              n: bulkCount,
+                            })
+                      }
                       confirmLabel={t("admin.guests.list.bulkConfirm")}
                       disabled={bulk.state === "busy"}
                       onConfirm={() => invite(event.id, true)}
                     />
                     <ConfirmButton
-                      label={t("admin.guests.list.bulkRemove")}
-                      ariaLabel={t("admin.guests.list.bulkRemoveLabel", { event: title })}
-                      question={t("admin.guests.list.bulkRemoveQuestion", { event: title })}
+                      label={
+                        bulkTag === null
+                          ? t("admin.guests.list.bulkRemove")
+                          : t("admin.guests.list.bulkGroupRemove")
+                      }
+                      ariaLabel={
+                        bulkTag === null
+                          ? t("admin.guests.list.bulkRemoveLabel", { event: title })
+                          : t("admin.guests.list.bulkGroupRemoveLabel", {
+                              event: title,
+                              group: bulkTag,
+                            })
+                      }
+                      question={
+                        bulkTag === null
+                          ? t("admin.guests.list.bulkRemoveQuestion", { event: title })
+                          : t("admin.guests.list.bulkGroupRemoveQuestion", {
+                              event: title,
+                              group: bulkTag,
+                            })
+                      }
                       confirmLabel={t("admin.guests.list.bulkConfirm")}
                       variant="text"
                       disabled={bulk.state === "busy"}

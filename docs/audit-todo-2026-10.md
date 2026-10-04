@@ -8,8 +8,8 @@ Stav k 4. 10. 2026, `main` = `32a5ddc` (první verze auditu 3. 10. nad `092efad`
 - ✅ **RSVP pole.** Jídlo, diety, alergie, doprovod, děti, písnička, ubytování, doprava: `src/components/site/rsvp/rsvp-form.tsx`, `src/lib/rsvp/form.ts`. Pár zapíná jednotlivé otázky (`enabled_questions`). Diety a alergie jsou zvlášť v `rsvp_health` (zdravotní údaje).
 - ✅ **Vlastní otázky.** `rsvp_questions` (text, výběr, ano/ne, lokalizovaný popisek, volitelně vázané na akci), max 10: `src/components/admin/guests/rsvp-settings.tsx`.
 - ✅ **Více akcí.** `events` (obřad, hostina, jiné), `rsvp_attendance`; `invitations` určují, ke kterým akcím je host pozván.
-- ❌ **Skupiny a štítky hostů.** Jen volný text `households.label`, viditelný jen adminovi.
-- 🟡 **Program podle skupiny.** Skupiny nejsou, ale pozvánky po hostech (`invited_event_ids`) dávají program na míru jednotlivci.
+- ✅ **Skupiny a štítky hostů.** `households.tags` (migrace `20261014120000_household_tags.sql`): skupiny v editoru domácnosti, filtr seznamu podle skupiny s počty hostů (přijde, nepřijde, neodpověděli), sloupec Skupiny v exportu.
+- 🟡 **Program podle skupiny.** Hromadné pozvání skupiny na událost (`admin_invitations_bulk_tag`); pozvání po hostech (`invited_event_ids`) určují, na co se formulář ptá. Program na webu podle hosta přijde s osobním odkazem.
 - ❌ **Unikátní odkaz nebo QR hosta.** Host se najde zadáním jména, krátké `rsvp_tickets`. QR je jen na adresu webu (`src/components/wizard/done.tsx`) a platební.
 - 🟡 **Jazyk hosta.** `guests.locale` (cs/en), plní import (`src/admin/guests/import-parse.ts`), používá e-mail s potvrzením. Bez osobního odkazu se jinde neuplatní.
 - ✅ **Upozornění páru na novou odpověď.** Volitelné (`notify_couple`, migrace `20261013120000_rsvp_notify_couple.sql`), e-mail `src/lib/email/templates/rsvp-notice.ts` jen se jmény a účastí, bez diet a kontaktů; odesílá `src/lib/rsvp/service.ts`.

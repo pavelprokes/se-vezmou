@@ -176,7 +176,7 @@ Tabulka je pracovní kopie pro editor. Hosté ji nikdy nečtou, čtou zveřejně
 
 ### 3.4 Hosté, domácnosti, pozvání
 
-**`households`**: `id`, `wedding_id`, `label text` (např. rodina Novákových, jen pro správce), `invited_note`.
+**`households`**: `id`, `wedding_id`, `label text` (např. rodina Novákových, jen pro správce), `invited_note`, `tags text[]` (skupiny hostů, nejvýš 10 po 40 znacích, jen pro správce: filtr seznamu s počty, hromadné pozvání skupiny na událost `admin_invitations_bulk_tag`, sloupec Skupiny v exportu).
 
 **`guests`**
 

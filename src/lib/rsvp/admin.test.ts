@@ -41,6 +41,7 @@ const guestList: GuestList = {
       id: HOUSEHOLD,
       label: "Novákovi",
       invited_note: null,
+      tags: [],
       guests: [
         {
           id: G_JAN,
@@ -62,11 +63,12 @@ const guestList: GuestList = {
         attending: true,
       },
     },
-    { id: "h2", label: "Svobodovi", invited_note: null, guests: [], response: null },
+    { id: "h2", label: "Svobodovi", invited_note: null, tags: [], guests: [], response: null },
     {
       id: "h3",
       label: "Dvořákovi",
       invited_note: "bez dětí",
+      tags: [],
       guests: [],
       response: {
         id: "r3",

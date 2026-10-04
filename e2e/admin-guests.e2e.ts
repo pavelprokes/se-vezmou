@@ -148,6 +148,87 @@ test.describe("seznam hostů a domácností", () => {
   });
 });
 
+test.describe("skupiny hostů", () => {
+  test("skupiny v editoru, filtr s počty a pozvání jen skupiny", async ({ page, context }) => {
+    const site = await seedSite();
+    await site.login(context);
+    await seedHouseholds(site.weddingId, [
+      {
+        label: "Novákovi",
+        tags: ["Kolegové"],
+        guests: [{ name: "Jan Novák" }, { name: "Eva Nováková" }],
+        events: ["ceremony"],
+      },
+      { label: "Černí", guests: [{ name: "Karel Černý" }], events: ["ceremony"] },
+    ]);
+    await page.goto(appUrl("/hoste"));
+
+    // nová domácnost: skupinu zapíšu a druhou přidám z nabídky už používaných
+    await page.getByRole("link", { name: "Přidat domácnost" }).click();
+    await page.getByLabel("Název domácnosti").fill("Dvořákovi");
+    await page.getByLabel("Skupiny", { exact: true }).fill("Rodina nevěsty");
+    await page.getByRole("button", { name: "Přidat skupinu Kolegové" }).click();
+    await expect(page.getByLabel("Skupiny", { exact: true })).toHaveValue(
+      "Rodina nevěsty, Kolegové",
+    );
+    await expect(page.getByRole("button", { name: "Přidat skupinu Kolegové" })).toHaveCount(0);
+    await expect(page.getByLabel("Skupiny", { exact: true })).toBeFocused();
+    await page.getByLabel("Jméno a příjmení").fill("Karel Dvořák");
+    await page.getByRole("button", { name: "Uložit domácnost" }).click();
+    await waitSaved(page);
+    const dvorak = page.getByRole("article", { name: "Dvořákovi" });
+    await expect(dvorak.getByRole("list", { name: "Skupiny" })).toHaveText(
+      /Rodina nevěsty\s*Kolegové/,
+    );
+    expect((await guestRows(site.weddingId)).find((g) => g.label === "Dvořákovi")?.tags).toEqual([
+      "Rodina nevěsty",
+      "Kolegové",
+    ]);
+
+    // příliš dlouhá skupina: chyba u pole, nic se neuloží
+    await page.getByRole("link", { name: "Upravit domácnost Černí" }).click();
+    await page.getByLabel("Skupiny", { exact: true }).fill("x".repeat(41));
+    await page.getByRole("button", { name: "Uložit domácnost" }).click();
+    await expect(
+      page.getByText("Skupin může být nejvýš 10 a každá nejvýš 40 znaků."),
+    ).toBeVisible();
+    await expect(page.getByLabel("Skupiny", { exact: true })).toBeFocused();
+    await page.getByRole("link", { name: "Zpět na seznam" }).click();
+
+    // filtr podle skupiny s počty
+    await page.getByLabel("Skupina", { exact: true }).selectOption("Kolegové");
+    await expect(page.getByText("Zobrazeno domácností: 2")).toBeVisible();
+    await expect(page.getByTestId("group-stats")).toHaveText(
+      norm("Domácností: 2, hostů: 3. Přijde: 0, nepřijde: 0, neodpověděli: 3."),
+    );
+    await expect(page.getByRole("heading", { level: 2, name: "Černí" })).toHaveCount(0);
+    await page.getByLabel("Skupina", { exact: true }).selectOption({ label: "Bez skupiny" });
+    await expect(page.getByText("Zobrazeno domácností: 1")).toBeVisible();
+    await expect(page.getByRole("heading", { level: 2, name: "Černí" })).toBeVisible();
+    // hromadné pozvání by šlo všem, ne jen zobrazeným: v tomto výběru se nenabízí
+    await expect(page.getByRole("heading", { name: "Pozvání na události" })).toHaveCount(0);
+
+    // pozvání jen skupiny na hostinu (program podle skupiny), ostatní beze změny
+    await page.getByLabel("Skupina", { exact: true }).selectOption("Kolegové");
+    await page.getByRole("button", { name: "Pozvat skupinu Kolegové na událost Hostina" }).click();
+    await expect(
+      page.getByText(/Pozvat skupinu Kolegové \(hostů: 3\) na událost Hostina/),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Ano, provést" }).click();
+    await waitSaved(page);
+    // Dvořákovi (nová domácnost z editoru) jsou pozvaní na obě události už od založení
+    const invitations = Object.fromEntries(
+      (await guestRows(site.weddingId)).map((g) => [g.display_name, g.invitations]),
+    );
+    expect(invitations).toEqual({
+      "Eva Nováková": 2,
+      "Jan Novák": 2,
+      "Karel Černý": 1,
+      "Karel Dvořák": 2,
+    });
+  });
+});
+
 test.describe("import hostů", () => {
   test("CSV: náhled s chybou a duplicitami, import po potvrzení s pozváním na události", async ({
     page,

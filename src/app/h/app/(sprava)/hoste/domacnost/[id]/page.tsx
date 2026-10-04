@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { z } from "zod";
 import { ADMIN_PATHS, appHref } from "@/admin/paths";
 import { loadGuests } from "@/admin/guests/server";
+import { weddingTags } from "@/admin/guests/tags";
 import { getUiLocale } from "@/auth/request";
 import { requireSession } from "@/auth/session";
 import { AdminFrame } from "@/components/admin/frame";
@@ -53,6 +54,7 @@ export default async function HouseholdPage({ params }: PageProps<"/h/app/hoste/
           householdId={household?.id ?? null}
           initial={{
             label: household?.label ?? "",
+            tags: household?.tags ?? [],
             note: household?.invited_note ?? "",
             guests: household
               ? household.guests.map((guest) => ({
@@ -64,6 +66,7 @@ export default async function HouseholdPage({ params }: PageProps<"/h/app/hoste/
                 }))
               : [{ id: null, name: "", isChild: false, age: "", eventIds: allEventIds }],
           }}
+          knownTags={weddingTags(data.households)}
           events={events}
           answered={Boolean(household?.response)}
           listHref={appHref(ADMIN_PATHS.guests, locale)}

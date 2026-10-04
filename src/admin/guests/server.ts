@@ -7,6 +7,7 @@ import {
   adminHouseholdDelete,
   adminHouseholdSave,
   adminInvitationsBulk,
+  adminInvitationsBulkTag,
   adminRsvpNotifyGet,
   adminRsvpNotifySet,
   adminRsvpSettingsGet,
@@ -34,6 +35,7 @@ import {
   rsvpSettingsInputSchema,
   rsvpSettingsViewSchema,
   settingsToPayload,
+  tagSchema,
   type RsvpSettingsView,
 } from "./types";
 
@@ -108,19 +110,32 @@ export async function deleteHousehold(
 
 export type BulkInviteResult = { status: "ok"; rows: number } | { status: "invalid" } | Limited;
 
+/** Pozvání na událost (nebo jeho zrušení) všem hostům, nebo jen domácnostem se skupinou `tag`. */
 export async function bulkInvite(
   session: AdminIdentity,
   eventId: unknown,
   invited: unknown,
+  tag: unknown = null,
 ): Promise<BulkInviteResult> {
   const event = z.uuid().safeParse(eventId);
-  if (!event.success || typeof invited !== "boolean") return { status: "invalid" };
+  const group = tagSchema.nullable().safeParse(tag);
+  if (!event.success || typeof invited !== "boolean" || !group.success) {
+    return { status: "invalid" };
+  }
   const retry = await limited("guests-write", session.weddingId, RATE_RULES.guestsWriteWedding);
   if (retry !== null) return { status: "limited", retryAfter: retry };
   try {
-    return { status: "ok", rows: await adminInvitationsBulk(session, event.data, invited) };
+    return {
+      status: "ok",
+      // bez skupiny původní funkce: funguje i v okamžiku nasazení před doběhnutím migrace
+      rows:
+        group.data === null
+          ? await adminInvitationsBulk(session, event.data, invited)
+          : await adminInvitationsBulkTag(session, event.data, invited, group.data),
+    };
   } catch (error) {
-    if (reasonOf(error) === "invalid_event") return { status: "invalid" };
+    const reason = reasonOf(error);
+    if (reason === "invalid_event" || reason === "invalid_payload") return { status: "invalid" };
     throw error;
   }
 }

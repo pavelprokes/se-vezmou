@@ -12,6 +12,8 @@ export interface SeedHousehold {
   guests: { name: string; child?: boolean; age?: number }[];
   /** Na které události jsou pozváni (všichni hosté domácnosti); výchozí obě. */
   events?: ("ceremony" | "reception")[];
+  /** Skupiny (štítky) domácnosti. */
+  tags?: string[];
 }
 
 /**
@@ -79,8 +81,8 @@ export async function seedHouseholds(
       const id = randomUUID();
       ids.push(id);
       await db.query(
-        "insert into se_vezmou.households (id, wedding_id, label) values ($1, $2, $3)",
-        [id, weddingId, household.label],
+        "insert into se_vezmou.households (id, wedding_id, label, tags) values ($1, $2, $3, $4)",
+        [id, weddingId, household.label, household.tags ?? []],
       );
       for (const guest of household.guests) {
         const guestId = randomUUID();
@@ -110,9 +112,10 @@ export async function guestRows(weddingId: string) {
       age: number | null;
       source: string;
       label: string;
+      tags: string[];
       invitations: number;
     }>(
-      `select g.display_name, g.is_child, g.age, g.source, h.label,
+      `select g.display_name, g.is_child, g.age, g.source, h.label, h.tags,
               (select count(*)::int from se_vezmou.invitations i where i.guest_id = g.id) as invitations
          from se_vezmou.guests g join se_vezmou.households h on h.id = g.household_id
         where g.wedding_id = $1 order by g.display_name`,

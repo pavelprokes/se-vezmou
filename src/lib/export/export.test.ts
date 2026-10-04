@@ -36,6 +36,7 @@ const sample = (overrides: Partial<GuestExport> = {}): GuestExport => ({
   people: [
     {
       household: "Rodina Novákova",
+      tags: [],
       name: "Jan Novák",
       kind: "guest",
       age: null,
@@ -54,6 +55,7 @@ const sample = (overrides: Partial<GuestExport> = {}): GuestExport => ({
     },
     {
       household: "Rodina Novákova",
+      tags: [],
       name: "Marie Nováková",
       kind: "guest",
       age: null,
@@ -69,6 +71,7 @@ const sample = (overrides: Partial<GuestExport> = {}): GuestExport => ({
     },
     {
       household: null,
+      tags: [],
       name: '=HYPERLINK("http://zlo.example")',
       kind: "unlisted",
       age: 7,
@@ -225,6 +228,17 @@ describe("tabulka hostů a RSVP", () => {
     );
     expect(table.headers).not.toContain("Ubytování");
     expect(table.headers).not.toContain("Píseň");
+  });
+
+  it("sloupec Skupiny jen tehdy, když má některá domácnost skupinu", () => {
+    expect(buildGuestTable(sample(), "cs").headers).not.toContain("Skupiny");
+    const people = sample().people.map((p, i) => ({
+      ...p,
+      tags: i === 0 ? ["Rodina", "Kolegové"] : [],
+    }));
+    const table = buildGuestTable(sample({ people }), "cs");
+    expect(table.headers.slice(0, 3)).toEqual(["Domácnost", "Skupiny", "Jméno"]);
+    expect(table.rows.map((row) => row[1])).toEqual(["Rodina, Kolegové", null, null]);
   });
 
   it("prázdný seznam hostů dá tabulku jen se záhlavím", () => {

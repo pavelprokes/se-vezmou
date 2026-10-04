@@ -26,6 +26,7 @@ export type DeleteHouseholdAction = (
 export type BulkInviteAction = (
   eventId: string,
   invited: boolean,
+  tag: string | null,
 ) => Promise<Guarded<BulkInviteResult>>;
 
 export type CommitImportAction = (input: unknown) => Promise<Guarded<CommitImportResult>>;

@@ -12,6 +12,7 @@ import type { Cell, GuestExport, PersonKind, Table } from "./types";
 type Labels = {
   sheet: string;
   household: string;
+  tags: string;
   name: string;
   kindHeader: string;
   kind: Record<PersonKind, string>;
@@ -41,6 +42,7 @@ const LABELS: Record<Locale, Labels> = {
   cs: {
     sheet: "Hosté a RSVP",
     household: "Domácnost",
+    tags: "Skupiny",
     name: "Jméno",
     kindHeader: "Typ",
     kind: { guest: "Host", plus_one: "Doprovod", child: "Dítě", unlisted: "Host mimo seznam" },
@@ -68,6 +70,7 @@ const LABELS: Record<Locale, Labels> = {
   en: {
     sheet: "Guests and RSVP",
     household: "Household",
+    tags: "Groups",
     name: "Name",
     kindHeader: "Type",
     kind: { guest: "Guest", plus_one: "Plus one", child: "Child", unlisted: "Unlisted guest" },
@@ -121,8 +124,12 @@ export function buildGuestTable(data: GuestExport, locale: Locale): Table {
     ] as const
   ).filter(([key]) => usesAnswer(key));
 
+  // sloupec skupin jen tehdy, když je pár používá
+  const usesTags = data.people.some((p) => p.tags.length > 0);
+
   const headers = [
     l.household,
+    ...(usesTags ? [l.tags] : []),
     l.name,
     l.kindHeader,
     l.age,
@@ -168,6 +175,7 @@ export function buildGuestTable(data: GuestExport, locale: Locale): Table {
     };
     return [
       person.household ?? (person.kind === "unlisted" ? l.unlistedHousehold : null),
+      ...(usesTags ? [person.tags.join(", ") || null] : []),
       person.name,
       l.kind[person.kind],
       person.age,

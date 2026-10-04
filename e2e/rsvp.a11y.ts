@@ -52,6 +52,16 @@ const ALL: RsvpSetup = {
 async function violations(page: Page) {
   // Počkat na titulek: po překreslení stránky (např. po akci serveru) může být na okamžik prázdný a axe by hlásil document-title.
   await expect(page).toHaveTitle(/.+/);
+  // Ukotvené tlačítko Eukalyptu se nad formulářem schovává s animací 0,2 s; během ní by překrývalo přepínače
+  // a axe by hlásil target-size. Počkat, až je opravdu schované (souběh testu, ne vada stránky).
+  await page.waitForFunction(() => {
+    const sticky = document.querySelector(".eu-sticky");
+    const form = document.querySelector("#potvrdit-ucast");
+    if (!sticky || !form) return true;
+    const box = form.getBoundingClientRect();
+    const formVisible = box.top < window.innerHeight && box.bottom > 0;
+    return !formVisible || getComputedStyle(sticky).visibility === "hidden";
+  });
   const results = await new AxeBuilder({ page }).withTags(TAGS).analyze();
   return results.violations.map((v) => ({
     id: v.id,

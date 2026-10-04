@@ -11,6 +11,7 @@
   "readMoreLabel": "Číst článek {title}",
   "meta": "{date} · {minutes} min čtení",
   "updated": "Aktualizováno {date}",
+  "author": "Autor: {name}",
   "toc": "Obsah článku",
   "back": "Všechny články",
   "more": "Další články"

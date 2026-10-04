@@ -67,8 +67,8 @@ for (const locale of locales) {
       const { html } = await source(request, locale.path);
       expect(html.match(/<details[\s>]/g)).toHaveLength(6);
       expect(html.match(/<summary[\s>]/g)).toHaveLength(6);
-      // Zástupný text podmínek (jediný zdroj: config/pricing.ts) je v odpovědi na cenu.
-      expect(html).toContain("[PODMÍNKY]");
+      // Žádné zástupné texty v hranatých závorkách (podmínky, datum a místo v ukázkách).
+      expect(html).not.toMatch(/\[(PODMÍNKY|TERMS|DD[^\]]*|místo|venue)\]/);
     });
 
     test("JSON-LD: Organization, WebSite, SoftwareApplication, FAQPage a BreadcrumbList", async ({
@@ -184,7 +184,7 @@ for (const locale of locales) {
       for (const price of prices) expect(price).toMatch(/0/);
       const text = (await page.locator("main").innerText()).toLowerCase();
       expect(text).not.toMatch(/navždy|\bforever\b|\bfor ever\b/);
-      await expect(pricing).toContainText("[PODMÍNKY]");
+      await expect(pricing).not.toContainText("[");
     });
 
     test("sekce oznámení o spuštění nemá zástupné texty ani vymyšlené recenze", async ({
@@ -617,6 +617,14 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
     const { html } = await source(request, "/sitemap.xml");
     for (const entry of pages)
       expect(html).toContain(`<loc>https://se-vezmou.cz${entry.path}</loc>`);
+  });
+
+  test("llms.txt: popis služby a odkazy na stránky z mapy webu", async ({ request }) => {
+    const { response, html } = await source(request, "/llms.txt");
+    expect(response.status()).toBe(200);
+    expect(response.headers()["content-type"]).toContain("text/plain");
+    expect(html).toMatch(/^# Se vezmou/);
+    for (const entry of pages) expect(html).toContain(`(https://se-vezmou.cz${entry.path})`);
   });
 });
 

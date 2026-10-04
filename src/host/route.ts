@@ -29,9 +29,11 @@ export interface LocaleRoute {
   path: string;
 }
 
-/** Veřejné soubory (`/favicon.ico`, `/logo.svg`) se nepřepisují. `robots.txt` a `sitemap.xml` ano. */
+/** Veřejné soubory (`/favicon.ico`, `/logo.svg`) se nepřepisují. `robots.txt`, `sitemap.xml` a `llms.txt` ano. */
 function isStaticAsset(pathname: string): boolean {
-  if (pathname === "/robots.txt" || pathname === "/sitemap.xml") return false;
+  if (pathname === "/robots.txt" || pathname === "/sitemap.xml" || pathname === "/llms.txt") {
+    return false;
+  }
   return /\/[^/]+\.[a-z0-9]+$/i.test(pathname);
 }
 
@@ -73,9 +75,9 @@ export function routeRequest(
   if (pathname === "/robots.txt") {
     return { action: "rewrite", kind, pathname: `/h/${kind}/robots.txt` };
   }
-  if (pathname === "/sitemap.xml") {
+  if (pathname === "/sitemap.xml" || pathname === "/llms.txt") {
     return kind === "marketing"
-      ? { action: "rewrite", kind, pathname: "/h/marketing/sitemap.xml" }
+      ? { action: "rewrite", kind, pathname: `/h/marketing${pathname}` }
       : { action: "notFound", kind };
   }
 

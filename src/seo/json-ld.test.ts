@@ -133,9 +133,10 @@ describe("FAQPage", () => {
       for (const entity of entities) expect(entity.acceptedAnswer.text).not.toContain(NBSP);
     });
 
-    it(`${locale}: odpověď o ceně obsahuje zástupný text podmínek, ne „navždy“`, async () => {
+    it(`${locale}: odpověď o ceně slibuje oznámení předem, ne „navždy“, a nemá zástupný text`, async () => {
       const [price] = await getFaqItems(locale);
-      expect(price.answer).toContain("[PODMÍNKY]");
+      expect(price.answer).toMatch(/předem|in advance/);
+      expect(price.answer).not.toMatch(/\[[^\]]+\]/);
       expect(price.answer).not.toMatch(/navždy|forever/i);
     });
   }

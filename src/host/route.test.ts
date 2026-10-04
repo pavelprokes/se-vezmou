@@ -192,6 +192,14 @@ describe("routeRequest: robots.txt, sitemap.xml, statické soubory", () => {
     expect(route("klara-a-matej.se-vezmou.cz", "/sitemap.xml").action).toBe("notFound");
   });
 
+  it("llms.txt jen na marketingu", () => {
+    expect(route("se-vezmou.cz", "/llms.txt")).toMatchObject({
+      pathname: "/h/marketing/llms.txt",
+    });
+    expect(route("app.se-vezmou.cz", "/llms.txt").action).toBe("notFound");
+    expect(route("klara-a-matej.se-vezmou.cz", "/llms.txt").action).toBe("notFound");
+  });
+
   it("veřejné soubory se nepřepisují", () => {
     expect(route("se-vezmou.cz", "/favicon.ico").action).toBe("passThrough");
     expect(route("klara-a-matej.se-vezmou.cz", "/obrazek.png").action).toBe("passThrough");

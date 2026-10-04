@@ -28,8 +28,12 @@ export interface OrganizationInput {
   siteUrl: string;
   name: string;
   description: string;
-  /** Obchodní jméno a IČO; zástupná hodnota se do dat nepíše. */
+  /** Doména jako druhý název (logo v hlavičce je adresa webu). */
+  alternateName?: string;
+  /** Obchodní jméno; zástupná hodnota se do dat nepíše. */
   legalName: string;
+  /** IČO; bez něj se `identifier` nepíše. */
+  companyId?: string;
   /** Kontakt; zástupná hodnota se do dat nepíše. */
   contact: string;
 }
@@ -44,7 +48,11 @@ export function organizationLd(input: OrganizationInput): JsonLdNode {
     url: `${input.siteUrl}/`,
     description: plain(input.description),
   };
+  if (input.alternateName) node.alternateName = input.alternateName;
   if (!isPlaceholder(input.legalName)) node.legalName = plain(input.legalName);
+  if (input.companyId) {
+    node.identifier = { "@type": "PropertyValue", propertyID: "IČO", value: input.companyId };
+  }
   if (!isPlaceholder(input.contact)) {
     node.contactPoint = {
       "@type": "ContactPoint",
@@ -136,9 +144,14 @@ export interface BlogPostingInput {
   datePublished: string;
   dateModified: string;
   imageUrl: string;
+  /** Autor článku (osoba provozovatele). */
+  authorName: string;
 }
 
-/** Článek blogu; autorem i vydavatelem je provozovatel (`Organization` ze stejného grafu). */
+/**
+ * Článek blogu: autorem je osoba provozovatele, vydavatelem `Organization` ze stejného grafu.
+ * `speakable` ukazuje na nadpis a perex (`#article-title`, `#article-lead` na stránce článku).
+ */
 export function blogPostingLd(input: BlogPostingInput): JsonLdNode {
   const organization = { "@id": idOf(input.siteUrl, "organization") };
   return {
@@ -152,8 +165,17 @@ export function blogPostingLd(input: BlogPostingInput): JsonLdNode {
     datePublished: input.datePublished,
     dateModified: input.dateModified,
     image: input.imageUrl,
-    author: organization,
+    author: {
+      "@type": "Person",
+      "@id": idOf(input.siteUrl, "author"),
+      name: plain(input.authorName),
+      worksFor: organization,
+    },
     publisher: organization,
+    speakable: {
+      "@type": "SpeakableSpecification",
+      cssSelector: ["#article-title", "#article-lead"],
+    },
     isPartOf: { "@id": idOf(input.siteUrl, "website") },
   };
 }

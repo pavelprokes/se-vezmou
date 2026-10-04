@@ -4,7 +4,7 @@
  * takže se číslo na stránce a ve značkách nikdy nerozejde.
  *
  * Nikdy neslibujeme „zdarma navždy“: nabídka platí jen po dobu zaváděcího provozu
- * a po jeho skončení platí podmínky, které doplní provozovatel (`[PODMÍNKY]`, OQ-11).
+ * a cenu i podmínky po jeho skončení provozovatel oznámí předem (OQ-11).
  */
 
 export const CURRENCY = "CZK";
@@ -24,7 +24,6 @@ export interface Plan {
 export interface Pricing {
   currency: string;
   plans: readonly Plan[];
-  conditionsPlaceholder: string;
   introEndsOn: string | null;
 }
 
@@ -34,8 +33,6 @@ export const pricing: Pricing = {
     { id: "concept", price: 0, highlighted: false },
     { id: "published", price: 0, highlighted: true },
   ],
-  /** Zástupný text, dokud majitel neurčí podmínky po skončení zaváděcího provozu. */
-  conditionsPlaceholder: "[PODMÍNKY]",
   /**
    * Konec zaváděcího provozu (ISO datum). `null` = zatím neurčen, proto se `priceValidUntil`
    * ve strukturovaných datech nevypisuje (technical-design 6.3).

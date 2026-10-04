@@ -33,7 +33,7 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
 
   return (
     <footer className="bg-parchment text-ink">
-      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-8 md:grid-cols-[1.2fr_1fr_1fr_1.2fr_auto]">
+      <div className="mx-auto grid w-full max-w-6xl gap-10 px-4 py-12 sm:px-8 md:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr_1.2fr_auto]">
         <div>
           <p className="font-sans text-xl font-extrabold tracking-tight">
             se-vezmou<span className="text-cinnamon-deep">.cz</span>
@@ -83,7 +83,7 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
           hrefs={typeof route === "string" ? localizedPaths(route) : route}
           label={t("landing.footer.language")}
           short
-          className="md:justify-self-end"
+          className="lg:justify-self-end"
         />
       </div>
     </footer>

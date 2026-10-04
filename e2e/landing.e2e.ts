@@ -174,7 +174,7 @@ for (const locale of locales) {
         "faq-title",
         "cta-title",
       ]);
-      // Dvanáctá oblast je patička.
+      // Čtrnáctá oblast je patička.
       await expect(page.locator("footer")).toHaveCount(1);
     });
 
@@ -191,10 +191,10 @@ for (const locale of locales) {
 
     test("sekce novinek a kontaktu nemá zástupné texty ani vymyšlené recenze", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
-      const launch = page.locator("#news");
-      await expect(launch.locator("blockquote")).toHaveCount(0);
-      await expect(launch.getByText(/\[.*\]|Zástupný text|Placeholder text/)).toHaveCount(0);
-      await expect(launch.locator("#waitlist form")).toBeVisible();
+      const news = page.locator("#news");
+      await expect(news.locator("blockquote")).toHaveCount(0);
+      await expect(news.getByText(/\[.*\]|Zástupný text|Placeholder text/)).toHaveCount(0);
+      await expect(news.locator("#waitlist form")).toBeVisible();
     });
 
     test("šablony: čtyři skutečné snímky se jmény Klára a Matěj", async ({ page }) => {

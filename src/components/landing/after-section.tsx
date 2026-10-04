@@ -17,7 +17,7 @@ export async function AfterSection({ locale }: { locale: Locale }) {
       />
       <ul className="mt-10 grid gap-5 md:grid-cols-3">
         {([1, 2, 3] as const).map((n) => (
-          <li key={n} className="rounded-2xl bg-white/10 p-6">
+          <li key={n} className="rounded-2xl bg-black/10 p-6">
             <h3 className="font-sans text-lg font-bold">{t(`landing.after.${n}.title`)}</h3>
             <p className="mt-2 text-sm">{t(`landing.after.${n}.text`)}</p>
           </li>

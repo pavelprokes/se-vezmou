@@ -186,7 +186,7 @@ begin
   perform tap.ok((select value from se_vezmou.app_settings where key = 'max_admins') = '3', 'max_admins = 3');
   perform tap.ok((select value from se_vezmou.app_settings where key = 'slug_reservation_days') = '30', 'slug_reservation_days = 30');
   perform tap.ok((select value from se_vezmou.app_settings where key = 'health_retention_days_after_wedding') = '30', 'retence zdravotních údajů 30 dní');
-  perform tap.ok((select value from se_vezmou.app_settings where key = 'guest_retention_months_after_wedding') = '12', 'retence údajů hostů 12 měsíců');
+  perform tap.ok((select value from se_vezmou.app_settings where key = 'guest_retention_months_after_wedding') = '3', 'retence údajů hostů 3 měsíce');
   perform tap.ok((select count(*) from se_vezmou.slug_registry where state = 'reserved_word') >= 9, 'rezervovaná slova jsou nasazena');
   perform tap.ok(exists (select 1 from se_vezmou.slug_registry where slug = 'www' and state = 'reserved_word'), 'www je rezervované slovo');
 end

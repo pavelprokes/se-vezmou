@@ -151,7 +151,7 @@ Detail přenosů mimo EU a záruk `[OTÁZKA]` pro právníka. Seznam dílčích 
 | ----------------------------- | --------------------------------------------------------------- | ----------------------- | --------------------------------------- | ----------------------------------------------------- |
 | Údaje správců                 | e-mail, záložní e-mail, hash PINu                               | snoubenci, pomocníci    | běžná                                   | po dobu existence webu, poté smazat                   |
 | Údaje o svatbě                | jména páru, datum, místo, texty                                 | pár                     | běžná                                   | po dobu webu, pak podle stavu                         |
-| Hosté a RSVP                  | jméno, účast, doprovod, děti s věkem, ubytování, doprava, píseň | hosté, děti             | běžná, u dětí zvýšená péče              | 12 měsíců po svatbě                                   |
+| Hosté a RSVP                  | jméno, účast, doprovod, děti s věkem, ubytování, doprava, píseň | hosté, děti             | běžná, u dětí zvýšená péče              | 3 měsíce po svatbě                                    |
 | **Dietní a alergické údaje**  | dieta, alergie                                                  | hosté                   | **zvláštní kategorie (zdravotní údaj)** | **30 dní po svatbě**, bez čekání na export (viz níže) |
 | Fotografie                    | galerie páru                                                    | lidé na fotografiích    | běžná, může být citlivá podle obsahu    | jako web a svatba                                     |
 | Číslo účtu darů               | IBAN                                                            | pár                     | běžná, za PINem                         | po dobu webu                                          |
@@ -160,7 +160,7 @@ Detail přenosů mimo EU a záruk `[OTÁZKA]` pro právníka. Seznam dílčích 
 | Hlášení chyb (Sentry)         | typ chyby, zásobník, název šablony trasy (bez adresy)           | nikdo identifikovatelný | minimální                               | podle nastavení projektu Sentry `[LHŮTY]`             |
 | Koncept průvodce v prohlížeči | jména páru, datum svatby (kap. 5.6)                             | pár                     | běžná, jen v zařízení uživatele         | do smazání v prohlížeči; na serveru se neukládá       |
 
-Lhůty výše jsou výchozí návrh zadání (30 dní a 12 měsíců), **schvaluje právník**.
+Lhůty výše jsou výchozí návrh zadání (dieta 30 dní, ostatní údaje hostů 3 měsíce, web veřejně 12 měsíců, pak archiv jen pro správce a smazání zhruba 15 měsíců po svatbě), **schvaluje právník**.
 
 **Smazání zdravotních údajů nečeká na export.** Retenční úloha smaže dietu a alergie v den splatnosti (výchozí 30 dní po svatbě, `app_settings.health_retention_days_after_wedding`), i když pár export nestáhl ani nepotvrdil. Pár před tím dostane upozornění s odkazem na export (M10), ale smazání na stažení nijak nečeká. Je to záměr (zdravotní údaj nemá zůstat déle jen proto, že pár nereaguje); případné čekání na export by vyžadovalo rozhodnutí právníka (kap. 11, bod 1) a změnu úlohy.
 
@@ -190,7 +190,7 @@ Je to osobní údaj uložený v zařízení uživatele (a na sdíleném počíta
 
 ## 6. Mazání a právo na výmaz
 
-- **Automatické mazání podle retence:** dietní údaje 30 dní po svatbě, ostatní údaje hostů 12 měsíců po svatbě. Pár předem dostane e-mail s možností exportu hostů, RSVP a fotografií (FR-LC-2), včetně připomenutí. Lhůty upozornění `[LHŮTY]`.
+- **Automatické mazání podle retence:** dietní údaje 30 dní po svatbě, ostatní údaje hostů 3 měsíce po svatbě. Pár předem dostane e-mail s odkazem na export hostů, RSVP a fotografií ve správě (FR-LC-2), včetně připomenutí, a blížící se mazání vidí i v přehledu správy. Export se e-mailem neposílá (e-mail by nesl osobní údaje hostů). Lhůty upozornění `[LHŮTY]`.
 - **Denní úloha retence** (naplánovaná, idempotentní) vybírá weby podle data svatby a stavu, maže a zapisuje do auditu **bez osobních údajů** (identifikátor svatby, typ mazání, počet řádků, čas). Selhání úlohy se hlásí provozu.
 - **Smazání webu párem:** správce si web smaže sám. Nevratné smazání po krátké ochranné lhůtě, v níž ho operátor může obnovit na žádost `[OTÁZKA]` (délka lhůty pro právníka). Fotografie a řádky se smažou včetně prefixu v úložišti.
 - **Právo na výmaz hosta:** host se obrátí na pár (správce), který smaže záznam v správě. Pokud se host obrátí na provozovatele, ten ho **odkáže na pár** a na jeho pokyn pomůže. Lhůta odpovědi a postup `[LHŮTY]`. Každá žádost a její vyřízení se zapíše do auditu bez osobních údajů. **Stav implementace:** databázová funkce `erase_guest` (výmaz jednoho hosta, osob, účasti a zdravotních údajů s auditem) existuje a je testovaná, ale **žádná část aplikace ji nevolá** (není tlačítko ani akce). Zdokumentovaným způsobem výmazu jednoho hosta je dnes **smazání domácnosti** v seznamu hostů (`admin_household_delete`), které smaže všechny její členy; výmaz jediného člena domácnosti beze změny ostatních zatím nejde bez úpravy domácnosti (OQ-62).
@@ -263,9 +263,9 @@ Model hrozeb pro sdílený projekt Supabase (ADR 0011):
 
 ## 11. Seznam věcí pro právníka
 
-Štítky `[OTÁZKA]` (rozhodnutí nebo výklad) a `[LHŮTY]` (číselné lhůty). Návrh lhůt zadání: 30 dní dietní údaje, 12 měsíců ostatní údaje hostů.
+Štítky `[OTÁZKA]` (rozhodnutí nebo výklad) a `[LHŮTY]` (číselné lhůty). Návrh lhůt zadání: 30 dní dietní údaje, 3 měsíce ostatní údaje hostů, web 12 měsíců po svatbě.
 
-1. `[LHŮTY]` Schválit retenci: dietní údaje 30 dní po svatbě, ostatní údaje hostů 12 měsíců, termíny upozornění a exportu.
+1. `[LHŮTY]` Schválit retenci: dietní údaje 30 dní po svatbě, ostatní údaje hostů 3 měsíce, web 12 měsíců, termíny upozornění a exportu.
 2. `[OTÁZKA]` Právní základ zpracování zdravotních údajů (dieta, alergie) a podoba souhlasu hosta, kdo ho vyžaduje (pár) a jak to služba technicky podporuje.
 3. `[OTÁZKA]` Vztah správce a zpracovatel mezi párem a provozovatelem. Zpracovatelské ujednání jako součást podmínek, jeho forma pro spotřebitele (pár jako fyzická osoba mimo podnikání: použije se GDPR i na domácí výjimku?).
 4. `[OTÁZKA]` Dvojí role provozovatele: správce u údajů správců a operátorů, zpracovatel u údajů hostů.
@@ -284,7 +284,7 @@ Model hrozeb pro sdílený projekt Supabase (ADR 0011):
 17. `[OTÁZKA]` Hlášení porušení zabezpečení údajů (postup, lhůty pro úřad a subjekty, kdo hlásí). Připravit provozní postup po schválení.
 18. `[OTÁZKA]` Identifikace provozovatele a kontakt: `[PROVOZOVATEL, IČO]`, `[KONTAKT]`, zda je nutný pověřenec (předpoklad: ne, ověřit).
 19. `[OTÁZKA]` Krátké sdělení pro hosty při RSVP (`rsvp.privacy.notice`) a upozornění u zdravotních údajů (`rsvp.health.notice`, lhůta „30 dní“ napevno): znění, jazyk, zda stačí odkaz na zásady (OQ-61).
-20. `[LHŮTY]` Nové lhůty implementované v M10 a po něm: vypršení konceptu 14 dní, přechod archivovaného webu do smazání po 90 dnech od smazání dat hostů, čekací listina 12 měsíců (OQ-58 až OQ-60).
+20. `[LHŮTY]` Nové lhůty implementované v M10 a po něm: vypršení konceptu 14 dní, přechod archivovaného webu do smazání po 365 dnech od smazání dat hostů, čekací listina 12 měsíců (OQ-58 až OQ-60).
 21. `[OTÁZKA]` Koncept průvodce v `localStorage` (kap. 5.6), včetně prostého PINu hostů, a zda je nutný souhlas (OQ-64).
 22. `[OTÁZKA]` Výmaz jednoho hosta bez smazání celé domácnosti a doručení oznámení o nahlédnutí operátora jen nejlepším úsilím (OQ-62, OQ-63).
 

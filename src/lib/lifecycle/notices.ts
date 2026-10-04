@@ -2,6 +2,7 @@ import "server-only";
 import { currentHostConfig, siteHostname } from "@/auth/app-origin";
 import { env, requireEnv } from "@/env";
 import type { Locale } from "@/i18n/config";
+import { ADMIN_PATHS } from "@/admin/paths";
 import { sendTemplatedEmail } from "@/lib/email/send";
 import { renderDeletionNotice, renderRetentionNotice } from "@/lib/email/templates";
 import type { RenderedEmail } from "@/lib/email/templates";
@@ -24,6 +25,8 @@ export type NoticeContext = {
   }) => Promise<boolean>;
   /** Adresa přihlášení do správy (`https://app.se-vezmou.cz/prihlaseni`). */
   loginUrl: string;
+  /** Stránka exportu ve správě (`https://app.se-vezmou.cz/data`), cíl upozornění před smazáním. */
+  exportUrl: string;
   /** Adresa webu pro popis v e-mailu, nebo `undefined`, když web adresu nemá. */
   siteOf: (slug: string | null) => string | undefined;
 };
@@ -35,6 +38,7 @@ export function createNoticeContext(): NoticeContext {
   return {
     send: (input) => sendTemplatedEmail({ ...input, secret, requireDelivery: true }),
     loginUrl: `${new URL(env.NEXT_PUBLIC_APP_URL).origin}/prihlaseni`,
+    exportUrl: `${new URL(env.NEXT_PUBLIC_APP_URL).origin}${ADMIN_PATHS.data}`,
     siteOf: (slug) => (slug ? siteHostname(slug, config) : undefined),
   };
 }
@@ -45,7 +49,7 @@ export type NoticeDelivery = { sent: number; failed: number };
 export function renderNotice(
   notice: ClaimedNotice,
   locale: Locale,
-  context: Pick<NoticeContext, "loginUrl" | "siteOf">,
+  context: Pick<NoticeContext, "loginUrl" | "exportUrl" | "siteOf">,
   now: Date,
 ): { type: EmailLogType; email: RenderedEmail } {
   const site = context.siteOf(notice.slug);
@@ -71,7 +75,7 @@ export function renderNotice(
       eventAt: new Date(notice.event_at),
       timeZone: notice.timezone,
       site,
-      loginUrl: context.loginUrl,
+      exportUrl: context.exportUrl,
     }),
   };
 }

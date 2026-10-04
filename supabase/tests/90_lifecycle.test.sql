@@ -1,6 +1,11 @@
 -- Relace a výzvy (auth_*), limit správců, retenční spouštěče a mazání, výmaz hosta, životní cyklus,
 -- normalizace jmen (zlaté vektory), doména i18n_text a drobná pravidla schématu.
 begin;
+-- Vzorce životního cyklu se tu testují s dřívějšími lhůtami (web 90 dní, hosté 12 měsíců, archiv 90 dní);
+-- aktuální výchozí hodnoty hlídá 90_retention_periods.test.sql.
+update se_vezmou.app_settings set value = '90' where key = 'site_online_days_after_wedding';
+update se_vezmou.app_settings set value = '12' where key = 'guest_retention_months_after_wedding';
+update se_vezmou.app_settings set value = '90' where key = 'archived_delete_days_after_guest_purge';
 select tap.seed();
 
 -- ---------------------------------------------------------------------------
@@ -208,6 +213,9 @@ $$;
 rollback;
 
 begin;
+update se_vezmou.app_settings set value = '90' where key = 'site_online_days_after_wedding';
+update se_vezmou.app_settings set value = '12' where key = 'guest_retention_months_after_wedding';
+update se_vezmou.app_settings set value = '90' where key = 'archived_delete_days_after_guest_purge';
 select tap.seed();
 
 -- ---------------------------------------------------------------------------

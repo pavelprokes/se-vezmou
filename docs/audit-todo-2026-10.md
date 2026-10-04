@@ -73,11 +73,11 @@ Každý blok má `anchor`, `enabled`, `position`, `sensitive`. Společné prvky:
 - ✅ **Fáze.** Odvozují se (`src/lib/lifecycle/phase.ts`): save_the_date, rsvp_open, rsvp_closed, wedding_day, thanks; `phaseOverride` ručně. RSVP se zavírá odvozením z `closes_at`, ne cronem.
 - ✅ **Cron.** `/api/cron/daily` v 03:17 UTC (`vercel.json`): retence, lifecycle, úklid. `/api/cron/blog` v 00:01 pražského času zveřejní naplánované články blogu (#63, #64). Idempotentní, `CRON_SECRET`, záznam do `job_runs`.
   - Diety a alergie se mažou **30 dní** po svatbě, bez ohledu na export páru.
-  - Hosté a RSVP **12 měsíců** po svatbě.
-  - Web `published` → `archived` po **90 dnech** po svatbě (`site_online_days_after_wedding`), pak `deleted` 90 dní po smazání hostů a purge po 30 dnech odkladu (obnova operátorem).
+  - Hosté a RSVP **3 měsíce** po svatbě (od 4. 10. 2026, dříve 12 měsíců).
+  - Web `published` → `archived` po **365 dnech** po svatbě (`site_online_days_after_wedding`), pak `deleted` 365 dní po smazání hostů (zhruba 15 měsíců po svatbě) a purge po 30 dnech odkladu (obnova operátorem).
   - Upozornění adminům 14 dní a 1 den předem.
   - Všechny lhůty čekají na právní schválení (`docs/security-privacy.md` §5.3, §11).
-- ⚠ **Rozpor s návrhem v zadání.** Návrh chce web 12 měsíců po svatbě, osobní údaje po 90 dnech a před smazáním e-mail s CSV exportem. Kód má web 90 dní, hosty 12 měsíců, diety 30 dní a export e-mailem neposílá. Archiv jen pro čtení po 12 měsících v kódu není.
+- ✅ **Lhůty podle zadání** (migrace `20261017120000_retention_periods.sql`): web 12 měsíců po svatbě, údaje hostů 3 měsíce, dieta 30 dní, pak archiv jen pro správce (export, fotky) a smazání. Před smazáním e-mail s odkazem na export ve správě (CSV v příloze záměrně ne: e-mail by nesl osobní údaje hostů, rozhodnutí 4. 10. 2026); blížící se mazání ukazuje i přehled správy. Lhůty dál čekají na právníka.
 - ✅ **Osobní údaje hostů.** Postgres, schéma `se_vezmou` (tabulky v A1); fotky v R2 pod `{wedding_id}/`.
 - ✅ **Animace.** Žádná knihovna (ani framer-motion). Jen CSS: `site-rise`, lišta a hover v Eukalyptu; přechody mezi stránkami úvodního webu přes `@view-transition` (`src/app/h/marketing/[locale]/transitions.css`). Ilustrace hera s `art-draw`/`art-float` nahrazena živým náhledem (#61). Globální `prefers-reduced-motion` v `src/app/globals.css`.
 

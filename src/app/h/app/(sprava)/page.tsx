@@ -1,4 +1,4 @@
-import { CircleCheck, EyeOff, Pencil } from "lucide-react";
+import { CalendarClock, CircleCheck, Download, EyeOff, Pencil } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ADMIN_PATHS, appHref } from "@/admin/paths";
@@ -16,6 +16,8 @@ import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
 import { ShareLinks } from "@/components/share-links";
 import { getTranslator } from "@/i18n/load";
+import { formatDate } from "@/i18n/translator";
+import { adminLifecycleUpcoming } from "@/lib/db/admin-guests";
 import { quickNoticeAction } from "./web/actions";
 import { switchWeddingAction } from "./actions";
 
@@ -34,7 +36,12 @@ export default async function OverviewPage() {
   const locale = await getUiLocale();
   const t = await getTranslator(locale, ["common", "admin"]);
 
-  const [loaded, weddings] = await Promise.all([peekSite(session), listMyWeddings(session)]);
+  const [loaded, weddings, upcoming] = await Promise.all([
+    peekSite(session),
+    listMyWeddings(session),
+    // upozornění je doplněk: výpadek ho jen skryje, přehled se vykreslí
+    adminLifecycleUpcoming(session).catch(() => []),
+  ]);
   if (!loaded) notFound();
   const { doc, meta } = loaded;
 
@@ -62,6 +69,35 @@ export default async function OverviewPage() {
         help="overview"
       >
         <div className="flex flex-col gap-6">
+          {upcoming.length > 0 ? (
+            <Card as="section" aria-labelledby="upcoming-heading" tone="linen">
+              <h2 id="upcoming-heading" className="flex items-center gap-2 text-2xl font-medium">
+                <Icon icon={CalendarClock} />
+                {t("admin.overview.upcoming.title")}
+              </h2>
+              <ul className="mt-3 flex flex-col gap-1" data-testid="overview-upcoming">
+                {upcoming.map((event) => (
+                  <li key={event.kind}>
+                    {t(`admin.overview.upcoming.${event.kind}`, {
+                      date: formatDate(new Date(event.event_at), locale, {
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                        timeZone: doc.wedding.timezone,
+                      }),
+                    })}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-muted mt-2 max-w-prose">{t("admin.overview.upcoming.body")}</p>
+              <p className="mt-4">
+                <a href={appHref(ADMIN_PATHS.data, locale)} className={buttonVariants()}>
+                  <Icon icon={Download} size={18} />
+                  {t("admin.overview.upcoming.export")}
+                </a>
+              </p>
+            </Card>
+          ) : null}
           {weddings.length > 1 ? (
             <Card as="section" aria-labelledby="picker-heading">
               <h2 id="picker-heading" className="text-2xl font-medium">

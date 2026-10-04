@@ -4,8 +4,8 @@ import { composeEmail, formatEventDay, type Block, type RenderedEmail } from "./
 /**
  * Upozornění správcům před vypršením webu a před smazáním údajů (FR-LC-2, FR-MAIL-1, docs/security-privacy.md
  * kap. 6): „first“ několik dní předem (app_settings.retention_notice_days_before) a „final“ těsně před událostí.
- * Zpráva nese jen datum, adresu webu a odkaz na přihlášení, nikdy osobní údaje hostů. Export hostů, odpovědí
- * a fotografií stahuje správce po přihlášení (žádný veřejný odkaz na export).
+ * Zpráva nese jen datum, adresu webu a odkaz na stránku exportu ve správě, nikdy osobní údaje hostů. Export hostů,
+ * odpovědí a fotografií stahuje správce po přihlášení (odkaz vyžaduje přihlášení, žádný veřejný export).
  */
 
 export type RetentionNoticeKind = "site_expiry" | "health_purge" | "guest_purge";
@@ -20,8 +20,8 @@ export type RetentionNoticeParams = {
   timeZone: string;
   /** Adresa webu ("klara-a-matej.se-vezmou.cz"), pokud ji svatba má. */
   site?: string;
-  /** Odkaz na přihlášení. */
-  loginUrl: string;
+  /** Odkaz na stránku exportu ve správě (`/data`); bez přihlášení vede přes přihlášení. */
+  exportUrl: string;
 };
 
 type KindCopy = {
@@ -69,8 +69,9 @@ const COPY: Record<Locale, Copy> = {
         todo: "Než k tomu dojde, stáhněte si export hostů a odpovědí (CSV nebo Excel) a fotografií.",
       },
     },
-    afterLogin: "Po přihlášení stáhnete export ve správě svatebního webu.",
-    linkText: "Přejít k přihlášení",
+    afterLogin:
+      "Odkaz vede do správy svatebního webu na stránku Data a smazání. Pokud nejste přihlášení, nejdřív se přihlaste; upozornění pak najdete i v přehledu správy.",
+    linkText: "Stáhnout export",
     small:
       "Tuto zprávu dostáváte jako správce svatebního webu. Neobsahuje žádné osobní údaje hostů.",
   },
@@ -101,8 +102,9 @@ const COPY: Record<Locale, Copy> = {
         todo: "Before that, download the export of guests and replies (CSV or Excel) and of photos.",
       },
     },
-    afterLogin: "After signing in, you can download the export in your wedding website settings.",
-    linkText: "Go to sign-in",
+    afterLogin:
+      "The link opens the Data and deletion page in your wedding website settings. If you are not signed in, sign in first; you will also see the reminder on the overview.",
+    linkText: "Download the export",
     small:
       "You are receiving this message as an administrator of the wedding website. It contains no personal data of guests.",
   },
@@ -115,7 +117,7 @@ export function renderRetentionNotice({
   eventAt,
   timeZone,
   site,
-  loginUrl,
+  exportUrl,
 }: RetentionNoticeParams): RenderedEmail {
   const copy = COPY[locale];
   const kindCopy = copy.kinds[kind];
@@ -126,7 +128,7 @@ export function renderRetentionNotice({
     ...(stage === "final" ? [{ kind: "paragraph", text: copy.finalLead } as Block] : []),
     { kind: "paragraph", text: kindCopy.body(when, site) },
     { kind: "paragraph", text: kindCopy.todo },
-    { kind: "link", text: copy.linkText, href: loginUrl },
+    { kind: "link", text: copy.linkText, href: exportUrl },
     { kind: "paragraph", text: copy.afterLogin },
     { kind: "small", text: copy.small },
   ];

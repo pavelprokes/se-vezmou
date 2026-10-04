@@ -445,8 +445,10 @@ declare
   v_n integer;
   v_purge timestamptz;
 begin
-  perform tap.ok((select value from se_vezmou.app_settings where key = 'archived_delete_days_after_guest_purge') = '90'::jsonb,
-    'výchozí lhůta archivovaných webů je 90 dní po guest_purge_at');
+  perform tap.ok((select value from se_vezmou.app_settings where key = 'archived_delete_days_after_guest_purge') = '365'::jsonb,
+    'výchozí lhůta archivovaných webů je 365 dní po guest_purge_at');
+  -- vzorec se dál testuje s lhůtou 90 dní
+  update se_vezmou.app_settings set value = '90' where key = 'archived_delete_days_after_guest_purge';
   update se_vezmou.weddings set status = 'archived', guest_purge_at = now() - interval '91 days' where id = tap.wa();
   update se_vezmou.weddings set status = 'archived', guest_purge_at = now() - interval '89 days' where id = tap.wb();
 

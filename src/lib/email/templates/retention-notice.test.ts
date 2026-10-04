@@ -11,6 +11,7 @@ import {
 } from "./index";
 
 const LOGIN = "https://app.se-vezmou.cz/prihlaseni";
+const EXPORT = "https://app.se-vezmou.cz/data";
 const SITE = "klara-a-matej.se-vezmou.cz";
 // půlnoc 12. července 2027 v Praze (letní čas): 11. 7. 22:00 UTC
 const EVENT = new Date("2027-07-11T22:00:00Z");
@@ -29,7 +30,7 @@ function all(locale: Locale): Record<string, RenderedEmail> {
         eventAt: EVENT,
         timeZone: "Europe/Prague",
         site: SITE,
-        loginUrl: LOGIN,
+        exportUrl: EXPORT,
       });
     }
   }
@@ -69,12 +70,12 @@ describe.each(locales)("e-maily o retenci a mazání (%s)", (locale) => {
   });
 
   it.each(Object.entries(emails))(
-    "%s: bez sledování a cizích zdrojů, jediný odkaz je přihlášení",
-    (_name, email) => {
+    "%s: bez sledování a cizích zdrojů, jediný odkaz je export (upozornění) nebo přihlášení (zpráva o smazání)",
+    (name, email) => {
       const core = coreHtml(email.html);
       expect(core).not.toMatch(/<img|<script|<link|<iframe|url\(|src=/i);
       const hrefs = [...core.matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
-      for (const href of hrefs) expect(href).toBe(LOGIN);
+      for (const href of hrefs) expect(href).toBe(name.startsWith("notice:") ? EXPORT : LOGIN);
       expectLogoAndFooter(email, expect);
     },
   );
@@ -86,7 +87,7 @@ describe.each(locales)("e-maily o retenci a mazání (%s)", (locale) => {
       stage: "first",
       eventAt: EVENT,
       timeZone: "Europe/Prague",
-      loginUrl: LOGIN,
+      exportUrl: EXPORT,
     });
     const newYork = renderRetentionNotice({
       locale,
@@ -94,7 +95,7 @@ describe.each(locales)("e-maily o retenci a mazání (%s)", (locale) => {
       stage: "first",
       eventAt: EVENT,
       timeZone: "America/New_York",
-      loginUrl: LOGIN,
+      exportUrl: EXPORT,
     });
     expect(prague.subject).toContain(
       locale === "cs" ? `12.${NBSP}července 2027` : `12${NBSP}July 2027`,
@@ -113,14 +114,15 @@ describe.each(locales)("e-maily o retenci a mazání (%s)", (locale) => {
     expect(first.text).not.toMatch(locale === "cs" ? /naposledy/ : /last time/);
   });
 
-  it("upozornění nabízí export hostů, odpovědí a fotografií po přihlášení a neslibuje veřejný odkaz", () => {
+  it("upozornění vede na export hostů, odpovědí a fotografií ve správě (po přihlášení), ne na veřejný odkaz", () => {
     const guests = emails["notice:guest_purge:first"];
     expect(guests.text).toMatch(
       locale === "cs" ? /export hostů a\sodpovědí/ : /export of guests and replies/,
     );
     expect(guests.text).toMatch(locale === "cs" ? /fotografií/ : /photos/);
-    expect(guests.text).toContain(LOGIN);
-    expect(guests.text).toMatch(locale === "cs" ? /Po přihlášení/ : /After signing in/);
+    expect(guests.text).toContain(EXPORT);
+    expect(guests.text).toMatch(locale === "cs" ? /Stáhnout export/ : /Download the export/);
+    expect(guests.text).toMatch(locale === "cs" ? /nejdřív se přihlaste/ : /sign in first/);
     // dietní údaje: exportují se jen zdravotní údaje výslovně u druhu health_purge
     expect(emails["notice:health_purge:first"].text).toMatch(
       locale === "cs" ? /dietních údajů/ : /dietary details/,
@@ -159,7 +161,7 @@ describe.each(locales)("e-maily o retenci a mazání (%s)", (locale) => {
       stage: "first",
       eventAt: EVENT,
       timeZone: "Europe/Prague",
-      loginUrl: LOGIN,
+      exportUrl: EXPORT,
     });
     expect(email.text).not.toContain("undefined");
     expect(email.text).not.toContain("klara-a-matej");
@@ -173,7 +175,7 @@ describe.each(locales)("e-maily o retenci a mazání (%s)", (locale) => {
       eventAt: EVENT,
       timeZone: "Europe/Prague",
       site: '<script>alert("x")</script>.se-vezmou.cz',
-      loginUrl: 'https://app.se-vezmou.cz/?a="><script>1</script>',
+      exportUrl: 'https://app.se-vezmou.cz/?a="><script>1</script>',
     });
     expect(email.html).not.toContain("<script>");
     expect(email.html).toContain("&lt;script&gt;");

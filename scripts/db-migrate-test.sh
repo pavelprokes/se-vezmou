@@ -19,16 +19,20 @@ cd "$ROOT"
 DB_DIR=""
 BIN=""
 PG_RUN=()
+# Rozbaluje se jako ${PG_RUN[@]+"${PG_RUN[@]}"}: bash 3.2 (macOS) bere prázdné pole pod `set -u` jako nedefinované.
 TMP_DIR=""
 
 log() { printf '%s\n' "$*" >&2; }
 die() { log "CHYBA: $*"; exit 1; }
 
+# Adresář se serverem: initdb i postgres (Homebrew `libpq` má initdb bez serveru).
+has_server() { [[ -x "$1/initdb" && -x "$1/postgres" ]]; }
+
 find_pg_bin() {
-  if [[ -n "${PG_BIN:-}" && -x "$PG_BIN/initdb" ]]; then printf '%s' "$PG_BIN"; return; fi
+  if [[ -n "${PG_BIN:-}" ]] && has_server "$PG_BIN"; then printf '%s' "$PG_BIN"; return; fi
   local d
-  for d in /usr/lib/postgresql/16/bin /usr/lib/postgresql/*/bin /usr/local/pgsql/bin /opt/homebrew/opt/postgresql@16/bin; do
-    if [[ -x "$d/initdb" ]]; then printf '%s' "$d"; return; fi
+  for d in /usr/lib/postgresql/16/bin /usr/lib/postgresql/*/bin /usr/local/pgsql/bin /opt/homebrew/opt/postgresql@{16,17,18}/bin /usr/local/opt/postgresql@{16,17,18}/bin; do
+    if has_server "$d"; then printf '%s' "$d"; return; fi
   done
   return 1
 }
@@ -38,7 +42,7 @@ cleanup() {
   if [[ -n "$TMP_DIR" ]]; then rm -rf "$TMP_DIR"; fi
   if [[ -n "$DB_DIR" && -d "$DB_DIR" ]]; then
     if [[ -f "$DB_DIR/data/postmaster.pid" ]]; then
-      "${PG_RUN[@]}" "$BIN/pg_ctl" -D "$DB_DIR/data" -m immediate -w stop >/dev/null 2>&1 || true
+      ${PG_RUN[@]+"${PG_RUN[@]}"} "$BIN/pg_ctl" -D "$DB_DIR/data" -m immediate -w stop >/dev/null 2>&1 || true
     fi
     rm -rf "$DB_DIR"
   fi
@@ -57,18 +61,18 @@ else
     command -v runuser >/dev/null 2>&1 || die "Pod rootem je potřeba runuser."
     chown postgres "$DB_DIR"
     PG_RUN=(runuser -u postgres --)
-    if ! "${PG_RUN[@]}" test -w "$DB_DIR"; then
+    if ! ${PG_RUN[@]+"${PG_RUN[@]}"} test -w "$DB_DIR"; then
       rm -rf "$DB_DIR"
       DB_DIR="$(mktemp -d /tmp/sevezmou-migrate-pg.XXXXXX)"
       chown postgres "$DB_DIR"
     fi
   fi
-  if ! "${PG_RUN[@]}" "$BIN/initdb" -D "$DB_DIR/data" -A trust -U postgres -E UTF8 --locale=C.UTF-8 >"$DB_DIR/initdb.log" 2>&1; then
+  if ! ${PG_RUN[@]+"${PG_RUN[@]}"} "$BIN/initdb" -D "$DB_DIR/data" -A trust -U postgres -E UTF8 --locale=C.UTF-8 >"$DB_DIR/initdb.log" 2>&1; then
     rm -rf "$DB_DIR/data"
-    "${PG_RUN[@]}" "$BIN/initdb" -D "$DB_DIR/data" -A trust -U postgres -E UTF8 --locale=C >"$DB_DIR/initdb.log" 2>&1 \
+    ${PG_RUN[@]+"${PG_RUN[@]}"} "$BIN/initdb" -D "$DB_DIR/data" -A trust -U postgres -E UTF8 --locale=C >"$DB_DIR/initdb.log" 2>&1 \
       || { cat "$DB_DIR/initdb.log" >&2; die "initdb selhal."; }
   fi
-  "${PG_RUN[@]}" "$BIN/pg_ctl" -D "$DB_DIR/data" -l "$DB_DIR/server.log" -w \
+  ${PG_RUN[@]+"${PG_RUN[@]}"} "$BIN/pg_ctl" -D "$DB_DIR/data" -l "$DB_DIR/server.log" -w \
     -o "-k $DB_DIR -c listen_addresses= -c fsync=off -c synchronous_commit=off -c full_page_writes=off" start >/dev/null
   URL="postgresql://postgres@/postgres?host=$DB_DIR"
 fi

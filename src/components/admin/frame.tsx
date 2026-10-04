@@ -116,9 +116,7 @@ export async function AdminFrame({
       >
         <h1 className="text-ink text-3xl font-medium sm:text-4xl">{title}</h1>
         {intro ? <p className="text-muted mt-3 max-w-prose text-lg">{intro}</p> : null}
-        <div className="print:hidden">
-          <HelpBox locale={locale} topic={help} />
-        </div>
+        <HelpBox locale={locale} topic={help} />
         <div className="mt-6">{children}</div>
       </main>
     </>

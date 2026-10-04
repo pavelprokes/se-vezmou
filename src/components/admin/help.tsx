@@ -48,7 +48,10 @@ export const HELP_KEYS: Record<HelpTopic, { title: HelpKey; body: HelpKey }> = {
 export async function HelpBox({ locale, topic }: { locale: Locale; topic: HelpTopic }) {
   const t = await getTranslator(locale, ["admin", "admin.guests"]);
   return (
-    <details className="border-hairline bg-warm mt-4 rounded-2xl border" data-testid="help-box">
+    <details
+      className="border-hairline bg-warm mt-4 rounded-2xl border print:hidden"
+      data-testid="help-box"
+    >
       <summary className="min-h-target text-ink flex cursor-pointer items-center gap-2 px-4 py-2 font-medium">
         <Icon icon={CircleHelp} />
         {t("admin.help.box")}

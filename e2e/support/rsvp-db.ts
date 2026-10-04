@@ -367,6 +367,19 @@ export async function prepareWedding(ip: string, setup: RsvpSetup = {}): Promise
   };
 }
 
+/**
+ * Po testu sdílená svatba znovu přijímá odpovědi: testy webu (site.e2e.ts) zámek neberou a ukotvené tlačítko
+ * Potvrdit účast se ukazuje jen při otevřeném RSVP.
+ */
+export async function reopenRsvp(): Promise<void> {
+  await withDb((db) =>
+    db.query(
+      "update se_vezmou.rsvp_settings set opens_at = null, closes_at = null where wedding_id = $1",
+      [WEDDING_ID],
+    ),
+  );
+}
+
 export async function guestSessions() {
   return withDb(async (db) => {
     const result = await db.query<{

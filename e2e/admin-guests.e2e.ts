@@ -55,9 +55,11 @@ test.describe("seznam hostů a domácností", () => {
     await page.getByRole("link", { name: "Přidat domácnost" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Nová domácnost" })).toBeVisible();
 
-    // prázdné jméno: chyba u pole slovy, nic se neuloží
-    await page.getByRole("button", { name: "Uložit domácnost" }).click();
-    await expect(page.getByText("Vyplňte jméno hosta.")).toBeVisible();
+    // prázdné jméno: chyba u pole slovy, nic se neuloží (opakovat, dokud stránka není hydratovaná)
+    await expect(async () => {
+      await page.getByRole("button", { name: "Uložit domácnost" }).click();
+      await expect(page.getByText("Vyplňte jméno hosta.")).toBeVisible({ timeout: 1000 });
+    }).toPass();
     await expect(page.getByLabel("Jméno a příjmení")).toBeFocused();
     expect(await guestRows(site.weddingId)).toHaveLength(0);
 

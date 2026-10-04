@@ -1,5 +1,11 @@
 import { expect, test as base } from "./fixtures";
-import { prepareWedding, lockWedding, type RsvpSetup, type TenantWedding } from "./rsvp-db";
+import {
+  prepareWedding,
+  lockWedding,
+  reopenRsvp,
+  type RsvpSetup,
+  type TenantWedding,
+} from "./rsvp-db";
 
 export { expect };
 
@@ -14,6 +20,7 @@ export const test = base.extend<{ wedding: (setup?: RsvpSetup) => Promise<Tenant
       try {
         await provide((setup) => prepareWedding(ip, setup));
       } finally {
+        await reopenRsvp().catch(() => undefined);
         await unlock();
       }
     },

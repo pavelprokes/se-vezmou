@@ -55,6 +55,8 @@ export type SiteState =
 async function getSiteStateUncached(
   slug: string,
   as: TenantIdentity | null,
+  /** Zohlednit relaci hosta po PINu (cookie); `false` = vždy jako anonymní návštěvník. */
+  withGuestSession = true,
 ): Promise<SiteState | null> {
   if (!SLUG_PATTERN.test(slug)) return null;
   const resolved = await resolveSlug(slug);
@@ -77,7 +79,7 @@ async function getSiteStateUncached(
   ) as Raw;
 
   if (site?.mode === "locked") {
-    const access = await getGuestSession(resolved.weddingId);
+    const access = withGuestSession ? await getGuestSession(resolved.weddingId) : null;
     if (!access) {
       const gate = lockedGateSchema.safeParse(site.locked);
       if (!gate.success) {
@@ -118,6 +120,14 @@ export const getSiteState = cache(
   (slug: string, as: TenantIdentity | null = null): Promise<SiteState | null> =>
     getSiteStateUncached(slug, as),
 );
+
+/**
+ * Stav webu pro anonymního návštěvníka, bez ohledu na cookie relace hosta. Pro odpovědi, které se ukládají
+ * do sdílené mezipaměti (obrázek pro sdílení): host po PINu by do ní jinak dostal obsah zamčeného webu.
+ */
+export function getVisitorSiteState(slug: string): Promise<SiteState | null> {
+  return getSiteStateUncached(slug, null, false);
+}
 
 /** Zveřejněný obsah webu; zamčený web bez relace hosta i neexistující web dávají `null`. */
 export async function getPublicContent(

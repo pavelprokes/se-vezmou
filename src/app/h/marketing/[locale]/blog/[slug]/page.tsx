@@ -11,7 +11,7 @@ import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingHeader } from "@/components/landing/landing-header";
 import { SubpageStructuredData } from "@/components/landing/structured-data";
 import { Icon } from "@/components/ui/icon";
-import { isLocale } from "@/i18n/config";
+import { isLocale, localePath } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 import { localizedPath } from "@/i18n/pathnames";
 import { typo } from "@/i18n/typo";
@@ -56,6 +56,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     siteName: t("common.brand"),
     imageAlt: text.title,
     article: { publishedTime: article.publishedAt, modifiedTime: article.updatedAt },
+    image: localePath(`/og/blog/${article.translations[locale].slug}`, locale),
   });
 }
 

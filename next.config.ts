@@ -116,6 +116,12 @@ const nextConfig: NextConfig = {
   // Administrace blogu čte články za běhu (stránky blogu a mapa webu je čtou jen při sestavení).
   outputFileTracingIncludes: {
     "/h/app/vytvorit/oznameni": ["./src/wizard/pdf/fonts/**/*"],
+    // Obrázky pro sdílení odkazů kreslí server písmy z PDF oznámení.
+    "/h/tenant/[slug]/[locale]/og": ["./src/wizard/pdf/fonts/**/*"],
+    "/h/marketing/[locale]/og/blog/[slug]": [
+      "./src/wizard/pdf/fonts/**/*",
+      "./content/blog/*.json",
+    ],
     "/h/admin/blog": ["./content/blog/*.json"],
     "/h/admin/blog/[id]": ["./content/blog/*.json"],
     // Obnovení stránek blogu (ISR) čte články za běhu kvůli naplánovanému zveřejnění.

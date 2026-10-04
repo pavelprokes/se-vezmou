@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { ALLOWED_BOTS, TRAINING_BOTS } from "@/config/robots";
-import { closedRobots, marketingRobots } from "./robots";
+import { ALLOWED_BOTS, LINK_PREVIEW_BOTS, TRAINING_BOTS } from "@/config/robots";
+import { closedRobots, marketingRobots, tenantRobots } from "./robots";
 import { buildSitemap, indexableRoutes } from "./sitemap";
 
 describe("robots.txt", () => {
@@ -23,6 +23,13 @@ describe("robots.txt", () => {
 
   it("ostatní hostitelé jsou zavřeni", () => {
     expect(closedRobots()).toBe("User-agent: *\nDisallow: /\n");
+  });
+
+  it("web páru pustí jen roboty náhledů odkazů, ostatní zavře", () => {
+    const [previews, rest] = tenantRobots().split("\n\n");
+    for (const bot of LINK_PREVIEW_BOTS) expect(previews).toContain(`User-agent: ${bot}`);
+    expect(previews.endsWith("Allow: /")).toBe(true);
+    expect(rest).toBe("User-agent: *\nDisallow: /\n");
   });
 });
 

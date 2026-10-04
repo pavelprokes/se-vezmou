@@ -132,6 +132,8 @@ export function parseDeleteErrors(xml: string): string[] {
 
 /** Časový limit jednoho požadavku na R2. */
 export const REQUEST_TIMEOUT_MS = 10_000;
+const RETRIES = 2;
+const RETRY_MS = 50;
 
 const DELETE_BATCH = 1000;
 const LIST_PAGE = 1000;
@@ -144,8 +146,6 @@ export function createR2Storage(config: R2Config): PhotoStorage {
     secretAccessKey: config.secretAccessKey,
     service: "s3",
     region: config.region,
-    // Opakování při 5xx a 429 (R2 občas vrací krátkodobé chyby); víc pokusů by protáhlo funkci na Vercelu.
-    retries: 2,
   });
   const bucketUrl = `${config.endpoint}/${config.bucket}`;
   const objectUrl = (key: string) => `${bucketUrl}/${encodeKey(key)}`;
@@ -155,14 +155,31 @@ export function createR2Storage(config: R2Config): PhotoStorage {
     init: RequestInit & { aws?: Record<string, unknown> },
     what: string,
   ): Promise<Response> {
-    let response: Response;
-    try {
-      // Každý požadavek má pevný časový limit (i čtení těla odpovědi), ať visící R2 nezdrží funkci na Vercelu.
-      response = await aws.fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
-    } catch {
-      throw new StorageError("storage_failed", `Úložiště nedostupné (${what})`);
+    // `aws4fetch` jen podepisuje; `fetch` dostane adresu a tělo v `init`, ne hotový `Request`. Next.js v serverových
+    // akcích `fetch` obaluje a `Request` znovu sestaví s tělem jako streamem: PUT pak odejde bez `content-length`
+    // a R2 ho odmítne (411 Length Required).
+    // Jeden časový limit na celé volání včetně opakování (i čtení těla odpovědi), ať visící R2 nezdrží funkci na Vercelu.
+    const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    for (let attempt = 0; ; attempt++) {
+      let response: Response;
+      try {
+        const signed = await aws.sign(url, init);
+        response = await fetch(signed.url, {
+          method: signed.method,
+          headers: signed.headers,
+          body: init.body,
+          cache: "no-store",
+          signal,
+        });
+      } catch {
+        throw new StorageError("storage_failed", `Úložiště nedostupné (${what})`);
+      }
+      // Opakování při 5xx a 429 (R2 občas vrací krátkodobé chyby); víc pokusů by protáhlo funkci na Vercelu.
+      const retryable = response.status >= 500 || response.status === 429;
+      if (!retryable || attempt >= RETRIES) return response;
+      await response.body?.cancel().catch(() => undefined);
+      await new Promise((resolve) => setTimeout(resolve, RETRY_MS * 2 ** attempt));
     }
-    return response;
   }
 
   function failed(what: string, response: Response): StorageError {

@@ -26,11 +26,21 @@ const config: R2Config = {
 type Call = { method: string; url: URL; headers: Headers; body: string };
 let calls: Call[];
 let responder: (call: Call) => Response | Promise<Response>;
+let lengthViolations: string[];
 
 beforeEach(() => {
   calls = [];
+  lengthViolations = [];
   responder = () => new Response("", { status: 200 });
-  vi.stubGlobal("fetch", async (input: Request) => {
+  vi.stubGlobal("fetch", async (url: RequestInfo, init?: RequestInit) => {
+    // Tělo musí přijít v `init` jako bajty nebo text, ne jako stream v `Request` (Next.js by ho poslal bez délky).
+    // Kontrola až v `afterEach`: výjimka tady by se v `request()` změnila na chybu úložiště.
+    const body = init?.body;
+    if (typeof url !== "string") lengthViolations.push("Request místo adresy");
+    if (body !== undefined && !(body instanceof Uint8Array) && typeof body !== "string") {
+      lengthViolations.push("tělo bez známé délky");
+    }
+    const input = new Request(url, init);
     const call: Call = {
       method: input.method,
       url: new URL(input.url),
@@ -41,7 +51,10 @@ beforeEach(() => {
     return responder(call);
   });
 });
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  expect(lengthViolations).toEqual([]);
+});
 
 describe("nastavení R2 z prostředí", () => {
   const full = {
@@ -396,6 +409,25 @@ describe("čtení a zápis objektů", () => {
     await expect(
       storage.putObject(`${A}/foto/1.webp`, Buffer.alloc(1), { contentType: "image/webp" }),
     ).rejects.toThrow();
+  });
+
+  it("krátkodobá chyba R2 (503) se zopakuje se stejným tělem, trvalá (403) ne", async () => {
+    const storage = createR2Storage(config);
+    let attempt = 0;
+    responder = () => new Response("", { status: ++attempt === 1 ? 503 : 200 });
+    await storage.putObject(variantKey(A, M, 640, "webp"), Buffer.from("data"), {
+      contentType: "image/webp",
+    });
+    expect(calls.map((c) => c.body)).toEqual(["data", "data"]);
+
+    calls = [];
+    responder = () => new Response("", { status: 403 });
+    await expect(
+      storage.putObject(variantKey(A, M, 640, "webp"), Buffer.from("x"), {
+        contentType: "image/webp",
+      }),
+    ).rejects.toMatchObject({ code: "storage_failed" });
+    expect(calls).toHaveLength(1);
   });
 
   it("chyba zápisu je chyba úložiště", async () => {

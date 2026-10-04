@@ -305,8 +305,19 @@ test.describe("zadání PINu hostů (E2E-17, FR-PRIV-2)", () => {
 
 test.describe("heslo na celý web", () => {
   // vlastní web pro každý test: zámek sdílené svatby by viděly souběžné testy webu bez zámku (site.e2e.ts)
+  // dar s číslem účtu a držitelem: citlivá data, která zamčený web bez PINu nesmí vydat
+  const ACCOUNT = "19-2000145399/0800";
+  const HOLDER = "Zamčená Ukázková";
   async function lockedSite(guestPin: string | null = GUEST_PIN) {
-    const site = await seedSite({ guestPin });
+    const site = await seedSite({
+      guestPin,
+      tweak: (blocks) =>
+        blocks.map((block) =>
+          block.type === "gifts"
+            ? { ...block, enabled: true, data: { ...block.data, account: ACCOUNT, holder: HOLDER } }
+            : block,
+        ),
+    });
     await withDb((db) =>
       db.query("update se_vezmou.weddings set site_locked = true where id = $1", [site.weddingId]),
     );
@@ -324,7 +335,7 @@ test.describe("heslo na celý web", () => {
       page.getByRole("heading", { level: 2, name: "Web je jen pro pozvané hosty" }),
     ).toBeVisible();
     // obsah webu není v HTML (ani v odpovědi bez prohlížeče)
-    const hidden = ["Svatební obřad", "Zámecká 1", "Potvrdit účast"];
+    const hidden = ["Svatební obřad", "Zámecká 1", "Potvrdit účast", ACCOUNT, HOLDER];
     const html = await page.content();
     for (const text of hidden) expect(html).not.toContain(text);
     const { url, options } = apiRequest(`${site.slug}.localhost`, "/");
@@ -335,6 +346,8 @@ test.describe("heslo na celý web", () => {
     await expect(page.getByText("PIN nesouhlasí", { exact: false })).toBeVisible();
     await enterPin(page, "main", GUEST_PIN);
     await expect(page.getByText("Svatební obřad").first()).toBeVisible();
+    // PIN odemkne celý web včetně citlivých částí
+    await expect(page.getByText(ACCOUNT).first()).toBeVisible();
     // zaměření přejde na obsah, ne na tělo stránky
     await expect(page.locator("main#obsah")).toBeFocused();
   });

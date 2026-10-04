@@ -44,7 +44,7 @@ Stav repa je zmapovaný v `docs/audit-todo-2026-10.md`. Co už stojí, jen odšk
 - [x] **První verze, hotovo (#55 až #57):** sdílení pozvánky (WhatsApp, SMS, e-mail), QR galerie na pozvánce, IBAN a BIC jako text s „Kopírovat“, banner změny termínu, upozornění páru na novou odpověď, ubytování na mapě.
 - [x] **Skupiny hostů s programem a osobní odkaz s QR (#65, #66), heslo na celý web, EPC QR (GiroCode) pro dary ze zahraničí.**
 - [ ] **První verze, zbývá:** tlačítko „přeložit“ se schválením párem, politika hostingu po svatbě (rozpor s dnešními lhůtami viz audit A5).
-- [ ] **Druhá verze:** zasedací pořádek, rozpočet, filtr hostů podle štítku s počty, heslo na jednotlivé stránky, tisknutelná karta s QR.
+- [ ] **Druhá verze:** zasedací pořádek, rozpočet, heslo na jednotlivé stránky (filtr hostů podle skupiny s počty a kartičky s QR jsou hotové v #65 a #66).
 - [x] **Vzhled, hotovo:** přechody mezi stránkami úvodního webu (View Transitions, `prefers-reduced-motion`), nový vzhled úvodní stránky (#61).
 - [ ] **Vzhled, zbývá:** dotažení designu šablon webu páru.
 - [ ] **Později:** vlastní doména páru, placená publikace (jednorázově nebo ročně, bez poplatků z darů), služba „nastavíme web s vámi“, anglický alias domény.

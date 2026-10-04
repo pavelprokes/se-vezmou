@@ -20,10 +20,15 @@ export function ForeignPayment({
   gifts,
   ctx,
   facts,
+  figure = "site-qr-figure",
+  muted = "site-muted",
 }: {
   gifts: NonNullable<SensitiveContent["gifts"]>;
   ctx: SiteCtx;
   facts: string;
+  /** Třídy obrázku QR a popisku podle šablony (`eu-qr`, `eu-muted`). */
+  figure?: string;
+  muted?: string;
 }) {
   if (ctx.locale !== "en") return null;
   const { t } = ctx;
@@ -82,9 +87,9 @@ export function ForeignPayment({
         ))}
       </dl>
       {epc ? (
-        <figure className="site-qr-figure">
+        <figure className={figure}>
           <PaymentQr payload={epc} label={t("site.gifts.epcLabel", { name: gifts.holder ?? "" })} />
-          <figcaption className="site-muted">{t("site.gifts.epcHint")}</figcaption>
+          <figcaption className={muted}>{t("site.gifts.epcHint")}</figcaption>
         </figure>
       ) : null}
     </section>

@@ -81,14 +81,22 @@ export function czAccountToIban(value: string): string | null {
   return `CZ${String(98 - remainder).padStart(2, "0")}${bban}`;
 }
 
-/** Text do EPC QR: jeden řádek (bez konců řádků), ořez a strop délky. */
+/** Text do EPC QR: jeden řádek (bez konců řádků), ořez a strop délky ve znacích (emoji se nerozdělí). */
 function epcLine(value: string, max: number): string {
-  return value
-    .replace(/[\r\n]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, max);
+  return Array.from(
+    value
+      .replace(/[\r\n]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+  )
+    .slice(0, max)
+    .join("")
+    .trim();
 }
+
+/** Norma dovoluje nejvýš 331 bajtů obsahu (UTF-8). */
+const EPC_MAX_BYTES = 331;
+const utf8Length = (text: string) => new TextEncoder().encode(text).length;
 
 /**
  * EPC QR („GiroCode“, EPC069-12 verze 002) pro převod SEPA v eurech ze zahraničí: BIC (nepovinný), jméno
@@ -121,6 +129,12 @@ export function buildEpcQr({
     "",
     epcLine(message ?? "", 140),
   ];
+  // dlouhá diakritika může přesáhnout 331 bajtů: zkrátit nejdřív zprávu, pak jméno
+  for (const index of [10, 5]) {
+    while (utf8Length(lines.join("\n")) > EPC_MAX_BYTES && lines[index] !== "") {
+      lines[index] = Array.from(lines[index]).slice(0, -1).join("").trim();
+    }
+  }
   // prázdné řádky na konci se podle normy vynechávají
   while (lines.at(-1) === "") lines.pop();
   return lines.join("\n");

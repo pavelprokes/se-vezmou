@@ -113,4 +113,20 @@ describe("EPC QR (GiroCode, SEPA)", () => {
     expect(long[5]).toHaveLength(70);
     expect(long[10]).toHaveLength(140);
   });
+
+  it("nejvýš 331 bajtů UTF-8 (diakritika) a emoji se při ořezu nerozdělí", () => {
+    const payload = buildEpcQr({
+      iban: "CZ6508000000192000145399",
+      bic: "GIBACZPXXXX",
+      name: "ř".repeat(70),
+      message: "ž".repeat(140),
+    })!;
+    expect(new TextEncoder().encode(payload).length).toBeLessThanOrEqual(331);
+    expect(payload.split("\n")[5]).toBe("ř".repeat(70));
+    const iban = "CZ6508000000192000145399";
+    const fits = buildEpcQr({ iban, name: "Klára", message: "x".repeat(139) + "💍" })!;
+    expect(fits.split("\n")[10]).toBe("x".repeat(139) + "💍");
+    const cut = buildEpcQr({ iban, name: "Klára", message: "x".repeat(140) + "💍" })!;
+    expect(cut).not.toContain("\uFFFD");
+  });
 });

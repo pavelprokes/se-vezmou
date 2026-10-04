@@ -411,7 +411,13 @@ export function EuGifts({ block, ctx, tone }: EuBlockProps<"gifts">) {
                   </div>
                 ) : null}
               </dl>
-              <ForeignPayment gifts={gifts} ctx={ctx} facts="eu-facts" />
+              <ForeignPayment
+                gifts={gifts}
+                ctx={ctx}
+                facts="eu-facts"
+                figure="eu-qr"
+                muted="eu-muted"
+              />
               <figure className="eu-qr">
                 <PaymentQr
                   payload={buildSpayd({ iban: gifts.iban, message: gifts.paymentMessage })}

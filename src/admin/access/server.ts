@@ -19,6 +19,8 @@ import {
   guestDataNoticeRecipients,
   revokeOperatorAccess,
   type AdminIdentity,
+  adminSiteLockGet,
+  adminSiteLockSet,
 } from "@/lib/db/admin-guests";
 import { authSessionContext } from "@/lib/db/rpc";
 import { sendTemplatedEmail } from "@/lib/email/send";
@@ -58,7 +60,11 @@ export type AccessContext = {
 export type Limited = { status: "limited"; retryAfter: number };
 
 export async function loadAccess(session: AdminIdentity): Promise<AccessView> {
-  return accessViewSchema.parse(await adminAccessLoad(session));
+  const [view, siteLocked] = await Promise.all([
+    adminAccessLoad(session),
+    adminSiteLockGet(session),
+  ]);
+  return { ...accessViewSchema.parse(view), site_locked: siteLocked };
 }
 
 // --- oznámení -------------------------------------------------------------------------------
@@ -240,6 +246,22 @@ export async function setGuestPinEnabled(
   if (retry !== null) return { status: "limited", retryAfter: retry };
   try {
     await adminGuestPinEnabledSet(actor, enabled);
+    return { status: "ok" };
+  } catch (error) {
+    if (reasonOf(error) === "pin_missing") return { status: "pin_missing" };
+    throw error;
+  }
+}
+
+export type SiteLockResult = GuestPinToggleResult;
+
+/** Celý web jen po PINu hostů (nebo osobním odkazu); zamknout jde jen se zapnutým PINem hostů. */
+export async function setSiteLocked(actor: AccessActor, locked: unknown): Promise<SiteLockResult> {
+  if (typeof locked !== "boolean") return { status: "pin_missing" };
+  const retry = await limited("access-change", actor.weddingId, RATE_RULES.accessChangeWedding);
+  if (retry !== null) return { status: "limited", retryAfter: retry };
+  try {
+    await adminSiteLockSet(actor, locked);
     return { status: "ok" };
   } catch (error) {
     if (reasonOf(error) === "pin_missing") return { status: "pin_missing" };

@@ -263,3 +263,20 @@ test.describe("velikost cílů, zvětšení a klávesnice (WCAG 2.5.8, 1.4.10, 2
     await expect(group.getByRole("radio", { name: "Nepřijde", exact: true })).toBeChecked();
   });
 });
+
+test.describe("axe: zamčený web", () => {
+  test("brána s PINem (i s chybou) a reflow na 320 px", async ({ page, wedding }) => {
+    await wedding({ guestPin: GUEST_PIN, siteLocked: true });
+    await page.goto(tenant("/"));
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Web je jen pro pozvané hosty" }),
+    ).toBeVisible();
+    expect(await violations(page)).toEqual([]);
+    await page.getByLabel("PIN z pozvánky").fill("12");
+    await page.getByRole("button", { name: "Odemknout" }).click();
+    await expect(page.locator("main").getByRole("alert")).toContainText("PIN");
+    expect(await violations(page)).toEqual([]);
+    await page.setViewportSize({ width: 320, height: 256 });
+    expect(await horizontalOverflow(page)).toBe(0);
+  });
+});

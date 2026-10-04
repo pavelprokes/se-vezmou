@@ -26,6 +26,7 @@ import {
   revokeAccessAction,
   setBackupEmailAction,
   setGuestPinEnabledAction,
+  setSiteLockedAction,
 } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -71,7 +72,11 @@ export default async function AccessPage({ searchParams }: PageProps<"/h/app/pri
           <BackupPanel view={view} actions={{ setBackupEmail: setBackupEmailAction }} />
           <PinPanel
             view={view}
-            actions={{ changePin: changePinAction, setGuestPinEnabled: setGuestPinEnabledAction }}
+            actions={{
+              changePin: changePinAction,
+              setGuestPinEnabled: setGuestPinEnabledAction,
+              setSiteLocked: setSiteLockedAction,
+            }}
           />
 
           <Card as="section" aria-labelledby="announce-heading">

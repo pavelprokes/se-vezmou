@@ -14,7 +14,9 @@ export function invitePath(code: string): string {
 
 /** Kam po otevření odkazu: jazyk hosta, když ho web nabízí, jinak jazyk adresy, jinak výchozí; kotva RSVP. */
 export function inviteTarget(
-  content: Pick<PublicContent, "locales" | "defaultLocale" | "blocks">,
+  content: Pick<PublicContent, "locales" | "defaultLocale"> & {
+    blocks: Pick<PublicContent["blocks"][number], "type" | "enabled" | "anchor">[];
+  },
   guestLocale: string | null,
   urlLocale: Locale,
 ): string {

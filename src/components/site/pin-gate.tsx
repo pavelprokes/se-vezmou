@@ -35,7 +35,7 @@ export interface PinGateProps {
   /** Které odemčené místo má po úspěchu dostat zaměření (`gifts`, `venue:<id>`); páruje se s `UnlockedRegion`. */
   unlockKey: string;
   /** Úroveň nadpisu formuláře (uvnitř karty místa je to 4). */
-  headingLevel?: 3 | 4;
+  headingLevel?: 2 | 3 | 4;
 }
 
 const FLAG = "sv-unlocked";

@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { SITE_NAMESPACES } from "@/components/site/context";
+import { LockedSite } from "@/components/site/locked-site";
 import { SiteRenderer } from "@/components/site/site-renderer";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localizedPath } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
-import { getPublicContent } from "@/site/content";
+import { getSiteState } from "@/site/content";
 import { loadGuestContext } from "@/site/guest-context";
-import { eventsForGuest } from "@/site/invite";
+import { eventsForGuest, invitePath } from "@/site/invite";
+import { readInvite } from "@/site/tenant-request";
 import { languageAlternates, originFromHeaders } from "@/site/origin";
 
 type Props = PageProps<"/h/tenant/[slug]/[locale]">;
@@ -17,25 +19,33 @@ type Props = PageProps<"/h/tenant/[slug]/[locale]">;
 async function load(slug: string, locale: string) {
   if (!isLocale(locale)) return null;
   // Neexistující, nezveřejněná i zablokovaná adresa: `null`, tedy stejná 404 (FR-PRIV-3).
-  const content = await getPublicContent(slug);
+  const state = await getSiteState(slug);
   // Jazyk, který web nenabízí, je stejná 404 jako neexistující web.
-  if (!content || !content.locales.includes(locale)) return null;
-  return { content, locale };
+  if (!state) return null;
+  const locales = state.kind === "published" ? state.content.locales : state.gate.locales;
+  if (!locales.includes(locale)) return null;
+  return { state, locale };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, locale } = await params;
   const loaded = await load(slug, locale);
   if (!loaded) return {};
-  const { content } = loaded;
+  if (loaded.state.kind === "locked") {
+    const t = await getTranslator(loaded.locale, ["site"]);
+    const { a, b } = loaded.state.gate.partners;
+    return { title: t("site.title", { a, b }), robots: { index: false, follow: false } };
+  }
+  const loaded2 = { content: loaded.state.content, locale: loaded.locale };
+  const { content } = loaded2;
   const h = await headers();
   const origin = originFromHeaders(h.get("host"), h.get("x-forwarded-proto"));
   const languages = languageAlternates(origin, content.locales, content.defaultLocale);
-  const t = await getTranslator(loaded.locale, ["site"]);
+  const t = await getTranslator(loaded2.locale, ["site"]);
   return {
     title: t("site.title", { a: content.partners.a, b: content.partners.b }),
     // `hreflang` bez indexace: web zůstává `noindex` (hlavička z proxy i meta robots).
-    alternates: { canonical: languages[loaded.locale], languages },
+    alternates: { canonical: languages[loaded2.locale], languages },
     robots: { index: false, follow: false },
   };
 }
@@ -53,11 +63,22 @@ export default async function TenantSite({ params }: Props) {
   const { slug, locale } = await params;
   const loaded = await load(slug, locale);
   if (!loaded) notFound();
+  const { state } = loaded;
+  const locales = state.kind === "published" ? state.content.locales : state.gate.locales;
 
   // Přepínač nabízí jen jazyky, které web páru opravdu má (bez automatického přesměrování).
   const localeHrefs = Object.fromEntries(
-    loaded.content.locales.map((l: Locale) => [l, localizedPath("home", l)]),
-  );
+    locales.map((l: Locale) => [l, localizedPath("home", l)]),
+  ) as Record<Locale, string>;
+
+  if (state.kind === "locked") {
+    // Host s osobním odkazem v cookie projde: odkaz mu vydá relaci hosta (neplatný kód cookie smaže).
+    const code = await readInvite();
+    if (code) redirect(invitePath(code));
+    const t = await getTranslator(loaded.locale, SITE_NAMESPACES);
+    return <LockedSite gate={state.gate} locale={loaded.locale} localeHrefs={localeHrefs} t={t} />;
+  }
+  const content = state.content;
   const guest = await loadGuestContext(slug, loaded.locale);
   const t = await getTranslator(loaded.locale, SITE_NAMESPACES);
   return (
@@ -65,11 +86,11 @@ export default async function TenantSite({ params }: Props) {
       content={
         guest
           ? {
-              ...loaded.content,
+              ...content,
               phase: guest.phase,
-              events: eventsForGuest(loaded.content.events, guest.invite),
+              events: eventsForGuest(content.events, guest.invite),
             }
-          : loaded.content
+          : content
       }
       t={t}
       localeHrefs={localeHrefs}

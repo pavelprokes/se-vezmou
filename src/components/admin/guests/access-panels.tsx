@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, CircleX, Eye, ShieldCheck, UserMinus } from "lucide-react";
+import { CircleCheck, CircleX, Eye, Lock, LockOpen, ShieldCheck, UserMinus } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import type { AccessActions } from "@/admin/access/action-types";
 import { GRANT_DAYS, GRANT_REASON, type AccessView } from "@/admin/access/types";
@@ -416,11 +416,36 @@ export function PinPanel({
   actions,
 }: {
   view: AccessView;
-  actions: Pick<AccessActions, "changePin" | "setGuestPinEnabled">;
+  actions: Pick<AccessActions, "changePin" | "setGuestPinEnabled" | "setSiteLocked">;
 }) {
   const t = useAdminT();
   const id = useId();
   const [enabled, setEnabled] = useState(view.guest_pin_enabled);
+  const [locked, setLocked] = useState(view.site_locked);
+  const [lockError, setLockError] = useState<AdminKey | null>(null);
+  const [lockState, setLockState] = useState<Busy>("idle");
+  const [lockMessage, setLockMessage] = useState("");
+
+  const toggleLock = async (next: boolean) => {
+    setLockError(null);
+    setLockState("busy");
+    setLockMessage(t("admin.common.saving"));
+    const result = await actions.setSiteLocked(next);
+    if (result.status === "ok") {
+      setLocked(next);
+      setLockState("done");
+      setLockMessage(
+        next ? t("admin.guests.access.lock.lockedNow") : t("admin.guests.access.lock.unlockedNow"),
+      );
+      return;
+    }
+    setLockState("idle");
+    setLockError(
+      result.status === "pin_missing"
+        ? "admin.guests.access.lock.error.pin"
+        : simpleError(result.status),
+    );
+  };
   const [error, setError] = useState<AdminKey | null>(null);
   const [state, setState] = useState<Busy>("idle");
   const [message, setMessage] = useState("");
@@ -486,6 +511,41 @@ export function PinPanel({
           </div>
           <FormAlert>{error ? t(error) : null}</FormAlert>
           <StatusMessage state={state}>{message}</StatusMessage>
+        </div>
+        <div className="flex flex-col gap-3">
+          <h3 className="text-xl font-medium">{t("admin.guests.access.lock.title")}</h3>
+          <p className="flex items-center gap-2 font-medium" data-testid="site-lock-state">
+            <Icon icon={locked && enabled ? Lock : LockOpen} />
+            {locked && enabled
+              ? t("admin.guests.access.lock.on")
+              : t("admin.guests.access.lock.off")}
+          </p>
+          <p className="text-muted max-w-prose">{t("admin.guests.access.lock.intro")}</p>
+          {locked && !enabled ? (
+            <p className="max-w-prose font-medium">{t("admin.guests.access.lock.needsPin")}</p>
+          ) : null}
+          <div>
+            {locked ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={lockState === "busy"}
+                onClick={() => toggleLock(false)}
+              >
+                {t("admin.guests.access.lock.turnOff")}
+              </Button>
+            ) : (
+              <ConfirmButton
+                label={t("admin.guests.access.lock.turnOn")}
+                question={t("admin.guests.access.lock.onQuestion")}
+                confirmLabel={t("admin.guests.access.lock.onConfirm")}
+                disabled={lockState === "busy"}
+                onConfirm={() => toggleLock(true)}
+              />
+            )}
+          </div>
+          <FormAlert>{lockError ? t(lockError) : null}</FormAlert>
+          <StatusMessage state={lockState}>{lockMessage}</StatusMessage>
         </div>
       </div>
     </Card>

@@ -10,7 +10,7 @@ import { templateKeys } from "./themes/palettes";
  * Texty ukládá správce po jazycích a nikdy se neukládají upravené typograficky (typo() běží při vykreslení).
  */
 
-const localeSchema = z.enum(locales);
+export const localeSchema = z.enum(locales);
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const isoDateTime = z.iso.datetime({ offset: true });
 const anchorSchema = z.string().regex(/^[a-z][a-z0-9-]{0,40}$/);

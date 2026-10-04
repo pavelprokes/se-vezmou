@@ -105,6 +105,8 @@
   "pin.error.locked": "Entering the PIN is paused for now. Please try again in {pause}.",
   "pin.error.limited": "Please try again later.",
   "pin.error.generic": "Something went wrong. Please try again.",
+  "lock.gateTitle": "This site is for invited guests only",
+  "lock.gateBody": "Enter the PIN from your invitation, or scan the QR code printed on it.",
   "venue.private.title": "The address is protected by a PIN",
   "venue.private.body": "You will see the exact address after entering the PIN from the invitation.",
   "countdown.label": {

@@ -885,6 +885,53 @@ test.describe("správci a záložní e-mail", () => {
   });
 });
 
+test.describe("heslo na celý web", () => {
+  test("zamknout jde jen se zapnutým PINem hostů, stav se uloží", async ({ page, context }) => {
+    const site = await seedSite({ guestPin: GUEST_PIN });
+    await site.login(context);
+    const locked = async () =>
+      withDb(async (db) => {
+        const r = await db.query<{ site_locked: boolean }>(
+          "select site_locked from se_vezmou.weddings where id = $1",
+          [site.weddingId],
+        );
+        return r.rows[0].site_locked;
+      });
+
+    await page.goto(appUrl("/pristup"));
+    await expect(page.getByTestId("site-lock-state")).toContainText("Web je otevřený");
+
+    // s vypnutým PINem hostů zamknout nejde
+    await expect(async () => {
+      await page.getByRole("button", { name: "Vypnout PIN hostů" }).click();
+      await expect(page.getByRole("button", { name: "Ano, vypnout" })).toBeVisible({
+        timeout: 1000,
+      });
+    }).toPass();
+    await page.getByRole("button", { name: "Ano, vypnout" }).click();
+    await expect(page.getByTestId("guest-pin-state")).toHaveText("PIN hostů je vypnutý.");
+    await page.getByRole("button", { name: "Zamknout web" }).click();
+    await page.getByRole("button", { name: "Ano, zamknout" }).click();
+    await expect(page.getByText(/Zamknout jde jen se zapnutým PINem hostů/)).toBeVisible();
+    expect(await locked()).toBe(false);
+
+    await page.getByRole("button", { name: "Zapnout PIN hostů" }).click();
+    await expect(page.getByTestId("guest-pin-state")).toHaveText("PIN hostů je zapnutý.");
+    await page.getByRole("button", { name: "Zamknout web" }).click();
+    await page.getByRole("button", { name: "Ano, zamknout" }).click();
+    await expect(page.getByText("Web je zamčený.", { exact: true })).toBeVisible();
+    await expect(page.getByTestId("site-lock-state")).toContainText("Web je zamčený");
+    expect(await locked()).toBe(true);
+    expect(
+      await auditRows("wedding_id = $1 and action = 'site.locked'", [site.weddingId]),
+    ).toHaveLength(1);
+
+    await page.getByRole("button", { name: "Odemknout web" }).click();
+    await expect(page.getByText("Web je otevřený.", { exact: true })).toBeVisible();
+    expect(await locked()).toBe(false);
+  });
+});
+
 test.describe("PIN a PDF oznámení", () => {
   test("PIN správy a hostů: kontroly slovy, uložení, oznámení na záložní e-mail, zapnutí a vypnutí PINu hostů", async ({
     page,

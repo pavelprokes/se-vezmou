@@ -16,7 +16,7 @@ import { typo } from "@/i18n/typo";
 import { siteUrl } from "@/lib/site";
 import { pageMetadata } from "@/seo/page-metadata";
 
-// Naplánovaný článek se v rozcestníku objeví nejpozději hodinu po půlnoci dne vydání (pražský čas).
+// Obnova jednou za hodinu (při první návštěvě po uplynutí): naplánovaný článek se objeví v den vydání.
 export const revalidate = 3600;
 
 export async function generateMetadata({

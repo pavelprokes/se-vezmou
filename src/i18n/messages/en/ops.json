@@ -392,7 +392,7 @@
   "blog.field.idHint": "Lowercase letters without diacritics, digits and hyphens. It can’t be changed later.",
   "blog.field.status": "Status",
   "blog.field.publishedAt": "Publication date",
-  "blog.field.publishedAtHint": "A future date schedules the article: it appears on the site by itself on that day, at the latest an hour after midnight.",
+  "blog.field.publishedAtHint": "A future date schedules the article: it appears on the site by itself on that day, usually within a few hours after midnight (pages refresh periodically).",
   "blog.field.updatedAt": "Last updated",
   "blog.field.slug": "Article address",
   "blog.field.slugHint": "The part of the address after /blog/. Lowercase letters without diacritics, digits and hyphens.",

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { articlePath, articleState } from "@/blog/article";
 import { allArticles, canWriteArticles } from "@/blog/store";
+import { articleDate } from "@/components/blog/article-body";
 import { buttonVariants } from "@/components/ui/button";
 import { localePath, localeShortNames, locales } from "@/i18n/config";
 import { siteUrl } from "@/lib/site";
@@ -71,7 +72,9 @@ export default async function BlogAdminPage() {
                     </th>
                     <td className={tdClass}>
                       {state === "scheduled"
-                        ? t("ops.blog.status.scheduled", { date: article.publishedAt })
+                        ? t("ops.blog.status.scheduled", {
+                            date: articleDate(article.publishedAt, t.locale),
+                          })
                         : t(
                             state === "published"
                               ? "ops.blog.status.published"

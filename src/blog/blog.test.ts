@@ -117,14 +117,30 @@ describe("naplánované zveřejnění", () => {
     // 6. 10. ve 22:30 UTC je v Praze už 7. 10. (letní čas, UTC+2).
     expect(pragueToday(new Date("2026-10-06T22:30:00Z"))).toBe("2026-10-07");
     expect(pragueToday(new Date("2026-10-06T21:59:00Z"))).toBe("2026-10-06");
+    // V zimě je Praha UTC+1: 23:30 UTC 2. 12. je už 3. 12.
+    expect(pragueToday(new Date("2026-12-02T23:30:00Z"))).toBe("2026-12-03");
+    expect(pragueToday(new Date("2026-12-02T22:59:00Z"))).toBe("2026-12-02");
   });
 
   it("na webu jsou jen články, jejichž den už nastal", () => {
-    const early = publishedArticles("2000-01-01");
-    expect(early).toEqual([]);
-    for (const article of publishedArticles()) {
-      expect(articleState(article)).toBe("published");
-    }
+    expect(publishedArticles("2000-01-01")).toEqual([]);
+    const all = allArticles();
+    const later = all
+      .filter((a) => a.status === "published")
+      .map((a) => a.publishedAt)
+      .sort()
+      .at(-1);
+    // V den posledního naplánovaného článku je venku každý zveřejněný, žádný koncept.
+    expect(
+      publishedArticles(later)
+        .map((a) => a.id)
+        .sort(),
+    ).toEqual(
+      all
+        .filter((a) => a.status === "published")
+        .map((a) => a.id)
+        .sort(),
+    );
   });
 
   it("odkaz na nezveřejněný článek se vykreslí jako text", () => {

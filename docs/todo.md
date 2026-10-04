@@ -36,3 +36,14 @@ Na webu je dnes „0 Kč“ a „teď“ (slovo „zdarma“ záměrně nepouž�
 - [x] Apex `se-vezmou.cz` je primární doména, `www` na něj přesměrovává (Vercel, 3. 10. 2026).
 - [x] Provozovatel Pavel Prokeš, IČO 87877601, Křižíkova 424/127, Praha 8 (ARES).
 - [x] Kontakt `info@se-vezmou.cz`.
+
+## Plán funkcí (část B zadání)
+
+Stav repa je zmapovaný v `docs/audit-todo-2026-10.md`. Co už stojí, jen odškrtnout, částečné dotáhnout.
+
+- [x] **První verze, hotovo (#55 až #57):** sdílení pozvánky (WhatsApp, SMS, e-mail), QR galerie na pozvánce, IBAN a BIC jako text s „Kopírovat“, banner změny termínu, upozornění páru na novou odpověď, ubytování na mapě.
+- [ ] **První verze, zbývá:** skupiny hostů s programem, osobní odkaz a QR hosta s jazykem, tlačítko „přeložit“ se schválením párem, heslo na web, politika hostingu po svatbě (rozpor s dnešními lhůtami viz audit A5).
+- [ ] **Druhá verze:** zasedací pořádek, rozpočet, filtr hostů podle štítku s počty, heslo na jednotlivé stránky, tisknutelná karta s QR, EPC QR (GiroCode).
+- [x] **Vzhled, hotovo:** přechody mezi stránkami úvodního webu (View Transitions, `prefers-reduced-motion`), nový vzhled úvodní stránky (#61).
+- [ ] **Vzhled, zbývá:** dotažení designu šablon webu páru.
+- [ ] **Později:** vlastní doména páru, placená publikace (jednorázově nebo ročně, bez poplatků z darů), služba „nastavíme web s vámi“, anglický alias domény.

@@ -103,6 +103,8 @@ async function getSiteStateUncached(
     console.error("[site] zveřejněný snímek neodpovídá schématu");
     return null;
   }
+  // Správce (PDF oznámení) fotografie nepotřebuje a public_media_ids roli admin nic nevrací.
+  if (as !== null) return { kind: "published", content: parsed.data };
   return { kind: "published", content: await withLiveMedia(parsed.data, reader) };
 }
 

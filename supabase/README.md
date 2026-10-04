@@ -291,3 +291,10 @@ Role `authenticated` má k tabulkám tenantů obecná přímá oprávnění (RLS
 - Nová tabulka s `wedding_id`: zapnout RLS, přidat politiky, složené cizí klíče `(wedding_id, id)`, přidat ji do matice v `tests/20_isolation.test.sql` a napsat test. Chybějící RLS nebo matice shodí `npm run db:test`.
 - Nová funkce `security definer`: `set search_path = ''`, plně kvalifikované názvy, `revoke ... from public, anon`, výslovný `grant` jen potřebné roli, filtr podle `se_vezmou.wedding_id()` (kromě funkcí service role před ověřením). Vše patří do schématu `se_vezmou`, žádný `alter default privileges` bez `in schema se_vezmou`, žádný `grant`/`revoke` na schéma `public` ani na jiné schéma než `se_vezmou`; test izolace to hlídá.
 - Hotové migrace se po nasazení (`schema_migrations`) neupravují; změny jdou novým souborem. Změněná aplikovaná migrace nasazení zastaví.
+
+## Funkce s obalem (zámek webu)
+
+`get_public_site`, `get_public_media` a `public_media_ids` jsou od migrace `20261016120000_site_lock.sql`
+obaly, které kontrolují heslo na celý web; původní těla jsou interní funkce `*_unlocked`. Změnu chování
+dělejte v `*_unlocked` (`create or replace`), obal nepřepisujte celým tělem: zámek by tiše zmizel
+(hlídá to `supabase/tests/89_site_lock.test.sql`).

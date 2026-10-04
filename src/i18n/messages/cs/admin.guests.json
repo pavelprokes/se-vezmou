@@ -371,6 +371,7 @@
   "access.pin.toggle.turnOn": "Zapnout PIN hostů",
   "access.pin.toggle.turnOff": "Vypnout PIN hostů",
   "access.pin.toggle.offQuestion": "Vypnout PIN hostů? Hosté ho nebudou moct zadat a odemčené části se jim zamknou.",
+  "access.pin.toggle.offQuestionLocked": "Vypnout PIN hostů? Web je zamčený: vypnutím PINu se celý web otevře všem, kdo znají jeho adresu.",
   "access.pin.toggle.offConfirm": "Ano, vypnout",
   "access.lock.title": "Heslo na celý web",
   "access.lock.on": "Web je zamčený: bez PINu hostů nikdo neuvidí nic kromě vašich jmen.",

@@ -160,3 +160,21 @@ export function UnlockedRegion({
     </div>
   );
 }
+
+/**
+ * Po odemčení zamčeného webu (brána `LockedSite`) formulář zmizí a vykreslí se celý web: zaměření přejde
+ * na hlavní obsah, aby klávesnice a čtečka nezůstaly na odstraněném tlačítku (WCAG 2.4.3).
+ */
+export function SiteUnlockedFocus() {
+  useEffect(() => {
+    try {
+      if (window.sessionStorage.getItem(FLAG) === "site") {
+        window.sessionStorage.removeItem(FLAG);
+        document.getElementById("obsah")?.focus();
+      }
+    } catch {
+      // bez úložiště se zaměření nepřesouvá
+    }
+  }, []);
+  return null;
+}

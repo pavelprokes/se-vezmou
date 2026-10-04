@@ -493,7 +493,11 @@ export function PinPanel({
             {enabled ? (
               <ConfirmButton
                 label={t("admin.guests.access.pin.toggle.turnOff")}
-                question={t("admin.guests.access.pin.toggle.offQuestion")}
+                question={
+                  locked
+                    ? t("admin.guests.access.pin.toggle.offQuestionLocked")
+                    : t("admin.guests.access.pin.toggle.offQuestion")
+                }
                 confirmLabel={t("admin.guests.access.pin.toggle.offConfirm")}
                 disabled={state === "busy"}
                 onConfirm={() => toggle(false)}

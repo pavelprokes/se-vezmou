@@ -371,6 +371,7 @@
   "access.pin.toggle.turnOn": "Turn the guest PIN on",
   "access.pin.toggle.turnOff": "Turn the guest PIN off",
   "access.pin.toggle.offQuestion": "Turn the guest PIN off? Guests will not be able to enter it and unlocked parts will lock again.",
+  "access.pin.toggle.offQuestionLocked": "Turn off the guest PIN? The site is locked: turning the PIN off opens the whole site to anyone who knows its address.",
   "access.pin.toggle.offConfirm": "Yes, turn off",
   "access.lock.title": "Password for the whole site",
   "access.lock.on": "The site is locked: without the guest PIN nobody sees anything but your names.",

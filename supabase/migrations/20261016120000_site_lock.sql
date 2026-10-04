@@ -2,6 +2,8 @@
 -- páru a jazyky, žádný obsah. Zámek platí jen se zapnutým PINem hostů (bez něj by se na web nedostal nikdo).
 -- Zpětně kompatibilní: nový sloupec s výchozí hodnotou false (web odemčený jako dosud); get_public_site
 -- dostane obal, který zámek kontroluje, a původní tělo zůstává beze změny pod novým interním jménem.
+-- Pozor: budoucí změny dělat v get_public_site_unlocked (a *_unlocked u médií), obal nepřepisovat celým
+-- tělem, jinak zámek tiše zmizí (viz supabase/README.md).
 
 alter table se_vezmou.weddings add column site_locked boolean not null default false;
 

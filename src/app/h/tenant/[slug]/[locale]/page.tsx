@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { SITE_NAMESPACES } from "@/components/site/context";
 import { LockedSite } from "@/components/site/locked-site";
+import { SiteUnlockedFocus } from "@/components/site/pin-gate";
 import { SiteRenderer } from "@/components/site/site-renderer";
 import { isLocale, type Locale } from "@/i18n/config";
 import { localizedPath } from "@/i18n/pathnames";
@@ -58,7 +59,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * databází teď, stav formuláře RSVP z cookie lístku a citlivé bloky jen pro hosta s relací po PINu.
  * Bez PINu se citlivý obsah nenačítá vůbec, takže se nedostane do HTML ani do RSC payloadu.
  */
-export default async function TenantSite({ params }: Props) {
+export default async function TenantSite({ params, searchParams }: Props) {
   await connection();
   const { slug, locale } = await params;
   const loaded = await load(slug, locale);
@@ -73,8 +74,9 @@ export default async function TenantSite({ params }: Props) {
 
   if (state.kind === "locked") {
     // Host s osobním odkazem v cookie projde: odkaz mu vydá relaci hosta (neplatný kód cookie smaže).
+    // (`?brana=1`: odkaz relaci právě nevydal, např. kvůli limitu; zůstává brána, žádná smyčka)
     const code = await readInvite();
-    if (code) redirect(invitePath(code));
+    if (code && !(await searchParams).brana) redirect(invitePath(code));
     const t = await getTranslator(loaded.locale, SITE_NAMESPACES);
     return <LockedSite gate={state.gate} locale={loaded.locale} localeHrefs={localeHrefs} t={t} />;
   }
@@ -82,22 +84,25 @@ export default async function TenantSite({ params }: Props) {
   const guest = await loadGuestContext(slug, loaded.locale);
   const t = await getTranslator(loaded.locale, SITE_NAMESPACES);
   return (
-    <SiteRenderer
-      content={
-        guest
-          ? {
-              ...content,
-              phase: guest.phase,
-              events: eventsForGuest(content.events, guest.invite),
-            }
-          : content
-      }
-      t={t}
-      localeHrefs={localeHrefs}
-      now={new Date()}
-      rsvp={guest?.rsvp ?? null}
-      sensitiveUnlocked={guest?.sensitiveUnlocked ?? false}
-      sensitive={guest?.sensitive ?? null}
-    />
+    <>
+      <SiteUnlockedFocus />
+      <SiteRenderer
+        content={
+          guest
+            ? {
+                ...content,
+                phase: guest.phase,
+                events: eventsForGuest(content.events, guest.invite),
+              }
+            : content
+        }
+        t={t}
+        localeHrefs={localeHrefs}
+        now={new Date()}
+        rsvp={guest?.rsvp ?? null}
+        sensitiveUnlocked={guest?.sensitiveUnlocked ?? false}
+        sensitive={guest?.sensitive ?? null}
+      />
+    </>
   );
 }

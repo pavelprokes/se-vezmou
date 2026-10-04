@@ -326,6 +326,8 @@ test.describe("heslo na celý web", () => {
     await enterPin(page, "main", GUEST_PIN);
     await expect(page.getByText("Svatební obřad").first()).toBeVisible();
     await expect(page.getByText(SENSITIVE.account).first()).toBeVisible();
+    // zaměření přejde na obsah, ne na tělo stránky
+    await expect(page.locator("main#obsah")).toBeFocused();
   });
 
   test("osobní odkaz zamčený web otevře bez PINu", async ({ page, wedding }) => {

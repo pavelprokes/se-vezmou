@@ -1,9 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { GUEST_SESSION } from "@/auth/config";
+import { GUEST_SESSION, RATE_RULES } from "@/auth/config";
 import { generateToken, hashToken } from "@/auth/crypto";
 import { setGuestCookie } from "@/auth/guest-session";
 import { isLocale, defaultLocale } from "@/i18n/config";
-import { authCreateSession, resolveSlug } from "@/lib/db/rpc";
+import { rateKey } from "@/auth/rate-limit";
+import { getClientIp } from "@/auth/request";
+import { requireEnv } from "@/env";
+import { authCreateSession, rateLimitHit, resolveSlug } from "@/lib/db/rpc";
 import { fetchInviteInfo } from "@/lib/rsvp/db";
 import { getSiteState } from "@/site/content";
 import { inviteTarget } from "@/site/invite";
@@ -39,6 +42,12 @@ export async function GET(
     return NextResponse.redirect(new URL(inviteTarget(site, null, urlLocale), origin), 303);
   }
   await setInvite(code);
+  const target = new URL(inviteTarget(site, info.locale, urlLocale), origin);
+  if (state.kind === "locked" && !(await sessionAllowed(slug))) {
+    // bez relace zůstane brána s PINem; příznak zabrání stránce poslat hosta s kódem zpět sem (smyčka)
+    target.searchParams.set("brana", "1");
+    return NextResponse.redirect(target, 303);
+  }
   if (state.kind === "locked") {
     const token = generateToken();
     await authCreateSession({
@@ -51,5 +60,22 @@ export async function GET(
     });
     await setGuestCookie(token);
   }
-  return NextResponse.redirect(new URL(inviteTarget(site, info.locale, urlLocale), origin), 303);
+  return NextResponse.redirect(target, 303);
+}
+
+/**
+ * Strop relací hosta z osobního odkazu podle webu a IP (náhledy odkazů v aplikacích, skripty). Selhání čítače
+ * relaci nevydá (zavřeně, jako u PINu): host uvidí bránu a může zadat PIN.
+ */
+async function sessionAllowed(slug: string): Promise<boolean> {
+  try {
+    const hit = await rateLimitHit(
+      rateKey(requireEnv("RATE_LIMIT_SECRET"), "invite-session", `${slug}\0${await getClientIp()}`),
+      RATE_RULES.inviteSessionIp.limit,
+      RATE_RULES.inviteSessionIp.windowSeconds,
+    );
+    return hit.allowed;
+  } catch {
+    return false;
+  }
 }

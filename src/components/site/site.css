@@ -195,21 +195,39 @@ html:has(.site-root[data-sticky="true"]) {
   overflow-x: auto;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
+  /* místo pro rámeček zaměření (overflow by ho jinak ořízl) a okraj pro posun zaměřeného odkazu do pohledu */
+  padding: 6px;
+  margin: -6px;
+  scroll-padding-inline: 0.5rem 3rem;
 }
 .site-lang {
   flex: none;
 }
 /* Užší displeje: navigace se posouvá; prolnutí u pravého okraje ukazuje, že pokračuje (useknutý odkaz
    vedle přepínače jazyka nepůsobil jako záměr). */
-@media (max-width: 79.99rem) {
+@media (max-width: 63.99rem) {
   .site-nav {
-    padding-inline-end: 1.5rem;
-    mask-image: linear-gradient(to right, #000 calc(100% - 2.5rem), transparent);
+    mask-image: linear-gradient(to right, #000 calc(100% - 2rem), transparent);
+  }
+  /* poslední odkaz se při doposouvání dostane za prolnutí (specifičtější než základní pravidlo níže) */
+  .site-header .site-nav ul {
+    padding-inline-end: 3rem;
   }
 }
-/* hlavička smí být širší než obsah, aby se navigace na počítači vešla celá */
-.site-header-inner.site-wrap {
-  max-width: 80rem;
+/* počítač: užší odsazení odkazů, aby se navigace vešla do šířky obsahu (hlavička zarovnaná s obsahem) */
+@media (min-width: 64rem) {
+  .site-header .site-nav .site-nav-link {
+    padding-inline: 0.45rem;
+  }
+}
+@media print {
+  .site-nav {
+    overflow: visible;
+    mask-image: none;
+  }
+  .site-nav ul {
+    flex-wrap: wrap;
+  }
 }
 .site-nav ul,
 .site-lang ul {
@@ -218,6 +236,9 @@ html:has(.site-root[data-sticky="true"]) {
   padding: 0;
   list-style: none;
   white-space: nowrap;
+}
+.site-nav ul {
+  width: max-content;
 }
 .site-nav-link {
   display: inline-flex;
@@ -663,6 +684,9 @@ html:has(.site-root[data-sticky="true"]) {
 }
 
 @media (forced-colors: active) {
+  .site-nav {
+    mask-image: none;
+  }
   .site-map-canvas::after {
     display: none;
   }

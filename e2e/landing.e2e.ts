@@ -560,7 +560,7 @@ test.describe("právní podstránky", () => {
     { path: "/podminky", h1: "Podmínky služby", text: "zpracovatelské ujednání" },
     { path: "/dostupnost", h1: "Prohlášení o přístupnosti", text: "Známá omezení" },
     { path: "/en/privacy", h1: "Privacy policy", text: "GDPR roles" },
-    { path: "/en/terms", h1: "Terms of service", text: "Data processing agreement" },
+    { path: "/en/terms", h1: "Terms of service", text: "Data Processing Agreement" },
     { path: "/en/accessibility", h1: "Accessibility statement", text: "Known limitations" },
   ];
 

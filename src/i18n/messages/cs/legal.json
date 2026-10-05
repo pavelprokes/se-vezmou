@@ -1,10 +1,9 @@
 {
-  "placeholder": "[Text doplní provozovatel/právník]",
   "back": "Zpět na úvodní stránku",
   "privacy.title": "Zpracování osobních údajů",
-  "privacy.meta": "Zásady zpracování osobních údajů služby Se vezmou. Text doplní provozovatel.",
+  "privacy.meta": "Jak služba Se vezmou zpracovává osobní údaje párů, hostů a návštěvníků: role podle GDPR, lhůty, zpracovatelé a vaše práva.",
   "terms.title": "Podmínky služby",
-  "terms.meta": "Podmínky služby Se vezmou. Text doplní provozovatel.",
+  "terms.meta": "Podmínky služby Se vezmou: cena, adresa webu, odpovědnost za obsah, dary, ukončení smlouvy a zpracovatelská smlouva podle GDPR.",
   "accessibility.title": "Prohlášení o přístupnosti",
-  "accessibility.meta": "Prohlášení o přístupnosti služby Se vezmou. Text doplní provozovatel."
+  "accessibility.meta": "Prohlášení o přístupnosti služby Se vezmou: cíl WCAG 2.2 AA, jak přístupnost testujeme, známá omezení a kontakt."
 }

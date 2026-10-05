@@ -554,44 +554,24 @@ for (const locale of locales) {
   });
 }
 
-test.describe("právní podstránky (zástupné)", () => {
+test.describe("právní podstránky", () => {
   const pages = [
-    {
-      path: "/soukromi",
-      h1: "Zpracování osobních údajů",
-      text: "[Text doplní provozovatel/právník]",
-    },
-    { path: "/podminky", h1: "Podmínky služby", text: "[Text doplní provozovatel/právník]" },
-    {
-      path: "/dostupnost",
-      h1: "Prohlášení o přístupnosti",
-      text: "[Text doplní provozovatel/právník]",
-    },
-    {
-      path: "/en/privacy",
-      h1: "Privacy policy",
-      text: "[Text to be supplied by the operator or a lawyer]",
-    },
-    {
-      path: "/en/terms",
-      h1: "Terms of service",
-      text: "[Text to be supplied by the operator or a lawyer]",
-    },
-    {
-      path: "/en/accessibility",
-      h1: "Accessibility statement",
-      text: "[Text to be supplied by the operator or a lawyer]",
-    },
+    { path: "/soukromi", h1: "Zpracování osobních údajů", text: "Jaké máme role podle GDPR" },
+    { path: "/podminky", h1: "Podmínky služby", text: "Zpracovatelská smlouva" },
+    { path: "/dostupnost", h1: "Prohlášení o přístupnosti", text: "Známá omezení" },
+    { path: "/en/privacy", h1: "Privacy policy", text: "Our GDPR roles" },
+    { path: "/en/terms", h1: "Terms of service", text: "Data processing agreement" },
+    { path: "/en/accessibility", h1: "Accessibility statement", text: "Known limitations" },
   ];
 
   for (const entry of pages) {
-    test(`${entry.path}: zástupný text, noindex a hreflang`, async ({ request }) => {
+    test(`${entry.path}: text, indexace a hreflang`, async ({ request }) => {
       const { response, html } = await source(request, entry.path);
       expect(response.status()).toBe(200);
       expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
       expect(html).toContain(entry.h1);
       expect(html).toContain(entry.text);
-      expect(html).toMatch(/<meta name="robots" content="noindex, follow"/);
+      expect(html).not.toMatch(/<meta name="robots" content="noindex/);
       expect(html).toMatch(/hreflang="x-default"/i);
       const [graph] = jsonLd(html);
       const crumbs = graph["@graph"].find((node) => node["@type"] === "BreadcrumbList") as {
@@ -608,11 +588,11 @@ test.describe("právní podstránky (zástupné)", () => {
     }
   });
 
-  test("mapa webu obsahuje jen úvodní stránku, ne zástupné podstránky", async ({ request }) => {
+  test("mapa webu obsahuje právní podstránky", async ({ request }) => {
     const { response, html } = await source(request, "/sitemap.xml");
     expect(response.status()).toBe(200);
-    expect(html).toContain("<loc>https://se-vezmou.cz/en</loc>");
-    expect(html).not.toMatch(/soukromi|privacy|podminky|terms|dostupnost|accessibility/);
+    expect(html).toContain("<loc>https://se-vezmou.cz/soukromi</loc>");
+    expect(html).toContain("<loc>https://se-vezmou.cz/en/terms</loc>");
   });
 });
 

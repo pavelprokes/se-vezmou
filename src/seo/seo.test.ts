@@ -51,8 +51,16 @@ describe("sitemap.xml", () => {
     expect(xml).toContain('xmlns:xhtml="http://www.w3.org/1999/xhtml"');
   });
 
-  it("neobsahuje zástupné právní podstránky (noindex)", () => {
-    expect(xml).not.toMatch(/soukromi|privacy|podminky|terms|dostupnost|accessibility/);
+  it("obsahuje právní podstránky v obou jazycích", () => {
+    for (const path of [
+      "soukromi",
+      "podminky",
+      "dostupnost",
+      "en/privacy",
+      "en/terms",
+      "en/accessibility",
+    ])
+      expect(xml).toContain(`<loc>https://se-vezmou.cz/${path}</loc>`);
     expect(indexableRoutes).toEqual([
       "home",
       "pricing",
@@ -60,6 +68,9 @@ describe("sitemap.xml", () => {
       "bilingual",
       "photographers",
       "blog",
+      "privacy",
+      "terms",
+      "accessibility",
     ]);
   });
 

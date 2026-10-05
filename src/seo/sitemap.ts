@@ -2,8 +2,7 @@ import { locales } from "@/i18n/config";
 import { languageUrls, type PageRef, type RouteName } from "@/i18n/pathnames";
 
 /**
- * Stránky v mapě webu. Právní podstránky jsou zatím zástupné (`noindex`), takže v mapě nejsou;
- * po doplnění textů se přidají sem a ve `generateMetadata` se jim zruší `noindex`.
+ * Stránky v mapě webu (úvodní web, právní podstránky a blog). Weby párů, průvodce a správa v mapě nejsou.
  */
 export const indexableRoutes: readonly RouteName[] = [
   "home",
@@ -12,6 +11,9 @@ export const indexableRoutes: readonly RouteName[] = [
   "bilingual",
   "photographers",
   "blog",
+  "privacy",
+  "terms",
+  "accessibility",
 ];
 
 function escapeXml(value: string): string {

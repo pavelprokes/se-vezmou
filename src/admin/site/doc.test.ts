@@ -113,22 +113,40 @@ describe("bloky: doplnění, pořadí a zapínání", () => {
     void venue;
   });
 
-  it("přetažení přesune blok na místo cíle", () => {
+  it("přetažení na dolní polovinu cíle položí blok za něj, na horní před něj", () => {
     const blocks = normalizeBlocks([]);
-    const moved = moveBlockTo(blocks, blocks[1].id, blocks[4].id);
-    expect(moved.map((b) => b.type)).toEqual([
-      "hero",
+    const types = (list: typeof blocks) => list.map((b) => b.type);
+    // program (1) za lodging (4): dolů, za cíl
+    expect(types(moveBlockTo(blocks, blocks[1].id, blocks[4].id, true)).slice(1, 6)).toEqual([
       "venue",
       "lodging",
       "dresscode",
       "program",
       "faq",
-      "contact",
-      "story",
-      "gifts",
-      "gallery",
-      "rsvp",
     ]);
+    // dolů, před cíl: hned nad lodging
+    expect(types(moveBlockTo(blocks, blocks[1].id, blocks[3].id, false)).slice(1, 4)).toEqual([
+      "venue",
+      "program",
+      "lodging",
+    ]);
+    // nahoru, před cíl
+    expect(types(moveBlockTo(blocks, blocks[4].id, blocks[1].id, false)).slice(1, 3)).toEqual([
+      "dresscode",
+      "program",
+    ]);
+    // nahoru, za cíl
+    expect(types(moveBlockTo(blocks, blocks[4].id, blocks[1].id, true)).slice(1, 3)).toEqual([
+      "program",
+      "dresscode",
+    ]);
+  });
+
+  it("přetažení na úvod ani na sebe nic nezmění", () => {
+    const blocks = normalizeBlocks([]);
+    expect(moveBlockTo(blocks, blocks[1].id, blocks[1].id).map((b) => b.id)).toEqual(
+      blocks.map((b) => b.id),
+    );
     expect(moveBlockTo(blocks, blocks[1].id, blocks[0].id).map((b) => b.id)).toEqual(
       blocks.map((b) => b.id),
     );
@@ -464,6 +482,23 @@ describe("validateDoc", () => {
       enable(b, "gifts", { account: "19-2000145399/0800" }),
     );
     expect(validateDoc(good, ready).some((i) => i.code === "giftsAccount")).toBe(false);
+  });
+
+  it("dary bez čísla účtu: jen text, bez chyby a bez PINu; bez textu prázdná sekce", () => {
+    const textOnly = withBlocks(baseDoc(), (b) =>
+      enable(b, "gifts", { account: "", intro: { cs: "Dar nečekáme." } }),
+    );
+    const issues = validateDoc(textOnly, { guestPinReady: false });
+    expect(issues.filter((i) => i.area === "gifts")).toEqual([]);
+    const { content, sensitive } = docToPublic(textOnly, { slug: "klara-a-matej" })!;
+    const gifts = content.blocks.find((b) => b.type === "gifts");
+    expect(gifts?.type === "gifts" && gifts.data.payment).toBe(false);
+    expect(sensitive.gifts).toBeNull();
+
+    const empty = withBlocks(baseDoc(), (b) => enable(b, "gifts", { account: "", intro: null }));
+    expect(
+      validateDoc(empty, ready).some((i) => i.code === "emptyBlock" && i.area === "gifts"),
+    ).toBe(true);
   });
 
   it("odkaz na galerii musí být https", () => {

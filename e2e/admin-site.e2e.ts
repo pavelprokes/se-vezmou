@@ -660,7 +660,7 @@ test.describe("dary: číslo účtu a QR za PINem", () => {
     await expectSaved(page);
     await page.getByRole("button", { name: "Zveřejnit změny" }).click();
     await expect(page.getByTestId("publish-result")).toContainText("Web zatím nejde zveřejnit");
-    await expect(page.getByTestId("issues")).toContainText("číslo účtu chybí nebo je neplatné");
+    await expect(page.getByTestId("issues")).toContainText("Číslo účtu v sekci Dary nesouhlasí");
 
     await gifts.getByLabel("Číslo účtu").fill("19-2000145399/0800");
     await gifts.getByLabel("Majitel účtu (nepovinné)").fill("Klára Nováková");

@@ -73,12 +73,9 @@ test.describe("nahrání, zpracování a zveřejnění", () => {
 
     const photo = photoGroup(gallery, 1, 1);
     await expect(photo).toBeVisible();
-    // bez popisku se fotografie nezveřejní: upozornění textem
-    await expect(photo.getByText(/Chybí popisek/)).toBeVisible();
     await photo.getByLabel("Čeština").fill("Pár na zámku");
     await photo.getByLabel("English").fill("The couple at the chateau");
     await expect(photo.getByText("Popisek uložen.")).toBeVisible();
-    await expect(photo.getByText(/Chybí popisek/)).toHaveCount(0);
     await expectSaved(page);
 
     // databáze: hotové médium se šesti variantami pod {svatba}/{médium}/
@@ -169,7 +166,7 @@ test.describe("nahrání, zpracování a zveřejnění", () => {
     }
   });
 
-  test("bez popisku se fotografie nezveřejní, s příznakem dekorativní ano (prázdné alt)", async ({
+  test("popisek je nepovinný: fotografie bez něj se zveřejní jako dekorativní (prázdné alt)", async ({
     page,
     context,
     request,
@@ -183,25 +180,10 @@ test.describe("nahrání, zpracování a zveřejnění", () => {
     await expectUploaded(gallery, 1);
     const [row] = await mediaRows(site.weddingId);
     await expectSaved(page);
-
     await publish(page);
-    // upozornění po zveřejnění: slovy, v seznamu problémů
-    await expect(page.getByTestId("issues")).toContainText("Fotografie bez popisku se nezveřejní");
 
     const guest = await context.newPage();
     await guest.goto(site.url);
-    await expect(guest.locator("#galerie")).toHaveCount(0);
-    await expect(guest.locator("nav a[href='#galerie']")).toHaveCount(0);
-    // nezveřejněná fotografie se nedoručuje ani na přímou adresu
-    expect((await visitorGet(request, site.slug, `/media/${row.id}/640`)).status()).toBe(404);
-
-    // dekorativní: zveřejní se s prázdným alt
-    const photo = photoGroup(gallery, 1, 1);
-    await photo.getByLabel("Dekorativní fotografie (bez popisku)").check();
-    await expect(photo.getByText("Popisek uložen.")).toBeVisible();
-    await expectSaved(page);
-    await publish(page);
-    await guest.reload();
     await expect(guest.locator("#galerie img")).toHaveAttribute("alt", "");
     expect((await visitorGet(request, site.slug, `/media/${row.id}/640`)).status()).toBe(302);
   });

@@ -64,9 +64,8 @@ test.describe("axe: nahrávání fotografií v editoru", () => {
     await expectNoViolations(page);
     await expectUploaded(gallery, 1);
 
-    // seznam fotografií: chybí popisek (upozornění), po vyplnění jen jednoho jazyka upozornění na překlad
+    // seznam fotografií: popisek je nepovinný, po vyplnění jen jednoho jazyka upozornění na překlad
     const photo = photoGroup(gallery, 1, 1);
-    await expect(photo.getByText(/Chybí popisek/)).toBeVisible();
     await expectNoViolations(page);
     await photo.getByLabel("Čeština").fill("Pár na zámku");
     await expect(photo.getByText("Popisek uložen.")).toBeVisible();

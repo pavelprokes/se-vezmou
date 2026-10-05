@@ -43,14 +43,16 @@ Počítá se s tím, že kdokoli (pár i správce) nahrává **velké originály
    - Otočení podle EXIF orientace, převod do sRGB, **odstranění všech metadat včetně EXIF a GPS** (výchozí chování `sharp`, ověřit testem).
    - Výstup: šířky **640, 1280 a 1920 px** ve **WebP a AVIF** (nezvětšovat nad původní rozměr). Uloží se pod `{wedding_id}/{media_id}/{width}.{format}`.
    - **Původní soubor se po úspěšném zpracování smaže** (pár má originál u sebe). Chybné objekty se smažou hned.
-5. Záznam Média v databázi (svatba, klíče, rozměry, popisek v každém jazyce, příznak dekorativní, stav zpracování). Fotografie bez popisku a bez příznaku „dekorativní“ se nezveřejní.
+5. Záznam Média v databázi (svatba, klíče, rozměry, popisek v každém jazyce, příznak dekorativní, stav zpracování). Fotografie bez popisku se zveřejní jako dekorativní (viz Popisek nepovinný).
 6. Pravidlo životního cyklu bucketu: `incoming/` se maže po 1 dni (opuštěná nahrávání a nedokončené zpracování), takže originál s GPS v karanténě nepřežije déle.
 
 Počáteční limity (návrh k potvrzení po měření v betě `[OTÁZKA]`): nejvýše 12 fotografií v galerii páru, nejvýše 40 MB na nahrávaný soubor, nejvýše 100 megapixelů. Limity se vynucují na serveru.
 
-### Popisek povinný
+### Popisek nepovinný
 
-Uložení fotografie vyžaduje popisek (alespoň v jazyce webu, další jazyky s upozorněním na chybějící překlad), nebo zaškrtnutí „dekorativní“ (prázdný `alt`). Kontrola je na serveru i v rozhraní.
+Původně: uložení fotografie vyžadovalo popisek, nebo zaškrtnutí „dekorativní“ (prázdný `alt`), jinak se fotka nezveřejnila.
+
+**Změna 5. 10. 2026 (zpětná vazba páru):** páry popisek nevyplňovaly a fotky pak nebyly nikde, ani v galerii, ani v nabídce fotky úvodu. Popisek je proto **nepovinný všude**, zaškrtávátko „dekorativní“ z rozhraní zmizelo: fotka s popiskem má `alt` z popisku, fotka bez popisku se zveřejní jako dekorativní (prázdný `alt`, čtečka ji přeskočí; WCAG 1.1.1 to u fotky bez informační hodnoty připouští). Nápověda pole popisek doporučuje. Sloupec `media.decorative` zůstává (bez migrace), o zveřejnění rozhoduje jen vyplněný popisek (`toPublicMedia` v `src/admin/site/doc.ts`).
 
 ### Doručování
 

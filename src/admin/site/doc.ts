@@ -299,20 +299,24 @@ export function moveBlock(
   return renumber([...hero, ...next]);
 }
 
-/** Přesun na zadané místo mezi neúvodními bloky (přetažení myší). */
+/**
+ * Přesun mezi neúvodními bloky (přetažení myší): před cílový blok, nebo za něj (`after`, puštění na dolní
+ * polovinu cíle), tedy tam, kde editor ukazuje čáru.
+ */
 export function moveBlockTo(
   blocks: readonly EditorBlock[],
   id: string,
   targetId: string,
+  after = false,
 ): EditorBlock[] {
   const hero: EditorBlock[] = blocks.filter((block) => block.type === "hero");
   const rest: EditorBlock[] = blocks.filter((block) => block.type !== "hero");
-  const from = rest.findIndex((block) => block.id === id);
-  const to = rest.findIndex((block) => block.id === targetId);
-  if (from < 0 || to < 0 || from === to) return [...blocks];
-  const next = [...rest];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved);
+  const moved = rest.find((block) => block.id === id);
+  if (!moved || id === targetId) return [...blocks];
+  const next = rest.filter((block) => block.id !== id);
+  const to = next.findIndex((block) => block.id === targetId);
+  if (to < 0) return [...blocks];
+  next.splice(to + (after ? 1 : 0), 0, moved);
   return renumber([...hero, ...next]);
 }
 
@@ -601,7 +605,6 @@ export type IssueCode =
   | "giftsAccount"
   | "giftsBic"
   | "galleryUrl"
-  | "photoNoCaption"
   | "lodgingUrl"
   | "lodgingName"
   | "faqIncomplete"
@@ -647,7 +650,10 @@ export function isIsoDate(value: string): boolean {
 /** Adresa soukromého místa nebo chráněného odkazu je bez PINu hostů nikomu neviditelná. */
 export function usesSensitive(doc: EditorDoc): boolean {
   const venueBlock = doc.blocks.find((b) => b.type === "venue" && b.enabled);
-  const gifts = doc.blocks.find((b) => b.type === "gifts" && b.enabled);
+  // Dary jen s číslem účtu: bez něj je sekce jen veřejný úvodní text
+  const gifts = doc.blocks.find(
+    (b) => b.type === "gifts" && b.enabled && b.data.account.trim() !== "",
+  );
   const gallery = doc.blocks.find((b) => b.type === "gallery" && b.enabled);
   const privateVenue =
     venueBlock?.type === "venue" &&
@@ -720,10 +726,6 @@ export function protectedPhotoIds(blocks: readonly EditorBlock[]): Set<string> {
         : [],
     ),
   );
-}
-
-export function publishable(item: MediaItem): boolean {
-  return item.decorative || anyFilled(item.alt);
 }
 
 export function validateDoc(doc: EditorDoc, context: ValidateContext): Issue[] {
@@ -833,8 +835,12 @@ export function validateDoc(doc: EditorDoc, context: ValidateContext): Issue[] {
         break;
       }
       case "gifts":
-        if (resolveAccount(block.data.account) === null) {
+        // Číslo účtu je nepovinné (sekce může být jen text); vyplněné ale musí být platné
+        if (block.data.account.trim() !== "" && resolveAccount(block.data.account) === null) {
           add({ code: "giftsAccount", severity: "error", area: "gifts" });
+        }
+        if (block.data.account.trim() === "" && !anyFilled(block.data.intro)) {
+          add({ code: "emptyBlock", severity: "warning", area: "gifts" });
         }
         if (block.data.bic?.trim() && !isValidBic(block.data.bic)) {
           add({ code: "giftsBic", severity: "error", area: "gifts" });
@@ -843,16 +849,10 @@ export function validateDoc(doc: EditorDoc, context: ValidateContext): Issue[] {
       case "gallery": {
         const link = block.data.link;
         const photos = galleryPhotos(block.data.mediaIds, context.media);
-        // Fotografie bez popisku a bez příznaku dekorativní se nezveřejní (ADR 0006, WCAG 1.1.1): upozornění
-        for (const photo of photos) {
-          if (!publishable(photo)) {
-            add({ code: "photoNoCaption", severity: "warning", area: "gallery", itemId: photo.id });
-          }
-        }
         if (link) {
           if (normalizeHttpsUrl(link.url) === null)
             add({ code: "galleryUrl", severity: "error", area: "gallery" });
-        } else if (!photos.some(publishable)) {
+        } else if (photos.length === 0) {
           add({ code: "emptyBlock", severity: "warning", area: "gallery" });
         }
         break;
@@ -941,10 +941,8 @@ export function translationGaps(doc: EditorDoc, media?: readonly MediaItem[]): T
         break;
       case "gallery":
         if (block.data.link) note("gallery", block.data.link.label);
-        // Popisky fotografií (jen dekorativní se nepopisují); chybějící překlad se hlásí stejně jako u textů
-        for (const photo of galleryPhotos(block.data.mediaIds, media)) {
-          if (!photo.decorative) note("gallery", photo.alt);
-        }
+        // Popisky fotografií (nepovinné); chybějící překlad vyplněného popisku se hlásí stejně jako u textů
+        for (const photo of galleryPhotos(block.data.mediaIds, media)) note("gallery", photo.alt);
         break;
     }
   }
@@ -1002,9 +1000,9 @@ function toPublicMedia(item: MediaItem): PublicMedia {
     src: mediaSrc(item.id, largest),
     width: item.width ?? 1,
     height: item.height ?? 1,
-    // Obrázek karty je vždy dekorativní a bez popisku
+    // Popisek je nepovinný: fotka bez něj (a obrázek karty vždy) se zveřejní jako dekorativní (prázdné alt)
     alt: item.kind === "card" ? null : cleanText(item.alt),
-    decorative: item.kind === "card" ? true : item.decorative,
+    decorative: item.kind === "card" || !anyFilled(item.alt),
     widths: item.widths,
   };
 }
@@ -1066,9 +1064,6 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
     if (!target.some((m) => m.id === item.id)) target.push(toPublicMedia(item));
   };
 
-  // Fotografie galerie chráněné PINem: nesmí se dostat na veřejný web ani jako fotka úvodu.
-  const protectedPhotos = protectedPhotoIds(clean.blocks);
-
   const blocks = normalizeBlocks(clean.blocks).map((block) => {
     const base = {
       id: block.id,
@@ -1089,7 +1084,11 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
             paymentMessage: block.data.paymentMessage?.trim() || null,
           };
         }
-        return { ...base, type: block.type, data: { intro: cleanText(block.data.intro) } };
+        return {
+          ...base,
+          type: block.type,
+          data: { intro: cleanText(block.data.intro), payment: resolved !== null },
+        };
       }
       case "gallery": {
         const link = block.data.link;
@@ -1121,13 +1120,11 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
             : null;
         if (link && url && link.protected && block.enabled) gallerySensitive = { url, card };
 
-        // Fotografie: jen z hotových, zveřejnitelných a jen ze zapnutého bloku
+        // Fotografie: jen z hotových a jen ze zapnutého bloku
         let mediaIds = block.data.mediaIds;
         if (mediaGiven) {
           mediaIds = block.enabled
-            ? galleryPhotos(block.data.mediaIds, options.media)
-                .filter(publishable)
-                .map((item) => item.id)
+            ? galleryPhotos(block.data.mediaIds, options.media).map((item) => item.id)
             : [];
           const target = block.data.photosProtected ? sensitivePhotos : publicMedia;
           for (const id of mediaIds) addMedia(target, mediaById.get(id)!);
@@ -1147,13 +1144,13 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
         };
       }
       case "hero": {
-        // Fotka úvodu: s přehledem médií jen hotová zveřejnitelná fotografie (jinak úvod bez fotky)
+        // Fotka úvodu: s přehledem médií jen hotová fotografie (jinak úvod bez fotky). Smí být i z galerie
+        // chráněné PINem: pár ji vybral výslovně a editor upozorní, že v úvodu ji uvidí každý.
         const image =
           mediaGiven && block.data.photoMediaId
             ? mediaById.get(block.data.photoMediaId)
             : undefined;
-        const usable =
-          image && image.kind === "photo" && publishable(image) && !protectedPhotos.has(image.id);
+        const usable = image && image.kind === "photo";
         if (usable) addMedia(publicMedia, image);
         return {
           ...base,
@@ -1237,10 +1234,10 @@ export function docToPublic(doc: EditorDoc, options: BuildOptions): BuiltSnapsho
           },
         };
       case "story": {
-        // Obrázek příběhu: s přehledem médií jen hotové zveřejnitelné médium (jinak žádný obrázek)
+        // Obrázek příběhu: s přehledem médií jen hotová fotografie (jinak žádný obrázek)
         const image =
           mediaGiven && block.data.mediaId ? mediaById.get(block.data.mediaId) : undefined;
-        const usable = image && image.kind === "photo" && publishable(image) && block.enabled;
+        const usable = image && image.kind === "photo" && block.enabled;
         if (usable) addMedia(publicMedia, image);
         return {
           ...base,

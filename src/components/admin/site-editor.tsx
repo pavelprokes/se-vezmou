@@ -39,6 +39,7 @@ import { phaseFromDates } from "@/site/phase";
 import type { BlockType } from "@/site/types";
 import { BlockForm, type CardOutcome, type EditorContext } from "./blocks";
 import { ConfirmButton } from "./confirm-button";
+import { dropAt, dropLine, type DropAt } from "./drop-line";
 import { GeneralPanel } from "./general";
 import { useAdminT, type AdminKey } from "./i18n";
 import { QuickNotice } from "./quick-notice";
@@ -91,7 +92,6 @@ const ISSUE_TEXT: Record<IssueCode, AdminKey> = {
   giftsAccount: "admin.issue.giftsAccount",
   giftsBic: "admin.issue.giftsBic",
   galleryUrl: "admin.issue.galleryUrl",
-  photoNoCaption: "admin.issue.photoNoCaption",
   lodgingUrl: "admin.issue.lodgingUrl",
   lodgingName: "admin.issue.lodgingName",
   faqIncomplete: "admin.issue.faqIncomplete",
@@ -176,6 +176,7 @@ export function SiteEditor({
     });
   const [moved, setMoved] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
+  const [dropOver, setDropOver] = useState<DropAt | null>(null);
   const [view, setView] = useState<"edit" | "preview">("edit");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<null | "publish" | "unpublish" | "checkpoint">(null);
@@ -369,10 +370,11 @@ export function SiteEditor({
     });
   }
 
-  function drop(targetId: string) {
-    if (!dragId || dragId === targetId) return;
+  function drop(target: DropAt) {
+    setDropOver(null);
+    if (!dragId || dragId === target.id) return;
     const block = latest.current.blocks.find((b) => b.id === dragId);
-    const next = moveBlockTo(latest.current.blocks, dragId, targetId);
+    const next = moveBlockTo(latest.current.blocks, dragId, target.id, target.after);
     update((d) => ({ ...d, blocks: next }));
     if (block) {
       const position = next.findIndex((b) => b.id === block.id) + 1;
@@ -640,13 +642,6 @@ export function SiteEditor({
           onChange={(event) => setNote(event.target.value)}
         />
         <div className="flex flex-wrap items-start gap-3">
-          <Button type="button" onClick={() => void publish()} disabled={busy !== null || locked}>
-            {busy === "publish"
-              ? t("admin.common.saving")
-              : published
-                ? t("admin.publish.update")
-                : t("admin.publish.publish")}
-          </Button>
           <Button
             type="button"
             variant="secondary"
@@ -663,21 +658,6 @@ export function SiteEditor({
               disabled={busy !== null || locked}
               onConfirm={() => void unpublish()}
             />
-          ) : null}
-        </div>
-
-        <div role="status" aria-live="polite" className="flex flex-col gap-2">
-          {result ? (
-            <p
-              className={cn(
-                "flex items-start gap-2 font-medium",
-                result.kind === "ok" ? "text-pine" : "text-cinnamon-deep",
-              )}
-              data-testid="publish-result"
-            >
-              <Icon icon={result.kind === "ok" ? CircleCheck : CircleAlert} className="mt-1" />
-              <span>{result.text}</span>
-            </p>
           ) : null}
         </div>
 
@@ -735,13 +715,19 @@ export function SiteEditor({
                     id={`block-${block.type}`}
                     draggable={!isHero}
                     onDragStart={() => setDragId(block.id)}
-                    onDragEnd={() => setDragId(null)}
+                    onDragEnd={() => {
+                      setDragId(null);
+                      setDropOver(null);
+                    }}
                     onDragOver={(event) => {
-                      if (dragId && !isHero) event.preventDefault();
+                      if (!dragId || isHero || dragId === block.id) return;
+                      event.preventDefault();
+                      const at = dropAt(event, block.id);
+                      if (dropOver?.id !== at.id || dropOver.after !== at.after) setDropOver(at);
                     }}
                     onDrop={(event) => {
                       event.preventDefault();
-                      if (!isHero) drop(block.id);
+                      if (!isHero) drop(dropAt(event, block.id));
                     }}
                     data-testid={`block-${block.type}`}
                     data-enabled={block.enabled}
@@ -749,6 +735,7 @@ export function SiteEditor({
                       "border-hairline rounded-2xl border",
                       block.enabled ? "bg-parchment" : "bg-linen",
                       dragId === block.id && "opacity-60",
+                      dropLine(dropOver, block.id),
                     )}
                   >
                     <div className="flex flex-wrap items-center gap-2 p-3">
@@ -910,6 +897,43 @@ export function SiteEditor({
             uiLocale={uiLocale}
           />
         </div>
+      </div>
+
+      {/* Zveřejnění vždy po ruce: lišta přilepená dole, ať je pár v editoru kdekoli (výsledek se hlásí tady) */}
+      <div
+        data-publish-bar
+        className="border-hairline bg-parchment sticky bottom-0 z-20 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-t-2xl border border-b-0 p-3 shadow-[0_-4px_16px_rgb(0_0_0/0.08)]"
+      >
+        <Button type="button" onClick={() => void publish()} disabled={busy !== null || locked}>
+          {busy === "publish"
+            ? t("admin.common.saving")
+            : published
+              ? t("admin.publish.update")
+              : t("admin.publish.publish")}
+        </Button>
+        <div role="status" aria-live="polite" className="min-w-0 flex-1">
+          {result ? (
+            <p
+              className={cn(
+                "flex items-start gap-2 font-medium",
+                result.kind === "ok" ? "text-pine" : "text-cinnamon-deep",
+              )}
+              data-testid="publish-result"
+            >
+              <Icon icon={result.kind === "ok" ? CircleCheck : CircleAlert} className="mt-1" />
+              <span>{result.text}</span>
+            </p>
+          ) : (
+            <p className="text-muted text-sm" aria-hidden="true">
+              {saveText}
+            </p>
+          )}
+        </div>
+        {(result?.issues && result.issues.length > 0) || errors.length > 0 ? (
+          <a href="#publish-heading" className="text-pine underline underline-offset-4">
+            {t("admin.publish.showIssues")}
+          </a>
+        ) : null}
       </div>
     </div>
   );

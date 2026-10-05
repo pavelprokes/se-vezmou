@@ -15,12 +15,14 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/choice";
 import { Icon } from "@/components/ui/icon";
+import { cn } from "@/lib/utils";
 import type { MediaActions, PhotoDownload } from "@/lib/media/action-types";
 import { ACCEPT_ATTRIBUTE, MEDIA_LIMITS } from "@/lib/media/limits";
 import { isReady, mediaSrc, type MediaItem } from "@/lib/media/types";
 import type { Locale } from "@/i18n/config";
 import type { I18nText } from "@/site/i18n-text";
 import { ConfirmButton } from "./confirm-button";
+import { dropAt, dropLine, type DropAt } from "./drop-line";
 import { LocalizedField, Note } from "./fields";
 import { useAdminT, type AdminKey, type AdminT } from "./i18n";
 import {
@@ -126,6 +128,7 @@ export function PhotosPanel(props: PhotosPanelProps) {
   const [saveState, setSaveState] = useState<Record<string, SaveState>>({});
   const [removeMessage, setRemoveMessage] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
+  const [dropOver, setDropOver] = useState<DropAt | null>(null);
   const [downloads, setDownloads] = useState<
     null | { status: "ok"; files: PhotoDownload[] } | { status: "empty" | "error" | "limited" }
   >(null);
@@ -473,16 +476,26 @@ export function PhotosPanel(props: PhotosPanelProps) {
                   key={item.id}
                   id={`photo-${item.id}`}
                   onDragOver={(event) => {
-                    if (dragId && dragId !== item.id) event.preventDefault();
+                    if (!dragId || dragId === item.id) return;
+                    event.preventDefault();
+                    const at = dropAt(event, item.id);
+                    if (dropOver?.id !== at.id || dropOver.after !== at.after) setDropOver(at);
                   }}
                   onDrop={(event) => {
                     event.preventDefault();
                     if (dragId && dragId !== item.id) {
-                      reorder(currentIds.indexOf(dragId), index, dragId);
+                      // cílové místo po vyjmutí přetahované fotky: před cíl, nebo za něj
+                      const from = currentIds.indexOf(dragId);
+                      const target = index - (from < index ? 1 : 0);
+                      reorder(from, target + (dropAt(event, item.id).after ? 1 : 0), dragId);
                     }
                     setDragId(null);
+                    setDropOver(null);
                   }}
-                  className="border-hairline bg-parchment flex flex-col gap-4 rounded-2xl border p-4 data-[dragging=true]:opacity-60"
+                  className={cn(
+                    "border-hairline bg-parchment flex flex-col gap-4 rounded-2xl border p-4 data-[dragging=true]:opacity-60",
+                    dropLine(dropOver, item.id),
+                  )}
                   data-dragging={dragId === item.id}
                 >
                   <PhotoRow
@@ -496,7 +509,10 @@ export function PhotosPanel(props: PhotosPanelProps) {
                     onMove={(delta) => reorder(index, index + delta, item.id)}
                     onRemove={() => void remove(item)}
                     onDragStart={() => setDragId(item.id)}
-                    onDragEnd={() => setDragId(null)}
+                    onDragEnd={() => {
+                      setDragId(null);
+                      setDropOver(null);
+                    }}
                     errorText={errorText}
                   />
                 </li>
@@ -600,7 +616,6 @@ function PhotoRow({
   const heading = useId();
   const ready = isReady(item);
   const thumb = ready ? item.widths[0] : null;
-  const hasCaption = locales.some((l) => Boolean(item.alt?.[l]?.trim()));
 
   return (
     <div role="group" aria-labelledby={heading} className="flex flex-col gap-4">
@@ -674,13 +689,6 @@ function PhotoRow({
                 maxLength={300}
                 onChange={(alt) => onEdit({ alt })}
               />
-              <Checkbox
-                label={t("admin.photos.decorative")}
-                checked={item.decorative}
-                onChange={(event) => onEdit({ decorative: event.target.checked }, true)}
-              />
-              {item.decorative ? <Note tone="info">{t("admin.photos.decorativeHint")}</Note> : null}
-              {!item.decorative && !hasCaption ? <Note>{t("admin.photos.noCaption")}</Note> : null}
               <div role="status" aria-live="polite" className="text-sm">
                 {saveState === "saving" ? (
                   <span className="text-muted">{t("admin.photos.saving")}</span>

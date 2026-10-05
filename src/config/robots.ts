@@ -8,7 +8,7 @@ export const ALLOWED_BOTS = [
   "Googlebot",
   "Bingbot",
   "DuckDuckBot",
-  "Seznambot",
+  "SeznamBot",
   "Applebot",
   "OAI-SearchBot",
   "ChatGPT-User",

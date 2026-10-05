@@ -4,16 +4,20 @@ import { formatDateRange } from "@/site/format";
 import type { BlockOf } from "@/site/types";
 import type { SiteCtx } from "../context";
 import { heroModel } from "../models";
+import { Picture } from "../picture";
 import { Paragraphs } from "./section";
 
 /**
  * Úvod: jména (jediný `h1`), pod nimi pruh „Kdy / Kde / Odpovězte do“ (datum se začátkem programu,
  * první místo a při otevřeném RSVP termín s odkazem na formulář) a volitelný odpočet. V režimu poděkování
  * po svatbě odpočet zmizí a místo „Budeme se brát“ se zobrazí poděkování (FR-WEB-4).
+ * Volitelná fotka v úvodu (`photoMediaId`) je pod pruhem přes celou šířku obsahu, bez textu přes ni
+ * (kontrast nezávisí na fotce); na mobilu se ořízne na výšku, hlavní motiv má být uprostřed.
  */
 export function Hero({ block, ctx }: { block: BlockOf<"hero">; ctx: SiteCtx }) {
   const { content, t, locale } = ctx;
   const { thanks, venue, days, showCountdown, start, reply } = heroModel(block, ctx);
+  const photo = ctx.media(block.data.photoMediaId);
 
   return (
     <section id={block.anchor} aria-labelledby="site-jmena" className="site-hero">
@@ -63,6 +67,17 @@ export function Hero({ block, ctx }: { block: BlockOf<"hero">; ctx: SiteCtx }) {
             </div>
           ) : null}
         </dl>
+        {photo ? (
+          <div className="site-hero-photo">
+            <Picture
+              media={photo}
+              alt={ctx.text(photo.alt)}
+              lang={ctx.lang(photo.alt)}
+              sizes="(min-width: 64rem) 62rem, 100vw"
+              loading="eager"
+            />
+          </div>
+        ) : null}
         {showCountdown ? (
           <p className="site-countdown">
             {days === 0 ? t("site.hero.today") : t("site.hero.countdown", { count: days })}

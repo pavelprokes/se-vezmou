@@ -64,7 +64,7 @@ export const GUIDE: GuideSection[] = [
         p: "Vyberte vzhled webu: **Editorial**, **Eukalyptus**, **Chateau** nebo **Modern**, a k němu barvy. Jak web vypadá, vidíte v náhledu vpravo, na mobilu pod tlačítkem **Náhled**. Vzhled můžete kdykoli později změnit.",
       },
       {
-        tip: "Chcete na webu velkou úvodní fotku přes celou šířku? Tu zatím umí jen šablona **Eukalyptus**. Víc v části Úvodní fotka.",
+        tip: "Na úvod webu můžete později dát i velkou fotku, ve všech šablonách. Víc v části Úvodní fotka.",
       },
       { h3: "4. Program a místo (nepovinné)" },
       {
@@ -227,7 +227,7 @@ export const GUIDE: GuideSection[] = [
     title: "Úvodní fotka (velká fotka nahoře)",
     blocks: [
       {
-        p: "Úvodní fotka se ukáže přes celou šířku úvodu webu, pod vašimi jmény. Zatím ji umí zobrazit jen šablona **Eukalyptus**. U ostatních šablon se nezobrazí, takže pokud ji chcete, přepněte v **Upravit web** v obecném nastavení šablonu na Eukalyptus.",
+        p: "Úvodní fotka je velká fotka nahoře na webu. V šabloně **Eukalyptus** je přes celý úvod a vaše jména jsou napsaná přes ni. V šablonách **Editorial**, **Chateau** a **Modern** je jako velký snímek pod jmény, datem a místem.",
       },
       {
         p: "Úvodní fotka se nenahrává zvlášť. Vybírá se z fotek, které už máte nahrané v sekci Fotografie.",
@@ -319,7 +319,7 @@ export const GUIDE: GuideSection[] = [
         list: [
           "**Fotka se nenahraje**: zkontrolujte formát (JPEG, PNG nebo WebP, ne HEIC) a velikost do 40 MB. U chyby klepněte na **Zkusit znovu**.",
           "**Fotka na webu není**: chybí jí popisek, nebo jste zatím neklepli na **Zveřejnit změny**.",
-          "**Úvodní fotka se nezobrazuje**: máte jinou šablonu než Eukalyptus.",
+          "**Úvodní fotka se nezobrazuje**: zkontrolujte, že je vybraná v sekci **Úvod** a že jste klepli na **Zveřejnit změny**.",
           "**Hosté nevidí změnu**: klepněte na **Zveřejnit změny**. Hostům pomůže i obnovení stránky.",
           "**Nepřišel kód**: podívejte se do spamu a do složky Hromadné. Případně klepněte na **Poslat nový kód**.",
           "**Zapomněli jste PIN pro hosty**: v části **Přístup** nastavte nový. Pozor, starý PIN pak přestane platit.",

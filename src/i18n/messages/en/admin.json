@@ -47,7 +47,7 @@
   "block.hero.tagline": "Subtitle",
   "block.hero.taglineHint": "A short line under the names, for example “Celebrating in the garden”.",
   "block.hero.photo": "Introduction photo",
-  "block.hero.photoHint": "Shown across the whole introduction behind the names (Eucalyptus template). We recommend a landscape photo in a 3 : 2 ratio, at least 2400 × 1600 px, as JPEG (PNG or WebP also work, up to 40 MB). On phones the photo is cropped to portrait, so keep the main subject in the centre. Upload the photo in the Photos block first and give it a description.",
+  "block.hero.photoHint": "In the Eucalyptus template it is shown across the whole introduction behind the names; in the other templates as a large photo below the date and venue. We recommend a landscape photo in a 3 : 2 ratio, at least 2400 × 1600 px, as JPEG (PNG or WebP also work, up to 40 MB). On phones the photo is cropped to portrait, so keep the main subject in the centre. Upload the photo in the Photos block first and give it a description.",
   "block.hero.photoNone": "No photo",
   "block.hero.photoUntitled": "Photo {n}",
   "block.hero.photoEmpty": "You have no processed photo with a description yet. Upload one in the Photos block.",

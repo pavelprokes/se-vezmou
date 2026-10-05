@@ -49,7 +49,7 @@
   "block.hero.tagline": "Podtitul",
   "block.hero.taglineHint": "Krátká věta pod jmény, například „Slavíme v zahradě“.",
   "block.hero.photo": "Fotka v úvodu",
-  "block.hero.photoHint": "Zobrazí se přes celý úvod pod jmény (šablona Eukalyptus). Doporučujeme fotku na šířku v poměru 3 : 2, alespoň 2400 × 1600 px, ve formátu JPEG (také PNG nebo WebP, do 40 MB). Na mobilu se fotka ořízne na výšku, proto mějte hlavní motiv uprostřed. Fotku nejdřív nahrajte v bloku Fotografie a doplňte jí popisek.",
+  "block.hero.photoHint": "V šabloně Eukalyptus se zobrazí přes celý úvod za jmény, v ostatních šablonách jako velká fotka pod datem a místem. Doporučujeme fotku na šířku v poměru 3 : 2, alespoň 2400 × 1600 px, ve formátu JPEG (také PNG nebo WebP, do 40 MB). Na mobilu se fotka ořízne na výšku, proto mějte hlavní motiv uprostřed. Fotku nejdřív nahrajte v bloku Fotografie a doplňte jí popisek.",
   "block.hero.photoNone": "Bez fotky",
   "block.hero.photoUntitled": "Fotografie {n}",
   "block.hero.photoEmpty": "Zatím nemáte žádnou hotovou fotografii s popiskem. Nahrajte ji v bloku Fotografie.",

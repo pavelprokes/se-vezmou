@@ -632,8 +632,29 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
         itemListElement: unknown[];
       };
       expect(crumbs.itemListElement).toHaveLength(2);
+      // citovatelnost pro AI: datum aktualizace (viditelné i v datech) a časté dotazy jako FAQPage
+      const types = graph["@graph"].map((node) => node["@type"]);
+      expect(types).toEqual(expect.arrayContaining(["WebPage", "FAQPage"]));
+      const webPage = graph["@graph"].find((node) => node["@type"] === "WebPage") as {
+        dateModified: string;
+      };
+      expect(html).toContain(`<time dateTime="${webPage.dateModified}"`);
+      const faq = graph["@graph"].find((node) => node["@type"] === "FAQPage") as {
+        mainEntity: { name: string }[];
+      };
+      for (const question of faq.mainEntity) expect(html).toContain(question.name);
+      expect(types.includes("SoftwareApplication")).toBe(/cenik|pricing/.test(entry.path));
     });
   }
+
+  test("šablony: popis každé šablony a názvy palet z jejich definice", async ({ request }) => {
+    const { html } = await source(request, "/sablony");
+    expect(html).toContain("Barevné palety: Bordó, Stříbrná, Hloubka, Pudr");
+    expect(html).toContain("Barevné palety: Champagne, Slonová kost, Noc");
+    expect(html).toContain("Mohu šablonu změnit i po zveřejnění webu?");
+    const { html: en } = await source(request, "/en/templates");
+    expect(en).toContain("Colour palettes: Burgundy, Silver, Depth, Powder");
+  });
 
   test("cizí jazyková varianta cesty je 404", async ({ request }) => {
     for (const path of [

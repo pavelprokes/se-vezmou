@@ -181,6 +181,32 @@ export function blogPostingLd(input: BlogPostingInput): JsonLdNode {
   };
 }
 
+export interface WebPageInput {
+  siteUrl: string;
+  url: string;
+  name: string;
+  description: string;
+  locale: Locale;
+  /** `YYYY-MM-DD`, stejné datum jako viditelné „Aktualizováno“. */
+  dateModified: string;
+}
+
+/** Podstránka úvodního webu: datum aktualizace a `speakable` na nadpis a úvodní větu (`#page-title`, `#page-lead`). */
+export function webPageLd(input: WebPageInput): JsonLdNode {
+  return {
+    "@type": "WebPage",
+    "@id": `${input.url}#webpage`,
+    url: input.url,
+    name: plain(input.name),
+    description: plain(input.description),
+    inLanguage: htmlLang[input.locale],
+    dateModified: input.dateModified,
+    isPartOf: { "@id": idOf(input.siteUrl, "website") },
+    publisher: { "@id": idOf(input.siteUrl, "organization") },
+    speakable: { "@type": "SpeakableSpecification", cssSelector: ["#page-title", "#page-lead"] },
+  };
+}
+
 export interface Crumb {
   name: string;
   url: string;

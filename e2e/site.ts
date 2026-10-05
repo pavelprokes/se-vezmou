@@ -1,4 +1,5 @@
 import type { Locale } from "../src/i18n/config";
+import { templateKeys, templates, type TemplateKey } from "../src/site/themes/palettes";
 import { HOSTS, pageUrl } from "./hosts";
 
 /**
@@ -6,14 +7,12 @@ import { HOSTS, pageUrl } from "./hosts";
  * `/site-preview` na hostiteli marketing (zapnutý `ENABLE_UI_CATALOG=1`, viz playwright.config.ts).
  */
 
-export const TEMPLATES = {
-  editorial: ["papir", "kamen", "pulnoc"],
-  eukalyptus: ["bordo", "stribrna", "hloubka", "pudr"],
-  chateau: ["champagne", "slonovina", "noc"],
-  modern: ["slunce", "kobalt", "limeta"],
-} as const;
+/** Všechny šablony a jejich palety přímo z definice (nová šablona nebo paleta se otestuje sama). */
+export const TEMPLATES = Object.fromEntries(
+  templateKeys.map((key) => [key, templates[key].palettes.map((palette) => palette.key)]),
+) as Record<TemplateKey, string[]>;
 
-export type Template = keyof typeof TEMPLATES;
+export type Template = TemplateKey;
 export type Lang = Locale;
 
 export const VIEWPORTS = {

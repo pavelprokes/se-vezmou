@@ -201,3 +201,20 @@ test.describe("placeholdery ostatních hostitelů", () => {
     await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
   });
 });
+
+test.describe("návod pro páry", () => {
+  test("veřejný bez přihlášení, česky, neindexovaný; odkaz z průvodce", async ({ page }) => {
+    await page.goto(pageUrl(HOSTS.app, "/navod"));
+    await expect(
+      page.getByRole("heading", { level: 1, name: /jak si vytvořit svatební web/ }),
+    ).toBeVisible();
+    await expect(page.locator("main")).toHaveAttribute("lang", "cs");
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    await expect(page.getByRole("heading", { level: 2, name: /Úvodní fotka/ })).toBeVisible();
+
+    await page.goto(pageUrl(HOSTS.app, "/vytvorit"));
+    const link = page.getByRole("link", { name: /^Návod/ });
+    await expect(link).toHaveAttribute("href", "/navod");
+    await expect(link).toHaveAttribute("target", "_blank");
+  });
+});

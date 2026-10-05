@@ -357,7 +357,7 @@
   "access.pin.isNotSet": "No PIN is set yet.",
   "access.pin.setLabel": "New PIN",
   "access.pin.newLabel": "New PIN (replaces the current one)",
-  "access.pin.hint": "Six to eight digits. Changing the PIN signs out the other devices.",
+  "access.pin.hint": "Six to twelve digits. Changing the PIN signs out the other devices.",
   "access.pin.set": "Set the PIN",
   "access.pin.change": "Change the PIN",
   "access.pin.saved": "The PIN is saved. We sent a notice to the backup e-mail.",

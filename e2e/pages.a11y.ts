@@ -14,6 +14,7 @@ const pages = [
   { name: "katalog UI česky", host: HOSTS.marketing, path: "/ui-catalog" },
   { name: "katalog UI anglicky", host: HOSTS.marketing, path: "/en/ui-catalog" },
   { name: "app", host: HOSTS.app, path: "/" },
+  { name: "návod pro páry", host: HOSTS.app, path: "/navod" },
   { name: "admin", host: HOSTS.admin, path: "/" },
   { name: "web páru česky", host: HOSTS.tenant, path: "/" },
   { name: "web páru anglicky", host: HOSTS.tenant, path: "/en" },

@@ -1,5 +1,7 @@
 {
   "meta.title": "Vytvořit svatební web",
+  "guide.link": "Návod",
+  "guide.newWindow": "(otevře se v novém okně)",
   "noscript": "Průvodce vytvořením webu potřebuje zapnutý JavaScript. Zapněte ho, prosím, v prohlížeči a načtěte stránku znovu.",
   "loading": "Načítáme váš koncept…",
   "remove": "Odebrat",

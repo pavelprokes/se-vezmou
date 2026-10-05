@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ADMIN_PATHS } from "@/admin/paths";
+import { ADMIN_PATHS, GUIDE_PATH } from "@/admin/paths";
 import { getUiLocale } from "@/auth/request";
 import { requireSession } from "@/auth/session";
 import { AdminFrame } from "@/components/admin/frame";
@@ -26,6 +26,11 @@ export default async function HelpPage() {
       help="overview"
     >
       <div className="flex flex-col gap-4">
+        <p>
+          <a href={GUIDE_PATH} className="text-pine text-lg underline underline-offset-4">
+            {t("admin.help.guide")}
+          </a>
+        </p>
         {HELP_TOPICS.map((topic) => (
           <Card as="section" key={topic} aria-labelledby={`help-${topic}`}>
             <h2 id={`help-${topic}`} className="text-2xl font-medium">

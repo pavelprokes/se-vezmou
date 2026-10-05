@@ -19,6 +19,9 @@ export const ADMIN_PATHS = {
   help: "/napoveda",
 } as const;
 
+/** Veřejný návod pro páry, jen česky (proto bez předpony jazyka). */
+export const GUIDE_PATH = "/navod";
+
 /** Úprava domácnosti; `nova` zakládá novou. */
 export function householdPath(id: string): string {
   return `/hoste/domacnost/${id}`;

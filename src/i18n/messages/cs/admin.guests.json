@@ -357,7 +357,7 @@
   "access.pin.isNotSet": "PIN zatím není nastavený.",
   "access.pin.setLabel": "Nový PIN",
   "access.pin.newLabel": "Nový PIN (nahradí stávající)",
-  "access.pin.hint": "Šest až osm číslic. Změna PINu ukončí přihlášení na ostatních zařízeních.",
+  "access.pin.hint": "Šest až dvanáct číslic. Změna PINu ukončí přihlášení na ostatních zařízeních.",
   "access.pin.set": "Nastavit PIN",
   "access.pin.change": "Změnit PIN",
   "access.pin.saved": "PIN je uložený. Na záložní e-mail jsme poslali oznámení.",

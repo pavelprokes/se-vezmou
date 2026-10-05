@@ -36,6 +36,8 @@ export interface OrganizationInput {
   companyId?: string;
   /** Kontakt; zástupná hodnota se do dat nepíše. */
   contact: string;
+  /** Profily značky (`sameAs`); prázdné se nepíšou. */
+  profiles?: readonly string[];
 }
 
 const idOf = (siteUrl: string, fragment: string) => `${siteUrl}/#${fragment}`;
@@ -54,6 +56,7 @@ export function organizationLd(input: OrganizationInput): JsonLdNode {
   if (input.companyId) {
     node.identifier = { "@type": "PropertyValue", propertyID: "IČO", value: input.companyId };
   }
+  if (input.profiles?.length) node.sameAs = [...input.profiles];
   if (!isPlaceholder(input.contact)) {
     node.contactPoint = {
       "@type": "ContactPoint",

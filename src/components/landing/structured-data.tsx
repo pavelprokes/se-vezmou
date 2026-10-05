@@ -36,6 +36,7 @@ export async function HomeStructuredData({ locale }: { locale: Locale }) {
           legalName: operator.legalName,
           companyId: operator.companyId,
           contact: operator.contact,
+          profiles: operator.profiles,
         }),
         websiteLd({ siteUrl, name, description, locale }),
         softwareApplicationLd({
@@ -77,6 +78,7 @@ export async function SubpageStructuredData({
           legalName: operator.legalName,
           companyId: operator.companyId,
           contact: operator.contact,
+          profiles: operator.profiles,
         }),
         websiteLd({ siteUrl, name, description, locale }),
         breadcrumbLd(crumbs),

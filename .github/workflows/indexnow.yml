@@ -1,0 +1,30 @@
+name: IndexNow
+
+# Po úspěšném produkčním nasazení na Vercelu oznámí adresy z mapy webu vyhledávačům protokolu IndexNow
+# (Bing, Seznam, Yandex, …). Vercel posílá GitHubu stav nasazení (`deployment_status`); běží jen pro produkci.
+# Ručně: Actions → IndexNow → Run workflow.
+
+on:
+  deployment_status:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  indexnow:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.deployment_status.state == 'success' &&
+       github.event.deployment.environment == 'Production')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/indexnow.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: node scripts/indexnow.mjs

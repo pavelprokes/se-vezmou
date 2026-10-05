@@ -4,8 +4,21 @@ import { templates } from "@/site/themes/palettes";
 import { Section, SectionHeading, itemTitleClass } from "./section";
 
 /** Šablony: skutečné snímky úvodu webu pro ukázkový pár Klára a Matěj (`public/templates`, cs i en). */
-export const TEMPLATE_KEYS = ["editorial", "eucalyptus", "chateau", "modern"] as const;
+export const TEMPLATE_KEYS = [
+  "editorial",
+  "eucalyptus",
+  "chateau",
+  "modern",
+  "statek",
+  "vinice",
+  "louka",
+  "deco",
+] as const;
 export type TemplateKey = (typeof TEMPLATE_KEYS)[number];
+
+/** Šablony v živém náhledu úvodu (zjednodušené makety v `hero-studio.tsx`). */
+export const HERO_TEMPLATE_KEYS = ["editorial", "eucalyptus", "chateau", "modern"] as const;
+export type HeroTemplateKey = (typeof HERO_TEMPLATE_KEYS)[number];
 
 /** Klíč šablony v textech úvodního webu → klíč v definici šablon (palety). */
 const THEME_KEY = {
@@ -13,6 +26,10 @@ const THEME_KEY = {
   eucalyptus: "eukalyptus",
   chateau: "chateau",
   modern: "modern",
+  statek: "statek",
+  vinice: "vinice",
+  louka: "louka",
+  deco: "deco",
 } as const satisfies Record<TemplateKey, keyof typeof templates>;
 
 /** `detailed`: stránka šablon (popis a názvy palet z jejich definice); úvodní stránka má jen krátký podtitul. */

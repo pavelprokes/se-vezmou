@@ -366,5 +366,9 @@
   "explain.map.title": "Where does the map come from?",
   "explain.map.body": "It comes from OpenStreetMap and loads through our website, so your guests’ browsers don’t send anything to anyone else. Guests also get links to open the place in Google Maps or Mapy.cz.",
   "explain.skip.title": "Not sure yet?",
-  "explain.skip.body": "This step is optional. Tap Skip to leave it out and add it later, even after publishing, in your dashboard. Anything you’ve already filled in stays saved."
+  "explain.skip.body": "This step is optional. Tap Skip to leave it out and add it later, even after publishing, in your dashboard. Anything you’ve already filled in stays saved.",
+  "template.statek.description": "Earthy colours and wheat, for a farm or a garden.",
+  "template.vinice.description": "Classic Garamond and vines in the colours of wine.",
+  "template.louka.description": "Wildflowers and spring pastels.",
+  "template.deco.description": "Art deco, gold lines, a dark evening look."
 }

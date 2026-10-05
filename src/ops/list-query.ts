@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { WEDDING_STATUSES, type WeddingStatus } from "@/lib/db/types";
+import { templateKeys } from "@/site/themes/palettes";
 import { PAGE_SIZE } from "./config";
 import { defaultLocale, localePath, locales, type Locale } from "@/i18n/config";
 
@@ -9,7 +10,7 @@ import { defaultLocale, localePath, locales, type Locale } from "@/i18n/config";
  * nikdy nic nerozbije ani nevyvolá dotaz s nečekanou hodnotou.
  */
 
-export const TEMPLATES = ["editorial", "eukalyptus", "chateau", "modern"] as const;
+export const TEMPLATES = templateKeys;
 /** Jazyky webu ve filtru: všechny jazyky aplikace (`src/i18n/config.ts`). */
 export const LOCALES = locales;
 

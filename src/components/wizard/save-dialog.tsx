@@ -202,7 +202,8 @@ export function SaveDialog({
             value={backup}
             onChange={(event) => setBackup(event.target.value)}
             error={emailMessage("backup")}
-            autoComplete="email"
+            // ne „email“: prohlížeč by doplnil vlastní adresu a ta musí být jiná než první
+            autoComplete="off"
             inputMode="email"
             autoCapitalize="none"
             spellCheck={false}

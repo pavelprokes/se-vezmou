@@ -288,13 +288,13 @@ test.describe("E2E-04: kolize adresy", () => {
     await nextScreen(page);
     await page.getByLabel("Adresa webu").fill(taken);
     // Živá kontrola je jen informativní a nic neprozradí: stejný text jako u rezervovaného slova.
-    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu už někdo má/);
+    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu nejde použít/);
     await page.getByLabel("Adresa webu").fill("admin");
-    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu už někdo má/);
+    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu nejde použít/);
     await page.getByLabel("Adresa webu").fill("kurva-a-matej");
-    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu už někdo má/);
+    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu nejde použít/);
     await page.getByLabel("Adresa webu").fill(taken);
-    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu už někdo má/);
+    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu nejde použít/);
 
     await next(page);
     await nextScreen(page);
@@ -315,10 +315,10 @@ test.describe("E2E-04: kolize adresy", () => {
     await expect(conflict).toBeVisible({ timeout: 20_000 });
     await expect(heading(page)).toHaveText("Datum svatby a adresa webu");
     const variants = conflict.getByRole("radio");
-    await expect(variants).toHaveCount(4);
+    await expect(variants).toHaveCount(3);
     await expect(conflict.getByText(`${taken}-2027.localhost:${PORT}`)).toBeVisible();
     await expect(conflict.getByText(`${taken}-2027-06.localhost:${PORT}`)).toBeVisible();
-    await expect(conflict.getByText(`${taken}-obec.localhost:${PORT}`)).toBeVisible();
+    await expect(conflict.getByText(/obec\.localhost/)).toHaveCount(0);
     await expect(conflict.getByText(/náhodnými znaky/)).toBeVisible();
     expect(
       await rows("select 1 from se_vezmou.wedding_admins where email = $1", [mail.email]),
@@ -328,9 +328,13 @@ test.describe("E2E-04: kolize adresy", () => {
     await conflict.getByRole("radio", { name: new RegExp(`${taken}-2027\\.`) }).check();
     await expect(page.getByRole("note").filter({ hasText: "adresa obsahuje rok" })).toBeVisible();
 
-    // Varianta bez roku; data jsou v pořádku a uložení projde bez dalšího kódu (e-mail už je ověřený).
-    await conflict.getByRole("radio", { name: new RegExp(`${taken}-obec\\.`) }).check();
-    await expect(page.getByLabel("Adresa webu")).toHaveValue(`${taken}-obec`);
+    // Vlastní doplněk: datum svatby jedním klepnutím, místo svatby napsané (s háčky se upraví).
+    await conflict.getByRole("button", { name: "Vložit datum svatby" }).click();
+    await expect(conflict.getByTestId("slug-extra")).toHaveValue("19-6-2027");
+    await conflict.getByTestId("slug-extra").fill("Dobřichovice");
+    await conflict.getByRole("button", { name: `Použít ${taken}-dobrichovice` }).click();
+    // Doplněk bez roku; data jsou v pořádku a uložení projde bez dalšího kódu (e-mail už je ověřený).
+    await expect(page.getByLabel("Adresa webu")).toHaveValue(`${taken}-dobrichovice`);
     await expect(page.getByRole("note").filter({ hasText: "adresa obsahuje rok" })).toHaveCount(0);
     await openStep(page, /Jména a jazyk/);
     await expect(page.getByLabel("První jméno")).toHaveValue("Klára");
@@ -345,7 +349,7 @@ test.describe("E2E-04: kolize adresy", () => {
         where a.email = $1`,
       [mail.email],
     );
-    expect(saved).toEqual([{ status: "draft", slug: `${taken}-obec`, state: "reserved" }]);
+    expect(saved).toEqual([{ status: "draft", slug: `${taken}-dobrichovice`, state: "reserved" }]);
   });
 });
 
@@ -402,7 +406,7 @@ test.describe("E2E-05: vypršení rezervace konceptu", () => {
     await back.getByLabel("Datum svatby").fill("2027-06-20");
     await nextScreen(back);
     await expect(back.getByTestId("slug-conflict")).toBeVisible({ timeout: 20_000 });
-    await expect(back.getByTestId("slug-conflict").getByRole("radio")).toHaveCount(4);
+    await expect(back.getByTestId("slug-conflict").getByRole("radio")).toHaveCount(3);
     const original = await rows<{ partner_a_name: string; starts_on: string }>(
       "select w.partner_a_name, w.starts_on::text from se_vezmou.weddings w join se_vezmou.wedding_admins a on a.wedding_id = w.id where a.email = $1",
       [mail.email],

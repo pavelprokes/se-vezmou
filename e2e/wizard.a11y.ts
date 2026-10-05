@@ -68,7 +68,7 @@ test.describe("axe: kroky průvodce", () => {
     await page.getByLabel("Datum svatby").fill("2027-06-19");
     await axeScreens(page, 2);
     await page.getByLabel("Adresa webu").fill("admin");
-    await expect(page.getByText(/Tuto adresu už někdo má/).first()).toBeVisible();
+    await expect(page.getByText(/Tuto adresu nejde použít/).first()).toBeVisible();
     await expectNoViolations(page);
     await page.getByLabel("Adresa webu").fill("a-slug-pro-axe");
     await expect(page.getByTestId("slug-status")).toHaveText(/vypadá volná/);

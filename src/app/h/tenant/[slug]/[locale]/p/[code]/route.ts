@@ -16,7 +16,7 @@ import { clearInvite, INVITE_PATTERN, setInvite } from "@/site/tenant-request";
 /**
  * Osobní odkaz domácnosti (`/p/<kód>`, QR na pozvánce): platný kód se uloží do cookie a host jde na web
  * v svém jazyce rovnou k RSVP; formulář se otevře pro jeho domácnost a program ukáže jen jeho události.
- * Na zamčeném webu (heslo na celý web) odkaz navíc vydá relaci hosta, jako by zadal PIN z pozvánky.
+ * Na zamčeném webu (heslo na celý web) odkaz navíc vydá relaci hosta, jako by zadal PIN z oznámení.
  * Svatba je z hostitele (proxy ji dává do cesty, přímý požadavek na `/h/...` končí 404). Neplatný kód
  * jen přesměruje na úvod, smaže cookie s kódem (stránka zamčeného webu by jinak přesměrovávala znovu)
  * a nic neprozradí. Kód má 80 bitů, hádání nemá smysl omezovat.

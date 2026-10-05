@@ -2,7 +2,7 @@
 
 import { CircleAlert, CircleCheck, Info } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { Fieldset } from "@/components/ui/field";
+import { Field, Fieldset } from "@/components/ui/field";
 import { Radio } from "@/components/ui/choice";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,9 @@ import {
   normalizeSlugInput,
   slugProblem,
   slugRevealsYear,
+  variantBase,
   variantKind,
+  dateSuffix,
 } from "@/wizard/slug";
 import type { WizardDraft } from "@/wizard/draft";
 import { fieldId } from "./fields";
@@ -58,7 +60,8 @@ export function SlugField({
   const [adjusted, setAdjusted] = useState(false);
   const change = (raw: string, final: boolean) => {
     const next = normalizeSlugInput(raw, { final });
-    setAdjusted(next !== raw);
+    // trvale: stačí jedna úprava (třeba velké písmeno na začátku), aby o ní pár věděl
+    if (next !== raw) setAdjusted(true);
     onSlugChange(next, true);
   };
   const slug = draft.slug;
@@ -108,6 +111,12 @@ export function SlugField({
         break;
     }
   }
+
+  // Vlastní doplněk k obsazené adrese (místo svatby nebo datum): pár ho napíše, nebo vloží datum.
+  const [extra, setExtra] = useState("");
+  const base = conflict?.variants[0] ? variantBase(conflict.variants[0]) : slug;
+  const extraSlug = normalizeSlugInput(extra, { final: true });
+  const weddingDate = dateSuffix(draft.startsOn);
 
   const suggestion = slugFromNames(draft.partnerA, draft.partnerB, draft.defaultLocale);
 
@@ -232,6 +241,35 @@ export function SlugField({
               );
             })}
           </Fieldset>
+          <div className="mt-4 flex flex-col gap-2">
+            <Field
+              label={t("wizard.slug.extra.label")}
+              hint={t("wizard.slug.extra.hint", { base })}
+              value={extra}
+              onChange={(event) => setExtra(event.target.value)}
+              autoComplete="off"
+              maxLength={40}
+              data-testid="slug-extra"
+            />
+            <div className="flex flex-wrap gap-2">
+              {weddingDate ? (
+                <Button variant="text" onClick={() => setExtra(weddingDate)}>
+                  {t("wizard.slug.extra.date")}
+                </Button>
+              ) : null}
+              <Button
+                variant="secondary"
+                disabled={extraSlug === ""}
+                onClick={() =>
+                  onSlugChange(normalizeSlugInput(`${base}-${extraSlug}`, { final: true }), true)
+                }
+              >
+                {extraSlug
+                  ? t("wizard.slug.extra.apply", { slug: `${base}-${extraSlug}` })
+                  : t("wizard.slug.extra.applyEmpty")}
+              </Button>
+            </div>
+          </div>
           <Button variant="text" className="mt-2" onClick={onDismissConflict}>
             {t("wizard.slug.conflict.dismiss")}
           </Button>

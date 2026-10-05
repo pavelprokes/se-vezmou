@@ -289,7 +289,7 @@ describe("fotografie chráněné PINem hostů", () => {
       sensitive: secret([media(1), media(2)]),
     });
     const gallery = screen.getByRole("region", { name: "Fotografie" });
-    expect(within(gallery).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+    expect(within(gallery).getByLabelText("PIN z oznámení")).toBeInTheDocument();
     expect(within(gallery).getByText(/Galerii uvidíte po zadání PINu/)).toBeInTheDocument();
     expect(container.innerHTML).not.toContain("/media/");
     expect(container.innerHTML).not.toContain("Pár číslo");
@@ -299,7 +299,7 @@ describe("fotografie chráněné PINem hostů", () => {
   it("příznak odemčení bez citlivých údajů nic neodemkne", () => {
     renderSite(protectedContent(), "cs", { sensitiveUnlocked: true, sensitive: null });
     const gallery = screen.getByRole("region", { name: "Fotografie" });
-    expect(within(gallery).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+    expect(within(gallery).getByLabelText("PIN z oznámení")).toBeInTheDocument();
   });
 
   it("odemčeno: fotografie z citlivé části v pořadí, formulář PINu zmizí", () => {
@@ -308,7 +308,7 @@ describe("fotografie chráněné PINem hostů", () => {
       sensitive: secret([media(2), media(1)]),
     });
     const gallery = screen.getByRole("region", { name: "Fotografie" });
-    expect(within(gallery).queryByLabelText("PIN z pozvánky")).toBeNull();
+    expect(within(gallery).queryByLabelText("PIN z oznámení")).toBeNull();
     expect(
       [...container.querySelectorAll("#galerie img")].map((i) => i.getAttribute("alt")),
     ).toEqual(["Pár číslo 2", "Pár číslo 1"]);
@@ -326,7 +326,7 @@ describe("fotografie chráněné PINem hostů", () => {
     const { container } = renderSite(content);
     expect(container.querySelectorAll("#galerie img")).toHaveLength(1);
     const gallery = screen.getByRole("region", { name: "Fotografie" });
-    expect(within(gallery).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+    expect(within(gallery).getByLabelText("PIN z oznámení")).toBeInTheDocument();
   });
 });
 

@@ -27,11 +27,13 @@ export function StepAccess({ draft, update, errors, screen, mobile }: StepProps)
   // Ohlášení nového PINu čtečkám (tlačítko přepíše pole bez jiné zpětné vazby)
   const [generated, setGenerated] = useState(false);
 
-  const setEnabled = (enabled: boolean) =>
+  const setEnabled = (enabled: boolean) => {
+    setGenerated(false);
     update((d) => ({
       ...d,
       guestPin: { enabled, pin: enabled && d.guestPin.pin === "" ? generatePin() : d.guestPin.pin },
     }));
+  };
 
   return (
     <ScreenGroup index={0} screen={screen} mobile={mobile}>
@@ -66,12 +68,13 @@ export function StepAccess({ draft, update, errors, screen, mobile }: StepProps)
               label={t("wizard.access.pin.label")}
               hint={t("wizard.access.pin.hint", { min: PIN_LENGTH.min, max: PIN_LENGTH.max })}
               value={guestPin.pin}
-              onValueChange={(pin) =>
+              onValueChange={(pin) => {
+                setGenerated(false);
                 update((d) => ({
                   ...d,
                   guestPin: { ...d.guestPin, pin: pin.replace(/[^0-9]/g, "") },
-                }))
-              }
+                }));
+              }}
               error={errorText(errors, "pin")}
               autoComplete="off"
               autoCapitalize="none"
@@ -84,7 +87,9 @@ export function StepAccess({ draft, update, errors, screen, mobile }: StepProps)
               className="self-start"
               onClick={() => {
                 update((d) => ({ ...d, guestPin: { ...d.guestPin, pin: generatePin() } }));
-                setGenerated(true);
+                // vyprázdnit a znovu nastavit, jinak by další klepnutí čtečka neohlásila
+                setGenerated(false);
+                setTimeout(() => setGenerated(true), 50);
               }}
             >
               {t("wizard.access.pin.generate")}

@@ -611,7 +611,9 @@ function Wizard(props: WizardAppProps) {
                   {t("wizard.stepper.screen", { current: activeScreen + 1, total: screens })}
                 </p>
               ) : null}
-              {isOptional && activeScreen === 0 ? <Explain topic="skip" className="mt-4" /> : null}
+              {isOptional && step <= 7 && activeScreen === 0 ? (
+                <Explain topic="skip" className="mt-4" />
+              ) : null}
             </div>
 
             {attempted === step && errors.size > 0 ? (

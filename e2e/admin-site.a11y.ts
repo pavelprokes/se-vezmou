@@ -245,7 +245,7 @@ test.describe("axe: karta externí galerie na webu páru", () => {
         ),
     });
     await page.goto(site.url);
-    await expect(page.locator("#galerie").getByLabel("PIN z pozvánky")).toBeVisible();
+    await expect(page.locator("#galerie").getByLabel("PIN z oznámení")).toBeVisible();
     await expectNoViolations(page);
   });
 });

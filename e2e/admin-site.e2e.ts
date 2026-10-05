@@ -45,13 +45,13 @@ async function publish(page: Page, label = "Zveřejnit změny"): Promise<void> {
 
 async function enterPin(page: Page, region: string, pin: string): Promise<void> {
   const scope = page.locator(region);
-  await scope.getByLabel("PIN z pozvánky").fill(pin);
+  await scope.getByLabel("PIN z oznámení").fill(pin);
   const response = page.waitForResponse((r) => r.request().method() === "POST");
   await scope.getByRole("button", { name: "Odemknout" }).click();
   await response;
   await expect(async () => {
     const values = await scope
-      .getByLabel("PIN z pozvánky")
+      .getByLabel("PIN z oznámení")
       .evaluateAll((fields) => fields.map((field) => (field as HTMLInputElement).value));
     expect(values.every((value) => value === "")).toBe(true);
   }).toPass();
@@ -875,7 +875,7 @@ test.describe("odkaz na externí fotogalerii", () => {
     const secrets = [path, "Galerie Anny", "Fotky ze svatby"];
     const html = await guest.content();
     for (const secret of secrets) expect(html).not.toContain(secret);
-    await expect(guest.locator("#galerie").getByLabel("PIN z pozvánky")).toBeVisible();
+    await expect(guest.locator("#galerie").getByLabel("PIN z oznámení")).toBeVisible();
     const rsc = await guest.evaluate(async () => {
       const response = await fetch(`${location.pathname}?_rsc=test`, {
         headers: { RSC: "1", "Next-Url": location.pathname },

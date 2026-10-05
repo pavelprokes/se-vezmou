@@ -7,6 +7,7 @@ import { localePath, type Locale } from "@/i18n/config";
  */
 export const ADMIN_PATHS = {
   overview: "/",
+  weddings: "/svatby",
   site: "/web",
   history: "/web/historie",
   guests: "/hoste",

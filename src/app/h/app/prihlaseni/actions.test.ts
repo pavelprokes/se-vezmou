@@ -234,12 +234,31 @@ describe("verifyCodeAction", () => {
   });
 
   it("platný kód: založí relaci, zruší rozpracované přihlášení a přesměruje do správy", async () => {
-    login.verifyLoginCode.mockResolvedValue({ status: "ok", weddingId: WEDDING, adminId: ADMIN });
+    login.verifyLoginCode.mockResolvedValue({
+      status: "ok",
+      weddingId: WEDDING,
+      adminId: ADMIN,
+      choose: false,
+    });
     expect(await redirectTarget(verifyCodeAction(null, form({ code: "123456" })))).toBe("/");
     expect(session.startAdminSession).toHaveBeenCalledWith(WEDDING, ADMIN);
     expect(state.set).toEqual([
       expect.objectContaining({ name: "__Host-sv_login", value: "", maxAge: 0 }),
     ]);
+  });
+});
+
+describe("verifyCodeAction: víc svateb", () => {
+  it("e-mail spravuje víc svateb: po přihlášení výběr svatby", async () => {
+    state.cookies.set("__Host-sv_login", "zapecetene");
+    login.openPendingLogin.mockReturnValue("klara@example.cz");
+    login.verifyLoginCode.mockResolvedValue({
+      status: "ok",
+      weddingId: WEDDING,
+      adminId: ADMIN,
+      choose: true,
+    });
+    expect(await redirectTarget(verifyCodeAction(null, form({ code: "123456" })))).toBe("/svatby");
   });
 });
 
@@ -253,7 +272,12 @@ describe("confirmLinkAction", () => {
 
   it("platný odkaz: přihlásí", async () => {
     login.openLoginLink.mockReturnValue({ email: "klara@example.cz", code: "123456" });
-    login.verifyLoginCode.mockResolvedValue({ status: "ok", weddingId: WEDDING, adminId: ADMIN });
+    login.verifyLoginCode.mockResolvedValue({
+      status: "ok",
+      weddingId: WEDDING,
+      adminId: ADMIN,
+      choose: false,
+    });
     expect(await redirectTarget(confirmLinkAction(null, form({ t: "x" })))).toBe("/");
     expect(session.startAdminSession).toHaveBeenCalledWith(WEDDING, ADMIN);
   });

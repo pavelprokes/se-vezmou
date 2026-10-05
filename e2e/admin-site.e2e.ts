@@ -127,10 +127,9 @@ test.describe("přehled Můj web", () => {
     const first = await seedManagedSite({ names: ["Klára", "Matěj"] });
     const second = await seedManagedSite({ names: ["Eva", "Petr"], adminEmail: first.adminEmail });
     await first.login(context);
-    await page.goto(appUrl("/"));
-    await expect(page.getByRole("heading", { level: 2, name: "Vaše svatby" })).toBeVisible();
+    await page.goto(appUrl("/svatby"));
+    await expect(page.getByRole("heading", { level: 1, name: "Vaše svatby" })).toBeVisible();
     await expect(page.getByText("Právě spravujete")).toBeVisible();
-    await expect(page.getByText(/Správa svatebního webu Klára a\s+Matěj/)).toBeVisible();
 
     await page.getByRole("button", { name: /Spravovat: Eva a\s+Petr/ }).click();
     await expect(page.getByText(/Správa svatebního webu Eva a\s+Petr/)).toBeVisible();
@@ -148,7 +147,7 @@ test.describe("přehled Můj web", () => {
     await seedManagedSite({ names: ["Eva", "Petr"], adminEmail: mine.adminEmail });
     const foreign = await seedManagedSite({ names: ["Cizí", "Pár"] });
     await mine.login(context);
-    await page.goto(appUrl("/"));
+    await page.goto(appUrl("/svatby"));
     const switchButton = page.getByRole("button", { name: /Spravovat: Eva a\s+Petr/ });
     await switchButton.evaluate(
       (button, weddingId) => button.setAttribute("value", weddingId),
@@ -156,7 +155,7 @@ test.describe("přehled Můj web", () => {
     );
     await switchButton.click();
     await expect(page.getByText("Svatbu se nepodařilo přepnout.")).toBeVisible();
-    await expect(page.getByText(/Správa svatebního webu Klára a\s+Matěj/)).toBeVisible();
+    await expect(page.getByTestId("current-wedding")).toContainText(/Klára a\s+Matěj/);
     expect(await page.content()).not.toContain("Cizí");
   });
 });

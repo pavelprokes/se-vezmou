@@ -3,14 +3,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ADMIN_PATHS, appHref } from "@/admin/paths";
 import { liveSite } from "@/admin/site-href";
-import { isManaged, listMyWeddings, peekSite } from "@/admin/site/server";
+import { isManaged, peekSite } from "@/admin/site/server";
 import { getUiLocale } from "@/auth/request";
 import { requireSession } from "@/auth/session";
 import { AdminFrame } from "@/components/admin/frame";
 import { AdminI18nProvider } from "@/components/admin/i18n";
 import { pickAdminMessages } from "@/components/admin/messages";
 import { QuickNotice } from "@/components/admin/quick-notice";
-import { WeddingPicker } from "@/components/admin/wedding-picker";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
@@ -19,7 +18,6 @@ import { getTranslator } from "@/i18n/load";
 import { formatDate } from "@/i18n/translator";
 import { adminLifecycleUpcoming } from "@/lib/db/admin-guests";
 import { quickNoticeAction } from "./web/actions";
-import { switchWeddingAction } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -28,7 +26,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * Přehled „Můj web“ (FR-ADM-1 a FR-ADM-3): stav webu, výběr svatby, když jich správce má víc,
+ * Přehled „Můj web“ (FR-ADM-1 a FR-ADM-3): stav webu (výběr svatby je na `/svatby`, odkaz v hlavičce),
  * odkazy do správy a rychlá změna (pruh nahoře na webu). Bez platné relace přesměruje na přihlášení.
  */
 export default async function OverviewPage() {
@@ -36,9 +34,8 @@ export default async function OverviewPage() {
   const locale = await getUiLocale();
   const t = await getTranslator(locale, ["common", "admin"]);
 
-  const [loaded, weddings, upcoming] = await Promise.all([
+  const [loaded, upcoming] = await Promise.all([
     peekSite(session),
-    listMyWeddings(session),
     // upozornění je doplněk: výpadek ho jen skryje, přehled se vykreslí
     adminLifecycleUpcoming(session).catch(() => []),
   ]);
@@ -96,23 +93,6 @@ export default async function OverviewPage() {
                   {t("admin.overview.upcoming.export")}
                 </a>
               </p>
-            </Card>
-          ) : null}
-          {weddings.length > 1 ? (
-            <Card as="section" aria-labelledby="picker-heading">
-              <h2 id="picker-heading" className="text-2xl font-medium">
-                {t("admin.picker.title")}
-              </h2>
-              <p className="text-muted mt-2 mb-4">{t("admin.picker.intro")}</p>
-              <WeddingPicker
-                action={switchWeddingAction}
-                weddings={weddings.map((wedding) => ({
-                  weddingId: wedding.weddingId,
-                  names: `${wedding.partnerAName} ${t("common.and")} ${wedding.partnerBName}`,
-                  site: wedding.slug,
-                  isCurrent: wedding.isCurrent,
-                }))}
-              />
             </Card>
           ) : null}
 

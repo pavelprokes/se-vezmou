@@ -11,6 +11,7 @@ import {
   sessionsOf,
   withDb,
 } from "./support/db";
+import { seedManagedSite } from "./support/admin";
 import { codeOf, expectNoMail, linkOf, readMails, waitForMail } from "./support/mail";
 import { app, expect, requestCode, submitAndWait, test } from "./support/fixtures";
 
@@ -30,10 +31,44 @@ async function submitCode(page: import("@playwright/test").Page, code: string) {
 async function expectDashboard(page: import("@playwright/test").Page) {
   await expect(page).toHaveURL(app("/"));
   await expect(page.getByRole("heading", { level: 1, name: "Můj web" })).toBeVisible();
-  await expect(page.getByText(/Klára a\s+Matěj/)).toBeVisible();
+  await expect(page.getByTestId("current-wedding")).toContainText(/Klára a\s+Matěj/);
 }
 
 test.describe("přihlášení kódem z e-mailu", () => {
+  test("jeden e-mail, víc svateb: po přihlášení výběr, v hlavičce jména a přepnutí", async ({
+    page,
+  }) => {
+    const first = await seedManagedSite({ names: ["Klára", "Matěj"] });
+    await seedManagedSite({ names: ["Eva", "Petr"], adminEmail: first.adminEmail });
+
+    await requestCode(page, first.adminEmail);
+    await submitCode(page, codeOf(await waitForMail(first.adminEmail)));
+    await expect(page).toHaveURL(app("/svatby"));
+    await expect(page.getByRole("heading", { level: 1, name: "Vaše svatby" })).toBeVisible();
+
+    await page.getByRole("button", { name: /Spravovat: Eva a\s+Petr/ }).click();
+    await expect(page).toHaveURL(app("/"));
+    const header = page.getByTestId("current-wedding");
+    await expect(header).toContainText(/Spravujete:\s+Eva a\s+Petr/);
+    await header.getByRole("link", { name: "Přepnout svatbu" }).click();
+    await expect(page).toHaveURL(app("/svatby"));
+    await page.getByRole("link", { name: /Pokračovat: Eva a\s+Petr/ }).click();
+    await expect(page).toHaveURL(app("/"));
+  });
+
+  test("jedna svatba: rovnou do správy, v hlavičce jména bez přepínání", async ({ page }) => {
+    const only = await seedManagedSite({ names: ["Klára", "Matěj"] });
+    await requestCode(page, only.adminEmail);
+    await submitCode(page, codeOf(await waitForMail(only.adminEmail)));
+    await expect(page).toHaveURL(app("/"));
+    const header = page.getByTestId("current-wedding");
+    await expect(header).toContainText(/Klára a\s+Matěj/);
+    await expect(header.getByRole("link", { name: "Přepnout svatbu" })).toHaveCount(0);
+    // stránka výběru s jedinou svatbou vrátí do přehledu
+    await page.goto(app("/svatby"));
+    await expect(page).toHaveURL(app("/"));
+  });
+
   test("vložení ze schránky, relace v cookie a v databázi jen hash, odhlášení", async ({
     page,
     context,
@@ -593,7 +628,9 @@ test.describe("angličtina", () => {
     await page.getByRole("button", { name: "Sign in" }).click();
     await expect(page).toHaveURL(app("/en"));
     await expect(page.getByRole("heading", { level: 1, name: "My website" })).toBeVisible();
-    await expect(page.getByText(/Klára and\s+Matěj/)).toBeVisible();
+    await expect(page.getByTestId("current-wedding")).toContainText(
+      /Managing:\s+Klára and\s+Matěj/,
+    );
     expect((await emailLogFor(wedding.adminEmail))[0]).toMatchObject({ locale: "en" });
     await context.close();
   });

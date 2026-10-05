@@ -115,7 +115,8 @@ export async function requestLoginCode(input: {
 }
 
 export type VerifyCodeResult =
-  | { status: "ok"; weddingId: string; adminId: string }
+  /** `choose`: e-mail spravuje víc svateb, po přihlášení se nejdřív vybírá, kterou spravovat. */
+  | { status: "ok"; weddingId: string; adminId: string; choose: boolean }
   | { status: "invalid" }
   | { status: "limited"; retryAfter: number };
 
@@ -144,10 +145,16 @@ export async function verifyLoginCode(input: {
   });
   if (!valid) return { status: "invalid" };
 
-  // Správce více svateb: zatím se otevře nejstarší (výběr svatby přijde se správou, M7).
-  const [first] = (await authListAdminWeddings(input.email)).filter((w) => w.status !== "blocked");
+  // Správce více svateb: relace vznikne pro nejstarší a hned po přihlášení následuje výběr svatby.
+  const weddings = (await authListAdminWeddings(input.email)).filter((w) => w.status !== "blocked");
+  const [first] = weddings;
   if (!first) return { status: "invalid" };
-  return { status: "ok", weddingId: first.weddingId, adminId: first.adminId };
+  return {
+    status: "ok",
+    weddingId: first.weddingId,
+    adminId: first.adminId,
+    choose: weddings.length > 1,
+  };
 }
 
 /** Obsah odkazu z e-mailu; neplatný, upravený nebo prošlý odkaz je `null`. */

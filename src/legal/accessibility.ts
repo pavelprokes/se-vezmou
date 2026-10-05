@@ -1,53 +1,85 @@
-/** Prohlášení o přístupnosti (text pro `LegalPage`, podmnožina Markdownu z `@/blog/markdown`). */
+/** Prohlášení o přístupnosti: znění v2 (text přesně podle revidovaného dokumentu), pro `LegalPage`; podmnožina Markdownu z `@/blog/markdown`. */
 export const accessibility = {
-  cs: `Verze 1.0, vydáno 5. 10. 2026.
+  cs: `Služba **se-vezmou.cz** se snaží zpřístupňovat své webové stránky a uživatelské rozhraní co nejširšímu okruhu uživatelů, včetně osob se zdravotním postižením nebo jiným omezením.
 
-Služba se-vezmou.cz se zavazuje zpřístupnit své webové stránky v maximální možné míře všem uživatelům.
+Provozovatel služby je v současnosti mikropodnikem ve smyslu zákona č. 424/2023 Sb., o požadavcích na přístupnost některých výrobků a služeb. Na služby poskytované mikropodnikem se povinnosti tohoto zákona nevztahují. Toto prohlášení proto vydáváme dobrovolně jako vyjádření našeho přístupu k přístupnosti.
 
-Služba je provozována mikropodnikem (fyzickou osobou podnikající s méně než 10 zaměstnanci), a proto nespadá pod povinnosti zákona č. 424/2023 Sb., o požadavcích na přístupnost výrobků a služeb. Záleží nám ale na tom, aby svatební weby i naše rozhraní mohl používat opravdu každý, a proto toto prohlášení vydáváme dobrovolně.
+## Stav přístupnosti
 
-## Stav souladu
+Naším cílem je, aby hlavní web se-vezmou.cz, průvodce tvorbou svatebního webu, administrativní rozhraní a nabízené šablony odpovídaly v maximální rozumné míře zásadám **WCAG 2.2 na úrovni AA**.
 
-Naším cílem je splňovat požadavky mezinárodního standardu WCAG 2.2 na úrovni AA. Týká se to úvodního webu, průvodce tvorbou webu, správy webu i všech šablon svatebních webů.
+Toto vyjádření je cílem a průběžným závazkem ke zlepšování; nejde o tvrzení, že každý jednotlivý prvek služby je za všech okolností plně v souladu se všemi kritérii WCAG 2.2 AA.
 
-## Jak přístupnost testujeme
+## Jak přístupnost ověřujeme
 
-- **Automatické testy:** nástroj axe v rámci našeho CI na všech šablonách a paletách v mobilním i desktopovém zobrazení. Barevné palety se strojově kontrolují na dostatečný kontrast.
-- **Ruční testy rozhraní:** kontrolujeme ovládání pouze klávesnicí, viditelnost zaměření, dotykové cíle o velikosti nejméně 44 px a chování při zvětšení textu na 400 % bez vodorovného posouvání na šířce 320 px.
-- **Respektování nastavení:** aplikace reaguje na systémové omezení animací (prefers-reduced-motion).
+Přístupnost průběžně kontrolujeme zejména těmito způsoby:
+
+- automatizovanými kontrolami vybraných šablon a barevných kombinací,
+- kontrolou ovladatelnosti pomocí klávesnice a viditelnosti zaměření prvků,
+- kontrolou barevného kontrastu a čitelnosti textu,
+- kontrolou chování rozhraní při zvětšení textu a na menších displejích,
+- respektováním systémového nastavení pro omezení animací (\`prefers-reduced-motion\`),
+- průběžnými manuálními kontrolami s ohledem na použití asistivních technologií.
 
 ## Známá omezení
 
-1. **PDF ke stažení:** tiskoviny generované službou (jmenovky, svatební oznámení) nejsou tagované pro čtečky obrazovky. Všechny informace z nich jsou ale přístupné přímo na webové stránce.
-2. **Mapy:** zobrazené mapy tvoří obrázkové dlaždice. Adresa místa je ale vždy k dispozici jako text spolu s odkazy do externích navigací (Google Maps, Mapy.cz).
-3. **Obsah vkládaný uživateli:** snoubenci si na web vkládají vlastní texty, odkazy (například na fotogalerie) a fotografie. Rozhraní je vede k vyplnění alternativních textů u obrázků, přístupnost vloženého obsahu ani externích webů, na které odkážou, ale nemůžeme zaručit.
+V současnosti víme zejména o těchto omezeních:
+
+1. **PDF dokumenty ke stažení**  
+   Některé tiskové dokumenty generované službou, například jmenovky nebo svatební oznámení, nemusí být opatřeny úplnou strukturou a tagy pro čtečky obrazovky. Informace podstatné pro používání služby se snažíme současně poskytovat také v textové podobě na webu.
+
+2. **Mapy**  
+   Mapové zobrazení může využívat obrazové nebo mapové dlaždice, které nejsou samy o sobě plně přístupné. Adresu místa proto zobrazujeme také v textové podobě a umožňujeme přejít do externí navigační služby.
+
+3. **Obsah vložený uživateli**  
+   Svatební weby obsahují texty, fotografie, odkazy a další obsah vložený samotnými uživateli. Rozhraní se snaží uživatele vést k přístupnému zadávání obsahu, nemůžeme však zaručit přístupnost každého uživatelského obsahu ani externích webů, na které uživatelé odkazují.
 
 ## Zpětná vazba a kontakt
 
-Pokud na našem webu nebo na svatebním webu vytvořeném přes naši službu narazíte na problém s přístupností, napište nám na info@se-vezmou.cz. Odpovíme nejpozději do 5 pracovních dnů.`,
-  en: `Version 1.0, published 5 October 2026.
+Pokud na hlavním webu se-vezmou.cz nebo na svatebním webu vytvořeném prostřednictvím služby narazíte na problém s přístupností, napište nám na:
 
-se-vezmou.cz is committed to making its website accessible to the widest possible audience.
+**info@se-vezmou.cz**
 
-The service is operated by a micro-enterprise (a sole trader with fewer than 10 employees) and is therefore exempt from the obligations of the Czech Act No. 424/2023 Coll. on accessibility requirements for products and services. We still care that everyone can use our wedding websites and interfaces, which is why we publish this statement voluntarily.
+Do zprávy prosím pokud možno uveďte adresu stránky a stručný popis problému. Na podněty týkající se přístupnosti se snažíme reagovat nejpozději do **5 pracovních dnů**.`,
+  en: `The **se-vezmou.cz** service aims to make its websites and user interface accessible to the widest possible audience, including people with disabilities or other accessibility needs.
 
-## Compliance status
+The service is currently operated by a micro-enterprise within the meaning of Czech Act No. 424/2023 Coll., on accessibility requirements for certain products and services. Services provided by micro-enterprises are outside the obligations imposed by that Act. We therefore publish this statement voluntarily as an expression of our approach to accessibility.
 
-Our goal is to meet the international WCAG 2.2 standard at level AA. This applies to our main website, the website builder, the dashboard and all wedding website templates.
+## Accessibility status
 
-## How we test accessibility
+Our goal is for the se-vezmou.cz website, the wedding website creation flow, the administration interface and the available templates to follow the **WCAG 2.2 Level AA** principles to the greatest reasonable extent.
 
-- **Automated tests:** the axe engine in our CI pipeline across all templates and colour palettes, on mobile and desktop. Colour palettes are machine-checked for contrast.
-- **Manual interface tests:** we verify keyboard-only operation, visible focus, touch targets of at least 44 px, and behaviour at 400% text zoom without horizontal scrolling at 320 px width.
-- **User preferences:** the application respects the system-level reduced-motion setting (prefers-reduced-motion).
+This statement describes our target and ongoing commitment to improvement; it is not a representation that every individual part of the service fully satisfies every WCAG 2.2 AA success criterion in all circumstances.
+
+## How we review accessibility
+
+We review accessibility on an ongoing basis, in particular through:
+
+- automated checks of selected templates and colour combinations,
+- keyboard navigation and visible-focus checks,
+- colour contrast and text readability checks,
+- checks of the interface at increased zoom levels and on smaller screens,
+- support for the system-level \`prefers-reduced-motion\` preference,
+- ongoing manual checks with assistive-technology use in mind.
 
 ## Known limitations
 
-1. **Downloadable PDFs:** print materials generated by the service (name tags, invitations) are not tagged for screen readers. All information in them is available as text on the website itself.
-2. **Maps:** embedded maps are image tiles. The venue address is always available as text, together with links to external navigation apps (Google Maps, Mapy.cz).
-3. **User-generated content:** couples add their own texts, links (for example to photo galleries) and photos. The interface encourages them to provide alternative text for images, but we cannot guarantee the accessibility of the content they add or of the third-party websites they link to.
+We are currently aware of the following main limitations:
+
+1. **Downloadable PDF documents**  
+   Some printable documents generated by the service, such as name cards or wedding invitations, may not contain a complete tag structure for screen readers. Information necessary for using the service is also intended to be available in text form on the website.
+
+2. **Maps**  
+   Map displays may use image or map tiles that are not fully accessible on their own. Venue addresses are therefore also provided as text, together with links to external navigation services.
+
+3. **User-generated content**  
+   Wedding websites contain texts, photographs, links and other content uploaded by users. Our interface seeks to encourage accessible content creation, but we cannot guarantee the accessibility of all user-generated content or third-party websites linked by users.
 
 ## Feedback and contact
 
-If you encounter an accessibility barrier on our main site or on a wedding website created with our service, write to us at info@se-vezmou.cz. We aim to reply within 5 business days.`,
+If you encounter an accessibility issue on se-vezmou.cz or on a wedding website created through the service, please contact us at:
+
+**info@se-vezmou.cz**
+
+Where possible, please include the page address and a short description of the issue. We aim to respond to accessibility feedback within **5 business days**.`,
 };

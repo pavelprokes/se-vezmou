@@ -5,5 +5,6 @@
   "terms.title": "Podmínky služby",
   "terms.meta": "Podmínky služby Se vezmou: cena, adresa webu, odpovědnost za obsah, dary, ukončení smlouvy a zpracovatelská smlouva podle GDPR.",
   "accessibility.title": "Prohlášení o přístupnosti",
-  "accessibility.meta": "Prohlášení o přístupnosti služby Se vezmou: cíl WCAG 2.2 AA, jak přístupnost testujeme, známá omezení a kontakt."
+  "accessibility.meta": "Prohlášení o přístupnosti služby Se vezmou: cíl WCAG 2.2 AA, jak přístupnost testujeme, známá omezení a kontakt.",
+  "version": "Verze {version}, účinná od {date}"
 }

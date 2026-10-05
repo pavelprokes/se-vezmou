@@ -24,8 +24,11 @@ interface InlineProps {
 
 function Inline({ text, locale, unpublished }: InlineProps) {
   return parseInline(text).map((part, index) => {
-    const content = typo(part.text, locale);
+    const content = typo(part.text, locale)
+      .split("\n")
+      .flatMap((line, i) => (i === 0 ? [line] : [<br key={`br${i}`} />, line]));
     if (part.type === "strong") return <strong key={index}>{content}</strong>;
+    if (part.type === "code") return <code key={index}>{content}</code>;
     if (part.type === "link" && !unpublished?.has(part.href)) {
       const external = part.href.startsWith("https://");
       return (
@@ -93,6 +96,33 @@ export function ArticleBody({
               </List>
             );
           }
+          case "table":
+            return (
+              <div key={index} className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-base">
+                  <thead>
+                    <tr>
+                      {block.header.map((cell, i) => (
+                        <th key={i} scope="col" className="border-hairline border-b-2 px-3 py-2">
+                          <Inline text={cell} locale={locale} />
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {block.rows.map((row, r) => (
+                      <tr key={r}>
+                        {row.map((cell, i) => (
+                          <td key={i} className="border-hairline border-b px-3 py-2 align-top">
+                            <Inline text={cell} locale={locale} />
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            );
           case "quote":
             return (
               <p

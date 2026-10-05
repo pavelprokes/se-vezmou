@@ -557,9 +557,9 @@ for (const locale of locales) {
 test.describe("právní podstránky", () => {
   const pages = [
     { path: "/soukromi", h1: "Zpracování osobních údajů", text: "Jaké máme role podle GDPR" },
-    { path: "/podminky", h1: "Podmínky služby", text: "Zpracovatelská smlouva" },
+    { path: "/podminky", h1: "Podmínky služby", text: "zpracovatelské ujednání" },
     { path: "/dostupnost", h1: "Prohlášení o přístupnosti", text: "Známá omezení" },
-    { path: "/en/privacy", h1: "Privacy policy", text: "Our GDPR roles" },
+    { path: "/en/privacy", h1: "Privacy policy", text: "GDPR roles" },
     { path: "/en/terms", h1: "Terms of service", text: "Data processing agreement" },
     { path: "/en/accessibility", h1: "Accessibility statement", text: "Known limitations" },
   ];

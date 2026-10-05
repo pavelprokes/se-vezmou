@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { parseBlocks } from "@/blog/markdown";
-import { ArticleBody } from "@/components/blog/article-body";
+import { ArticleBody, articleDate } from "@/components/blog/article-body";
 import { buttonVariants } from "@/components/ui/button";
 import { isLocale, type Locale } from "@/i18n/config";
 import type { MessageKey } from "@/i18n/messages";
 import { localizedPath } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
+import { legalVersion } from "@/legal/meta";
 import { accessibility } from "@/legal/accessibility";
 import { privacy } from "@/legal/privacy";
 import { terms } from "@/legal/terms";
@@ -94,6 +95,12 @@ export async function LegalPage({
       <LandingHeader locale={locale} route={route} />
       <main id="obsah" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 px-4 py-16 sm:px-8">
         <h1 className="text-ink text-4xl font-medium md:text-5xl">{t(TITLE_KEYS[route])}</h1>
+        <p className="text-muted mt-4">
+          {t("legal.version", {
+            version: String(legalVersion.version),
+            date: articleDate(legalVersion.effectiveFrom, locale),
+          })}
+        </p>
         <div className="mt-8">
           <ArticleBody blocks={parseBlocks(TEXTS[route][locale])} locale={locale} />
         </div>

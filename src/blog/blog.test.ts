@@ -82,7 +82,9 @@ describe("články v content/blog", () => {
           ...articles.map((a) => articlePath(a, locale)),
         ]);
         const links = parseBlocks(article.translations[locale].body)
-          .flatMap((block) => ("items" in block ? block.items : [block.text]))
+          .flatMap((block) =>
+            "items" in block ? block.items : block.type === "table" ? [] : [block.text],
+          )
           .flatMap(parseInline)
           .flatMap((part) =>
             part.type === "link" && part.href.startsWith("/") ? [part.href] : [],
@@ -151,5 +153,19 @@ describe("naplánované zveřejnění", () => {
     expect(html).not.toContain('href="/blog/dar"');
     expect(html).toContain("dar");
     expect(html).toContain('href="/blog/web"');
+  });
+});
+
+describe("tabulka, zalomení a kód v textu", () => {
+  it("rozloží tabulku, zachová zalomení a kód", () => {
+    const blocks = parseBlocks(
+      "| A | B |\n| --- | --- |\n| 1 | 2 |\n\nŘádek  \ndruhý `kód`\n\n1. **x**  \n   pokračuje\n\n2. y\n   z",
+    );
+    expect(blocks).toEqual([
+      { type: "table", header: ["A", "B"], rows: [["1", "2"]] },
+      { type: "p", text: "Řádek\ndruhý `kód`" },
+      { type: "ol", items: ["**x**\npokračuje", "y z"] },
+    ]);
+    expect(parseInline("`kód`")).toEqual([{ type: "code", text: "kód" }]);
   });
 });

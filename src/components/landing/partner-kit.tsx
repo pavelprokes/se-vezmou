@@ -17,7 +17,7 @@ export function partnerCode(name: string): string {
     .replace(/-+$/, "");
 }
 
-/** Odkaz s UTM parametry: návštěvy a založené weby jde v analytice rozlišit podle partnera, bez cookies. */
+/** Odkaz s UTM parametry: návštěvy úvodní stránky jde v analytice rozlišit podle partnera (bez cookies). */
 export function partnerUrl(homeUrl: string, code: string): string {
   const url = new URL(homeUrl);
   url.searchParams.set("utm_source", code);
@@ -74,55 +74,57 @@ export function PartnerKit({ homeUrl, labels }: { homeUrl: string; labels: Partn
         </p>
       </div>
 
-      {url ? (
-        <>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start print:hidden">
-            <QrCode payload={url} label={labels.qr} className="size-40 shrink-0" />
-            <div className="flex min-w-0 flex-col gap-3">
-              <p className="font-bold">{labels.link}</p>
-              <p className="font-mono text-sm break-all" data-testid="partner-url">
-                {url}
-              </p>
-              <div className="flex flex-wrap items-center gap-3">
-                <CopyButton
-                  value={url}
-                  label={labels.copyLabel}
-                  copiedLabel={labels.copied}
-                  text={labels.copy}
-                  className="min-h-target rounded-button border-ink text-ink inline-flex items-center border-2 bg-white px-4 font-bold"
-                  statusClassName="text-muted text-sm"
-                />
-                <PrintButton label={labels.print} />
+      <div aria-live="polite">
+        {url ? (
+          <>
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start print:hidden">
+              <QrCode payload={url} label={labels.qr} className="size-40 shrink-0" />
+              <div className="flex min-w-0 flex-col gap-3">
+                <p className="font-bold">{labels.link}</p>
+                <p className="font-mono text-sm break-all" data-testid="partner-url">
+                  {url}
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <CopyButton
+                    value={url}
+                    label={labels.copyLabel}
+                    copiedLabel={labels.copied}
+                    text={labels.copy}
+                    className="min-h-target rounded-button border-ink text-ink inline-flex items-center border-2 bg-white px-4 font-bold"
+                    statusClassName="text-muted text-sm"
+                  />
+                  <PrintButton label={labels.print} />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Leták: jen při tisku, na A4 na výšku */}
-          <section
-            aria-label={labels.leafletTitle}
-            className="hidden text-black print:flex print:min-h-[250mm] print:flex-col print:gap-8 print:bg-white print:p-[12mm]"
-          >
-            <p className="font-display text-2xl">se-vezmou.cz</p>
-            <h2 className="font-display text-5xl leading-tight">{labels.leafletTitle}</h2>
-            <p className="text-xl">{labels.leafletLead}</p>
-            <ul className="flex list-disc flex-col gap-2 pl-6 text-lg">
-              {labels.leafletPoints.map((point) => (
-                <li key={point}>{point}</li>
-              ))}
-            </ul>
-            <div className="mt-auto flex items-end gap-6">
-              <QrCode payload={url} label={labels.qr} className="size-[45mm] shrink-0" />
-              <div className="flex flex-col gap-2">
-                <p className="text-lg font-bold">{labels.leafletScan}</p>
-                <p className="font-mono text-sm break-all">{url}</p>
-                <p className="text-lg">{labels.leafletBy.replace("{name}", name.trim())}</p>
+            {/* Leták: jen při tisku, na A4 na výšku */}
+            <section
+              aria-label={labels.leafletTitle}
+              className="hidden text-black print:flex print:min-h-[250mm] print:flex-col print:gap-8 print:bg-white print:p-[12mm]"
+            >
+              <p className="font-display text-2xl">se-vezmou.cz</p>
+              <h2 className="font-display text-5xl leading-tight">{labels.leafletTitle}</h2>
+              <p className="text-xl">{labels.leafletLead}</p>
+              <ul className="flex list-disc flex-col gap-2 pl-6 text-lg">
+                {labels.leafletPoints.map((point) => (
+                  <li key={point}>{point}</li>
+                ))}
+              </ul>
+              <div className="mt-auto flex items-end gap-6">
+                <QrCode payload={url} label={labels.qr} className="size-[45mm] shrink-0" />
+                <div className="flex flex-col gap-2">
+                  <p className="text-lg font-bold">{labels.leafletScan}</p>
+                  <p className="text-lg font-bold">se-vezmou.cz</p>
+                  <p className="text-lg">{labels.leafletBy.replace("{name}", () => name.trim())}</p>
+                </div>
               </div>
-            </div>
-          </section>
-        </>
-      ) : (
-        <p className="text-muted print:hidden">{labels.empty}</p>
-      )}
+            </section>
+          </>
+        ) : (
+          <p className="text-muted">{labels.empty}</p>
+        )}
+      </div>
     </div>
   );
 }

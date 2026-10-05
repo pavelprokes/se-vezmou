@@ -9,7 +9,7 @@ import { pricing } from "@/config/pricing";
 import { faqPageLd, softwareApplicationLd, webPageLd, type JsonLdNode } from "@/seo/json-ld";
 import { pageMetadata } from "@/seo/page-metadata";
 import { CtaSection } from "./cta-section";
-import { getFaqItems, getTemplateFaqItems } from "./faq";
+import { getFaqItems, getPhotographerFaqItems, getTemplateFaqItems } from "./faq";
 import { FaqSection } from "./faq-section";
 import { LandingFooter } from "./landing-footer";
 import { LandingHeader } from "./landing-header";
@@ -162,7 +162,12 @@ export async function InfoPage({
   const t = await getTranslator(locale, ["common", "landing", "marketing"]);
   const keys = KEYS[route];
   const pageUrl = new URL(localizedPath(route, locale), siteUrl).toString();
-  const faq = route === "templates" ? await getTemplateFaqItems(locale) : await getFaqItems(locale);
+  const faq =
+    route === "templates"
+      ? await getTemplateFaqItems(locale)
+      : route === "photographers"
+        ? await getPhotographerFaqItems(locale)
+        : await getFaqItems(locale);
   const extra: JsonLdNode[] = [
     webPageLd({
       siteUrl,
@@ -242,7 +247,7 @@ export async function InfoPage({
             <Points locale={locale} route="photographers" />
             <PartnerKitSection locale={locale} />
             <div className="print:hidden">
-              <FaqSection locale={locale} />
+              <FaqSection locale={locale} items={faq} />
             </div>
           </>
         ) : null}

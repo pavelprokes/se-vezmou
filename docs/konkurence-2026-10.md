@@ -9,6 +9,10 @@ Stav k 5. 10. 2026. Podklad pro fáze větve `konkurence-2026-10`. Údaje o konk
 - Mezery ve funkcích: seznam darů s rezervací, zasedací pořádek, hry a rozpočet (do `docs/todo.md`). Fotky od hostů řeší vedlejší galerie (odkaz a QR na oznámení).
 - Sociální důkaz: WeMarry má počty párů, hodnocení Google a citáty; my zatím nic. Recenze jen skutečné, se souhlasem a s větou o ověření (novela zákona o ochraně spotřebitele od 6. 1. 2023).
 
+## Zakázkové služby (podklad Pavla, 5. 10. 2026)
+
+Ceny z podkladu, ze kterého analýza vychází (ceníky dodavatelů): jednostránka na míru od 699 Kč (K&K Code), hotový web od dodavatele 3 490 Kč (Mini) a 4 990 Kč (Plus) s dodáním do 14 dnů po předání podkladů (Svatebno), kódovaný web ze šablony od 10 500 Kč (Digitální weby); další studia (Pravá láska, Veselko, Snova svatba, Bereme se, Tomáš Bajer, Weboria) mají cenu podle poptávky. Z těchto čísel vychází rozpětí v článku `content/blog/sablona-nebo-na-miru.json`.
+
 ## Čím se prezentují české portály
 
 | Služba     | Tvrdí                                                                                   | Heslo | Dva jazyky | Mazání dat      | Přístupnost            |

@@ -53,7 +53,14 @@ describe("sitemap.xml", () => {
 
   it("neobsahuje zástupné právní podstránky (noindex)", () => {
     expect(xml).not.toMatch(/soukromi|privacy|podminky|terms|dostupnost|accessibility/);
-    expect(indexableRoutes).toEqual(["home", "pricing", "templates", "bilingual", "blog"]);
+    expect(indexableRoutes).toEqual([
+      "home",
+      "pricing",
+      "templates",
+      "bilingual",
+      "photographers",
+      "blog",
+    ]);
   });
 
   it("obsahuje cenu, šablony a dvojjazyčný web v obou jazycích", () => {
@@ -64,6 +71,8 @@ describe("sitemap.xml", () => {
       "/en/templates",
       "/dvojjazycny-svatebni-web",
       "/en/bilingual-wedding-website",
+      "/pro-fotografy",
+      "/en/for-photographers",
     ]) {
       expect(xml).toContain(`<loc>https://se-vezmou.cz${path}</loc>`);
     }

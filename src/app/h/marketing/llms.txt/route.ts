@@ -17,6 +17,7 @@ const pages = [
   ["pricing", "marketing.pricing"],
   ["templates", "marketing.templates"],
   ["bilingual", "marketing.bilingual"],
+  ["photographers", "marketing.photographers"],
   ["blog", "blog.index"],
 ] as const;
 

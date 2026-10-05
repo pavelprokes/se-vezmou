@@ -13,17 +13,18 @@ import { getFaqItems, getTemplateFaqItems } from "./faq";
 import { FaqSection } from "./faq-section";
 import { LandingFooter } from "./landing-footer";
 import { LandingHeader } from "./landing-header";
+import { PartnerKit } from "./partner-kit";
 import { PricingSection } from "./pricing-section";
 import { Section, itemTitleClass, sectionTitleClass } from "./section";
 import { SubpageStructuredData } from "./structured-data";
 import { TemplatesSection } from "./templates-section";
 
 /**
- * Indexovatelné podstránky úvodního webu (cena, šablony, dvojjazyčný web). Skládají se z hotových
+ * Indexovatelné podstránky úvodního webu (cena, šablony, dvojjazyčný web, pro fotografy). Skládají se z hotových
  * sekcí úvodní stránky, takže texty a ceny mají jediný zdroj. Každý jazyk má vlastní složku
  * (`cenik`, `pricing`, ...) a stránka ověří, že složka patří jazyku z adresy (jinak 404).
  */
-export type InfoRoute = Extract<RouteName, "pricing" | "templates" | "bilingual">;
+export type InfoRoute = Extract<RouteName, "pricing" | "templates" | "bilingual" | "photographers">;
 
 const KEYS = {
   pricing: {
@@ -46,6 +47,13 @@ const KEYS = {
     breadcrumb: "marketing.bilingual.breadcrumb",
     h1: "marketing.bilingual.h1",
     lead: "marketing.bilingual.lead",
+  },
+  photographers: {
+    title: "marketing.photographers.metaTitle",
+    description: "marketing.photographers.metaDescription",
+    breadcrumb: "marketing.photographers.breadcrumb",
+    h1: "marketing.photographers.h1",
+    lead: "marketing.photographers.lead",
   },
 } as const satisfies Record<InfoRoute, Record<string, MessageKey>>;
 
@@ -80,26 +88,17 @@ export async function infoMetadata(
   });
 }
 
-async function BilingualPoints({ locale }: { locale: Locale }) {
+/** Tři body s nadpisem (`marketing.<route>.points.*`). */
+async function Points({ locale, route }: { locale: Locale; route: "bilingual" | "photographers" }) {
   const t = await getTranslator(locale, ["marketing"]);
-  const points = [
-    {
-      title: t("marketing.bilingual.points.1.title"),
-      text: t("marketing.bilingual.points.1.text"),
-    },
-    {
-      title: t("marketing.bilingual.points.2.title"),
-      text: t("marketing.bilingual.points.2.text"),
-    },
-    {
-      title: t("marketing.bilingual.points.3.title"),
-      text: t("marketing.bilingual.points.3.text"),
-    },
-  ];
+  const points = ([1, 2, 3] as const).map((n) => ({
+    title: t(`marketing.${route}.points.${n}.title`),
+    text: t(`marketing.${route}.points.${n}.text`),
+  }));
   return (
-    <Section headingId="bilingual-points-title" tone="warm">
-      <h2 id="bilingual-points-title" className={sectionTitleClass}>
-        {t("marketing.bilingual.points.title")}
+    <Section headingId={`${route}-points-title`} tone="warm" className="print:hidden">
+      <h2 id={`${route}-points-title`} className={sectionTitleClass}>
+        {t(`marketing.${route}.points.title`)}
       </h2>
       <ul className="mt-12 grid gap-10 md:grid-cols-3">
         {points.map((point) => (
@@ -109,6 +108,42 @@ async function BilingualPoints({ locale }: { locale: Locale }) {
           </li>
         ))}
       </ul>
+    </Section>
+  );
+}
+
+async function PartnerKitSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["marketing"]);
+  const k = "marketing.photographers.kit" as const;
+  return (
+    <Section headingId="partner-kit-title" className="print:p-0">
+      <h2 id="partner-kit-title" className={`${sectionTitleClass} print:hidden`}>
+        {t(`${k}.title`)}
+      </h2>
+      <p className="text-muted mt-5 mb-8 max-w-2xl text-lg print:hidden">{t(`${k}.lead`)}</p>
+      <PartnerKit
+        homeUrl={new URL(localizedPath("home", locale), siteUrl).toString()}
+        labels={{
+          name: t(`${k}.name`),
+          nameHint: t(`${k}.nameHint`),
+          link: t(`${k}.link`),
+          copy: t(`${k}.copy`),
+          copyLabel: t(`${k}.copyLabel`),
+          copied: t(`${k}.copied`),
+          qr: t(`${k}.qr`),
+          print: t(`${k}.print`),
+          empty: t(`${k}.empty`),
+          leafletTitle: t(`${k}.leafletTitle`),
+          leafletLead: t(`${k}.leafletLead`),
+          leafletPoints: [
+            t(`${k}.leafletPoint1`),
+            t(`${k}.leafletPoint2`),
+            t(`${k}.leafletPoint3`),
+          ],
+          leafletScan: t(`${k}.leafletScan`),
+          leafletBy: t(`${k}.leafletBy`, { name: "{name}" }),
+        }}
+      />
     </Section>
   );
 }
@@ -166,9 +201,11 @@ export async function InfoPage({
   return (
     <>
       <SubpageStructuredData locale={locale} crumbs={crumbs} extra={extra} />
-      <LandingHeader locale={locale} route={route} />
+      <div className="print:hidden">
+        <LandingHeader locale={locale} route={route} />
+      </div>
       <main id="obsah" tabIndex={-1}>
-        <Section headingId="page-title">
+        <Section headingId="page-title" className="print:hidden">
           <h1
             id="page-title"
             className="font-display text-5xl leading-[1.02] font-normal tracking-tight text-balance md:text-6xl lg:text-7xl"
@@ -196,13 +233,23 @@ export async function InfoPage({
         ) : null}
         {route === "bilingual" ? (
           <>
-            <BilingualPoints locale={locale} />
+            <Points locale={locale} route="bilingual" />
             <FaqSection locale={locale} />
           </>
         ) : null}
-        <CtaSection locale={locale} />
+        {route === "photographers" ? (
+          <>
+            <Points locale={locale} route="photographers" />
+            <PartnerKitSection locale={locale} />
+          </>
+        ) : null}
+        <div className="print:hidden">
+          <CtaSection locale={locale} />
+        </div>
       </main>
-      <LandingFooter locale={locale} route={route} />
+      <div className="print:hidden">
+        <LandingFooter locale={locale} route={route} />
+      </div>
     </>
   );
 }

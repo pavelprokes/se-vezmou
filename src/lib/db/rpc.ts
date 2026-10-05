@@ -313,6 +313,15 @@ export async function authListAdminWeddings(email: string): Promise<AdminWedding
   }));
 }
 
+/** Potvrzení záložního e-mailu (jen shodná aktuální, dosud nepotvrzená adresa); `true` = potvrzeno teď. */
+export function authBackupEmailConfirm(weddingId: string, email: string): Promise<boolean> {
+  return call<boolean>(
+    "auth_backup_email_confirm",
+    { p_wedding_id: weddingId, p_email: email },
+    "scalar",
+  );
+}
+
 // --- PIN ---------------------------------------------------------------------------------
 
 export type PinRole = "admin" | "guest";

@@ -16,7 +16,7 @@ import {
   seedSite,
   sessionState,
 } from "./support/guests";
-import { readMails, waitForMail } from "./support/mail";
+import { linkOf, readMails, waitForMail } from "./support/mail";
 import { admin, auditRows, loginAsOperator, seedOperator } from "./support/ops";
 
 /**
@@ -882,6 +882,49 @@ test.describe("správci a záložní e-mail", () => {
     // nová adresa je nepotvrzená: dostane jedinou neutrální zprávu, ne oznámení o změně
     expect(await subject(next)).toBe("Někdo vás uvedl jako záložní e-mail svatebního webu");
     expect(await subject(site.adminEmail)).toBe("Záložní e-mail vašeho svatebního webu se změnil");
+  });
+
+  test("nová záložní adresa se potvrdí odkazem z e-mailu (otevření odkazu samo nic nepotvrdí)", async ({
+    page,
+    context,
+  }) => {
+    const site = await seedSite();
+    await site.login(context);
+    const next = `potvrzeni-${site.tag}@example.test`;
+    const confirmed = () =>
+      withDb(async (db) => {
+        const r = await db.query<{ c: boolean }>(
+          "select backup_email_confirmed_at is not null as c from se_vezmou.wedding_auth where wedding_id = $1",
+          [site.weddingId],
+        );
+        return r.rows[0].c;
+      });
+    await page.goto(appUrl("/pristup"));
+    await page.getByLabel("Nový záložní e-mail").fill(next);
+    await page.getByRole("button", { name: "Změnit záložní e-mail" }).click();
+    await page.getByRole("button", { name: "Ano, změnit" }).click();
+    await expect(page.getByTestId("backup-unconfirmed")).toBeVisible();
+
+    const link = linkOf(await waitForMail(next));
+    expect(link).toContain("/potvrdit-email?t=");
+    // potvrzuje se bez přihlášení (adresa může patřit někomu mimo pár)
+    await context.clearCookies();
+    await page.goto(link);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Potvrďte záložní e-mail");
+    await expect(page.locator("main")).toContainText(next);
+    expect(await confirmed()).toBe(false);
+    await page.getByRole("button", { name: "Potvrdit záložní e-mail" }).click();
+    await expect(page.getByTestId("backup-confirmed")).toContainText("potvrzený");
+    expect(await confirmed()).toBe(true);
+
+    // podruhé už odkaz nic nepotvrdí
+    await page.goto(link);
+    await page.getByRole("button", { name: "Potvrdit záložní e-mail" }).click();
+    await expect(page.locator("main").getByRole("alert")).toContainText("už je potvrzená");
+
+    // upravený odkaz se odmítne hned
+    await page.goto(link.replace(/t=./, "t=X"));
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Odkaz už neplatí");
   });
 });
 

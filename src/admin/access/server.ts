@@ -1,6 +1,7 @@
 import "server-only";
 import { limited, reasonOf } from "@/lib/rate-guard";
 import { currentHostConfig, siteHostname } from "@/auth/app-origin";
+import { backupConfirmUrl } from "@/auth/backup-confirm";
 import { RATE_RULES } from "@/auth/config";
 import { normalizeEmail } from "@/auth/identity";
 import type { Defer } from "@/auth/login";
@@ -77,7 +78,7 @@ function sendNotices(
   view: Pick<AccessView, "slug" | "default_locale" | "timezone">,
   weddingId: string,
   targets: NoticeTarget[],
-  extra: { until?: Date; reason?: string; loginUrl?: boolean } = {},
+  extra: { until?: Date; reason?: string; loginUrl?: boolean; confirmUrl?: string } = {},
 ): void {
   const secret = requireEnv("AUTH_SECRET");
   const site = view.slug ? siteHostname(view.slug, currentHostConfig()) : undefined;
@@ -95,6 +96,7 @@ function sendNotices(
       until: extra.until,
       timeZone: view.timezone,
       reason: extra.reason,
+      confirmUrl: extra.confirmUrl,
     });
     ctx.defer(() =>
       sendTemplatedEmail({
@@ -190,14 +192,33 @@ export async function setBackupEmail(
   if (retry !== null) return { status: "limited", retryAfter: retry };
   try {
     const result = backupResultSchema.parse(await adminBackupEmailSet(actor, email));
-    if (!result.changed) return { status: "same" };
     const view = await loadAccess(actor);
-    sendNotices(ctx, view, actor.weddingId, [
-      ...(result.old ? [{ email: result.old, kind: "backup_changed_old" } as NoticeTarget] : []),
-      // Nová adresa je nepotvrzená: dostane jedinou neutrální zprávu, žádná další oznámení nechodí.
-      { email, kind: "backup_added" },
-      ...result.notify.map((to): NoticeTarget => ({ email: to, kind: "backup_changed" })),
-    ]);
+    // Nová adresa je nepotvrzená: dostane jedinou neutrální zprávu s odkazem na potvrzení,
+    // žádná další oznámení nechodí (odkaz čte jen `backup_added`).
+    const confirmUrl = backupConfirmUrl(
+      new URL(ctx.loginUrl).origin,
+      view.default_locale,
+      actor.weddingId,
+      email,
+    );
+    if (!result.changed) {
+      // Stejná, dosud nepotvrzená adresa: pošle se znovu jen odkaz na potvrzení (ztracená zpráva).
+      if (!view.backup_confirmed) {
+        sendNotices(ctx, view, actor.weddingId, [{ email, kind: "backup_added" }], { confirmUrl });
+      }
+      return { status: "same" };
+    }
+    sendNotices(
+      ctx,
+      view,
+      actor.weddingId,
+      [
+        ...(result.old ? [{ email: result.old, kind: "backup_changed_old" } as NoticeTarget] : []),
+        { email, kind: "backup_added" },
+        ...result.notify.map((to): NoticeTarget => ({ email: to, kind: "backup_changed" })),
+      ],
+      { confirmUrl },
+    );
     return { status: "changed" };
   } catch (error) {
     if (reasonOf(error) === "invalid_email") return { status: "invalid" };

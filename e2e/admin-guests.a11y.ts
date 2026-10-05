@@ -93,6 +93,18 @@ test.describe("axe: hosté", () => {
     await expectNoViolations(page);
   });
 
+  test("jmenovky na stůl: výběr a náhled, česky i anglicky", async ({ page, context }) => {
+    const { site } = await seedWithGuests();
+    await site.login(context);
+    await page.goto(appUrl("/hoste/jmenovky?kdo=vsichni"));
+    await expect(page.getByRole("heading", { level: 1, name: "Jmenovky na stůl" })).toBeVisible();
+    await expect(page.getByRole("img", { name: /^Jmenovka: / }).first()).toBeVisible();
+    await expectNoViolations(page);
+    await page.goto(appUrl("/en/hoste/jmenovky?kdo=vsichni&format=stojanek"));
+    await expect(page.getByRole("heading", { level: 1, name: "Place cards" })).toBeVisible();
+    await expectNoViolations(page);
+  });
+
   test("úprava domácnosti: nová s chybami, existující s dítětem, angličtina", async ({
     page,
     context,
@@ -322,6 +334,7 @@ test.describe("ovládání a zobrazení", () => {
       "/hoste",
       `/hoste/domacnost/${household}`,
       "/hoste/import",
+      "/hoste/jmenovky?kdo=vsichni",
       "/odpovedi",
       `/odpovedi/${household}`,
       "/odpovedi/nastaveni",
@@ -375,6 +388,7 @@ test.describe("ovládání a zobrazení", () => {
       "/hoste",
       `/hoste/domacnost/${household}`,
       "/hoste/import",
+      "/hoste/jmenovky?kdo=vsichni",
       "/odpovedi",
       `/odpovedi/${household}`,
       "/odpovedi/nastaveni",

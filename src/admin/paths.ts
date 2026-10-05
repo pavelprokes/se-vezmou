@@ -13,6 +13,7 @@ export const ADMIN_PATHS = {
   guests: "/hoste",
   guestsImport: "/hoste/import",
   guestCards: "/hoste/karty",
+  nameCards: "/hoste/jmenovky",
   responses: "/odpovedi",
   rsvpSettings: "/odpovedi/nastaveni",
   access: "/pristup",

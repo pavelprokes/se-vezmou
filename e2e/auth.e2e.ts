@@ -407,12 +407,12 @@ test.describe("přihlášení PINem (E2E-09)", () => {
     page,
   }) => {
     const wedding = await seedWedding({ pin: "482915", backupConfirmed: false });
-    await page.goto(app("/prihlaseni/pin"));
+    // každý pokus počká na odpověď serveru: text chyby je po každém pokusu stejný, takže sám nestačí
     for (let i = 0; i < 5; i++) {
+      await page.goto(app("/prihlaseni/pin"));
       await page.getByLabel("Adresa svatebního webu").fill(wedding.slug);
       await page.getByLabel("PIN ke správě").fill("739104");
-      await page.getByRole("button", { name: "Přihlásit se PINem" }).click();
-      await expect(page.locator("main").getByRole("alert")).not.toBeEmpty();
+      await submitAndWait(page, "Přihlásit se PINem");
     }
     // pauza po páté chybě platí, jen se o ní nepíše na nepotvrzenou adresu
     await expect(page.locator("main").getByRole("alert")).toContainText("pozastaveno");

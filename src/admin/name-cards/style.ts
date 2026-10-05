@@ -64,3 +64,41 @@ export function cardStyle(template: TemplateKey, paletteKey: string): CardStyle 
     ornamentColor: pick(["accent", "ornament", "decor2"], visible, INK_FALLBACK),
   };
 }
+
+/** Tvar dekoru v milimetrech (os y dolů), společný pro náhled (SVG) i PDF (`drawSvgPath`). */
+export interface OrnamentShape {
+  width: number;
+  height: number;
+  paths: readonly { d: string; mode: "fill" | "stroke"; strokeWidth?: number }[];
+}
+
+function leaf(x: number, up: boolean): string {
+  const tip = up ? 0.6 : 4.4;
+  const ctrl = up ? 0 : 5;
+  const back = up ? 2.4 : 2.6;
+  return `M${x} 2.5 Q${x + 2} ${ctrl} ${x + 4.5} ${tip} Q${x + 2.5} ${back} ${x} 2.5 Z`;
+}
+
+export const ORNAMENTS: Record<CardOrnament, OrnamentShape> = {
+  rule: { width: 16, height: 1, paths: [{ d: "M0 0.5 H16", mode: "stroke", strokeWidth: 0.2 }] },
+  gem: {
+    width: 26,
+    height: 3,
+    paths: [
+      { d: "M0 1.5 H10 M16 1.5 H26", mode: "stroke", strokeWidth: 0.2 },
+      { d: "M13 0 L14.5 1.5 L13 3 L11.5 1.5 Z", mode: "fill" },
+    ],
+  },
+  sprig: {
+    width: 22,
+    height: 5,
+    paths: [
+      { d: "M0.5 2.5 H21.5", mode: "stroke", strokeWidth: 0.25 },
+      {
+        d: [leaf(2, true), leaf(6, false), leaf(11, true), leaf(15, false)].join(" "),
+        mode: "fill",
+      },
+    ],
+  },
+  bar: { width: 12, height: 1.2, paths: [{ d: "M0 0 H12 V1.2 H0 Z", mode: "fill" }] },
+};

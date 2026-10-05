@@ -61,12 +61,12 @@ const COPY = {
   },
 } as const;
 
-type FontName = "DMSans_400Regular.ttf" | "DMSans_700Bold.ttf" | "Newsreader_500Medium.ttf";
+export type FontName = "DMSans_400Regular.ttf" | "DMSans_700Bold.ttf" | "Newsreader_500Medium.ttf";
 
 const fontCache = new Map<FontName, Promise<Buffer>>();
 
 /** Písma leží v repozitáři (`src/wizard/pdf/fonts`) a do nasazení je přidává `outputFileTracingIncludes`. */
-function fontBytes(name: FontName): Promise<Buffer> {
+export function fontBytes(name: FontName): Promise<Buffer> {
   let bytes = fontCache.get(name);
   if (!bytes) {
     bytes = readFile(join(process.cwd(), "src/wizard/pdf/fonts", name));
@@ -103,7 +103,7 @@ export function pickGalleryUrl(blocks: readonly Block[]): string | null {
 }
 
 /** Text jen ze znaků, které písmo umí (nezlomitelná mezera a pomlčky by jinak shodily vložení). */
-function printable(font: PDFFont, text: string): string {
+export function printable(font: PDFFont, text: string): string {
   const supported = new Set(font.getCharacterSet());
   return [...text]
     .map((char) => {

@@ -33,6 +33,7 @@ import { previewUrl, siteUrl, displayHost } from "@/wizard/urls";
 import { authSessionContext } from "@/lib/db/rpc";
 import { verifyTurnstile } from "@/lib/turnstile";
 import type { WizardSlugStatus } from "@/lib/db/rpc-wizard";
+import { templateKeys } from "@/site/themes/palettes";
 
 /**
  * Server Actions průvodce. Každá začíná kontrolou původu (CSRF, docs/security-privacy.md kap. 2)
@@ -375,7 +376,7 @@ export async function renewPreviewLinkAction(rawLocale: unknown): Promise<RenewP
 const trackSchema = z.object({
   event: z.enum(["wizard_started", "wizard_step_completed"]),
   step: z.number().int().min(1).max(9).nullable(),
-  template: z.enum(["editorial", "eukalyptus", "chateau", "modern"]).nullable(),
+  template: z.enum(templateKeys).nullable(),
 });
 
 /**

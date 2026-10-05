@@ -1,4 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
+import { testimonials } from "../src/config/testimonials";
 import { NBSP } from "../src/i18n/typo";
 import { HOSTS, PORT, apiRequest, pageUrl } from "./hosts";
 // `test` z podpory přihlášení dává každému testu vlastní IP (čítače omezení se nesdílejí).
@@ -228,17 +229,34 @@ for (const locale of locales) {
       await expect(news.locator("blockquote")).toHaveCount(0);
       await expect(news.getByText(/\[.*\]|Zástupný text|Placeholder text/)).toHaveCount(0);
       await expect(news.locator("#waitlist form")).toBeVisible();
+      // Reference jen ze skutečných recenzí v konfiguraci; prázdný seznam = žádná sekce.
+      await expect(page.locator("#reference")).toHaveCount(testimonials.length === 0 ? 0 : 1);
     });
 
-    test("šablony: čtyři skutečné snímky se jmény Klára a Matěj", async ({ page }) => {
+    test("čím se lišíme: osm bodů pod funkcemi", async ({ page }) => {
+      await page.goto(pageUrl(HOSTS.marketing, locale.path));
+      const extra = page.locator("#features li").filter({
+        has: page.getByRole("heading", { name: /^(Čím se lišíme|What sets us apart)$/ }),
+      });
+      await expect(extra.locator("ul > li")).toHaveCount(8);
+      await expect(extra).toContainText(/EPC/);
+      await extra.scrollIntoViewIfNeeded();
+      await extra.screenshot({ path: test.info().outputPath(`cim-se-lisime-${locale.code}.png`) });
+    });
+
+    test("šablony: osm skutečných snímků se jmény Klára a Matěj", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       const previews = page.locator("#templates img");
-      await expect(previews).toHaveCount(4);
+      await expect(previews).toHaveCount(8);
       for (const name of [
         "Editorial",
         locale.code === "cs" ? "Eukalyptus" : "Eucalyptus",
         "Chateau",
         "Modern",
+        locale.code === "cs" ? "Statek" : "Farmstead",
+        locale.code === "cs" ? "Vinice" : "Vineyard",
+        locale.code === "cs" ? "Louka" : "Meadow",
+        "Deco",
       ]) {
         await expect(
           page.locator("#templates").getByRole("img", { name: new RegExp(name) }),
@@ -614,6 +632,16 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       h1: "A bilingual wedding website",
       alt: "/dvojjazycny-svatebni-web",
     },
+    {
+      path: "/pro-fotografy",
+      h1: "Pro svatební fotografy a dodavatele",
+      alt: "/en/for-photographers",
+    },
+    {
+      path: "/en/for-photographers",
+      h1: "For wedding photographers and suppliers",
+      alt: "/pro-fotografy",
+    },
   ];
 
   for (const entry of pages) {
@@ -650,10 +678,28 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
   test("šablony: popis každé šablony a názvy palet z jejich definice", async ({ request }) => {
     const { html } = await source(request, "/sablony");
     expect(html).toContain("Barevné palety: Bordó, Stříbrná, Hloubka, Pudr");
-    expect(html).toContain("Barevné palety: Champagne, Slonová kost, Noc");
+    expect(html).toContain("Barevné palety: Champagne, Slonová kost, Noc, Růže");
+    expect(html).toContain("Barevné palety: Půlnoc, Smaragd, Bordó, Opál");
     expect(html).toContain("Mohu šablonu změnit i po zveřejnění webu?");
     const { html: en } = await source(request, "/en/templates");
     expect(en).toContain("Colour palettes: Burgundy, Silver, Depth, Powder");
+  });
+
+  test("pro fotografy: odkaz s kódem partnera, QR kód a leták jen při tisku", async ({ page }) => {
+    await page.goto(pageUrl(HOSTS.marketing, "/pro-fotografy"));
+    await expect(page.getByText(/Po\snapsání\sjména/)).toBeVisible();
+    await page.getByLabel("Jméno studia nebo fotografa").fill("Foto Klára Nová");
+    await expect(page.getByTestId("partner-url")).toHaveText(
+      "https://se-vezmou.cz/?utm_source=foto-klara-nova&utm_medium=partner&utm_campaign=doporuceni",
+    );
+    await expect(page.getByRole("img", { name: /QR kód s doporučujícím odkazem/ })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Vytisknout leták" })).toBeVisible();
+    await page.emulateMedia({ media: "print" });
+    const leaflet = page.getByRole("region", { name: "Svatební web pro vaše hosty" });
+    await expect(leaflet).toBeVisible();
+    await expect(leaflet).toContainText("Doporučuje Foto Klára Nová");
+    await expect(page.getByRole("heading", { level: 1 })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Vytisknout leták" })).toBeHidden();
   });
 
   test("cizí jazyková varianta cesty je 404", async ({ request }) => {
@@ -663,6 +709,8 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       "/templates",
       "/en/sablony",
       "/bilingual-wedding-website",
+      "/for-photographers",
+      "/en/pro-fotografy",
     ]) {
       const { response } = await source(request, path);
       expect(response.status(), path).toBe(404);

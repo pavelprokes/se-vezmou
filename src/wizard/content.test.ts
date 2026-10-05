@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validatePalette } from "@/site/themes/validate";
-import { getPalette } from "@/site/themes/palettes";
+import { getPalette, templateKeys } from "@/site/themes/palettes";
 import { SITE_NAMESPACES, createSiteCtx, renderableBlocks } from "@/components/site/context";
 import { getTranslator } from "@/i18n/load";
 import { publicContentSchema } from "@/site/types";
@@ -192,7 +192,7 @@ describe("toPublicContent", () => {
   });
 
   it("každá paleta každé šablony prochází validatePalette (nic neprojde bez kontroly kontrastu)", () => {
-    for (const template of ["editorial", "eukalyptus", "chateau", "modern"] as const) {
+    for (const template of templateKeys) {
       const draft = base({ template });
       draft.palette = getPalette(template, draft.palette).key;
       expect(validatePalette(getPalette(draft.template, draft.palette)).ok).toBe(true);

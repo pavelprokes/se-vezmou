@@ -2,12 +2,12 @@ import { expect, test } from "@playwright/test";
 import { previewUrl } from "./site";
 
 /**
- * Vzhled „Tiskovina“ klasických šablon (Editorial, Chateau, Modern) na počítači i mobilu (projekty e2e
+ * Vzhled „Tiskovina“ klasických šablon (Editorial, Chateau, Modern, Statek, Vinice, Louka, Deco) na počítači i mobilu (projekty e2e
  * a e2e-mobile): pruh Kdy / Kde / Odpověď pod jmény, číslované sekce (nadpis vlevo a obsah vpravo jen na
  * širokém displeji), navigace v jednom řádku a žádné vodorovné posouvání stránky.
  */
 
-const CLASSIC = ["editorial", "chateau", "modern"] as const;
+const CLASSIC = ["editorial", "chateau", "modern", "statek", "vinice", "louka", "deco"] as const;
 
 for (const template of CLASSIC) {
   test(`${template}: pruh pod jmény, čísla sekcí a rozložení podle šířky`, async ({ page }) => {

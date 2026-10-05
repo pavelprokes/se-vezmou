@@ -1,4 +1,4 @@
-import { Download, FileSpreadsheet } from "lucide-react";
+import { Download, FileSpreadsheet, IdCard } from "lucide-react";
 import type { Metadata } from "next";
 import { ADMIN_PATHS, appHref, householdPath, responsePath } from "@/admin/paths";
 import { loadGuests } from "@/admin/guests/server";
@@ -81,6 +81,22 @@ export default async function GuestsPage({ searchParams }: PageProps<"/h/app/hos
               >
                 <Icon icon={FileSpreadsheet} size={18} />
                 {t("admin.guests.list.importLink")}
+              </a>
+            </p>
+          </Card>
+
+          <Card as="section" aria-labelledby="name-cards-heading">
+            <h2 id="name-cards-heading" className="text-2xl font-medium">
+              {t("admin.guests.list.nameCardsTitle")}
+            </h2>
+            <p className="text-muted mt-2 max-w-prose">{t("admin.guests.list.nameCardsIntro")}</p>
+            <p className="mt-4">
+              <a
+                href={appHref(ADMIN_PATHS.nameCards, locale)}
+                className={buttonVariants({ variant: "secondary" })}
+              >
+                <Icon icon={IdCard} size={18} />
+                {t("admin.guests.list.nameCardsLink")}
               </a>
             </p>
           </Card>

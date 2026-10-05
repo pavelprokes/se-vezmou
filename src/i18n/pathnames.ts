@@ -17,6 +17,8 @@ const routes = {
   pricing: { cs: "/cenik", en: "/pricing" },
   templates: { cs: "/sablony", en: "/templates" },
   bilingual: { cs: "/dvojjazycny-svatebni-web", en: "/bilingual-wedding-website" },
+  /** Doporučující odkaz a leták pro fotografy a další dodavatele (docs/konkurence-2026-10.md). */
+  photographers: { cs: "/pro-fotografy", en: "/for-photographers" },
   privacy: { cs: "/soukromi", en: "/privacy" },
   terms: { cs: "/podminky", en: "/terms" },
   accessibility: { cs: "/dostupnost", en: "/accessibility" },

@@ -1,6 +1,7 @@
 import type { Locale } from "@/i18n/config";
 import type { NamespaceKey } from "@/i18n/messages";
 import type { WeddingStatus } from "@/lib/db/types";
+import type { TemplateKey } from "@/site/themes/palettes";
 
 type MessageKey = NamespaceKey<"ops">;
 
@@ -15,11 +16,15 @@ export const STATUS_KEYS: Record<WeddingStatus, MessageKey> = {
   blocked: "ops.status.blocked",
 };
 
-export const TEMPLATE_KEYS: Record<string, MessageKey> = {
+export const TEMPLATE_KEYS: Record<TemplateKey, MessageKey> = {
   editorial: "ops.template.editorial",
   eukalyptus: "ops.template.eukalyptus",
   chateau: "ops.template.chateau",
   modern: "ops.template.modern",
+  statek: "ops.template.statek",
+  vinice: "ops.template.vinice",
+  louka: "ops.template.louka",
+  deco: "ops.template.deco",
 };
 
 export const LOCALE_KEYS: Record<Locale, MessageKey> = {

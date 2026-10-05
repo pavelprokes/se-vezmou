@@ -6,8 +6,9 @@ Stav k 3. 10. 2026. Úkoly, které čekají na majitele nebo na dokončení slu�
 
 - [ ] **Podmínky služby** (`[PODMÍNKY]`, `/podminky`, `/en/terms`): vymyslet a napsat až po dokončení služeb (cena po zaváděcím provozu, zpracovatelská ujednání podle čl. 28 GDPR). Text musí ověřit skutečný právník. Navazuje OQ-11.
 - [ ] **Zásady zpracování osobních údajů** (`/soukromi`, `/en/privacy`) a **prohlášení o přístupnosti**: dokončit s podmínkami; poté zrušit `noindex` a přidat do `indexableRoutes` v `src/seo/sitemap.ts`.
-- [ ] **Skutečné reference**: přidat na úvodní stránku sekci s opravdovými recenzemi se souhlasem autorů (např. od párů, kterým Pavel fotil svatbu, nebo od prvních uživatelů zaváděcího provozu). Zástupné karty jsou odstraněné, na úvodní stránce je teď jen sekce Oznámení o spuštění (`news-section.tsx`). Žádné vymyšlené recenze, bez `Review` ve strukturovaných datech, dokud nejsou skutečné.
+- [ ] **Skutečné reference**: přidat na úvodní stránku sekci s opravdovými recenzemi se souhlasem autorů (jen od párů, které web na se-vezmou.cz opravdu použily, např. první uživatelé; recenze focení sem nepatří). Místo v kódu je připravené: recenze se zapisují do `src/config/testimonials.ts` (postup a pravidla v komentáři), sekce „Co říkají páry“ se ukáže sama, jakmile seznam není prázdný. Žádné vymyšlené recenze, bez `Review` ve strukturovaných datech, dokud nejsou skutečné.
 
+- [ ] **Zásady zpracování:** uvést Vercel Web Analytics (bez cookies) včetně parametrů UTM z odkazů partnerů (`utm_source` nese jméno fotografa, `/pro-fotografy`); ověřit, že plán Vercelu UTM zobrazuje.
 - [ ] **Zásady zpracování:** uvést Cloudflare Turnstile (ochrana průvodce a čekací listiny před roboty, IP adresa a signály prohlížeče) mezi dílčí zpracovatele.
 
 ## Newsletter (před první rozesílkou)
@@ -15,15 +16,9 @@ Stav k 3. 10. 2026. Úkoly, které čekají na majitele nebo na dokončení slu�
 - [ ] Souhlasy s verzí `2026-10-v1` platí jen pro jedno oznámení o spuštění, ne pro newsletter: do rozesílky brát jen `consent_text_version = '2026-10-v2'` (nebo je požádat o nové potvrzení). Doplnit do OQ-68.
 - [ ] Retence čekací listiny (12 měsíců od `consent_at`) u newsletteru tiše odstraní odběratele: rozhodnout, zda se lhůta počítá od poslední aktivity; aktualizovat OQ-60 a zásady zpracování údajů. Rozesílku zatím nikdo neodesílá.
 
-## Cena po zaváděcím provozu (rozhodnout)
+## Cena
 
-Na webu je dnes „0 Kč“ a „teď“ (slovo „zdarma“ záměrně nepoužíváme kvůli reklamám a SEO a o „zaváděcím provozu“ veřejně nemluvíme, služba funguje a používají ji první páry). Návrh, který je třeba schválit a pak zapsat do `src/config/pricing.ts` a podmínek (OQ-11):
-
-- **Koncept**: 0 Kč vždy (průvodce, všechny šablony, soukromý náhled).
-- **Zveřejnění webu**: **990 Kč jednorázově** za svatbu (ne měsíčně, bez poplatků z darů); web běží do svatby a 12 měsíců po ní.
-- **Nastavíme za vás**: **2 990 Kč jednorázově** (služba „vyplníme web za vás“).
-- Otevřené: zda weby zveřejněné v zaváděcím provozu zůstanou za 0 Kč do své svatby (doporučuji ano, je to férové a nepálí to první uživatele), a kdy zaváděcí provoz skončí (`introEndsOn`).
-- Čísla jsou odhad bez průzkumu trhu; před zveřejněním je porovnat s konkurencí a upravit.
+**Rozhodnuto 5. 10. 2026 (Pavel): služba zůstává za 0 Kč**, včetně zveřejnění. Placené zveřejnění (dříve návrh 990 Kč) a placená služba „Nastavíme za vás“ se nezavádějí. Podklad: srovnání v `docs/konkurence-2026-10.md` (web zdarma nabízí většina českých portálů i zahraničních služeb). Texty dál nesmějí slibovat „zdarma navždy“ (OQ-11); `src/config/pricing.ts` se nemění.
 
 ## SEO a provoz
 
@@ -51,6 +46,9 @@ Stav repa je zmapovaný v `docs/audit-todo-2026-10.md`. Co už stojí, jen odšk
 - [x] **Skupiny hostů s programem a osobní odkaz s QR (#65, #66), heslo na celý web, EPC QR (GiroCode) pro dary ze zahraničí, lhůty po svatbě podle zadání (web 12 měsíců, hosté 3 měsíce; čeká na právníka).**
 - [ ] **První verze, zbývá:** tlačítko „přeložit“ se schválením párem.
 - [ ] **Druhá verze:** zasedací pořádek, rozpočet, heslo na jednotlivé stránky (filtr hostů podle skupiny s počty a kartičky s QR jsou hotové v #65 a #66).
+- [ ] **Seznam darů s rezervací** („tohle beru já“): pár zadá dary, host si jeden zarezervuje bez účtu, ostatní vidí, že je zabraný. Navazuje na blok Dary (za PINem). Běžné u konkurence (`docs/konkurence-2026-10.md`).
+- [ ] **Zasedací pořádek:** stoly a přetažení hostů ze seznamu, tisk plánku a čísla stolu na jmenovky. Mají ho Svatebka, Weddee, WeMarry, Svatbovka.
+- [ ] **Kvíz a hry pro hosty, rozpočet a checklist:** až po darech a zasedacím pořádku; rozmělňují pozici „nejlepší web pro hosty“.
 - [x] **Vzhled, hotovo:** přechody mezi stránkami úvodního webu (View Transitions, `prefers-reduced-motion`), nový vzhled úvodní stránky (#61).
 - [x] **Vzhled šablon webu páru:** navigace v jednom řádku (#70), klasické šablony ve vzhledu „Tiskovina“ (pruh Kdy / Kde / Odpověď pod jmény, číslované sekce, nadpis vlevo a obsah vpravo).
-- [ ] **Později:** vlastní doména páru, placená publikace (jednorázově nebo ročně, bez poplatků z darů), služba „nastavíme web s vámi“, anglický alias domény.
+- [ ] **Později:** vlastní doména páru (dnes jen subdoména `jmeno-a-jmeno.se-vezmou.cz`, postup v `docs/audit-todo-2026-10.md` A5), anglický alias domény. Placená publikace a „nastavíme web s vámi“ se podle rozhodnutí o ceně nedělají.

@@ -38,6 +38,8 @@ const pages = [
   { name: "templates anglicky", path: "/en/templates" },
   { name: "dvojjazyčný web", path: "/dvojjazycny-svatebni-web" },
   { name: "bilingual anglicky", path: "/en/bilingual-wedding-website" },
+  { name: "pro fotografy", path: "/pro-fotografy" },
+  { name: "for photographers anglicky", path: "/en/for-photographers" },
 ];
 
 for (const { name, path } of pages) {

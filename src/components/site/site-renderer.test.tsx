@@ -116,7 +116,7 @@ describe("klasické šablony: pruh Kdy / Kde / Odpovězte do a čísla sekcí", 
         b.type === "hero" ? { ...b, data: { ...b.data, photoMediaId: photo.id } } : b,
       ),
     };
-    for (const template of ["editorial", "chateau", "modern"] as const) {
+    for (const template of templateKeys.filter((key) => key !== "eukalyptus")) {
       const { container, unmount } = renderSite({ ...withPhoto, template });
       const img = container.querySelector(".site-hero .site-hero-photo img");
       expect(img?.getAttribute("alt")?.replace(/\s/g, " "), template).toBe(photo.alt?.cs);

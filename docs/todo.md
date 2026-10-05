@@ -27,9 +27,13 @@ Na webu je dnes „0 Kč“ a „teď“ (slovo „zdarma“ záměrně nepouž�
 
 ## SEO a provoz
 
-- [ ] **Google Search Console, Bing Webmaster Tools, Seznam Webmaster**: ověřit doménu `se-vezmou.cz` (DNS TXT) a odeslat `sitemap.xml`.
+- [x] **Google Search Console** (DNS TXT) a **Bing Webmaster Tools** ověřené 5. 10. 2026; **IndexNow** posílá adresy po každém produkčním nasazení. Postup a stav všech nástrojů: `docs/seo-nastroje.md`.
+- [ ] **Search Console a Bing**: odeslat `sitemap.xml`, požádat o indexaci hlavních stránek (`docs/seo-nastroje.md`, krok 1).
+- [ ] **Seznam Webmaster**: ověření meta značkou, kód do proměnné `SEZNAM_WMT` na Vercelu a redeploy (`docs/seo-nastroje.md`, krok 2).
+- [ ] **Vercel Analytics a Speed Insights**: kód hotový, ověřit zapnutí v dashboardu (`docs/seo-nastroje.md`, krok 3).
+- [ ] **Firmy.cz a Google Business Profile**: připravené texty v `docs/seo-nastroje.md` (krok 5).
 - [x] **Logo**: vybrána varianta A (`docs/brand/`), nasazeno na web, ikony a OG obrázky.
-- [ ] **Organization `logo` a `sameAs`**: logo už je v `src/seo/json-ld.ts`; zbývá doplnit odkazy na profily na sítích (kandidáti na `sameAs`: `svatebni-fotograf-cechy.cz`, `photos.svatebni-fotograf-cechy.cz`).
+- [ ] **Profily značky a `sameAs`**: logo je hotové; kód pro `sameAs` je připravený (`operator.profiles` v `src/config/operator.ts`), chybí založit profily (Instagram, Facebook, LinkedIn) a doplnit jejich adresy. Weby autora do `sameAs` nepatří (nejsou to profily stejné značky). Postup: `docs/seo-nastroje.md`, krok 4.
 - [ ] **Záložní kontakt** `pavel@pavelprokes.cz`: nastavit jako přeposílání / `Reply-To` u `info@se-vezmou.cz` (nezveřejňovat na webu).
 - [ ] Linkbuilding a měření (CrUX, analytika) po spuštění Search Console; detaily v `docs/seo-audit-2026-10.md`.
 

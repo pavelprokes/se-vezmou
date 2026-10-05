@@ -86,6 +86,11 @@ const schema = z.object({
   TURNSTILE_SECRET_KEY: z.string().min(1).optional(),
   /** Veřejný klíč widgetu Turnstile (do prohlížeče se vkládá při sestavení doslovným `process.env.…`). */
   NEXT_PUBLIC_TURNSTILE_SITE_KEY: z.string().min(1).optional(),
+  /**
+   * Ověření webu v Seznam Webmasteru (webmaster.seznam.cz): hodnota meta značky `seznam-wmt`. Vypisuje se jen
+   * na úvodním webu; po nastavení na Vercelu je potřeba nové sestavení (stránky jsou statické).
+   */
+  SEZNAM_WMT: z.string().min(1).optional(),
   OG_FETCH_TEST_HOST: z.string().min(1).optional(),
   /** Jen automatické testy: `1` = mapa bez sítě (pevné souřadnice, šedé dlaždice), src/site/map/server.ts. */
   MAP_STUB: z.string().min(1).optional(),

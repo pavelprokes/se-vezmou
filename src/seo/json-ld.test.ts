@@ -67,6 +67,13 @@ describe("Organization", () => {
     expect(node.legalName).toBe("Novák s.r.o., 12345678");
     expect(node.contactPoint).toMatchObject({ email: "info@se-vezmou.cz" });
   });
+
+  it("sameAs jen s vyplněnými profily", () => {
+    expect(organizationLd(input)).not.toHaveProperty("sameAs");
+    expect(organizationLd({ ...input, profiles: [] })).not.toHaveProperty("sameAs");
+    const ig = "https://www.instagram.com/sevezmou";
+    expect(organizationLd({ ...input, profiles: [ig] }).sameAs).toEqual([ig]);
+  });
 });
 
 describe("WebSite", () => {

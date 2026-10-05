@@ -4,6 +4,7 @@ import { Document } from "@/components/document";
 import { SkipLink } from "@/components/ui/skip-link";
 import { htmlLang, isLocale, locales } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
+import { env } from "@/env";
 import { siteUrl } from "@/lib/site";
 import "./transitions.css";
 
@@ -20,6 +21,8 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   // Výchozí název pro stránky bez vlastního (např. 404); stránky ho přepisují.
   title: "Se vezmou",
+  // Google a Bing jsou ověřené DNS záznamem; Seznam Webmaster DNS neumí, proto meta značka (docs/seo-nastroje.md).
+  ...(env.SEZNAM_WMT ? { verification: { other: { "seznam-wmt": env.SEZNAM_WMT } } } : {}),
 };
 
 // Jen `cs` a `en`; jiná hodnota je 404 a stránky se vykreslí při sestavení.

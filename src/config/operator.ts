@@ -12,7 +12,12 @@ export const operator = {
   address: "Křižíkova 424/127, Praha 8",
   /** Kontaktní e-mail nebo formulář. */
   contact: "info@se-vezmou.cz",
-} as const;
+  /**
+   * Profily značky Se vezmou (Instagram, Facebook, Firmy.cz, LinkedIn…) pro `sameAs` ve strukturovaných
+   * datech: jen profily, které opravdu patří značce, ne weby autora. Prázdné = `sameAs` se nepíše.
+   */
+  profiles: [] as readonly string[],
+};
 
 /** Zástupná hodnota se pozná podle hranatých závorek; skutečné údaje je nemají. */
 export function isPlaceholder(value: string): boolean {

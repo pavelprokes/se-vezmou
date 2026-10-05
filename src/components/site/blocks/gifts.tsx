@@ -15,6 +15,7 @@ import { Paragraphs, Section } from "./section";
  * Obsah se vykreslí jen s příznakem `sensitiveUnlocked` a dostupnými citlivými údaji;
  * jinak je vidět jen formulář PINu (`PinGate`, ověřuje server). Bez PINu se citlivá data
  * nedostanou ani do HTML, ani do RSC payloadu: komponenta je nedostává.
+ * Bez čísla účtu (`payment: false`) je sekce jen veřejný úvodní text.
  * V režimu poděkování po svatbě se blok nevykresluje vůbec (`renderableBlocks`).
  */
 export function Gifts({
@@ -31,7 +32,10 @@ export function Gifts({
 
   return (
     <Section block={block} ctx={ctx} tone={tone}>
-      {gifts ? (
+      {!block.data.payment ? (
+        // Bez čísla účtu: jen úvodní text páru, veřejně a bez PINu
+        <Paragraphs value={block.data.intro} ctx={ctx} className="site-lead" />
+      ) : gifts ? (
         <UnlockedRegion label={t("site.pin.unlocked")} unlockKey="gifts">
           <div className="site-gifts">
             <div>

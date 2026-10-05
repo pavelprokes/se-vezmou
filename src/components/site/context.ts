@@ -133,9 +133,10 @@ function hasContent(block: Block, ctx: SiteCtx): boolean {
   const { content } = ctx;
   switch (block.type) {
     case "hero":
-    case "gifts":
     case "rsvp":
       return true;
+    case "gifts":
+      return block.data.payment || ctx.text(block.data.intro) !== "";
     case "program":
       return content.events.length > 0;
     case "venue":

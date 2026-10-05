@@ -99,7 +99,7 @@ export function QuickNotice({
       />
       {!published ? <p className="text-muted text-sm">{t("admin.quick.notPublished")}</p> : null}
       <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" disabled={state === "saving"}>
+        <Button type="submit" variant="secondary" disabled={state === "saving"}>
           {state === "saving" ? t("admin.common.saving") : t("admin.quick.save")}
         </Button>
         <div role="status" aria-live="polite">

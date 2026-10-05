@@ -79,6 +79,11 @@ html:has(.wizard-page) {
   padding-bottom: calc(var(--wizard-bar-height, 11rem) + 1.5rem);
 }
 
+/* Editor webu má dole přilepenou lištu se zveřejněním; zaměřené pole se pod ni nesmí schovat (WCAG 2.4.11). */
+html:has([data-publish-bar]) {
+  scroll-padding-bottom: 7rem;
+}
+
 /* Mobilní nabídka úvodní stránky bez JavaScriptu: tlačítko by nic nedělalo, proto je panel vždy rozbalený. */
 @media (scripting: none) {
   .header-menu-button {

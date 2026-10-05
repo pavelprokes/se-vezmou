@@ -8,13 +8,13 @@ import { QrCode } from "@/components/wizard/qr-code";
 import { useGeocode } from "@/components/wizard/use-geocode";
 import type { Locale } from "@/i18n/config";
 import { buildSpayd, isValidBic } from "@/site/payment";
+import { phaseFromDates } from "@/site/phase";
 import type { MediaActions } from "@/lib/media/action-types";
 import { isReady, mediaSrc, type MediaItem } from "@/lib/media/types";
 import type { GalleryCard } from "@/site/types";
 import {
   newId,
   protectedPhotoIds,
-  publishable,
   resolveAccount,
   type EditorBlock,
   type EditorBlockOf,
@@ -93,11 +93,9 @@ function HeroEditor({ block, ctx }: Props<"hero">) {
  */
 function HeroPhotoPicker({ block, ctx }: Props<"hero">) {
   const t = useAdminT();
-  // Bez fotografií z galerie chráněné PINem: fotka úvodu je veřejná.
+  // I fotografie z galerie chráněné PINem: fotka úvodu je ale veřejná, proto upozornění pod výběrem.
   const hidden = protectedPhotoIds(ctx.doc.blocks);
-  const photos = ctx.media.filter(
-    (m) => m.kind === "photo" && isReady(m) && publishable(m) && !hidden.has(m.id),
-  );
+  const photos = ctx.media.filter((m) => m.kind === "photo" && isReady(m));
   const chosen = photos.find((m) => m.id === block.data.photoMediaId);
   const label = (m: MediaItem, index: number) =>
     (m.alt && (m.alt[ctx.locales[0]] || Object.values(m.alt).find(Boolean))) ||
@@ -118,6 +116,7 @@ function HeroPhotoPicker({ block, ctx }: Props<"hero">) {
         ))}
       </SelectField>
       {photos.length === 0 ? <Note tone="info">{t("admin.block.hero.photoEmpty")}</Note> : null}
+      {chosen && hidden.has(chosen.id) ? <Note>{t("admin.block.hero.photoProtected")}</Note> : null}
       {chosen && chosen.widths.length > 0 ? (
         // eslint-disable-next-line @next/next/no-img-element -- náhled přes vlastní adresu, popisek je ve výběru
         <img
@@ -514,8 +513,18 @@ function GiftsEditor({ block, ctx }: Props<"gifts">) {
   const bad = block.data.account.trim() !== "" && resolved === null;
   return (
     <>
-      <Note tone="info">{t("admin.gifts.pinNote")}</Note>
-      {!ctx.guestPinReady ? <Note>{t("admin.gifts.pinMissing")}</Note> : null}
+      {block.data.account.trim() !== "" ? (
+        <Note tone="info">{t("admin.gifts.pinNote")}</Note>
+      ) : (
+        <Note tone="info">{t("admin.gifts.textOnly")}</Note>
+      )}
+      {/* po svatbě web dary vůbec neukazuje (režim poděkování), ať to pár nehledá jako chybu */}
+      {phaseFromDates(ctx.doc.wedding, new Date(), ctx.doc.wedding.timezone) === "thanks" ? (
+        <Note>{t("admin.gifts.afterWedding")}</Note>
+      ) : null}
+      {!ctx.guestPinReady && block.data.account.trim() !== "" ? (
+        <Note>{t("admin.gifts.pinMissing")}</Note>
+      ) : null}
       <IntroEditor block={block} ctx={ctx} label={t("admin.block.intro")} />
       <Field
         label={t("admin.gifts.account")}

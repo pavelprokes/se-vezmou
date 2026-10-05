@@ -136,7 +136,7 @@ export function EukalyptusSite({ ctx, layout }: TemplateProps) {
       </EuNav>
 
       <main id="obsah" tabIndex={-1} className="eu-main">
-        <EuHero block={hero} ctx={ctx} links={navItems.slice(0, 5)} />
+        <EuHero block={hero} ctx={ctx} next={navItems[0]?.anchor ?? null} />
         {showCountdown ? <EuCountdown ctx={ctx} days={days} tone={toneOf(1)} /> : null}
         {sections.map((block, i) => {
           // Dary číslo nemají (nadpis je ve věnci), proto se do číslování nepočítají.

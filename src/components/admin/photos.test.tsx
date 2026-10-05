@@ -143,19 +143,12 @@ describe("PhotosPanel", () => {
     expect(screen.getByText(/Máte nahraných 12 fotografií/)).toBeInTheDocument();
   });
 
-  it("chybějící popisek je upozornění textem, dekorativní příznak ho zruší a uloží se hned", async () => {
-    const mediaActions = actions();
-    const user = userEvent.setup();
-    render(<Harness initial={[item(1)]} mediaActions={mediaActions} />);
+  it("popisek je nepovinný: bez upozornění a bez zaškrtávátka dekorativní", () => {
+    render(<Harness initial={[item(1)]} mediaActions={actions()} />);
     const group = screen.getByRole("group", { name: /Fotografie 1\sz\s1/ });
-    expect(within(group).getByText(/Chybí popisek: fotografie se nezveřejní/)).toBeInTheDocument();
-    await user.click(within(group).getByLabelText("Dekorativní fotografie (bez popisku)"));
+    expect(within(group).getByText("Popisek fotografie (nepovinné)")).toBeInTheDocument();
     expect(within(group).queryByText(/Chybí popisek/)).toBeNull();
-    expect(within(group).getByText(/Čtečka obrazovky ji přeskočí/)).toBeInTheDocument();
-    await waitFor(() =>
-      expect(mediaActions.update).toHaveBeenCalledWith({ id: ID(1), alt: null, decorative: true }),
-    );
-    expect(await within(group).findByText("Popisek uložen.")).toBeInTheDocument();
+    expect(within(group).queryByLabelText(/Dekorativní/)).toBeNull();
   });
 
   it("popisek se ukládá s krátkým zpožděním, po jazycích; chybějící překlad se hlásí pod polem", async () => {
@@ -201,9 +194,13 @@ describe("PhotosPanel", () => {
     const user = userEvent.setup();
     render(<Harness initial={[item(1)]} mediaActions={mediaActions} />);
     const group = screen.getByRole("group", { name: /Fotografie 1\sz\s1/ });
-    await user.click(within(group).getByLabelText("Dekorativní fotografie (bez popisku)"));
+    await user.type(within(group).getByLabelText("Čeština"), "Pár");
     expect(
-      await within(group).findByText("Popisek se nepodařilo uložit. Zkuste to znovu."),
+      await within(group).findByText(
+        "Popisek se nepodařilo uložit. Zkuste to znovu.",
+        {},
+        { timeout: 3000 },
+      ),
     ).toBeInTheDocument();
   });
 

@@ -41,6 +41,10 @@ async function publish(page: Page, label = "Zveřejnit změny"): Promise<void> {
       `Zveřejnění selhalo: ${text} ${await page.getByTestId("issues").allInnerTexts()}`,
     );
   }
+  // vedle tlačítka v liště dole: odkaz na web v nové záložce
+  await expect(
+    page.locator("[data-publish-bar]").getByRole("link", { name: /Zobrazit web/ }),
+  ).toHaveAttribute("target", "_blank");
 }
 
 async function enterPin(page: Page, region: string, pin: string): Promise<void> {
@@ -660,7 +664,7 @@ test.describe("dary: číslo účtu a QR za PINem", () => {
     await expectSaved(page);
     await page.getByRole("button", { name: "Zveřejnit změny" }).click();
     await expect(page.getByTestId("publish-result")).toContainText("Web zatím nejde zveřejnit");
-    await expect(page.getByTestId("issues")).toContainText("číslo účtu chybí nebo je neplatné");
+    await expect(page.getByTestId("issues")).toContainText("Číslo účtu v sekci Dary nesouhlasí");
 
     await gifts.getByLabel("Číslo účtu").fill("19-2000145399/0800");
     await gifts.getByLabel("Majitel účtu (nepovinné)").fill("Klára Nováková");

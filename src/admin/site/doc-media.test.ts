@@ -6,7 +6,6 @@ import {
   editorDocSchema,
   normalizeBlocks,
   publicToDoc,
-  publishable,
   reconcileGalleryMedia,
   translationGaps,
   validateDoc,
@@ -120,7 +119,7 @@ describe("docToPublic: fotografie ve snímku", () => {
     expect(publicContentSchema.safeParse(content).success).toBe(true);
   });
 
-  it("fotografie bez popisku a bez příznaku dekorativní se nezveřejní, dekorativní ano s prázdným alt", () => {
+  it("fotografie bez popisku se zveřejní jako dekorativní (prázdné alt), dřívější příznak dekorativní nerozhoduje", () => {
     const doc = docWithGallery({ mediaIds: [ID(1), ID(2), ID(3)] });
     const media = [
       photo(1, { alt: null }),
@@ -128,8 +127,12 @@ describe("docToPublic: fotografie ve snímku", () => {
       photo(3, { alt: { cs: "  ", en: "" } }),
     ];
     const { content } = build(doc, media);
-    expect(galleryOf(content).data.mediaIds).toEqual([ID(2)]);
-    expect(content.media.map((m) => [m.id, m.decorative, m.alt])).toEqual([[ID(2), true, null]]);
+    expect(galleryOf(content).data.mediaIds).toEqual([ID(1), ID(2), ID(3)]);
+    expect(content.media.map((m) => [m.id, m.decorative, m.alt])).toEqual([
+      [ID(1), true, null],
+      [ID(2), true, null],
+      [ID(3), true, null],
+    ]);
   });
 
   it("stačí popisek v jednom jazyce (chybějící překlad zveřejnění nebrání)", () => {
@@ -259,58 +262,39 @@ describe("obrázek karty externí galerie", () => {
 });
 
 describe("validateDoc a translationGaps: upozornění na popisky", () => {
-  it("fotografie bez popisku je upozornění (ne chyba), zveřejnění nebrání", () => {
+  it("popisek je nepovinný: fotografie bez něj nemá chybu ani upozornění", () => {
     const doc = docWithGallery({ mediaIds: [ID(1), ID(2)] });
     const issues = validateDoc(doc, {
       guestPinReady: false,
       media: [photo(1, { alt: null }), photo(2)],
     });
-    expect(issues.filter((i) => i.code === "photoNoCaption")).toEqual([
-      { code: "photoNoCaption", severity: "warning", area: "gallery", itemId: ID(1) },
-    ]);
-    expect(issues.filter((i) => i.severity === "error")).toEqual([]);
+    expect(issues.filter((i) => i.area === "gallery")).toEqual([]);
   });
 
-  it("dekorativní fotografie bez popisku upozornění nemá", () => {
-    const doc = docWithGallery({ mediaIds: [ID(1)] });
-    const issues = validateDoc(doc, {
-      guestPinReady: false,
-      media: [photo(1, { alt: null, decorative: true })],
-    });
-    expect(issues.some((i) => i.code === "photoNoCaption")).toBe(false);
-  });
-
-  it("galerie bez zveřejnitelné fotografie a bez odkazu je prázdná sekce (upozornění)", () => {
+  it("galerie bez fotografie a bez odkazu je prázdná sekce (upozornění)", () => {
     const doc = docWithGallery({ mediaIds: [ID(1)] });
     expect(
-      validateDoc(doc, { guestPinReady: false, media: [photo(1, { alt: null })] }).some(
+      validateDoc(doc, { guestPinReady: false, media: [] }).some(
         (i) => i.code === "emptyBlock" && i.area === "gallery",
       ),
     ).toBe(true);
     expect(
-      validateDoc(doc, { guestPinReady: false, media: [photo(1)] }).some(
+      validateDoc(doc, { guestPinReady: false, media: [photo(1, { alt: null })] }).some(
         (i) => i.code === "emptyBlock" && i.area === "gallery",
       ),
     ).toBe(false);
   });
 
-  it("chybějící překlad popisku se hlásí jako u ostatních textů, dekorativní fotografie ne", () => {
+  it("chybějící překlad vyplněného popisku se hlásí jako u ostatních textů", () => {
     const doc = docWithGallery({ mediaIds: [ID(1), ID(2), ID(3)] });
     const gaps = translationGaps(doc, [
       photo(1, { alt: { cs: "Jen česky" } }),
       photo(2, { alt: { cs: "Také jen česky" } }),
-      photo(3, { alt: { cs: "Dekorace" }, decorative: true }),
+      photo(3, { alt: null }),
     ]);
     expect(gaps).toContainEqual({ area: "gallery", locale: "en", count: 2 });
     // bez přehledu médií se fotografie nekontrolují
     expect(translationGaps(doc).filter((gap) => gap.area === "gallery")).toEqual([]);
-  });
-
-  it("publishable: popisek aspoň v jednom jazyce, nebo dekorativní", () => {
-    expect(publishable(photo(1, { alt: null }))).toBe(false);
-    expect(publishable(photo(1, { alt: { cs: "  " } }))).toBe(false);
-    expect(publishable(photo(1, { alt: { en: "x" } }))).toBe(true);
-    expect(publishable(photo(1, { alt: null, decorative: true }))).toBe(true);
   });
 });
 
@@ -364,7 +348,7 @@ describe("fotka v úvodu", () => {
     expect(content.media.map((m) => m.id)).toEqual([ID(7)]);
   });
 
-  it("fotografie z galerie chráněné PINem se jako fotka úvodu nezveřejní", () => {
+  it("fotografie z galerie chráněné PINem jde vybrat do úvodu: je veřejná jen ta jedna", () => {
     const doc = withHeroPhoto(ID(7));
     const guarded = {
       ...doc,
@@ -378,17 +362,20 @@ describe("fotka v úvodu", () => {
           : b,
       ),
     };
-    const { content } = build(guarded, [photo(7)]);
-    expect(heroOf(content).data.photoMediaId).toBeNull();
-    expect(content.media).toEqual([]);
+    const { content, sensitive } = build(guarded, [photo(7), photo(8)]);
+    expect(heroOf(content).data.photoMediaId).toBe(ID(7));
+    expect(content.media.map((m) => m.id)).toEqual([ID(7)]);
+    expect(sensitive.photos.map((m) => m.id)).toEqual([ID(7)]);
   });
 
-  it("fotografie bez popisku, nehotová nebo obrázek karty se nezveřejní (úvod bez fotky)", () => {
-    for (const item of [
-      photo(7, { alt: null }),
-      photo(7, { status: "processing" }),
-      cardImage(7),
-    ]) {
+  it("fotografie bez popisku jde do úvodu jako dekorativní", () => {
+    const { content } = build(withHeroPhoto(ID(7)), [photo(7, { alt: null })]);
+    expect(heroOf(content).data.photoMediaId).toBe(ID(7));
+    expect(content.media.map((m) => [m.id, m.decorative])).toEqual([[ID(7), true]]);
+  });
+
+  it("nehotová fotografie nebo obrázek karty se nezveřejní (úvod bez fotky)", () => {
+    for (const item of [photo(7, { status: "processing" }), cardImage(7)]) {
       const { content } = build(withHeroPhoto(ID(7)), [item]);
       expect(heroOf(content).data.photoMediaId).toBeNull();
       expect(content.media).toEqual([]);

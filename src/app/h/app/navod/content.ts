@@ -170,7 +170,7 @@ export const GUIDE: GuideSection[] = [
           "Přepište text. Ukládá se sám, nahoře uvidíte **Všechny změny jsou uložené**.",
           "Sekci, kterou nechcete, skryjete zrušením zaškrtnutí **Zobrazit na webu**. Pořadí změníte šipkami nahoru a dolů nebo přetažením. Úvod je vždy první.",
           "Jak web vypadá, vidíte v náhledu vedle formuláře, na mobilu po přepnutí na **Náhled**.",
-          "Až budete hotoví, klepněte na **Zveřejnit změny**.",
+          "Až budete hotoví, klepněte na **Zveřejnit změny** v liště dole na stránce (je vidět, ať jste v editoru kdekoli).",
         ],
       },
       {
@@ -197,13 +197,13 @@ export const GUIDE: GuideSection[] = [
           "U sekce **Fotografie** klepněte na **Upravit**.",
           "Klepněte na **Vybrat fotografie** a vyberte fotky z počítače nebo z telefonu. Můžete jich vybrat víc najednou.",
           "Počkejte, než se u každé fotky v přehledu nahrávání ukáže **Hotovo**. Nejdřív se nahrává, potom ji na serveru zmenšíme a upravíme. Okno během toho nezavírejte.",
-          "Ke každé fotce napište **Popisek fotografie**, například „Klára a Matěj na procházce v Krkonoších“. Popisek přečte hostům se zrakovým postižením čtečka obrazovky.",
+          "Ke každé fotce můžete napsat **Popisek fotografie**, například „Klára a Matěj na procházce v Krkonoších“. Je nepovinný; popisek přečte hostům se zrakovým postižením čtečka obrazovky.",
           "Pořadí fotek změníte přetažením nebo šipkami nahoru a dolů.",
           "Klepněte na **Zveřejnit změny**. Teprve potom fotky uvidí hosté.",
         ],
       },
       {
-        tip: "Fotka bez popisku se na webu nezobrazí. Pokud je fotka jen ozdobná a nic důležitého na ní není, zaškrtněte místo popisku **Dekorativní fotografie (bez popisku)**.",
+        tip: "Fotka bez popisku se na webu zobrazí taky, jen ji čtečka obrazovky přeskočí a nevidomí hosté se nedozví, co na ní je. Když chvilku máte, popisek doplňte.",
       },
       { h3: "Jaké fotky jdou nahrát" },
       {
@@ -236,9 +236,9 @@ export const GUIDE: GuideSection[] = [
       },
       {
         steps: [
-          "Nejdřív fotku nahrajte podle předchozí části a doplňte jí popisek. Musí u ní být vidět náhled a pole **Popisek fotografie**.",
+          "Nejdřív fotku nahrajte podle předchozí části. Vybrat jde i fotka z galerie chráněné PINem, v úvodu ji ale uvidí každý. Musí u ní být vidět náhled.",
           "V **Upravit web** klepněte u sekce **Úvod** na **Upravit**.",
-          "V nabídce **Fotka v úvodu** vyberte svou fotku. Poznáte ji podle popisku. Pod nabídkou se ukáže její malý náhled.",
+          "V nabídce **Fotka v úvodu** vyberte svou fotku. Poznáte ji podle popisku (fotka bez popisku má jen číslo). Pod nabídkou se ukáže její malý náhled.",
           "Klepněte na **Zveřejnit změny**.",
         ],
       },
@@ -251,7 +251,7 @@ export const GUIDE: GuideSection[] = [
         ],
       },
       {
-        tip: "Fotka v nabídce chybí? Zkontrolujte, že má popisek (nebo je označená jako dekorativní), že je nahraná celá (je vidět její náhled) a že nemáte zapnuté **Fotografie zobrazit jen po zadání PINu hostů**. Úvodní fotka je vidět vždy, proto do ní fotky schované za PINem nejdou.",
+        tip: "Fotka v nabídce chybí? Zkontrolujte, že je nahraná celá (je vidět její náhled). Úvodní fotka je vidět vždy, i když máte zapnuté **Fotografie zobrazit jen po zadání PINu hostů**.",
       },
     ],
   },
@@ -323,7 +323,7 @@ export const GUIDE: GuideSection[] = [
       {
         list: [
           "**Fotka se nenahraje**: zkontrolujte formát (JPEG, PNG nebo WebP, ne HEIC) a velikost do 40 MB. U chyby klepněte na **Zkusit znovu**.",
-          "**Fotka na webu není**: chybí jí popisek, sekce Fotografie je skrytá nebo schovaná za PINem, nebo jste zatím neklepli na **Zveřejnit změny**.",
+          "**Fotka na webu není**: sekce Fotografie je skrytá nebo schovaná za PINem, nebo jste zatím neklepli na **Zveřejnit změny**.",
           "**Úvodní fotka se nezobrazuje**: zkontrolujte, že je vybraná v sekci **Úvod** a že jste klepli na **Zveřejnit změny**.",
           "**Hosté nevidí změnu**: klepněte na **Zveřejnit změny**. Hostům pomůže i obnovení stránky.",
           "**Nepřišel kód**: podívejte se do spamu a do složky Hromadné. Případně klepněte na **Poslat nový kód** (v průvodci **Poslat kód znovu**).",

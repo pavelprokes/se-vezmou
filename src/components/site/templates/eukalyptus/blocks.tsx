@@ -53,12 +53,12 @@ const headingId = (anchor: string) => `${anchor}-nadpis`;
 export function EuHero({
   block,
   ctx,
-  links,
+  next,
 }: {
   block: BlockOf<"hero">;
   ctx: SiteCtx;
-  /** Odkazy na sekce v liště dole (stejné jako navigace). */
-  links: { anchor: string; label: string }[];
+  /** Kotva první sekce pro šipku dolů (odkazy na sekce jsou jen v horní navigaci, ne podruhé tady). */
+  next: string | null;
 }) {
   const { content, t, locale } = ctx;
   const { thanks, venue } = heroModel(block, ctx);
@@ -131,18 +131,9 @@ export function EuHero({
         )}
       </div>
 
-      {links.length > 0 ? (
+      {next ? (
         <div className="eu-hero-bar">
-          <ul>
-            {links.map((link) => (
-              <li key={link.anchor}>
-                <a href={`#${link.anchor}`} className="eu-hero-bar-link">
-                  {link.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-          <a href={`#${links[0].anchor}`} className="eu-hero-next" aria-label={t("site.hero.next")}>
+          <a href={`#${next}`} className="eu-hero-next" aria-label={t("site.hero.next")}>
             <Icon icon={ArrowDown} />
           </a>
         </div>
@@ -396,7 +387,10 @@ export function EuGifts({ block, ctx, tone }: EuBlockProps<"gifts">) {
           </h2>
         </div>
         <div className="eu-gifts-body">
-          {gifts ? (
+          {!block.data.payment ? (
+            // Bez čísla účtu: jen úvodní text páru, veřejně a bez PINu
+            <Paragraphs value={block.data.intro} ctx={ctx} className="eu-lead" />
+          ) : gifts ? (
             <UnlockedRegion label={t("site.pin.unlocked")} unlockKey="gifts">
               <Paragraphs value={block.data.intro} ctx={ctx} className="eu-lead" />
               <dl className="eu-facts">

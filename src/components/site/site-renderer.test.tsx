@@ -645,6 +645,43 @@ describe("SiteRenderer: odkaz na externí fotogalerii", () => {
       expect(within(gallery).queryByRole("link", { name: /Tajná galerie/ })).toBeNull();
     });
 
+    it.each([eukalyptusFixture, editorialFixture])(
+      "bez čísla účtu je sekce jen veřejný úvodní text, bez PINu (%#)",
+      (fixture) => {
+        const content: PublicContent = {
+          ...fixture,
+          phase: "rsvp_open",
+          blocks: fixture.blocks.map((b) =>
+            b.type === "gifts"
+              ? {
+                  ...b,
+                  enabled: true,
+                  data: {
+                    intro: { cs: "Dar nečekáme, stačí nám vaše přítomnost." },
+                    payment: false,
+                  },
+                }
+              : b,
+          ),
+        };
+        renderSite(content);
+        const gifts = screen.getByRole("region", { name: "Dary" });
+        expect(gifts).toHaveTextContent("Dar nečekáme, stačí nám vaše přítomnost.");
+        expect(within(gifts).queryByLabelText("PIN z oznámení")).toBeNull();
+      },
+    );
+
+    it("bez čísla účtu a bez textu se sekce nevykreslí", () => {
+      const content: PublicContent = {
+        ...eukalyptusFixture,
+        blocks: eukalyptusFixture.blocks.map((b) =>
+          b.type === "gifts" ? { ...b, data: { intro: null, payment: false } } : b,
+        ),
+      };
+      const { container } = renderSite(content);
+      expect(container.querySelector("#dary")).toBeNull();
+    });
+
     it("příznak bez citlivých údajů nic neodemkne", () => {
       const { container } = renderSite(withLink(protectedLink), "cs", {
         sensitiveUnlocked: true,

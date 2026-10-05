@@ -178,7 +178,11 @@ export const storyData = z.object({
   text: i18nTextSchema,
   mediaId: z.string().nullable().default(null),
 });
-export const giftsData = z.object({ intro: i18nTextSchema.nullable().default(null) });
+/** `payment`: pár zadal číslo účtu (je za PINem); bez něj je sekce jen úvodní text bez PINu. Starší snímky: true. */
+export const giftsData = z.object({
+  intro: i18nTextSchema.nullable().default(null),
+  payment: z.boolean().default(true),
+});
 /**
  * Karta odkazu na externí galerii: údaje z Open Graph cílové stránky, které načetl SERVER při uložení
  * nebo změně odkazu (ne při zobrazení hostovi). Titulek a popis jsou nedůvěryhodný text (vždy se

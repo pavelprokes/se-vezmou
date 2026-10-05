@@ -88,6 +88,17 @@ describe("sitemap.xml", () => {
     );
   });
 
+  it("lastmod je jen u stránek, které ho mají zadaný", () => {
+    const article = { cs: "/blog/a", en: "/en/blog/a" };
+    const xml = buildSitemap(
+      "https://se-vezmou.cz",
+      ["home", article],
+      new Map([[article, "2026-10-05"]]),
+    );
+    expect(xml.match(/<lastmod>2026-10-05<\/lastmod>/g)).toHaveLength(2);
+    expect(xml.match(/<lastmod>/g)).toHaveLength(2);
+  });
+
   it("šlo by do mapy přidat další stránku po doplnění textu", () => {
     const withPrivacy = buildSitemap("https://se-vezmou.cz", ["home", "privacy"]);
     expect(withPrivacy).toContain("<loc>https://se-vezmou.cz/soukromi</loc>");

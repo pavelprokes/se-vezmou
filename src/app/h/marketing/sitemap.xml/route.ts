@@ -8,8 +8,10 @@ export const dynamic = "force-static";
 export const revalidate = 60;
 
 export function GET() {
-  const pages = [...indexableRoutes, ...publishedArticles().map(articlePaths)];
-  return new Response(buildSitemap(siteUrl, pages), {
+  const articles = publishedArticles();
+  const paths = articles.map(articlePaths);
+  const lastmod = new Map(paths.map((p, i) => [p, articles[i].updatedAt]));
+  return new Response(buildSitemap(siteUrl, [...indexableRoutes, ...paths], lastmod), {
     headers: {
       "Content-Type": "application/xml; charset=utf-8",
       "Cache-Control": "public, max-age=3600",

@@ -1,10 +1,10 @@
 {
-  "placeholder": "[Text to be supplied by the operator or a lawyer]",
   "back": "Back to the home page",
   "privacy.title": "Privacy policy",
-  "privacy.meta": "The privacy policy of Se vezmou. The text will be supplied by the operator.",
+  "privacy.meta": "How Se vezmou processes personal data of couples, guests and visitors: GDPR roles, retention periods, sub-processors and your rights.",
   "terms.title": "Terms of service",
-  "terms.meta": "The terms of service of Se vezmou. The text will be supplied by the operator.",
+  "terms.meta": "Se vezmou terms of service: pricing, website address, responsibility for content, gifts, termination and the GDPR data processing agreement.",
   "accessibility.title": "Accessibility statement",
-  "accessibility.meta": "The accessibility statement of Se vezmou. The text will be supplied by the operator."
+  "accessibility.meta": "Se vezmou accessibility statement: WCAG 2.2 AA goal, how we test accessibility, known limitations and contact.",
+  "version": "Version {version}, effective from {date}"
 }

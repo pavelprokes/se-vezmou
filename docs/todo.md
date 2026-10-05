@@ -8,6 +8,7 @@ Stav k 3. 10. 2026. Úkoly, které čekají na majitele nebo na dokončení slu�
 - [ ] **Zásady zpracování osobních údajů** (`/soukromi`, `/en/privacy`) a **prohlášení o přístupnosti**: dokončit s podmínkami; poté zrušit `noindex` a přidat do `indexableRoutes` v `src/seo/sitemap.ts`.
 - [ ] **Skutečné reference**: přidat na úvodní stránku sekci s opravdovými recenzemi se souhlasem autorů (jen od párů, které web na se-vezmou.cz opravdu použily, např. první uživatelé; recenze focení sem nepatří). Místo v kódu je připravené: recenze se zapisují do `src/config/testimonials.ts` (postup a pravidla v komentáři), sekce „Co říkají páry“ se ukáže sama, jakmile seznam není prázdný. Žádné vymyšlené recenze, bez `Review` ve strukturovaných datech, dokud nejsou skutečné.
 
+- [ ] **Zásady zpracování:** uvést Vercel Web Analytics (bez cookies) včetně parametrů UTM z odkazů partnerů (`utm_source` nese jméno fotografa, `/pro-fotografy`); ověřit, že plán Vercelu UTM zobrazuje.
 - [ ] **Zásady zpracování:** uvést Cloudflare Turnstile (ochrana průvodce a čekací listiny před roboty, IP adresa a signály prohlížeče) mezi dílčí zpracovatele.
 
 ## Newsletter (před první rozesílkou)

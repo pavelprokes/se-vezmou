@@ -20,6 +20,7 @@ export async function LandingFooter({ locale, route }: LandingFooterProps) {
     { href: localizedPath("templates", locale), label: t("landing.nav.templates") },
     { href: localizedPath("pricing", locale), label: t("landing.nav.pricing") },
     { href: localizedPath("bilingual", locale), label: t("landing.nav.bilingual") },
+    { href: localizedPath("photographers", locale), label: t("landing.nav.photographers") },
     { href: `${home}#faq`, label: t("landing.nav.faq") },
     { href: localizedPath("blog", locale), label: t("landing.nav.blog") },
   ];

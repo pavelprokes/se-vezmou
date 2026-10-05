@@ -27,6 +27,16 @@ export async function getFaqItems(locale: Locale): Promise<FaqItem[]> {
   ];
 }
 
+/** Otázky ke stránce pro fotografy; stejný zdroj pro viditelný seznam i `FAQPage`. */
+export async function getPhotographerFaqItems(locale: Locale): Promise<FaqItem[]> {
+  const t = await getTranslator(locale, ["marketing"]);
+  return ([1, 2, 3] as const).map((n) => ({
+    id: `photographers-${n}`,
+    question: t(`marketing.photographers.faq.${n}.q`),
+    answer: t(`marketing.photographers.faq.${n}.a`),
+  }));
+}
+
 /** Otázky ke stránce šablon; stejný zdroj pro viditelný seznam i `FAQPage`. */
 export async function getTemplateFaqItems(locale: Locale): Promise<FaqItem[]> {
   const t = await getTranslator(locale, ["marketing"]);

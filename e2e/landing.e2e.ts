@@ -628,6 +628,16 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       h1: "A bilingual wedding website",
       alt: "/dvojjazycny-svatebni-web",
     },
+    {
+      path: "/pro-fotografy",
+      h1: "Pro svatební fotografy a dodavatele",
+      alt: "/en/for-photographers",
+    },
+    {
+      path: "/en/for-photographers",
+      h1: "For wedding photographers and suppliers",
+      alt: "/pro-fotografy",
+    },
   ];
 
   for (const entry of pages) {
@@ -670,6 +680,23 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
     expect(en).toContain("Colour palettes: Burgundy, Silver, Depth, Powder");
   });
 
+  test("pro fotografy: odkaz s kódem partnera, QR kód a leták jen při tisku", async ({ page }) => {
+    await page.goto(pageUrl(HOSTS.marketing, "/pro-fotografy"));
+    await expect(page.getByText(/Po\snapsání\sjména/)).toBeVisible();
+    await page.getByLabel("Jméno studia nebo fotografa").fill("Foto Klára Nová");
+    await expect(page.getByTestId("partner-url")).toHaveText(
+      "https://se-vezmou.cz/?utm_source=foto-klara-nova&utm_medium=partner&utm_campaign=doporuceni",
+    );
+    await expect(page.getByRole("img", { name: /QR kód s doporučujícím odkazem/ })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Vytisknout leták" })).toBeVisible();
+    await page.emulateMedia({ media: "print" });
+    const leaflet = page.getByRole("region", { name: "Svatební web pro vaše hosty" });
+    await expect(leaflet).toBeVisible();
+    await expect(leaflet).toContainText("Doporučuje Foto Klára Nová");
+    await expect(page.getByRole("heading", { level: 1 })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Vytisknout leták" })).toBeHidden();
+  });
+
   test("cizí jazyková varianta cesty je 404", async ({ request }) => {
     for (const path of [
       "/pricing",
@@ -677,6 +704,8 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       "/templates",
       "/en/sablony",
       "/bilingual-wedding-website",
+      "/for-photographers",
+      "/en/pro-fotografy",
     ]) {
       const { response } = await source(request, path);
       expect(response.status(), path).toBe(404);

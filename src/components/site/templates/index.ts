@@ -1,10 +1,14 @@
 import type { ComponentType } from "react";
 import type { TemplateKey } from "@/site/themes/palettes";
 import { ChateauSite } from "./chateau";
+import { DecoSite } from "./deco";
 import type { TemplateProps } from "./classic";
 import { EditorialSite } from "./editorial";
 import { EukalyptusSite } from "./eukalyptus/index";
+import { LoukaSite } from "./louka";
 import { ModernSite } from "./modern";
+import { StatekSite } from "./statek";
+import { ViniceSite } from "./vinice";
 
 export type { TemplateProps };
 
@@ -18,4 +22,8 @@ export const TEMPLATES: Record<TemplateKey, ComponentType<TemplateProps>> = {
   eukalyptus: EukalyptusSite,
   chateau: ChateauSite,
   modern: ModernSite,
+  statek: StatekSite,
+  vinice: ViniceSite,
+  louka: LoukaSite,
+  deco: DecoSite,
 };

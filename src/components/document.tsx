@@ -1,6 +1,13 @@
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { DM_Sans, Newsreader } from "next/font/google";
+import {
+  DM_Sans,
+  DM_Serif_Display,
+  EB_Garamond,
+  Fraunces,
+  Marcellus,
+  Newsreader,
+} from "next/font/google";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import "@/app/globals.css";
@@ -21,6 +28,38 @@ const newsreader = Newsreader({
   display: "swap",
 });
 
+// Nadpisová písma šablon Statek, Vinice, Louka a Deco: bez přednačtení, prohlížeč je stáhne, jen
+// když je stránka opravdu použije (web páru v té šabloně, náhled šablony).
+const fraunces = Fraunces({
+  subsets: ["latin", "latin-ext"],
+  style: ["normal", "italic"],
+  variable: "--font-statek",
+  display: "swap",
+  preload: false,
+});
+const ebGaramond = EB_Garamond({
+  subsets: ["latin", "latin-ext"],
+  style: ["normal", "italic"],
+  variable: "--font-vinice",
+  display: "swap",
+  preload: false,
+});
+const dmSerifDisplay = DM_Serif_Display({
+  subsets: ["latin", "latin-ext"],
+  weight: "400",
+  style: ["normal", "italic"],
+  variable: "--font-louka",
+  display: "swap",
+  preload: false,
+});
+const marcellus = Marcellus({
+  subsets: ["latin", "latin-ext"],
+  weight: "400",
+  variable: "--font-deco",
+  display: "swap",
+  preload: false,
+});
+
 export interface DocumentProps {
   /** Hodnota atributu `lang` (WCAG 3.1.1). */
   lang: string;
@@ -39,7 +78,16 @@ export function Document({ lang, children, measure = true, className }: Document
   return (
     <html
       lang={lang}
-      className={cn(dmSans.variable, newsreader.variable, "h-full antialiased", className)}
+      className={cn(
+        dmSans.variable,
+        newsreader.variable,
+        fraunces.variable,
+        ebGaramond.variable,
+        dmSerifDisplay.variable,
+        marcellus.variable,
+        "h-full antialiased",
+        className,
+      )}
     >
       <body className="flex min-h-full flex-col">
         {children}

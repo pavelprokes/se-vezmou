@@ -241,6 +241,9 @@ export async function InfoPage({
           <>
             <Points locale={locale} route="photographers" />
             <PartnerKitSection locale={locale} />
+            <div className="print:hidden">
+              <FaqSection locale={locale} />
+            </div>
           </>
         ) : null}
         <div className="print:hidden">

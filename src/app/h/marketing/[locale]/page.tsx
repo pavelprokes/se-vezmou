@@ -14,6 +14,7 @@ import { ProblemSection } from "@/components/landing/problem-section";
 import { StepsSection } from "@/components/landing/steps-section";
 import { HomeStructuredData } from "@/components/landing/structured-data";
 import { TemplatesSection } from "@/components/landing/templates-section";
+import { TestimonialsSection } from "@/components/landing/testimonials-section";
 import { TrustSection } from "@/components/landing/trust-section";
 import { isLocale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
@@ -62,6 +63,7 @@ export default async function MarketingHome({ params }: PageProps<"/h/marketing/
         <TrustSection locale={locale} number={6} />
         <PricingSection locale={locale} number={7} />
         <AboutSection locale={locale} number={8} />
+        <TestimonialsSection locale={locale} />
         <NewsSection locale={locale} />
         <FaqSection locale={locale} />
         <CtaSection locale={locale} />

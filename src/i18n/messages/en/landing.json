@@ -180,5 +180,8 @@
   "pricing.item4": "RSVPs, guest groups, export and email notifications",
   "pricing.item5": "Czech and English in one website",
   "pricing.item6": "Save and come back any time",
-  "pricing.cta": "Create your site"
+  "pricing.cta": "Create your site",
+  "testimonials.title": "What couples say",
+  "testimonials.wedding": "Wedding, {date}",
+  "testimonials.verified": "Reviews come from couples who actually used a wedding website on se-vezmou.cz. We verify each one against their website in our database and publish it with the couple’s consent."
 }

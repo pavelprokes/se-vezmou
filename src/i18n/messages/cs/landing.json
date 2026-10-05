@@ -180,5 +180,8 @@
   "pricing.item4": "Potvrzení účasti, skupiny hostů, export a upozornění e-mailem",
   "pricing.item5": "Česky i anglicky v jednom webu",
   "pricing.item6": "Ukládání a návrat kdykoli",
-  "pricing.cta": "Vytvořit web"
+  "pricing.cta": "Vytvořit web",
+  "testimonials.title": "Co říkají páry",
+  "testimonials.wedding": "Svatba, {date}",
+  "testimonials.verified": "Recenze jsou od párů, které svatební web na se-vezmou.cz opravdu použily. Každou ověřujeme podle existence jejich webu v naší databázi a zveřejňujeme se souhlasem páru."
 }

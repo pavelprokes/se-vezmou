@@ -1,4 +1,5 @@
 import type { APIRequestContext, Page } from "@playwright/test";
+import { testimonials } from "../src/config/testimonials";
 import { NBSP } from "../src/i18n/typo";
 import { HOSTS, PORT, apiRequest, pageUrl } from "./hosts";
 // `test` z podpory přihlášení dává každému testu vlastní IP (čítače omezení se nesdílejí).
@@ -228,6 +229,19 @@ for (const locale of locales) {
       await expect(news.locator("blockquote")).toHaveCount(0);
       await expect(news.getByText(/\[.*\]|Zástupný text|Placeholder text/)).toHaveCount(0);
       await expect(news.locator("#waitlist form")).toBeVisible();
+      // Reference jen ze skutečných recenzí v konfiguraci; prázdný seznam = žádná sekce.
+      await expect(page.locator("#reference")).toHaveCount(testimonials.length === 0 ? 0 : 1);
+    });
+
+    test("čím se lišíme: osm bodů pod funkcemi", async ({ page }) => {
+      await page.goto(pageUrl(HOSTS.marketing, locale.path));
+      const extra = page.locator("#features li").filter({
+        has: page.getByRole("heading", { name: /^(Čím se lišíme|What sets us apart)$/ }),
+      });
+      await expect(extra.locator("ul > li")).toHaveCount(8);
+      await expect(extra).toContainText(/EPC/);
+      await extra.scrollIntoViewIfNeeded();
+      await extra.screenshot({ path: test.info().outputPath(`cim-se-lisime-${locale.code}.png`) });
     });
 
     test("šablony: čtyři skutečné snímky se jmény Klára a Matěj", async ({ page }) => {

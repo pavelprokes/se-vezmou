@@ -10,6 +10,9 @@ Vybraná varianta A (dva prsteny s vyplněným průnikem). Ostatní návrhy jsou
 | `symbol-a.svg`             | samotný symbol (avatar, sociální sítě)    |
 | `favicon-a.svg`            | zjednodušený symbol pro 16 až 48 px       |
 
+Kopie SVG jsou v `public/brand/` (ke stažení na `https://se-vezmou.cz/brand/<soubor>`); při změně loga upravit
+obě místa. Brand manuál pro AI agenty a grafiku: `docs/brand-manual.md`.
+
 Kde se používá:
 
 - Web: `src/components/brand-logo.tsx` (hlavička, patička, průvodce).

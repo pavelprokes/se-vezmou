@@ -1656,6 +1656,12 @@ html:has(dialog.site-lightbox[open]) {
   right: 0.75rem;
   bottom: 0.75rem;
 }
+@media (max-width: 39.99rem) {
+  /* na úzkém displeji by kvítí zasahovalo pod jména */
+  .site-backdrop {
+    display: none;
+  }
+}
 .site-flower-petal {
   fill: var(--s-ornament);
 }
@@ -1670,7 +1676,7 @@ html:has(dialog.site-lightbox[open]) {
   --s-names-leading: 1.05;
   --s-h2-weight: 500;
   --s-radius: 0.75rem;
-  --s-card-border: 1.5px;
+  --s-card-border: 2px;
 }
 .site-root[data-template="statek"] .site-card {
   border-style: dashed;
@@ -1714,6 +1720,11 @@ html:has(dialog.site-lightbox[open]) {
   --s-h2-weight: 400;
   --s-radius: 1.5rem;
 }
+/* Marcellus a DM Serif Display mají jen řez 400 bez tučného (a Marcellus bez kurzívy): nedopočítávat. */
+.site-root[data-template="louka"],
+.site-root[data-template="deco"] {
+  font-synthesis: none;
+}
 .site-root[data-template="louka"] .site-h2 {
   color: var(--s-accent);
 }
@@ -1740,6 +1751,9 @@ html:has(dialog.site-lightbox[open]) {
 }
 .site-root[data-template="deco"] .site-hero {
   border-bottom: 3px double var(--s-accent);
+}
+.site-root[data-template="deco"] .site-person {
+  border-color: var(--s-accent);
 }
 .site-root[data-template="deco"] .site-card {
   border-color: var(--s-accent);

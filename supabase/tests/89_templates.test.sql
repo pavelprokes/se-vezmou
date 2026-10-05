@@ -21,6 +21,16 @@ begin
   perform tap.throws(
     $q$insert into se_vezmou.analytics_event (event, template) values ('wizard_started', 'neznama')$q$,
     '23514', 'měření neznámou šablonu nepřijme');
+
+  -- filtr provozní administrace: nová šablona projde, neznámá se odmítne jako dřív
+  set local role service_role;
+  perform tap.eq(
+    (select count(*) from se_vezmou.op_list_weddings(tap.u('operator:support'), p_template => 'deco')),
+    1, 'filtr podle šablony Deco najde svatbu');
+  perform tap.throws(
+    format('select * from se_vezmou.op_list_weddings(%L, p_template => %L)', tap.u('operator:support'), 'neznama'),
+    'invalid_template', 'neznámou šablonu filtr odmítne');
+  perform tap.reset();
 end
 $$;
 

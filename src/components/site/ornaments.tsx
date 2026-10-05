@@ -1,7 +1,7 @@
 /**
  * Dekorativní inline SVG šablon. Vždy `aria-hidden`, nikdy nenese sdělení ani text; barvy jen
  * z dekorativních rolí palety (`ornament`, `decor`, `decor2`), které test kontrastu označuje
- * jako „jen dekor“. Pozicují se pod textem (`z-index` 0) a nereagují na ukazatel.
+ * jako „jen dekor“. Výjimka: Deco kreslí linky v barvě `accent` (role pro ikony a linky, 3 : 1). Pozicují se pod textem (`z-index` 0) a nereagují na ukazatel.
  */
 
 const common = { "aria-hidden": true, focusable: false } as const;

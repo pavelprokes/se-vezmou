@@ -8,7 +8,7 @@ import { pick } from "@/site/i18n-text";
 import { templateKeys, templates, type Palette } from "@/site/themes/palettes";
 import { validatePalette } from "@/site/themes/validate";
 import { withTemplate } from "@/wizard/draft";
-import { ScreenGroup, useErrorText } from "../fields";
+import { Explain, fieldId, ScreenGroup, useErrorText } from "../fields";
 import { useT, type WizardKey } from "./../i18n";
 import type { StepProps } from "./types";
 
@@ -39,8 +39,8 @@ export function StepTemplate({ draft, update, errors, screen, mobile }: StepProp
   return (
     <>
       <ScreenGroup index={0} screen={screen} mobile={mobile}>
-        <Fieldset legend={t("wizard.template.legend")}>
-          <p className="text-muted mb-2 text-sm">{t("wizard.template.hint")}</p>
+        <Explain topic="preview" />
+        <Fieldset legend={t("wizard.template.legend")} hint={t("wizard.template.hint")}>
           <div className="flex flex-col gap-2">
             {templateKeys.map((key) => (
               <Radio
@@ -63,10 +63,12 @@ export function StepTemplate({ draft, update, errors, screen, mobile }: StepProp
       </ScreenGroup>
 
       <ScreenGroup index={1} screen={screen} mobile={mobile}>
-        <Fieldset legend={t("wizard.palette.legend")} error={errorText(errors, "palette")}>
-          <p className="text-muted mb-2 text-sm">
-            {t("wizard.palette.hint", { template: pick(definition.name, locale) })}
-          </p>
+        <Fieldset
+          id={fieldId("palette")}
+          legend={t("wizard.palette.legend")}
+          hint={t("wizard.palette.hint", { template: pick(definition.name, locale) })}
+          error={errorText(errors, "palette")}
+        >
           <div className="flex flex-col gap-2">
             {definition.palettes.map((palette) => {
               const ok = validatePalette(palette).ok;

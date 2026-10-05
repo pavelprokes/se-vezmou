@@ -4,7 +4,7 @@ import { Fieldset } from "@/components/ui/field";
 import { Radio, Checkbox } from "@/components/ui/choice";
 import { locales, type Locale } from "@/i18n/config";
 import { withLocales, withNames } from "@/wizard/draft";
-import { ScreenGroup, TextField, useErrorText } from "../fields";
+import { fieldId, ScreenGroup, TextField, useErrorText } from "../fields";
 import { useT } from "../i18n";
 import type { StepProps } from "./types";
 
@@ -50,27 +50,35 @@ export function StepNames({ draft, update, errors, screen, mobile }: StepProps) 
       </ScreenGroup>
 
       <ScreenGroup index={1} screen={screen} mobile={mobile}>
-        <Fieldset legend={t("wizard.locales.legend")} error={errorText(errors, "locales")}>
-          <p className="text-muted mb-1 text-sm">{t("wizard.locales.hint")}</p>
+        <Fieldset
+          id={fieldId("locales")}
+          legend={t("wizard.locales.legend")}
+          hint={t("wizard.locales.hint")}
+          error={errorText(errors, "locales")}
+        >
           {locales.map((locale) => (
             <Checkbox
               key={locale}
               id={`wz-locale-${locale}`}
-              label={<span lang={locale}>{t(`wizard.language.${locale}`)}</span>}
+              label={t(`wizard.language.${locale}`)}
               checked={draft.locales.includes(locale)}
+              // poslední jazyk nejde odškrtnout (web musí mít aspoň jeden), proč říká nápověda skupiny
+              disabled={draft.locales.length === 1 && draft.locales.includes(locale)}
               onChange={(event) => toggleLocale(locale, event.target.checked)}
             />
           ))}
         </Fieldset>
 
         {draft.locales.length > 1 ? (
-          <Fieldset legend={t("wizard.locales.default.legend")}>
-            <p className="text-muted mb-1 text-sm">{t("wizard.locales.default.hint")}</p>
+          <Fieldset
+            legend={t("wizard.locales.default.legend")}
+            hint={t("wizard.locales.default.hint")}
+          >
             {draft.locales.map((locale) => (
               <Radio
                 key={locale}
                 name="wz-default-locale"
-                label={<span lang={locale}>{t(`wizard.language.${locale}`)}</span>}
+                label={t(`wizard.language.${locale}`)}
                 checked={draft.defaultLocale === locale}
                 onChange={() => update((d) => withLocales(d, d.locales, locale))}
               />

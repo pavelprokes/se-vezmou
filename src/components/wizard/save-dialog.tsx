@@ -11,6 +11,7 @@ import {
   type VerifySaveCodeResult,
 } from "@/app/h/app/vytvorit/actions";
 import { Turnstile, turnstileEnabled, type TurnstileHandle } from "@/components/turnstile";
+import { Explain } from "./fields";
 import { useT, type WizardKey } from "./i18n";
 
 type Stage = "emails" | "code" | "saving";
@@ -55,7 +56,11 @@ export function SaveDialog({
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
-    if (open && !dialog.open) dialog.showModal();
+    if (open && !dialog.open) {
+      dialog.showModal();
+      // `showModal` by zaměřil prázdnou živou oblast chyb (tabIndex -1), nic viditelného (2.4.3, 2.4.7)
+      (document.getElementById("wz-email") ?? document.getElementById("wz-code"))?.focus();
+    }
     if (!open && dialog.open) dialog.close();
   }, [open]);
 
@@ -171,6 +176,7 @@ export function SaveDialog({
       {stage === "emails" ? (
         <form onSubmit={sendCode} noValidate className="mt-4 flex flex-col gap-5">
           <p>{t("wizard.save.intro")}</p>
+          <Explain topic="email" />
           <FormAlert id="wz-save-alert">{formMessage}</FormAlert>
           <Field
             id="wz-email"
@@ -196,13 +202,15 @@ export function SaveDialog({
             value={backup}
             onChange={(event) => setBackup(event.target.value)}
             error={emailMessage("backup")}
-            autoComplete="off"
+            autoComplete="email"
             inputMode="email"
             autoCapitalize="none"
             spellCheck={false}
             required
           />
-          {open ? <Turnstile ref={turnstile} action="wizard" onToken={setBotToken} /> : null}
+          {open ? (
+            <Turnstile ref={turnstile} action="wizard" locale={t.locale} onToken={setBotToken} />
+          ) : null}
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={pending} aria-disabled={pending || undefined}>
               {t("wizard.save.send")}
@@ -242,7 +250,9 @@ export function SaveDialog({
             spellCheck={false}
             required
           />
-          {open ? <Turnstile ref={turnstile} action="wizard" onToken={setBotToken} /> : null}
+          {open ? (
+            <Turnstile ref={turnstile} action="wizard" locale={t.locale} onToken={setBotToken} />
+          ) : null}
           <div className="flex flex-wrap gap-3">
             <Button type="submit" disabled={pending} aria-disabled={pending || undefined}>
               {t("wizard.save.code.submit")}
@@ -252,6 +262,9 @@ export function SaveDialog({
             </Button>
             <Button variant="text" onClick={() => setStage("emails")}>
               {t("wizard.save.code.change")}
+            </Button>
+            <Button variant="secondary" onClick={onClose}>
+              {t("wizard.save.cancel")}
             </Button>
           </div>
         </form>

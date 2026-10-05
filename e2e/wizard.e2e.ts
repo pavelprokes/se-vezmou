@@ -241,7 +241,7 @@ test.describe("E2E-03: průběžné ukládání v prohlížeči", () => {
     await next(page);
     await page.getByLabel("Datum svatby").fill("2027-09-04");
     // krátká prodleva ukládání do úložiště
-    await expect(page.getByTestId("save-status")).toContainText("jen v tomto prohlížeči");
+    await expect(page.getByTestId("save-status")).toContainText("jen v tomto zařízení");
     await page.waitForTimeout(500);
 
     await page.reload();
@@ -288,13 +288,13 @@ test.describe("E2E-04: kolize adresy", () => {
     await nextScreen(page);
     await page.getByLabel("Adresa webu").fill(taken);
     // Živá kontrola je jen informativní a nic neprozradí: stejný text jako u rezervovaného slova.
-    await expect(page.getByTestId("slug-status")).toHaveText(/není\sk\sdispozici/);
+    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu už někdo má/);
     await page.getByLabel("Adresa webu").fill("admin");
-    await expect(page.getByTestId("slug-status")).toHaveText(/není\sk\sdispozici/);
+    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu už někdo má/);
     await page.getByLabel("Adresa webu").fill("kurva-a-matej");
-    await expect(page.getByTestId("slug-status")).toHaveText(/není\sk\sdispozici/);
+    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu už někdo má/);
     await page.getByLabel("Adresa webu").fill(taken);
-    await expect(page.getByTestId("slug-status")).toHaveText(/není\sk\sdispozici/);
+    await expect(page.getByTestId("slug-status")).toHaveText(/Tuto adresu už někdo má/);
 
     await next(page);
     await nextScreen(page);
@@ -313,7 +313,7 @@ test.describe("E2E-04: kolize adresy", () => {
     // Kolize: průvodce vrátí pár k adrese, nabídne varianty a nic neztratí.
     const conflict = page.getByTestId("slug-conflict");
     await expect(conflict).toBeVisible({ timeout: 20_000 });
-    await expect(heading(page)).toHaveText("Kdy a kde najdou hosté váš web?");
+    await expect(heading(page)).toHaveText("Datum svatby a adresa webu");
     const variants = conflict.getByRole("radio");
     await expect(variants).toHaveCount(4);
     await expect(conflict.getByText(`${taken}-2027.localhost:${PORT}`)).toBeVisible();
@@ -482,8 +482,8 @@ test.describe("angličtina a odkaz z úvodní stránky", () => {
     await page.goto(wizardUrl("", "en"));
     await expect(page.locator("html")).toHaveAttribute("lang", "en-GB");
     await expect(heading(page)).toHaveText("Who is getting married?");
-    await page.getByLabel("First name").fill("Anna");
-    await page.getByLabel("Second name").fill("Tom");
+    await page.getByLabel("Your name", { exact: true }).fill("Anna");
+    await page.getByLabel("Your partner’s name").fill("Tom");
     await nextScreen(page);
     await expect(page.getByRole("checkbox", { name: "English" })).toBeChecked();
     await expect(page.getByRole("checkbox", { name: "Czech" })).not.toBeChecked();
@@ -497,7 +497,7 @@ test.describe("angličtina a odkaz z úvodní stránky", () => {
   }) => {
     await page.goto(pageUrl(HOSTS.app, "/vytvorit?jmeno1=Anna&jmeno2=Tom&jazyk=en"));
     await expect(page).toHaveURL(/\/en\/vytvorit\?jmeno1=Anna&jmeno2=Tom&jazyk=en$/);
-    await expect(page.getByLabel("First name")).toHaveValue("Anna");
+    await expect(page.getByLabel("Your name", { exact: true })).toHaveValue("Anna");
   });
 
   test("formulář s jmény na úvodní stránce vede do průvodce s předvyplněnými jmény", async ({
@@ -524,9 +524,12 @@ test.describe("kontrola adresy: omezení počtu dotazů", () => {
     await nextScreen(page);
     await next(page);
     await nextScreen(page);
-    await expect(page.getByTestId("slug-status")).toHaveText(/Kontrola adres je teď omezená/, {
-      timeout: 15_000,
-    });
+    await expect(page.getByTestId("slug-status")).toHaveText(
+      /nemůžeme ověřit, jestli je adresa volná/,
+      {
+        timeout: 15_000,
+      },
+    );
   });
 });
 

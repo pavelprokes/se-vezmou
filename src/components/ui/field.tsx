@@ -55,20 +55,34 @@ export function Field({ label, hint, error, id, className, ...input }: FieldProp
 
 export interface FieldsetProps {
   legend: ReactNode;
+  /** Nápověda pod legendou, připojená ke skupině přes `aria-describedby`. */
+  hint?: ReactNode;
   error?: ReactNode;
+  /** Identifikátor skupiny; s ním jde skupinu zaměřit (po chybě), proto `tabIndex={-1}`. */
+  id?: string;
   children: ReactNode;
   className?: string;
 }
 
 /** Skupina voleb (přepínače) s popiskem skupiny. */
-export function Fieldset({ legend, error, children, className }: FieldsetProps) {
-  const errorId = useId();
+export function Fieldset({ legend, hint, error, id, children, className }: FieldsetProps) {
+  const generated = useId();
+  const hintId = `${generated}-hint`;
+  const errorId = `${generated}-error`;
+  const describedBy = [hint ? hintId : null, error ? errorId : null].filter(Boolean).join(" ");
   return (
     <fieldset
+      id={id}
+      tabIndex={id ? -1 : undefined}
       className={cn("flex flex-col gap-1", className)}
-      aria-describedby={error ? errorId : undefined}
+      aria-describedby={describedBy || undefined}
     >
       <legend className="text-ink mb-1 font-medium">{legend}</legend>
+      {hint ? (
+        <p id={hintId} className="text-muted mb-1 text-sm">
+          {hint}
+        </p>
+      ) : null}
       {children}
       <div aria-live="polite">
         {error ? (

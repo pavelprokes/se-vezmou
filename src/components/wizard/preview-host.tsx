@@ -77,7 +77,9 @@ export function PreviewHost({
     );
   }
   return (
-    <div lang={htmlLang[received.locale]} data-testid="preview-site">
+    // `inert`: náhled je jen obrázek webu. Bez toho by Tab procházel desítky odkazů a tlačítek
+    // zmenšeného webu (2.4.3) a čtečka by četla web, který nejde použít; textovou podobu má krok Kontrola.
+    <div lang={htmlLang[received.locale]} data-testid="preview-site" inert>
       <SiteRenderer
         content={received.content}
         t={t}

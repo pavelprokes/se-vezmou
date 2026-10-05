@@ -61,14 +61,14 @@ test.describe("axe: kroky průvodce", () => {
     await axeScreens(page, 2);
     await next(page);
 
-    await expect(heading(page)).toHaveText("Kdy a kde najdou hosté váš web?");
+    await expect(heading(page)).toHaveText("Datum svatby a adresa webu");
     await next(page);
     await expect(page.getByText(/Zadejte datum svatby/).first()).toBeVisible();
     await expectNoViolations(page);
     await page.getByLabel("Datum svatby").fill("2027-06-19");
     await axeScreens(page, 2);
     await page.getByLabel("Adresa webu").fill("admin");
-    await expect(page.getByText(/není\sk\sdispozici/).first()).toBeVisible();
+    await expect(page.getByText(/Tuto adresu už někdo má/).first()).toBeVisible();
     await expectNoViolations(page);
     await page.getByLabel("Adresa webu").fill("a-slug-pro-axe");
     await expect(page.getByTestId("slug-status")).toHaveText(/vypadá volná/);
@@ -231,7 +231,7 @@ test.describe("klávesnice, zaměření, cíle dotyku a reflow", () => {
     if (isCompact(page)) {
       await expect(page.getByRole("checkbox", { name: "Česky" })).toBeVisible();
     } else {
-      await expect(heading(page)).toHaveText("Kdy a kde najdou hosté váš web?");
+      await expect(heading(page)).toHaveText("Datum svatby a adresa webu");
     }
   });
 
@@ -263,7 +263,7 @@ test.describe("klávesnice, zaměření, cíle dotyku a reflow", () => {
     expect(overflow).toBeLessThanOrEqual(0);
     await nextScreen(page);
     await next(page);
-    await expect(heading(page)).toHaveText("Kdy a kde najdou hosté váš web?");
+    await expect(heading(page)).toHaveText("Datum svatby a adresa webu");
     const overflowStep2 = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     );
@@ -272,12 +272,116 @@ test.describe("klávesnice, zaměření, cíle dotyku a reflow", () => {
 
   test("stav ukládání a chyby jsou v živých oblastech", async ({ page }) => {
     await page.goto(wizardUrl());
-    await expect(page.getByTestId("save-status")).toHaveAttribute("role", "status");
+    // Řádek stavu je vidět, ale čtečce se ohlásí jen potíže (skrytá oblast role=status),
+    // „Ukládám… / Uloženo“ po každé pauze v psaní by rušilo.
+    await expect(page.getByTestId("save-status")).toBeVisible();
+    await expect(page.getByTestId("save-status")).not.toHaveAttribute("role", "status");
     await next(page);
     await expect(page.locator('[role="alert"]').first()).toBeAttached();
     await expect(page.getByRole("progressbar", { name: "Postup průvodce" })).toHaveAttribute(
       "aria-valuenow",
       "1",
     );
+  });
+});
+
+test.describe("vysvětlivky a srozumitelnost", () => {
+  /** Krok 1 vyplnit a přejít na obrazovku s adresou webu (krok 2). */
+  async function toAddress(page: Page, locale: "cs" | "en") {
+    await page.goto(wizardUrl("", locale));
+    const [a, b] =
+      locale === "cs" ? ["První jméno", "Druhé jméno"] : ["Your name", "Your partner’s name"];
+    await page.getByLabel(a, { exact: true }).fill("Klára");
+    await page.getByLabel(b, { exact: true }).fill("Matěj");
+    await nextScreen(page);
+    await next(page);
+    await page.getByLabel(locale === "cs" ? "Datum svatby" : "Wedding date").fill("2027-06-19");
+    await nextScreen(page);
+  }
+
+  for (const [locale, title, text] of [
+    ["cs", "Co je adresa webu?", /konec \.se-vezmou\.cz je stejný/],
+    ["en", "What’s the website address?", /ending is the same for every website/],
+  ] as const) {
+    test(`vysvětlivka adresy (${locale}): rozbalí se klávesnicí, axe bez chyb`, async ({
+      page,
+    }) => {
+      await toAddress(page, locale);
+      const explainer = page.getByTestId("explainer").filter({ hasText: title });
+      const summary = explainer.locator("summary");
+      await expect(summary).toHaveText(title);
+      await expect(explainer.getByText(text)).toBeHidden();
+      await summary.focus();
+      await page.keyboard.press("Enter");
+      await expect(explainer).toHaveJSProperty("open", true);
+      await expect(explainer.getByText(text)).toBeVisible();
+      await expectNoViolations(page);
+    });
+  }
+
+  test("adresa: úpravu zadaného textu průvodce ohlásí, koncovka patří k popisu pole", async ({
+    page,
+  }) => {
+    await toAddress(page, "cs");
+    const input = page.getByLabel("Adresa webu");
+    await input.fill("Ab c");
+    await expect(input).toHaveValue("ab-c");
+    await expect(page.getByTestId("slug-adjusted")).toHaveText(/Adresu jsme upravili/);
+    const describedBy = (await input.getAttribute("aria-describedby")) ?? "";
+    await expect(page.locator(`#${describedBy.split(" ")[0]}`)).toHaveText(/\.localhost/);
+    await expect(input).toHaveAttribute("aria-required", "true");
+  });
+
+  test("jediný jazyk nejde odškrtnout a skupina jazyků jde zaměřit", async ({ page }) => {
+    await page.goto(wizardUrl());
+    await page.getByLabel("První jméno").fill("Klára");
+    await page.getByLabel("Druhé jméno").fill("Matěj");
+    await nextScreen(page);
+    await expect(page.getByRole("checkbox", { name: "Česky" })).toBeDisabled();
+    await page.getByRole("checkbox", { name: "Anglicky" }).check();
+    await expect(page.getByRole("checkbox", { name: "Česky" })).toBeEnabled();
+    await expect(page.locator("#wz-locales")).toHaveAttribute("tabindex", "-1");
+  });
+
+  test("nepovinný krok vysvětlí přeskočení; Odebrat vrátí zaměření na Přidat", async ({ page }) => {
+    await completeRequiredSteps(page, { slug: `a11y-${uniqueTag()}` });
+    await expect(
+      page.getByTestId("explainer").filter({ hasText: "Co když teď nevím?" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Přeskočit", exact: true }).click();
+    await expect(heading(page)).toHaveText("Co by hosté měli vědět");
+    await nextScreen(page);
+    await page.getByRole("button", { name: "Přidat ubytování" }).click();
+    await page.getByRole("button", { name: "Odebrat ubytování 1" }).click();
+    await expect(page.getByRole("button", { name: "Přidat ubytování" })).toBeFocused();
+  });
+
+  test("dialog uložení zaměří e-mail a vysvětlí, proč ho chceme", async ({ page }) => {
+    await completeRequiredSteps(page, { slug: `a11y-${uniqueTag()}` });
+    for (let i = 0; i < 5; i++) {
+      await page.getByRole("button", { name: "Přeskočit", exact: true }).click();
+    }
+    await expect(
+      page.getByTestId("explainer").filter({ hasText: "Co je koncept a co znamená zveřejnit?" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Uložit koncept", exact: true }).click();
+    const dialog = page.locator("dialog[open]");
+    await expect(dialog.getByLabel("Váš e-mail")).toBeFocused();
+    await expect(
+      dialog.getByTestId("explainer").filter({ hasText: "Proč potřebujete můj e-mail?" }),
+    ).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Zrušit" })).toBeVisible();
+  });
+
+  test("náhled je jen obrázek webu: klávesnice ani čtečka do něj nevstoupí", async ({ page }) => {
+    test.skip(isCompact(page), "na mobilu je náhled v dialogu na vyžádání");
+    await page.goto(wizardUrl());
+    const site = page.frameLocator('[data-testid="preview-frame"]').getByTestId("preview-site");
+    await expect(site).toHaveAttribute("inert", "");
+    // Rámec je nejvýš jedna zastávka (rolování náhledu šipkami), žádné odkazy ani pole uvnitř.
+    await page.getByRole("button", { name: "Počítač" }).focus();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "Zpět" })).toBeFocused();
   });
 });

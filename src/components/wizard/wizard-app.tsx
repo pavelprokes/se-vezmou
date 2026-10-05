@@ -26,7 +26,7 @@ import {
   type WizardDraft,
 } from "@/wizard/draft";
 import { Done, type DoneInfo } from "./done";
-import { fieldId, type FieldErrors } from "./fields";
+import { Explain, fieldId, type FieldErrors } from "./fields";
 import { useT, WizardI18nProvider, type WizardKey, type WizardMessages } from "./i18n";
 import { PreviewDialog, PreviewPanel } from "./preview";
 import { SaveDialog } from "./save-dialog";
@@ -145,10 +145,17 @@ function SaveStatusLine({ status, signedIn }: { status: SaveStatus; signedIn: bo
     default:
       text = signedIn ? t("wizard.status.saved.generic") : t("wizard.status.local");
   }
+  // Čtečkám se ohlásí jen potíže; „Ukládám… / Uloženo“ po každé pauze v psaní by rušilo (4.1.3).
+  const problem = status.kind === "error" || status.kind === "limited";
   return (
-    <p role="status" className="text-muted text-sm" data-testid="save-status">
-      {text}
-    </p>
+    <>
+      <p className="text-muted text-sm" data-testid="save-status">
+        {text}
+      </p>
+      <p role="status" className="sr-only">
+        {problem ? text : ""}
+      </p>
+    </>
   );
 }
 
@@ -163,6 +170,8 @@ function Wizard(props: WizardAppProps) {
   const intent = useRef<"save" | "publish">("save");
   const [screen, setScreen] = useState(0);
   const [attempted, setAttempted] = useState<number | null>(null);
+  // Počítadlo pokusů: nové vykreslení souhrnu chyb, aby ho čtečka ohlásila i při stejném počtu chyb
+  const [attempts, setAttempts] = useState(0);
   const [conflict, setConflict] = useState<SlugConflict | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>({ kind: "local" });
   const [busy, setBusy] = useState<"save" | "publish" | null>(null);
@@ -365,6 +374,7 @@ function Wizard(props: WizardAppProps) {
     const relevant = stepIssues(step, lastScreen ? undefined : activeScreen);
     if (relevant.length > 0 && step <= 7) {
       setAttempted(step);
+      setAttempts((n) => n + 1);
       const first = relevant[0];
       if (compact) setScreen(screenOfField(step, first.field));
       focusField.current = fieldId(first.field);
@@ -585,20 +595,29 @@ function Wizard(props: WizardAppProps) {
                 ref={heading}
                 tabIndex={-1}
                 id="wz-heading"
+                // na mobilu se po „Další“ zaměří stejný nadpis; „Část 2 z 3“ ohlásí, že jde o další část
+                aria-describedby={compact && screens > 1 ? "wz-screen-counter" : undefined}
                 className="text-3xl font-medium sm:text-4xl"
               >
                 {t(`wizard.step.${stepKey}.title` as WizardKey)}
               </h1>
               <p className="text-muted mt-2">{t(`wizard.step.${stepKey}.intro` as WizardKey)}</p>
               {compact && screens > 1 ? (
-                <p className="text-muted mt-1 text-sm" data-testid="screen-counter">
+                <p
+                  id="wz-screen-counter"
+                  className="text-muted mt-1 text-sm"
+                  data-testid="screen-counter"
+                >
                   {t("wizard.stepper.screen", { current: activeScreen + 1, total: screens })}
                 </p>
               ) : null}
+              {isOptional && activeScreen === 0 ? <Explain topic="skip" className="mt-4" /> : null}
             </div>
 
             {attempted === step && errors.size > 0 ? (
-              <FormAlert>{t("wizard.errors.summary", { count: errors.size })}</FormAlert>
+              <FormAlert key={attempts}>
+                {t("wizard.errors.summary", { count: errors.size })}
+              </FormAlert>
             ) : (
               <FormAlert />
             )}

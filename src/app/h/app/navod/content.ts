@@ -62,7 +62,7 @@ export const GUIDE: GuideSection[] = [
       },
       { h3: "3. Šablona a barvy" },
       {
-        p: "Vyberte vzhled webu: **Editorial**, **Eukalyptus**, **Chateau** nebo **Modern**, a k němu barvy. Jak web vypadá, vidíte v náhledu vpravo, na mobilu pod tlačítkem **Náhled**. Vzhled můžete kdykoli později změnit.",
+        p: "Vyberte vzhled webu: **Editorial**, **Eukalyptus**, **Chateau** nebo **Modern**, a k němu barvy. Jak web vypadá, ukazuje náhled vedle formuláře, na mobilu po klepnutí na **Náhled**. Vzhled můžete kdykoli později změnit.",
       },
       {
         tip: "Na úvod webu můžete později dát i velkou fotku, ve všech šablonách. Víc v části Úvodní fotka.",
@@ -130,7 +130,7 @@ export const GUIDE: GuideSection[] = [
       {
         p: "Tlačítko **Stáhnout oznámení (PDF)** připraví stránku k tisku s adresou webu, QR kódem a PINem. Můžete ji vytisknout nebo poslat do tiskárny spolu s oznámením.",
       },
-      { p: "Tlačítkem **Přejít do správy** se dostanete k dalším úpravám." },
+      { p: "Tlačítkem **Přejít do správy webu** se dostanete k dalším úpravám." },
     ],
   },
   {

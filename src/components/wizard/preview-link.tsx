@@ -24,7 +24,9 @@ export function PreviewLink({
   async function copy() {
     try {
       await navigator.clipboard.writeText(url);
-      setCopied(true);
+      // vyprázdnit a znovu nastavit: druhé kopírování by čtečka jinak neohlásila
+      setCopied(false);
+      setTimeout(() => setCopied(true), 50);
     } catch {
       setCopied(false);
     }
@@ -46,14 +48,21 @@ export function PreviewLink({
         <Button variant="secondary" onClick={() => void copy()}>
           {t("wizard.copy")}
         </Button>
-        <Button variant="text" onClick={onRenew} disabled={busy}>
+        <Button
+          variant="text"
+          onClick={onRenew}
+          disabled={busy}
+          aria-describedby="wz-preview-link-warning"
+        >
           {t("wizard.previewLink.renew")}
         </Button>
         <span role="status" className="text-sm">
           {copied ? t("wizard.copied") : ""}
         </span>
       </div>
-      <p className="text-muted text-sm">{t("wizard.previewLink.warning")}</p>
+      <p id="wz-preview-link-warning" className="text-muted text-sm">
+        {t("wizard.previewLink.warning")}
+      </p>
     </div>
   );
 }

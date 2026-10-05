@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ToggleField, ScreenGroup, TextField, useErrorText } from "../fields";
+import { Explain, ToggleField, ScreenGroup, TextField, useErrorText } from "../fields";
 import { useT } from "../i18n";
 import { SlugField, type SlugConflict } from "../slug-field";
 import type { StepProps } from "./types";
@@ -71,6 +71,7 @@ export function StepDate({
           onDismissConflict={onDismissConflict}
           onSlugChange={(slug, edited) => update((d) => ({ ...d, slug, slugEdited: edited }))}
         />
+        <Explain topic="address" />
       </ScreenGroup>
     </>
   );

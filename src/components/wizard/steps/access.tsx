@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { pinProblem } from "@/auth/pin-format";
 import { PIN_LENGTH } from "@/auth/config";
-import { ScreenGroup, TextField, ToggleField, useErrorText } from "../fields";
+import { useState } from "react";
+import { Explain, ScreenGroup, TextField, ToggleField, useErrorText } from "../fields";
 import { useT } from "../i18n";
 import type { StepProps } from "./types";
 
@@ -23,6 +24,8 @@ export function StepAccess({ draft, update, errors, screen, mobile }: StepProps)
   const t = useT();
   const errorText = useErrorText();
   const { guestPin } = draft;
+  // Ohlášení nového PINu čtečkám (tlačítko přepíše pole bez jiné zpětné vazby)
+  const [generated, setGenerated] = useState(false);
 
   const setEnabled = (enabled: boolean) =>
     update((d) => ({
@@ -33,20 +36,21 @@ export function StepAccess({ draft, update, errors, screen, mobile }: StepProps)
   return (
     <ScreenGroup index={0} screen={screen} mobile={mobile}>
       <section aria-labelledby="wz-noindex" className="bg-linen rounded-2xl p-4">
-        <h3 id="wz-noindex" className="flex items-center gap-2 text-lg font-medium">
+        <h2 id="wz-noindex" className="flex items-center gap-2 text-lg font-medium">
           <Icon icon={EyeOff} size={22} />
           {t("wizard.access.noindex.title")}
-        </h3>
+        </h2>
         <p className="mt-2">{t("wizard.access.noindex.body")}</p>
         <p className="text-muted mt-2 text-sm">{t("wizard.access.noindex.note")}</p>
       </section>
 
       <section aria-labelledby="wz-pin-title" className="flex flex-col gap-4">
-        <h3 id="wz-pin-title" className="flex items-center gap-2 text-lg font-medium">
+        <h2 id="wz-pin-title" className="flex items-center gap-2 text-lg font-medium">
           <Icon icon={ShieldCheck} size={22} />
           {t("wizard.access.pin.title")}
-        </h3>
+        </h2>
         <p>{t("wizard.access.pin.body")}</p>
+        <Explain topic="pin" />
         <ToggleField
           label={t("wizard.access.pin.enable")}
           description={t("wizard.access.pin.enableHint")}
@@ -78,12 +82,16 @@ export function StepAccess({ draft, update, errors, screen, mobile }: StepProps)
             <Button
               variant="secondary"
               className="self-start"
-              onClick={() =>
-                update((d) => ({ ...d, guestPin: { ...d.guestPin, pin: generatePin() } }))
-              }
+              onClick={() => {
+                update((d) => ({ ...d, guestPin: { ...d.guestPin, pin: generatePin() } }));
+                setGenerated(true);
+              }}
             >
               {t("wizard.access.pin.generate")}
             </Button>
+            <p role="status" className="text-muted text-sm">
+              {generated ? t("wizard.access.pin.generated") : ""}
+            </p>
             <p className="text-muted text-sm">{t("wizard.access.pin.storage")}</p>
           </>
         ) : null}

@@ -53,6 +53,14 @@ export function SlugField({
   const id = useId();
   const hintId = `${id}-hint`;
   const statusId = `${id}-status`;
+  const domainId = `${id}-domain`;
+  // Průvodce adresu při psaní upraví (malá písmena, bez háčků, mezera -> pomlčka); řekne to nahlas.
+  const [adjusted, setAdjusted] = useState(false);
+  const change = (raw: string, final: boolean) => {
+    const next = normalizeSlugInput(raw, { final });
+    setAdjusted(next !== raw);
+    onSlugChange(next, true);
+  };
   const slug = draft.slug;
   const [remote, setRemote] = useState<Remote | null>(null);
 
@@ -124,19 +132,21 @@ export function SlugField({
             spellCheck={false}
             inputMode="url"
             aria-invalid={error ? true : undefined}
-            aria-describedby={[hintId, statusId].join(" ")}
-            onChange={(event) =>
-              onSlugChange(normalizeSlugInput(event.target.value, { final: false }), true)
-            }
-            onBlur={(event) =>
-              onSlugChange(normalizeSlugInput(event.target.value, { final: true }), true)
-            }
+            aria-required="true"
+            // koncovka „.se-vezmou.cz“ patří k adrese, čtečka ji bez ní neuslyší (1.3.1)
+            aria-describedby={[domainId, hintId, statusId].join(" ")}
+            onChange={(event) => change(event.target.value, false)}
+            onBlur={(event) => change(event.target.value, true)}
             className={cn(
               "min-h-target rounded-button bg-parchment text-ink min-w-0 flex-1 basis-48 border-2 px-3 py-2 text-base",
               error ? "border-cinnamon-deep" : "border-field-border",
             )}
           />
-          <span className="text-ink font-semibold break-all" data-testid="slug-domain">
+          <span
+            id={domainId}
+            className="text-ink font-semibold break-all"
+            data-testid="slug-domain"
+          >
             .{domain}
           </span>
         </div>
@@ -162,6 +172,11 @@ export function SlugField({
                 className="mt-0.5 shrink-0"
               />
               <span>{status.text}</span>
+            </p>
+          ) : null}
+          {adjusted ? (
+            <p className="text-muted text-sm" data-testid="slug-adjusted">
+              {t("wizard.slug.adjusted")}
             </p>
           ) : null}
         </div>

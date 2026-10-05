@@ -43,7 +43,7 @@ export async function completeRequiredSteps(
   await nextScreen(page);
   await next(page);
 
-  await expect(heading(page)).toHaveText("Kdy a kde najdou hosté váš web?");
+  await expect(heading(page)).toHaveText("Datum svatby a adresa webu");
   await page.getByLabel("Datum svatby").fill(dayIso);
   await nextScreen(page);
   await page.getByLabel("Adresa webu").fill(slug);
@@ -99,7 +99,7 @@ export async function fillOptionalSteps(page: Page): Promise<{ pin: string }> {
   // 7. Přístup a soukromí
   await expect(heading(page)).toHaveText("Kdo smí web vidět?");
   await page.getByLabel("Chránit citlivé části webu PINem").check();
-  const pin = await page.getByRole("textbox", { name: "PIN pro hosty" }).inputValue();
+  const pin = await page.getByRole("textbox", { name: "PIN hostů" }).inputValue();
   await next(page);
   await expect(heading(page)).toHaveText("Zkontrolujte, co jste zadali");
   return { pin };

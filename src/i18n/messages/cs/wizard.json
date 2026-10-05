@@ -372,5 +372,9 @@
   "explain.map.title": "Odkud je mapa?",
   "explain.map.body": "Mapa je z OpenStreetMap a načítá se přes náš web, takže prohlížeče hostů nikomu dalšímu nic neposílají. U místa najdou hosté i odkazy, kterými si ho otevřou v Google Maps nebo Mapy.cz.",
   "explain.skip.title": "Co když teď nevím?",
-  "explain.skip.body": "Tento krok je nepovinný. Tlačítkem Přeskočit ho vynecháte a doplníte později, klidně až po zveřejnění ve správě webu. Co jste už vyplnili, zůstane uložené."
+  "explain.skip.body": "Tento krok je nepovinný. Tlačítkem Přeskočit ho vynecháte a doplníte později, klidně až po zveřejnění ve správě webu. Co jste už vyplnili, zůstane uložené.",
+  "template.statek.description": "Zemité barvy a klasy, pro statek i zahradu.",
+  "template.vinice.description": "Klasické písmo Garamond a réva, barvy vína.",
+  "template.louka.description": "Luční kvítí a jarní pastely.",
+  "template.deco.description": "Art deco, zlaté linky, tmavý večerní vzhled."
 }

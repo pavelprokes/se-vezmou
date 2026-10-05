@@ -244,15 +244,19 @@ for (const locale of locales) {
       await extra.screenshot({ path: test.info().outputPath(`cim-se-lisime-${locale.code}.png`) });
     });
 
-    test("šablony: čtyři skutečné snímky se jmény Klára a Matěj", async ({ page }) => {
+    test("šablony: osm skutečných snímků se jmény Klára a Matěj", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       const previews = page.locator("#templates img");
-      await expect(previews).toHaveCount(4);
+      await expect(previews).toHaveCount(8);
       for (const name of [
         "Editorial",
         locale.code === "cs" ? "Eukalyptus" : "Eucalyptus",
         "Chateau",
         "Modern",
+        locale.code === "cs" ? "Statek" : "Farmstead",
+        locale.code === "cs" ? "Vinice" : "Vineyard",
+        locale.code === "cs" ? "Louka" : "Meadow",
+        "Deco",
       ]) {
         await expect(
           page.locator("#templates").getByRole("img", { name: new RegExp(name) }),
@@ -674,7 +678,8 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
   test("šablony: popis každé šablony a názvy palet z jejich definice", async ({ request }) => {
     const { html } = await source(request, "/sablony");
     expect(html).toContain("Barevné palety: Bordó, Stříbrná, Hloubka, Pudr");
-    expect(html).toContain("Barevné palety: Champagne, Slonová kost, Noc");
+    expect(html).toContain("Barevné palety: Champagne, Slonová kost, Noc, Růže");
+    expect(html).toContain("Barevné palety: Půlnoc, Smaragd, Bordó, Opál");
     expect(html).toContain("Mohu šablonu změnit i po zveřejnění webu?");
     const { html: en } = await source(request, "/en/templates");
     expect(en).toContain("Colour palettes: Burgundy, Silver, Depth, Powder");

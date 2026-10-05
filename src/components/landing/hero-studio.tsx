@@ -5,7 +5,7 @@ import type { Locale } from "@/i18n/config";
 import { previewSlug } from "@/lib/slug-preview";
 import { cn } from "@/lib/utils";
 import { NameForm, type NameFormLabels, type Names } from "./name-form";
-import type { TemplateKey } from "./templates-section";
+import type { HeroTemplateKey as TemplateKey } from "./templates-section";
 
 export interface HeroStudioProps {
   appUrl: string;

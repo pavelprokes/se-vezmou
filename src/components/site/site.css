@@ -1631,3 +1631,145 @@ html:has(dialog.site-lightbox[open]) {
     }
   }
 }
+
+/*
+ * Šablony z října 2026 (Statek, Vinice, Louka, Deco): klasická kostra, vlastní nadpisové písmo
+ * (next/font bez přednačtení, `src/components/document.tsx`), tokeny a dekor. Dekor jen z rolí
+ * `ornament`, `decor`, `decor2`, u Deca linky v barvě akcentu (role pro ikony a linky, 3 : 1).
+ */
+.site-crest {
+  width: 4.5rem;
+  height: auto;
+}
+.site-backdrop {
+  position: absolute;
+  z-index: 0;
+  width: clamp(5rem, 18vw, 9rem);
+  height: auto;
+  pointer-events: none;
+}
+.site-backdrop-start {
+  top: 0.75rem;
+  left: 0.75rem;
+}
+.site-backdrop-end {
+  right: 0.75rem;
+  bottom: 0.75rem;
+}
+@media (max-width: 39.99rem) {
+  /* na úzkém displeji by kvítí zasahovalo pod jména */
+  .site-backdrop {
+    display: none;
+  }
+}
+.site-flower-petal {
+  fill: var(--s-ornament);
+}
+.site-flower-heart {
+  fill: var(--s-decor2);
+}
+
+.site-root[data-template="statek"] {
+  --s-font-display: var(--font-statek), ui-serif, Georgia, serif;
+  --s-names-size: clamp(2.75rem, 12vw, 6rem);
+  --s-names-weight: 500;
+  --s-names-leading: 1.05;
+  --s-h2-weight: 500;
+  --s-radius: 0.75rem;
+  --s-card-border: 2px;
+}
+.site-root[data-template="statek"] .site-card {
+  border-style: dashed;
+}
+.site-root[data-template="statek"] .site-hero {
+  border-bottom: 2px dashed var(--s-ornament);
+}
+.site-root[data-template="statek"] .site-amp {
+  color: var(--s-accent);
+}
+
+.site-root[data-template="vinice"] {
+  --s-font-display: var(--font-vinice), ui-serif, Georgia, serif;
+  --s-names-size: clamp(2.75rem, 12vw, 6.25rem);
+  --s-names-weight: 400;
+  --s-names-leading: 1.05;
+  --s-h2-size: clamp(2rem, 6vw, 2.9rem);
+  --s-h2-weight: 500;
+  --s-radius: 0.125rem;
+  --s-card-border: 1px;
+}
+.site-root[data-template="vinice"] .site-names {
+  font-style: italic;
+}
+.site-root[data-template="vinice"] .site-amp {
+  font-style: normal;
+}
+.site-root[data-template="vinice"] .site-hero::before {
+  content: "";
+  position: absolute;
+  inset: clamp(0.75rem, 3vw, 1.5rem);
+  border: 1px solid var(--s-ornament);
+  pointer-events: none;
+}
+
+.site-root[data-template="louka"] {
+  --s-font-display: var(--font-louka), ui-serif, Georgia, serif;
+  --s-names-size: clamp(2.75rem, 12vw, 6rem);
+  --s-names-weight: 400;
+  --s-names-leading: 1.05;
+  --s-h2-weight: 400;
+  --s-radius: 1.5rem;
+}
+/* Marcellus a DM Serif Display mají jen řez 400 bez tučného (a Marcellus bez kurzívy): nedopočítávat. */
+.site-root[data-template="louka"],
+.site-root[data-template="deco"] {
+  font-synthesis: none;
+}
+.site-root[data-template="louka"] .site-h2 {
+  color: var(--s-accent);
+}
+
+.site-root[data-template="deco"] {
+  --s-font-display: var(--font-deco), ui-serif, Georgia, serif;
+  --s-names-size: clamp(2.25rem, 10vw, 5rem);
+  --s-names-weight: 400;
+  --s-names-leading: 1.12;
+  --s-names-tracking: 0.14em;
+  --s-names-case: uppercase;
+  --s-h2-size: clamp(1.75rem, 5vw, 2.4rem);
+  --s-h2-weight: 400;
+  --s-h2-case: uppercase;
+  --s-h2-tracking: 0.12em;
+  --s-radius: 0;
+  --s-card-border: 1px;
+}
+.site-root[data-template="deco"] .site-divider-line {
+  stroke: var(--s-accent);
+}
+.site-root[data-template="deco"] .site-divider-gem {
+  fill: var(--s-accent);
+}
+.site-root[data-template="deco"] .site-hero {
+  border-bottom: 3px double var(--s-accent);
+}
+.site-root[data-template="deco"] .site-person {
+  border-color: var(--s-accent);
+}
+.site-root[data-template="deco"] .site-card {
+  border-color: var(--s-accent);
+  outline: 1px solid var(--s-accent);
+  outline-offset: -0.4rem;
+}
+.site-root[data-template="deco"] .site-eyebrow {
+  color: var(--s-accent);
+}
+.site-root[data-template="deco"] .site-amp {
+  color: var(--s-accent);
+  font-style: normal;
+}
+@media (min-width: 64rem) {
+  .site-root[data-template="deco"] .site-section-head .site-h2 {
+    font-size: 1.75rem;
+    letter-spacing: 0.06em;
+  }
+}

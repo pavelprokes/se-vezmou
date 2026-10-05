@@ -407,5 +407,9 @@
   "error.blogInvalid": "The value doesn’t meet the rules. Check the length and format against the hint below the field.",
   "error.blogExists": "An article with this identifier already exists.",
   "error.blogSlugTaken": "Another article already uses this address. Choose a different one.",
-  "error.blogReadOnly": "Articles can’t be saved here. Edit them in local development."
+  "error.blogReadOnly": "Articles can’t be saved here. Edit them in local development.",
+  "template.statek": "Farmstead",
+  "template.vinice": "Vineyard",
+  "template.louka": "Meadow",
+  "template.deco": "Deco"
 }

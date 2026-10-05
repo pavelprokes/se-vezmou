@@ -41,6 +41,10 @@ async function publish(page: Page, label = "Zveřejnit změny"): Promise<void> {
       `Zveřejnění selhalo: ${text} ${await page.getByTestId("issues").allInnerTexts()}`,
     );
   }
+  // vedle tlačítka v liště dole: odkaz na web v nové záložce
+  await expect(
+    page.locator("[data-publish-bar]").getByRole("link", { name: /Zobrazit web/ }),
+  ).toHaveAttribute("target", "_blank");
 }
 
 async function enterPin(page: Page, region: string, pin: string): Promise<void> {

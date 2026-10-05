@@ -578,18 +578,6 @@ export function SiteEditor({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            {siteHref && published ? (
-              <a
-                href={siteHref}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonVariants({ variant: "secondary" })}
-              >
-                {t("admin.publish.viewSite")}
-                <Icon icon={ExternalLink} size={18} />
-                <span className="sr-only">{t("admin.common.newTab")}</span>
-              </a>
-            ) : null}
             <a href={historyHref} className={buttonVariants({ variant: "secondary" })}>
               <Icon icon={History} size={18} />
               {t("admin.publish.history")}
@@ -911,6 +899,18 @@ export function SiteEditor({
               ? t("admin.publish.update")
               : t("admin.publish.publish")}
         </Button>
+        {siteHref && published ? (
+          <a
+            href={siteHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={buttonVariants({ variant: "secondary" })}
+          >
+            {t("admin.publish.viewSite")}
+            <Icon icon={ExternalLink} size={18} />
+            <span className="sr-only">{t("admin.common.newTab")}</span>
+          </a>
+        ) : null}
         <div role="status" aria-live="polite" className="min-w-0 flex-1">
           {result ? (
             <p

@@ -4,7 +4,7 @@ import { toLocale } from "@/i18n/config";
 import { cookies } from "next/headers";
 import { after } from "next/server";
 import { z } from "zod";
-import { currentHostConfig } from "@/auth/app-origin";
+import { appOrigin, currentHostConfig } from "@/auth/app-origin";
 import { LOGIN_CODE } from "@/auth/config";
 import { cookieSpec, expiredCookieSpec } from "@/auth/cookie";
 import { normalizeEmail, parseCode } from "@/auth/identity";
@@ -252,7 +252,11 @@ export async function saveDraftAction(rawDraft: unknown): Promise<SaveDraftResul
       emails,
       draft,
       ip: await getClientIp(),
-      backupNotice: { locale: await getUiLocale(), defer },
+      backupNotice: {
+        locale: await getUiLocale(),
+        defer,
+        origin: appOrigin(await getHost(), currentHostConfig()),
+      },
     });
     if (result.status === "limited") return { status: "limited" };
     if (result.status !== "created") return result;

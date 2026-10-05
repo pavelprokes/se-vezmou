@@ -107,7 +107,7 @@ export const GUIDE: GuideSection[] = [
         p: "Při prvním uložení vás požádáme o e-mail. Pošleme na něj šestimístný kód, který opíšete do formuláře. Kód platí deset minut.",
       },
       {
-        p: "Vyplňte i **Záložní e-mail** (povinný, jiný než první), třeba toho druhého z vás. Pomůže, když se k prvnímu e-mailu nedostanete, a přijde na něj upozornění při každém přihlášení PINem a při změně PINu.",
+        p: "Vyplňte i **Záložní e-mail** (povinný, jiný než první), třeba toho druhého z vás. Pomůže, když se k prvnímu e-mailu nedostanete. Na záložní adresu přijde zpráva s tlačítkem **Potvrdit záložní e-mail**. Po potvrzení na ni chodí upozornění při každém přihlášení PINem a při změně PINu.",
       },
       {
         p: "Příště se přihlásíte na app.se-vezmou.cz/prihlaseni: napíšete e-mail, klepnete na **Poslat kód** a kód opíšete. Pokud si ve správě nastavíte PIN správy, můžete se přihlásit i přes **Přihlásit se PINem**.",

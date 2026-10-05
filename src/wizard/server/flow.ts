@@ -7,6 +7,7 @@ import { hashPin, verifyPin } from "@/auth/pin";
 import { pinProblem } from "@/auth/pin-format";
 import { rateKey } from "@/auth/rate-limit";
 import { currentHostConfig, siteHostname } from "@/auth/app-origin";
+import { backupConfirmUrl } from "@/auth/backup-confirm";
 import type { Defer } from "@/auth/login";
 import { LOGIN_CODE } from "@/auth/config";
 import type { Locale } from "@/i18n/config";
@@ -192,9 +193,10 @@ export async function firstSave(input: {
   ip: string;
   /**
    * Záložní adresu nikdo neověřil, takže dostane jedinou neutrální zprávu „někdo vás uvedl jako záložní
-   * e-mail“ (bez odkazu); žádná další oznámení na ni nechodí, dokud ji její vlastník nepotvrdí.
+   * e-mail“ s odkazem na potvrzení (`origin` = adresa hostitele app); žádná další oznámení na ni
+   * nechodí, dokud ji její vlastník nepotvrdí.
    */
-  backupNotice?: { locale: Locale; defer: Defer };
+  backupNotice?: { locale: Locale; defer: Defer; origin: string };
 }): Promise<FirstSaveResult> {
   if (!canSaveToServer(input.draft)) {
     return { status: "incomplete", issues: validateDraft(input.draft) };
@@ -215,13 +217,14 @@ export async function firstSave(input: {
   await setPreviewToken(result.weddingId, hashToken(previewToken), result.adminId);
 
   if (input.backupNotice) {
-    const { locale, defer } = input.backupNotice;
+    const { locale, defer, origin } = input.backupNotice;
     const secret = requireEnv("AUTH_SECRET");
     const email = renderAdminNotice({
       locale,
       kind: "backup_added",
       at: new Date(),
       site: siteHostname(input.draft.slug, currentHostConfig()),
+      confirmUrl: backupConfirmUrl(origin, locale, result.weddingId, input.emails.backupEmail),
     });
     defer(() =>
       sendTemplatedEmail({

@@ -52,6 +52,8 @@ export type AdminNoticeParams = {
   timeZone?: string;
   /** `guest_data_viewed`: důvod, který uvedl provozovatel. */
   reason?: string;
+  /** `backup_added`: odkaz na potvrzení záložní adresy jejím vlastníkem. */
+  confirmUrl?: string;
 };
 
 type Copy = {
@@ -192,7 +194,7 @@ function copyFor(p: AdminNoticeParams, when: string, until: string | null, site:
             heading: "Záložní e-mail svatebního webu",
             body: [
               `Vaši adresu ${when} někdo uvedl jako záložní e-mail svatebního webu${siteText}. Pokud o tom nevíte, tuto zprávu prostě ignorujte.`,
-              "Dokud adresu nepotvrdí její vlastník, žádná další oznámení na ni nechodí.",
+              "Pokud o tom víte, potvrďte adresu tlačítkem níže. Pak vám budou chodit upozornění na přihlášení a změny přístupu. Dokud ji nepotvrdíte, žádná další oznámení na ni nechodí.",
             ],
             link: false,
           }
@@ -201,7 +203,7 @@ function copyFor(p: AdminNoticeParams, when: string, until: string | null, site:
             heading: "Backup e-mail of a wedding website",
             body: [
               `Someone listed your address as the backup e-mail of a wedding website${siteText} on ${when}. If you do not know about this, simply ignore this message.`,
-              "Until the owner of the address confirms it, no further notices are sent to it.",
+              "If you do, confirm the address with the button below. You will then receive notices about sign-ins and access changes. Until you confirm it, no further notices are sent to it.",
             ],
             link: false,
           };
@@ -301,6 +303,13 @@ export function renderAdminNotice(params: AdminNoticeParams): RenderedEmail {
     { kind: "heading", text: copy.heading },
     ...copy.body.map((text): Block => ({ kind: "paragraph", text })),
   ];
+  if (params.kind === "backup_added" && params.confirmUrl) {
+    blocks.push({
+      kind: "link",
+      text: locale === "cs" ? "Potvrdit záložní e-mail" : "Confirm the backup e-mail",
+      href: params.confirmUrl,
+    });
+  }
   if (copy.link && params.loginUrl) {
     blocks.push({
       kind: "link",

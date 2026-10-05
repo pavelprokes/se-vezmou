@@ -16,6 +16,7 @@ vi.mock("@/lib/email/send", () => ({
 
 import { coreText } from "@/lib/email/templates/test-helpers";
 import { setTransport } from "@/lib/db/rpc";
+import { openBackupConfirm } from "@/auth/backup-confirm";
 import { createDraft, type WizardDraft } from "../draft";
 import { publicContentSchema } from "@/site/types";
 import {
@@ -292,7 +293,7 @@ describe("firstSave", () => {
     expect(JSON.stringify(db.calls)).not.toContain(result.previewToken);
   });
 
-  it("záložní adresa dostane jedinou neutrální zprávu a žádný přihlašovací údaj", async () => {
+  it("záložní adresa dostane jedinou neutrální zprávu s odkazem na potvrzení, bez přihlašovacích údajů", async () => {
     fakeDb();
     mail.sent.length = 0;
     const tasks: (() => Promise<unknown>)[] = [];
@@ -300,7 +301,11 @@ describe("firstSave", () => {
       emails,
       draft: draft({ guestPin: { enabled: true, pin: "482915" } }),
       ip: "1.1.1.1",
-      backupNotice: { locale: "cs", defer: (task) => tasks.push(task) },
+      backupNotice: {
+        locale: "cs",
+        defer: (task) => tasks.push(task),
+        origin: "https://app.se-vezmou.cz",
+      },
     });
     expect(result.status).toBe("created");
     expect(tasks).toHaveLength(1);
@@ -311,7 +316,15 @@ describe("firstSave", () => {
     expect(mail.sent[0].text).toMatch(/ignorujte/);
     expect(mail.sent[0].text).not.toContain("482915");
     expect(mail.sent[0].text).not.toContain("klara@example.test");
-    expect(coreText(mail.sent[0].text)).not.toMatch(/https?:\/\//);
+    // jediný odkaz je potvrzení záložní adresy (svatba + adresa zapečetěné v tokenu)
+    const links = coreText(mail.sent[0].text).match(/https?:\/\/\S+/g) ?? [];
+    expect(links).toHaveLength(1);
+    const url = new URL(links[0] ?? "");
+    expect(url.origin + url.pathname).toBe("https://app.se-vezmou.cz/potvrdit-email");
+    expect(openBackupConfirm(url.searchParams.get("t") ?? "")).toEqual({
+      weddingId: (result as { weddingId: string }).weddingId,
+      email: "zaloha@example.test",
+    });
   });
 
   it("při kolizi adresy se záložní adrese nepíše", async () => {
@@ -321,7 +334,11 @@ describe("firstSave", () => {
       emails,
       draft: draft(),
       ip: "1.1.1.1",
-      backupNotice: { locale: "cs", defer: (task) => tasks.push(task) },
+      backupNotice: {
+        locale: "cs",
+        defer: (task) => tasks.push(task),
+        origin: "https://app.se-vezmou.cz",
+      },
     });
     expect(tasks).toHaveLength(0);
   });

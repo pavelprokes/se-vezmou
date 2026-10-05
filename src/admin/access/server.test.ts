@@ -11,6 +11,7 @@ vi.mock("@/lib/email/send", () => ({ sendTemplatedEmail: mail.send }));
 const pin = vi.hoisted(() => ({ setPin: vi.fn() }));
 vi.mock("@/auth/pin-login", () => ({ setPin: pin.setPin }));
 
+import { openBackupConfirm } from "@/auth/backup-confirm";
 import { setTransport } from "@/lib/db/rpc";
 import { DbError } from "@/lib/db/transport";
 import {
@@ -51,6 +52,7 @@ const VIEW = {
     },
   ],
   backup_email: "zaloha@example.test",
+  backup_confirmed: true,
   has_admin_pin: true,
   has_guest_pin: true,
   guest_pin_enabled: true,
@@ -65,7 +67,12 @@ const VIEW = {
 
 function fakeDb(
   results: Record<string, unknown> = {},
-  options: { rateAllowed?: boolean; fail?: Record<string, DbError>; siteLocked?: boolean } = {},
+  options: {
+    rateAllowed?: boolean;
+    fail?: Record<string, DbError>;
+    siteLocked?: boolean;
+    backupConfirmed?: boolean;
+  } = {},
 ) {
   const calls: Call[] = [];
   setTransport({
@@ -76,7 +83,9 @@ function fakeDb(
         const allowed = options.rateAllowed ?? true;
         return [{ allowed, retry_after: allowed ? 0 : 55 }];
       }
-      if (fn === "admin_access_load") return VIEW;
+      if (fn === "admin_access_load") {
+        return { ...VIEW, backup_confirmed: options.backupConfirmed ?? true };
+      }
       if (fn === "admin_site_lock_get") return options.siteLocked ?? false;
       if (fn === "auth_session_context") {
         return [
@@ -235,6 +244,18 @@ describe("setBackupEmail", () => {
     expect(byAddress["nova@example.test"]).toMatch(/Někdo vás uvedl/);
     expect(byAddress["eva@example.test"]).toMatch(/se změnil/);
     expect(sent()).toHaveLength(3);
+    // odkaz na potvrzení dostane jen nová adresa, a to s její adresou v tokenu
+    const confirm = /https:\/\/app\.se-vezmou\.cz\/potvrdit-email\?t=(\S+)/;
+    for (const m of sent()) {
+      expect(confirm.test(m.email.text)).toBe(m.to === "nova@example.test");
+    }
+    const token = sent()
+      .find((m) => m.to === "nova@example.test")!
+      .email.text.match(confirm)![1];
+    expect(openBackupConfirm(token)).toEqual({
+      weddingId: ACTOR.weddingId,
+      email: "nova@example.test",
+    });
   });
 
   it("nepotvrzená stará adresa (old = null) žádné oznámení nedostane", async () => {
@@ -250,7 +271,15 @@ describe("setBackupEmail", () => {
     ).toEqual(["eva@example.test", "nova@example.test"]);
   });
 
-  it("stejná adresa nic neposílá, neplatná se odmítne", async () => {
+  it("stejná nepotvrzená adresa dostane znovu jen odkaz na potvrzení", async () => {
+    fakeDb({ admin_backup_email_set: { changed: false } }, { backupConfirmed: false });
+    expect(await setBackupEmail(ACTOR, ctx, "zaloha@example.test")).toEqual({ status: "same" });
+    await flush();
+    expect(sent().map((m) => m.to)).toEqual(["zaloha@example.test"]);
+    expect(sent()[0].email.text).toMatch(/potvrdit-email\?t=/);
+  });
+
+  it("stejná potvrzená adresa nic neposílá, neplatná se odmítne", async () => {
     fakeDb({ admin_backup_email_set: { changed: false } });
     expect(await setBackupEmail(ACTOR, ctx, "zaloha@example.test")).toEqual({ status: "same" });
     expect(await setBackupEmail(ACTOR, ctx, "nesmysl")).toEqual({ status: "invalid" });

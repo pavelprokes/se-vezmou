@@ -342,7 +342,7 @@
   "access.backup.title": "Záložní e-mail",
   "access.backup.intro": "Na záložní adresu chodí oznámení o přihlášení PINem, o změně PINu a o změnách přístupu. Měla by patřit někomu, komu věříte.",
   "access.backup.current": "Záložní e-mail: {email}",
-  "access.backup.unconfirmed": "Tuto adresu zatím nikdo nepotvrdil, proto na ni neposíláme žádná oznámení o přihlášení ani o změnách přístupu. Kdo adresu zadal, dostal jen jednu neutrální zprávu.",
+  "access.backup.unconfirmed": "Tuto adresu zatím nikdo nepotvrdil, proto na ni neposíláme žádná oznámení o přihlášení ani o změnách přístupu. Na adresu přišla zpráva s odkazem na potvrzení. Nenašli jste ji? Zadejte stejnou adresu níže znovu a přijde nový odkaz.",
   "access.backup.new": "Nový záložní e-mail",
   "access.backup.submit": "Změnit záložní e-mail",
   "access.backup.question": "Změnit záložní e-mail na {email}? Stará i nová adresa a správci dostanou oznámení.",

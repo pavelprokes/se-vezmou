@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ADMIN_PATHS, GUIDE_PATH } from "@/admin/paths";
+import { ADMIN_PATHS, GUIDE_PATH, appHref } from "@/admin/paths";
 import { getUiLocale } from "@/auth/request";
 import { requireSession } from "@/auth/session";
 import { AdminFrame } from "@/components/admin/frame";
@@ -27,7 +27,10 @@ export default async function HelpPage() {
     >
       <div className="flex flex-col gap-4">
         <p>
-          <a href={GUIDE_PATH} className="text-pine text-lg underline underline-offset-4">
+          <a
+            href={appHref(GUIDE_PATH, locale)}
+            className="text-pine text-lg underline underline-offset-4"
+          >
             {t("admin.help.guide")}
           </a>
         </p>

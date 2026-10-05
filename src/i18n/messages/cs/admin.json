@@ -406,7 +406,7 @@
   "photos.up": "Posunout fotografii {n} výš",
   "photos.down": "Posunout fotografii {n} níž",
   "photos.drag": "Přetáhnout fotografii {n}",
-  "photos.dragHint": "Pořadí změníte přetažením, nebo tlačítky Výš a Níž.",
+  "photos.dragHint": "Pořadí změníte přetažením, nebo šipkami nahoru a dolů.",
   "photos.moved": "Fotografie přesunuta na pozici {position} z {total}.",
   "photos.delete": "Smazat fotografii",
   "photos.deleteNamed": "Smazat fotografii {n}",

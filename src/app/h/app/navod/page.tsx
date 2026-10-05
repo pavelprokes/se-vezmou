@@ -46,6 +46,7 @@ function Block({ block }: { block: GuideBlock }) {
       <p className="border-hairline bg-warm flex gap-3 rounded-2xl border p-4">
         <Icon icon={Lightbulb} className="text-pine mt-1 shrink-0" />
         <span>
+          <span className="sr-only">Tip: </span>
           <Rich text={block.tip} />
         </span>
       </p>

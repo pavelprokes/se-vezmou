@@ -67,7 +67,7 @@ export async function HelpBox({ locale, topic }: { locale: Locale; topic: HelpTo
           </a>
         </p>
         <p>
-          <a href={GUIDE_PATH} className="text-pine underline underline-offset-4">
+          <a href={appHref(GUIDE_PATH, locale)} className="text-pine underline underline-offset-4">
             {t("admin.help.guide")}
           </a>
         </p>

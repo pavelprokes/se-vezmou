@@ -1,7 +1,8 @@
 /**
- * Text návodu pro páry (`/navod`). Jen česky (zadání majitele), tučné popisky tlačítek se píšou
- * `**takto**` a musí odpovídat textům rozhraní (`src/i18n/messages/cs/*.json`); po změně rozhraní
- * je potřeba upravit i návod.
+ * Text návodu pro páry (`/navod`). Jen česky (zadání majitele). Tučně (`**takto**`) jsou popisky
+ * z rozhraní, které musí přesně odpovídat textům v `src/i18n/messages/cs/*.json` (po změně rozhraní
+ * je potřeba upravit i návod), a v části „Když něco nejde“ úvodní slova potíží. Typografii a uvozovky
+ * tu `i18n:check` nehlídá.
  */
 
 export type GuideBlock =
@@ -16,7 +17,7 @@ export interface GuideSection {
 export const GUIDE_TITLE = "Návod: jak si vytvořit svatební web";
 
 export const GUIDE_LEAD =
-  "Krok za krokem, bez technických znalostí. Návod si můžete nechat otevřený vedle a postupovat podle něj. Nic se nerozbije: dokud web nezveřejníte, hosté nic nevidí, a i potom můžete všechno změnit.";
+  "Krok za krokem, bez technických znalostí. Návod si můžete nechat otevřený vedle a postupovat podle něj. Nic se nerozbije: dokud web nezveřejníte, hosté nic nevidí, a i potom můžete skoro všechno změnit.";
 
 export const GUIDE: GuideSection[] = [
   {
@@ -29,7 +30,7 @@ export const GUIDE: GuideSection[] = [
       {
         list: [
           "**Jména** vás dvou tak, jak je chcete mít na webu, například Klára a Matěj.",
-          "**Datum svatby.**",
+          "**Datum svatby**.",
           "**E-mail**, na který vám pošleme kód pro přihlášení. Heslo si pamatovat nemusíte.",
         ],
       },
@@ -46,7 +47,7 @@ export const GUIDE: GuideSection[] = [
     title: "Vytvoření webu v průvodci",
     blocks: [
       {
-        p: "Na úvodní stránce se-vezmou.cz klepněte na **Vytvořit web**. Otevře se průvodce s devíti kroky. Nahoře vidíte, ve kterém kroku jste. Tlačítkem **Další** jdete dál, tlačítkem **Zpět** se vrátíte. Kroky označené jako nepovinné můžete **přeskočit**.",
+        p: "Na úvodní stránce se-vezmou.cz klepněte na **Vytvořit web**. Otevře se průvodce s devíti kroky. Nahoře vidíte, ve kterém kroku jste. Tlačítkem **Další** jdete dál, tlačítkem **Zpět** se vrátíte. Kroky označené jako nepovinné můžete přeskočit tlačítkem **Přeskočit**.",
       },
       { h3: "1. Jména a jazyk" },
       {
@@ -57,7 +58,7 @@ export const GUIDE: GuideSection[] = [
         p: "Zadejte **Datum svatby**. Pokud svatba trvá víc dní, zaškrtněte **Svatba trvá více dní** a doplňte poslední den.",
       },
       {
-        p: "**Adresa webu** je to, co hosté napíšou do prohlížeče, například klara-a-matej.se-vezmou.cz. Navrhneme ji podle jmen, můžete ji ale změnit. Používejte jen malá písmena bez háčků a čárek, číslice a pomlčky. Pod polem hned uvidíte, jestli je adresa volná.",
+        p: "**Adresa webu** je to, co hosté napíšou do prohlížeče, například klara-a-matej.se-vezmou.cz. Navrhneme ji podle jmen, můžete ji ale změnit. Používejte jen malá písmena bez háčků a čárek, číslice a pomlčky. Pod polem hned uvidíte, jestli je adresa volná. Po zveřejnění už adresu změnit nejde, vyberte ji proto pečlivě.",
       },
       { h3: "3. Šablona a barvy" },
       {
@@ -80,7 +81,7 @@ export const GUIDE: GuideSection[] = [
       },
       { h3: "7. Přístup a soukromí (nepovinné)" },
       {
-        p: "Web se nikdy nezobrazuje ve vyhledávačích, najde ho jen ten, komu adresu pošlete. Navíc můžete zapnout **PIN pro hosty**: číslo, které napíšete na oznámení. Číslo účtu, soukromé adresy nebo fotky pak hosté uvidí až po jeho zadání.",
+        p: "Web se nikdy nezobrazuje ve vyhledávačích, najde ho jen ten, komu adresu pošlete. Navíc můžete zaškrtnout **Chránit citlivé části webu PINem**: PIN je číslo, které napíšete na oznámení. Číslo účtu a adresu soukromého místa pak hosté uvidí až po jeho zadání. Bez PINu se číslo účtu na webu neukáže vůbec.",
       },
       { h3: "8. Kontrola" },
       {
@@ -89,7 +90,7 @@ export const GUIDE: GuideSection[] = [
       { h3: "9. Uložit, nebo zveřejnit" },
       {
         list: [
-          "**Uložit koncept**: web uvidíte jen vy. Dostanete soukromý odkaz na náhled, který můžete poslat třeba mamince nebo svědkovi.",
+          "**Uložit koncept**: web uvidíte jen vy. Dostanete soukromý odkaz na náhled, který můžete poslat třeba mamince nebo svědkovi. Odkaz uvidíte jen jednou, hned si ho zkopírujte.",
           "**Zveřejnit web**: web začne fungovat na své adrese a můžete ho poslat hostům.",
         ],
       },
@@ -106,13 +107,13 @@ export const GUIDE: GuideSection[] = [
         p: "Při prvním uložení vás požádáme o e-mail. Pošleme na něj šestimístný kód, který opíšete do formuláře. Kód platí deset minut.",
       },
       {
-        p: "Vyplňte i **Záložní e-mail**, třeba toho druhého z vás. Pomůže, když se k prvnímu e-mailu nedostanete, a přijde na něj upozornění při každém přihlášení.",
+        p: "Vyplňte i **Záložní e-mail** (povinný, jiný než první), třeba toho druhého z vás. Pomůže, když se k prvnímu e-mailu nedostanete, a přijde na něj upozornění při každém přihlášení PINem a při změně PINu.",
       },
       {
         p: "Příště se přihlásíte na app.se-vezmou.cz/prihlaseni: napíšete e-mail, klepnete na **Poslat kód** a kód opíšete. Pokud si ve správě nastavíte PIN správy, můžete se přihlásit i přes **Přihlásit se PINem**.",
       },
       {
-        tip: "Kód nepřišel? Podívejte se do složky Hromadné, Promoakce nebo Spam. Pokud tam není ani po pár minutách, klepněte na **Poslat nový kód**.",
+        tip: "Kód nepřišel? Podívejte se do složky Hromadné, Promoakce nebo Spam. Pokud tam není ani po pár minutách, klepněte na **Poslat nový kód** (v průvodci **Poslat kód znovu**).",
       },
     ],
   },
@@ -124,7 +125,7 @@ export const GUIDE: GuideSection[] = [
         p: "Po zveřejnění uvidíte adresu webu, QR kód a tlačítka pro sdílení přes WhatsApp, SMS nebo e-mail. Hostům se v aplikaci ukáže hezký náhled s vašimi jmény.",
       },
       {
-        p: "Pokud jste zapnuli PIN pro hosty, ukážeme vám ho jen jednou. Zkopírujte si ho tlačítkem **Zkopírovat PIN** a někam si ho poznamenejte. Zapomenutý PIN můžete později změnit ve správě v části **Přístup**.",
+        p: "Pokud jste zapnuli PIN, ukážeme vám ho jen jednou. Zkopírujte si ho tlačítkem **Zkopírovat PIN** a někam si ho poznamenejte. Zapomenutý PIN můžete později změnit ve správě v části **Přístup**.",
       },
       {
         p: "Tlačítko **Stáhnout oznámení (PDF)** připraví stránku k tisku s adresou webu, QR kódem a PINem. Můžete ji vytisknout nebo poslat do tiskárny spolu s oznámením.",
@@ -145,7 +146,7 @@ export const GUIDE: GuideSection[] = [
           "**Upravit web**: texty, sekce webu, fotky, vzhled a jazyky. Tady strávíte nejvíc času.",
           "**Hosté**: seznam pozvaných rodin a párů, skupiny, osobní odkazy a kartičky s QR kódem.",
           "**Odpovědi**: kdo přijde, kdo ne a kdo ještě neodpověděl.",
-          "**Přístup**: PIN pro hosty, PIN správy, zamknutí celého webu a další správci, například druhý z vás.",
+          "**Přístup**: PIN hostů, PIN správy, zamknutí celého webu a další správci, například druhý z vás.",
           "**Data a smazání**: stažení všech údajů a smazání webu.",
           "**Historie verzí**: dřívější zveřejněné verze, ke kterým se můžete vrátit.",
           "**Nápověda**: krátké odpovědi k jednotlivým obrazovkám.",
@@ -167,8 +168,8 @@ export const GUIDE: GuideSection[] = [
         steps: [
           "U sekce, kterou chcete změnit, klepněte na **Upravit**.",
           "Přepište text. Ukládá se sám, nahoře uvidíte **Všechny změny jsou uložené**.",
-          "Sekci, kterou nechcete, vypnete. Pořadí změníte šipkami nahoru a dolů nebo přetažením. Úvod je vždy první.",
-          "Přepnutím na **Náhled** se podíváte, jak web vypadá.",
+          "Sekci, kterou nechcete, skryjete zrušením zaškrtnutí **Zobrazit na webu**. Pořadí změníte šipkami nahoru a dolů nebo přetažením. Úvod je vždy první.",
+          "Jak web vypadá, vidíte v náhledu vedle formuláře, na mobilu po přepnutí na **Náhled**.",
           "Až budete hotoví, klepněte na **Zveřejnit změny**.",
         ],
       },
@@ -188,16 +189,16 @@ export const GUIDE: GuideSection[] = [
     title: "Jak vložit fotky",
     blocks: [
       {
-        p: "Na web můžete nahrát až 12 vlastních fotografií. Fotky se přidávají ve správě, až když je web jednou zveřejněný. Pokud zatím nechcete, aby web někdo viděl, zamkněte ho PINem (viz PIN a soukromí) a fotky přidejte v klidu.",
+        p: "Na web můžete nahrát až 12 vlastních fotografií. Fotky se přidávají ve správě, až když je web jednou zveřejněný. Pokud zatím nechcete, aby web někdo viděl, zamkněte ho v části **Přístup** tlačítkem **Zamknout web** (nejdřív musí být nastavený a zapnutý PIN hostů) a fotky přidejte v klidu.",
       },
       {
         steps: [
           "Ve správě otevřete **Upravit web**.",
           "U sekce **Fotografie** klepněte na **Upravit**.",
           "Klepněte na **Vybrat fotografie** a vyberte fotky z počítače nebo z telefonu. Můžete jich vybrat víc najednou.",
-          "Počkejte, než se u každé fotky ukáže **Hotovo**. Nejdřív se nahrává, potom ji na serveru zmenšíme a upravíme. Okno během toho nezavírejte.",
+          "Počkejte, než se u každé fotky v přehledu nahrávání ukáže **Hotovo**. Nejdřív se nahrává, potom ji na serveru zmenšíme a upravíme. Okno během toho nezavírejte.",
           "Ke každé fotce napište **Popisek fotografie**, například „Klára a Matěj na procházce v Krkonoších“. Popisek přečte hostům se zrakovým postižením čtečka obrazovky.",
-          "Pořadí fotek změníte přetažením nebo tlačítky **Výš** a **Níž**.",
+          "Pořadí fotek změníte přetažením nebo šipkami nahoru a dolů.",
           "Klepněte na **Zveřejnit změny**. Teprve potom fotky uvidí hosté.",
         ],
       },
@@ -207,8 +208,8 @@ export const GUIDE: GuideSection[] = [
       { h3: "Jaké fotky jdou nahrát" },
       {
         list: [
-          "Formát **JPEG**, **PNG** nebo **WebP**, každá fotka nejvýš 40 MB.",
-          "Fotky z iPhonu ve formátu HEIC nahrát nejdou. V iPhonu otevřete Nastavení → Fotoaparát → Formáty a zvolte **Nejkompatibilnější**. Nové fotky pak budou v JPEG. Při výběru fotky z knihovny v iPhonu také můžete zvolit nejkompatibilnější formát.",
+          "Formát JPEG, PNG nebo WebP, každá fotka nejvýš 40 MB a 100 megapixelů.",
+          "Fotky ve formátu HEIC (typicky zkopírované z iPhonu do počítače) nahrát nejdou. Na iPhonu vyberte fotku přímo z knihovny, převede se sama. V počítači ji nejdřív uložte jako JPEG.",
           "Z fotek automaticky odstraníme polohu, kde byly pořízené, a další skryté údaje.",
         ],
       },
@@ -218,6 +219,7 @@ export const GUIDE: GuideSection[] = [
           "**Fotografie zobrazit jen po zadání PINu hostů**: fotky uvidí jen hosté, kteří znají PIN.",
           "**Přidat odkaz na externí fotogalerii**: odkaz na velkou galerii, například od fotografa. Na webu se ukáže jako náhled s obrázkem.",
           "**Smazat fotografii**: smaže fotku natrvalo, i ze zveřejněného webu.",
+          "**Stáhnout všechny fotografie**: stáhne vaše fotky najednou, třeba na památku po svatbě.",
         ],
       },
     ],
@@ -234,7 +236,7 @@ export const GUIDE: GuideSection[] = [
       },
       {
         steps: [
-          "Nejdřív fotku nahrajte podle předchozí části a doplňte jí popisek. Musí u ní svítit **Hotovo**.",
+          "Nejdřív fotku nahrajte podle předchozí části a doplňte jí popisek. Musí u ní být vidět náhled a pole **Popisek fotografie**.",
           "V **Upravit web** klepněte u sekce **Úvod** na **Upravit**.",
           "V nabídce **Fotka v úvodu** vyberte svou fotku. Poznáte ji podle popisku. Pod nabídkou se ukáže její malý náhled.",
           "Klepněte na **Zveřejnit změny**.",
@@ -249,7 +251,7 @@ export const GUIDE: GuideSection[] = [
         ],
       },
       {
-        tip: "Fotka v nabídce chybí? Zkontrolujte, že má popisek (nebo je označená jako dekorativní), že u ní svítí **Hotovo** a že nemáte zapnuté **Fotografie zobrazit jen po zadání PINu hostů**. Úvodní fotka je vidět vždy, proto do ní fotky schované za PINem nejdou.",
+        tip: "Fotka v nabídce chybí? Zkontrolujte, že má popisek (nebo je označená jako dekorativní), že je nahraná celá (je vidět její náhled) a že nemáte zapnuté **Fotografie zobrazit jen po zadání PINu hostů**. Úvodní fotka je vidět vždy, proto do ní fotky schované za PINem nejdou.",
       },
     ],
   },
@@ -263,7 +265,7 @@ export const GUIDE: GuideSection[] = [
       {
         steps: [
           "V části **Hosté** klepněte na **Přidat domácnost** a vyplňte jména.",
-          "Domácnosti můžete zařadit do **Skupin**, například Rodina, Kolegové nebo Jen obřad. Podle skupin pak filtrujete a zvete na jednotlivé části programu.",
+          "Domácnosti můžete zařadit do skupin (pole **Skupiny** u domácnosti), například Rodina, Kolegové nebo Jen obřad. Podle skupin pak filtrujete a zvete na jednotlivé části programu.",
           "Každá domácnost má **Osobní odkaz**. Když ho hostům pošlete, najdou formulář už s vyplněnými jmény.",
           "**Kartičky s QR k tisku** připraví pro každou domácnost kartičku s jejím osobním QR kódem, třeba do oznámení.",
         ],
@@ -272,7 +274,7 @@ export const GUIDE: GuideSection[] = [
         p: "Máte seznam hostů v Excelu? Použijte **Importovat hosty**. Před uložením vám ukážeme, co se načte.",
       },
       {
-        p: "V části **Odpovědi** vidíte, kdo přijde a kdo ještě neodpověděl. Když vám host odpoví telefonem, zapíšete to sami přes **Zápis odpovědi**. Seznam hostů i s odpověďmi stáhnete v části **Hosté** tlačítkem **Stáhnout export**, jako Excel nebo CSV.",
+        p: "V části **Odpovědi** vidíte, kdo přijde a kdo ještě neodpověděl. Když vám host odpoví telefonem, zapíšete to sami: u domácnosti klepněte na **Upravit odpověď**. Seznam hostů i s odpověďmi stáhnete v části **Hosté** tlačítkem **Stáhnout export**, jako Excel nebo CSV.",
       },
     ],
   },
@@ -282,10 +284,10 @@ export const GUIDE: GuideSection[] = [
     blocks: [
       {
         list: [
-          "**PIN pro hosty** (6 až 12 číslic) zapnete v části **Přístup** tlačítkem **Zapnout PIN hostů**, pokud jste ho nezapnuli už v průvodci, a napíšete ho na oznámení. Číslo účtu, adresu soukromého místa a fotky schované za PINem hosté uvidí až po jeho zadání.",
-          "**Zamknout web**: v části **Přístup** zamknete celý web, bez PINu z něj hosté neuvidí nic kromě vašich jmen. Hosté s osobním odkazem se dostanou dovnitř i bez PINu.",
+          "**PIN hostů** (6 až 12 číslic, jiný než PIN správy) nastavíte v části **Přístup** tlačítkem **Nastavit PIN** a pak ho zapnete tlačítkem **Zapnout PIN hostů**, pokud jste to neudělali už v průvodci. Napíšete ho na oznámení. Číslo účtu, adresu soukromého místa a fotky schované za PINem hosté uvidí až po jeho zadání.",
+          "**Zamknout web**: v části **Přístup** zamknete celý web, bez PINu z něj hosté neuvidí nic kromě vašich jmen. Hosté s osobním odkazem nebo QR kódem z pozvánky se dostanou dovnitř i bez PINu. Zamknout jde jen se zapnutým PINem hostů.",
           "**PIN správy** je jiné číslo, jen pro vás. Slouží k přihlášení do správy bez e-mailu.",
-          "Dary: v sekci **Dary** vyplníte číslo účtu. Hosté uvidí QR kód pro platbu z mobilu a hosté ze zahraničí i IBAN a evropský QR kód.",
+          "Dary: v sekci **Dary** vyplníte číslo účtu. Hosté ho uvidí s QR kódem pro platbu z mobilu až po zadání PINu hostů, bez zapnutého PINu ho neuvidí nikdo. Na anglické verzi webu se ukáže i IBAN, a když vyplníte **Majitel účtu**, i evropský QR kód pro platbu v eurech.",
         ],
       },
     ],
@@ -295,10 +297,10 @@ export const GUIDE: GuideSection[] = [
     title: "Rychlá změna a návrat k dřívější verzi",
     blocks: [
       {
-        p: "**Rychlá změna** na stránce **Můj web** zobrazí nahoře na webu pruh s krátkým oznámením, například o změně času. Projeví se hned, bez zveřejňování.",
+        p: "**Rychlá změna** na stránce **Můj web** zobrazí nahoře na webu pruh s krátkým oznámením, například o změně času. Napište text, zaškrtněte **Zobrazit pruh na webu** a klepněte na **Uložit rychlou změnu**. Projeví se hned, bez zveřejňování. Funguje až po prvním zveřejnění webu.",
       },
       {
-        p: "Pokud se vám změna nepovedla, v **Historii verzí** klepněte u dřívější verze na **Vrátit tuto verzi** a pak na **Zveřejnit změny**.",
+        p: "Pokud se vám změna nepovedla, na stránce **Historie verzí** klepněte u dřívější verze na **Vrátit tuto verzi** a pak na **Zveřejnit změny**.",
       },
     ],
   },
@@ -307,7 +309,10 @@ export const GUIDE: GuideSection[] = [
     title: "Po svatbě",
     blocks: [
       {
-        p: "Den po svatbě se web sám přepne do režimu poděkování. Formulář pro potvrzení účasti a údaje o darech zmizí a hosté uvidí poděkování a fotky. Nic nemusíte nastavovat.",
+        p: "Den po svatbě (u vícedenní svatby po posledním dni) se web sám přepne do režimu poděkování. Formulář pro potvrzení účasti a údaje o darech zmizí a hosté uvidí poděkování a fotky. Nic nemusíte nastavovat.",
+      },
+      {
+        p: "Na stránce **Můj web** pak uvidíte, kdy web přestane být veřejný a kdy smažeme údaje hostů. Předtím si stáhněte export hostů a fotografie tlačítkem **Stáhnout všechny fotografie**.",
       },
     ],
   },
@@ -318,11 +323,11 @@ export const GUIDE: GuideSection[] = [
       {
         list: [
           "**Fotka se nenahraje**: zkontrolujte formát (JPEG, PNG nebo WebP, ne HEIC) a velikost do 40 MB. U chyby klepněte na **Zkusit znovu**.",
-          "**Fotka na webu není**: chybí jí popisek, nebo jste zatím neklepli na **Zveřejnit změny**.",
+          "**Fotka na webu není**: chybí jí popisek, sekce Fotografie je skrytá nebo schovaná za PINem, nebo jste zatím neklepli na **Zveřejnit změny**.",
           "**Úvodní fotka se nezobrazuje**: zkontrolujte, že je vybraná v sekci **Úvod** a že jste klepli na **Zveřejnit změny**.",
           "**Hosté nevidí změnu**: klepněte na **Zveřejnit změny**. Hostům pomůže i obnovení stránky.",
-          "**Nepřišel kód**: podívejte se do spamu a do složky Hromadné. Případně klepněte na **Poslat nový kód**.",
-          "**Zapomněli jste PIN pro hosty**: v části **Přístup** nastavte nový. Pozor, starý PIN pak přestane platit.",
+          "**Nepřišel kód**: podívejte se do spamu a do složky Hromadné. Případně klepněte na **Poslat nový kód** (v průvodci **Poslat kód znovu**).",
+          "**Zapomněli jste PIN hostů**: v části **Přístup** nastavte nový tlačítkem **Změnit PIN**. Pozor, starý PIN pak přestane platit.",
         ],
       },
       {

@@ -119,7 +119,7 @@ describe("klasické šablony: pruh Kdy / Kde / Odpovězte do a čísla sekcí", 
     for (const template of ["editorial", "chateau", "modern"] as const) {
       const { container, unmount } = renderSite({ ...withPhoto, template });
       const img = container.querySelector(".site-hero .site-hero-photo img");
-      expect(img?.getAttribute("alt")?.replace(/\s/g, " "), template).toBe(photo.alt.cs);
+      expect(img?.getAttribute("alt")?.replace(/\s/g, " "), template).toBe(photo.alt?.cs);
       expect(img).toHaveAttribute("loading", "eager");
       unmount();
     }

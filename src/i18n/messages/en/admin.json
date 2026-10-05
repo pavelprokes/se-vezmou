@@ -404,7 +404,7 @@
   "photos.up": "Move photo {n} up",
   "photos.down": "Move photo {n} down",
   "photos.drag": "Drag photo {n}",
-  "photos.dragHint": "Change the order by dragging, or with the Up and Down buttons.",
+  "photos.dragHint": "Change the order by dragging, or with the up and down arrows.",
   "photos.moved": "Photo moved to position {position} of {total}.",
   "photos.delete": "Delete photo",
   "photos.deleteNamed": "Delete photo {n}",

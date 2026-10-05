@@ -80,7 +80,7 @@ export default async function WizardPage({ searchParams }: PageProps<"/h/app/vyt
         </a>
         <div className="flex flex-wrap items-center gap-4">
           <a
-            href={GUIDE_PATH}
+            href={appHref(GUIDE_PATH, locale)}
             target="_blank"
             rel="noopener"
             className="min-h-target text-pine inline-flex items-center underline underline-offset-4"

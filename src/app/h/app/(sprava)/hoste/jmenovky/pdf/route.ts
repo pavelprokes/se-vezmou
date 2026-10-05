@@ -1,5 +1,5 @@
 import { loadNameCards, parseNameCardOptions } from "@/admin/name-cards/server";
-import { renderNameCardsPdf } from "@/admin/name-cards/pdf";
+import { cardFaces, renderNameCardsPdf } from "@/admin/name-cards/pdf";
 import { RATE_RULES } from "@/auth/config";
 import { assertSameOrigin, getUiLocale } from "@/auth/request";
 import { getSession } from "@/auth/session";
@@ -32,16 +32,15 @@ export async function POST(request: Request): Promise<Response> {
   const form = await request.formData().catch(() => null);
   const options = parseNameCardOptions((key) => form?.get(key));
   const data = await loadNameCards(session, options);
-  if (data.names.length === 0) return new Response(null, { status: 404 });
+  const faces = await cardFaces(data.names, data.detail, data.style, options.format);
+  if (faces.length === 0) return new Response(null, { status: 404 });
 
-  const locale = await getUiLocale();
-  const t = await getTranslator(locale, ["admin.guests"]);
+  const t = await getTranslator(await getUiLocale(), ["admin.guests"]);
   const bytes = await renderNameCardsPdf({
-    locale,
-    names: data.names,
+    locale: data.locale,
+    faces,
     format: options.format,
     style: data.style,
-    detail: data.detail,
     title: data.couple
       ? t("admin.guests.nameCards.pdfTitleCouple", { couple: data.couple })
       : t("admin.guests.nameCards.title"),

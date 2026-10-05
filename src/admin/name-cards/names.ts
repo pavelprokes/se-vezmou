@@ -29,7 +29,7 @@ export function nameCardNames(
     }
   }
   return names
-    .map((name) => name.trim().replace(/\s+/g, " "))
+    .map((name) => name.normalize("NFC").trim().replace(/\s+/g, " "))
     .filter((name) => name !== "")
     .sort((a, b) => a.localeCompare(b, "cs"));
 }

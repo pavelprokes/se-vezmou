@@ -4,7 +4,7 @@ import { PDFDocument, degrees, rgb, type Color, type PDFFont, type PDFPage } fro
 import { intlLocale, type Locale } from "@/i18n/config";
 import { parseColor } from "@/design/contrast";
 import { fontBytes, printable, type FontName } from "@/wizard/pdf/announcement";
-import { DETAIL_SIZE_PT, PT_TO_MM, faceLayout, type FaceLayout } from "./face";
+import { PT_TO_MM, faceLayout, facePoint, type FaceLayout, type Measure } from "./face";
 import {
   A4_MM,
   FORMATS,
@@ -34,18 +34,61 @@ const NAME_FONT: Record<CardFont, FontName> = {
 };
 const DETAIL_FONT: FontName = "DMSans_400Regular.ttf";
 
-const fontkitCache = new Map<FontName, Promise<ReturnType<typeof fontkit.create>>>();
+type FontkitFont = ReturnType<typeof fontkit.create>;
+const fontkitCache = new Map<FontName, Promise<FontkitFont>>();
 
-/** Šířka textu v milimetrech podle metrik písma (stejné pro náhled i PDF). */
-export async function measurer(font: CardFont): Promise<(text: string, sizePt: number) => number> {
-  const name = NAME_FONT[font];
+function loadFontkit(name: FontName): Promise<FontkitFont> {
   let loaded = fontkitCache.get(name);
   if (!loaded) {
     loaded = fontBytes(name).then((bytes) => fontkit.create(new Uint8Array(bytes)));
     fontkitCache.set(name, loaded);
   }
-  const face = await loaded;
+  return loaded;
+}
+
+function measureWith(face: FontkitFont): Measure {
   return (text, sizePt) => (face.layout(text).advanceWidth / face.unitsPerEm) * sizePt * PT_TO_MM;
+}
+
+/**
+ * Text jen ze znaků, které písmo umí: nezlomitelná mezera na mezeru, pomlčky na spojovník, ostatní
+ * (emoji, cizí písma) vypustit. Jména se předem skládají do NFC (č jako jeden znak, ne c + háček).
+ */
+function cleanWith(face: FontkitFont): (text: string) => string {
+  return (text) =>
+    [...text.normalize("NFC")]
+      .map((char) => {
+        const code = char.codePointAt(0) ?? 0;
+        if (code === 0xa0 || code === 0x202f) return " ";
+        if (code === 0x2013 || code === 0x2014) return "-";
+        return face.hasGlyphForCodePoint(code) ? char : "";
+      })
+      .join("")
+      .replace(/\s+/g, " ")
+      .trim();
+}
+
+/**
+ * Rozvržení všech jmenovek (náhled i PDF): texty očištěné na znaky písem a změřené jejich metrikami,
+ * takže náhled ukazuje přesně to, co se vytiskne. Jméno, ze kterého nic nezbude, se vynechá.
+ */
+export async function cardFaces(
+  names: readonly string[],
+  detail: string | null,
+  style: CardStyle,
+  format: NameCardFormat,
+): Promise<FaceLayout[]> {
+  const [nameFont, detailFont] = await Promise.all([
+    loadFontkit(NAME_FONT[style.font]),
+    loadFontkit(DETAIL_FONT),
+  ]);
+  const metrics = { name: measureWith(nameFont), detail: measureWith(detailFont) };
+  const cleanName = cleanWith(nameFont);
+  const line = detail ? cleanWith(detailFont)(detail) : "";
+  return names
+    .map(cleanName)
+    .filter((name) => name !== "")
+    .map((name) => faceLayout(name, line || null, style, format, metrics));
 }
 
 function color(hex: string): Color {
@@ -54,12 +97,11 @@ function color(hex: string): Color {
 }
 
 export interface NameCardsInput {
+  /** Jazyk dokumentu (jazyk webu páru, ve kterém je i datum). */
   locale: Locale;
-  names: readonly string[];
+  faces: readonly FaceLayout[];
   format: NameCardFormat;
   style: CardStyle;
-  /** Drobný řádek pod jménem (jména páru a datum), nebo nic. */
-  detail: string | null;
   title: string;
 }
 
@@ -74,9 +116,8 @@ function drawFace(
 ) {
   // bod strany (mm, y dolů) → bod stránky (pt, y nahoru)
   const at = (x: number, y: number) => {
-    const fx = flipped ? face.width - x : x;
-    const fy = flipped ? face.height - y : y;
-    return { x: (origin.x + fx) * MM, y: PAGE.height - (origin.y + fy) * MM };
+    const point = facePoint(face, origin, flipped, x, y);
+    return { x: point.x * MM, y: PAGE.height - point.y * MM };
   };
   const rotate = degrees(flipped ? 180 : 0);
   const nameColor = color(style.name);
@@ -108,10 +149,10 @@ function drawFace(
 
   if (face.detail) {
     const text = printable(fonts.detail, face.detail.text);
-    const width = fonts.detail.widthOfTextAtSize(text, DETAIL_SIZE_PT) / MM;
+    const width = fonts.detail.widthOfTextAtSize(text, face.detail.sizePt) / MM;
     page.drawText(text, {
       ...at(face.detail.x - width / 2, face.detail.y),
-      size: DETAIL_SIZE_PT,
+      size: face.detail.sizePt,
       font: fonts.detail,
       color: color(style.detail),
       rotate,
@@ -133,10 +174,9 @@ function drawMarks(page: PDFPage, format: NameCardFormat) {
 export async function renderNameCardsPdf(input: NameCardsInput): Promise<Uint8Array> {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
-  const [nameBytes, detailBytes, measure] = await Promise.all([
+  const [nameBytes, detailBytes] = await Promise.all([
     fontBytes(NAME_FONT[input.style.font]),
     fontBytes(DETAIL_FONT),
-    measurer(input.style.font),
   ]);
   const fonts = {
     name: await pdf.embedFont(nameBytes, { subset: true }),
@@ -149,11 +189,10 @@ export async function renderNameCardsPdf(input: NameCardsInput): Promise<Uint8Ar
 
   const spec = FORMATS[input.format];
   const rects = cardRects(input.format);
-  for (const sheet of paginate(input.names, input.format)) {
+  for (const sheet of paginate(input.faces, input.format)) {
     const page = pdf.addPage([PAGE.width, PAGE.height]);
-    sheet.forEach((name, index) => {
+    sheet.forEach((face, index) => {
       const rect: Rect = rects[index];
-      const face = faceLayout(name, input.detail, input.style, input.format, measure);
       if (spec.fold) {
         // spodní polovina je přední strana, horní (za přehybem) zadní, otočená
         drawFace(page, face, { x: rect.x, y: rect.y + face.height }, false, input.style, fonts);

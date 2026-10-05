@@ -121,7 +121,7 @@ export function paginate<T>(items: readonly T[], format: NameCardFormat): T[][] 
   return pages;
 }
 
-export const NAME_SIZE = { max: 22, min: 14, twoLineMax: 18, floor: 9 } as const;
+export const NAME_SIZE = { max: 22, min: 14, twoLineMax: 18, floor: 9, last: 6 } as const;
 
 export interface FittedName {
   sizePt: number;
@@ -130,9 +130,9 @@ export interface FittedName {
 
 /**
  * Velikost jména, aby se vešlo do šířky: jeden řádek od 22 pt dolů až na 14 pt; když ani to nestačí,
- * dva řádky (zlom za spojovníkem, jinak na mezeře nejblíž středu) od 18 pt dolů. Krajní případ
- * (jedno velmi dlouhé slovo) se zmenší, dokud se nevejde, nejméně na 9 pt.
- * `measure(text, sizePt)` vrací šířku v milimetrech.
+ * dva řádky (zlom na mezeře, u jednoho dlouhého slova se spojovníkem za ním) od 18 pt dolů na 9 pt.
+ * Krajní případ (jedno velmi dlouhé slovo) se zmenšuje dál, nejméně na 6 pt, aby nepřeteklo na
+ * sousední kartu. `measure(text, sizePt)` vrací šířku v milimetrech.
  */
 export function fitName(
   name: string,
@@ -144,35 +144,30 @@ export function fitName(
     if (measure(text, size) <= maxWidth) return { sizePt: size, lines: [text] };
   }
   const lines = splitName(text);
-  if (lines.length === 2) {
-    for (let size = NAME_SIZE.twoLineMax; size >= NAME_SIZE.floor; size -= 1) {
-      if (lines.every((line) => measure(line, size) <= maxWidth)) return { sizePt: size, lines };
-    }
-    return { sizePt: NAME_SIZE.floor, lines };
+  const fits = (size: number) => lines.every((line) => measure(line, size) <= maxWidth);
+  const start = lines.length === 2 ? NAME_SIZE.twoLineMax : NAME_SIZE.min - 1;
+  for (let size = start; size > NAME_SIZE.last; size -= 0.5) {
+    if (fits(size)) return { sizePt: size, lines };
   }
-  for (let size = NAME_SIZE.min - 1; size > NAME_SIZE.floor; size -= 1) {
-    if (measure(text, size) <= maxWidth) return { sizePt: size, lines: [text] };
-  }
-  return { sizePt: NAME_SIZE.floor, lines: [text] };
+  return { sizePt: NAME_SIZE.last, lines };
 }
 
-/** Zlom do dvou řádků: za spojovníkem nejblíž středu (spojovník zůstane na konci řádku), jinak na mezeře. */
+/**
+ * Zlom do dvou řádků podle české sazby: na mezeře nejblíž středu (jméno a příjmení zůstanou celá);
+ * jen když mezera chybí, za spojovníkem, který se pak opakuje na začátku dalšího řádku.
+ */
 export function splitName(text: string): string[] {
   const middle = text.length / 2;
-  let best: { at: number; keep: number } | null = null;
-  for (let i = 1; i < text.length - 1; i += 1) {
-    const ch = text[i];
-    if (ch !== " " && ch !== "-") continue;
-    const candidate = { at: i, keep: ch === "-" ? 1 : 0 };
-    // spojovník má přednost před mezerou, mezi stejnými rozhoduje vzdálenost od středu
-    if (
-      best === null ||
-      (ch === "-" && text[best.at] !== "-") ||
-      (ch === text[best.at] && Math.abs(i - middle) < Math.abs(best.at - middle))
-    ) {
-      best = candidate;
+  const nearest = (ch: string) => {
+    let best = -1;
+    for (let i = 1; i < text.length - 1; i += 1) {
+      if (text[i] === ch && (best < 0 || Math.abs(i - middle) < Math.abs(best - middle))) best = i;
     }
-  }
-  if (!best) return [text];
-  return [text.slice(0, best.at + best.keep).trim(), text.slice(best.at + 1).trim()];
+    return best;
+  };
+  const space = nearest(" ");
+  if (space > 0) return [text.slice(0, space), text.slice(space + 1)];
+  const hyphen = nearest("-");
+  if (hyphen > 0) return [text.slice(0, hyphen + 1), text.slice(hyphen)];
+  return [text];
 }

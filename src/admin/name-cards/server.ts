@@ -2,7 +2,7 @@ import "server-only";
 import { loadGuests, type AdminIdentity } from "@/admin/guests/server";
 import { weddingTags } from "@/admin/guests/tags";
 import { peekSite } from "@/admin/site/server";
-import { intlLocale } from "@/i18n/config";
+import { defaultLocale, intlLocale, type Locale } from "@/i18n/config";
 import { cardStyle, type CardStyle } from "./style";
 import type { NameCardFormat } from "./layout";
 import { nameCardNames, type NameCardAudience } from "./names";
@@ -31,15 +31,6 @@ export function parseNameCardOptions(get: (key: string) => unknown): NameCardOpt
   };
 }
 
-export function nameCardQuery(options: NameCardOptions): Record<string, string> {
-  return {
-    kdo: options.audience === "all" ? "vsichni" : "prijdou",
-    format: options.format === "tent" ? "stojanek" : "plocha",
-    ...(options.group ? { skupina: options.group } : {}),
-    radek: options.detail ? "1" : "0",
-  };
-}
-
 export interface NameCardData {
   names: string[];
   tags: string[];
@@ -47,6 +38,8 @@ export interface NameCardData {
   detail: string | null;
   slug: string | null;
   couple: string;
+  /** Výchozí jazyk webu páru: v něm je datum a jazyk PDF (jmenovky čtou hosté). */
+  locale: Locale;
 }
 
 export async function loadNameCards(
@@ -78,5 +71,6 @@ export async function loadNameCards(
     detail: options.detail && detail ? detail : null,
     slug: site?.meta.slug ?? null,
     couple,
+    locale: wedding?.defaultLocale ?? defaultLocale,
   };
 }

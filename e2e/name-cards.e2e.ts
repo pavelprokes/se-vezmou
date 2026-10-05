@@ -43,10 +43,8 @@ test.describe("jmenovky na stůl", () => {
     await page.getByRole("button", { name: "Zobrazit náhled" }).click();
     await expect(cards).toHaveCount(2);
 
-    // stojánek a stažení PDF
+    // stažení bere právě zaškrtnuté volby (stojánek) i bez nového náhledu
     await page.getByLabel(/Stojánek/).check();
-    await page.getByRole("button", { name: "Zobrazit náhled" }).click();
-    await expect(page.getByText(/přehněte\spodle\sznačky\sv\spolovině/)).toBeVisible();
     const [download] = await Promise.all([
       page.waitForEvent("download"),
       page.getByRole("button", { name: "Stáhnout PDF k tisku" }).click(),
@@ -54,6 +52,17 @@ test.describe("jmenovky na stůl", () => {
     expect(download.suggestedFilename()).toBe(`jmenovky-${site.slug}.pdf`);
     const pdf = readFileSync((await download.path())!);
     expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
+
+    await page.getByRole("button", { name: "Zobrazit náhled" }).click();
+    await expect(page.getByText(/přehněte\spodle\sznačky\sv\spolovině/)).toBeVisible();
+  });
+
+  test("PDF z cizího původu se odmítne", async ({ request }) => {
+    const response = await request.post(appUrl("/hoste/jmenovky/pdf"), {
+      form: { kdo: "vsichni" },
+      headers: { origin: "https://example.com" },
+    });
+    expect(response.status()).toBe(403);
   });
 
   test("PDF bez přihlášení nevydá nic", async ({ request }) => {

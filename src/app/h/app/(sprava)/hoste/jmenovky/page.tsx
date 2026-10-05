@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { ADMIN_PATHS, appHref } from "@/admin/paths";
-import { faceLayout } from "@/admin/name-cards/face";
 import { perSheet } from "@/admin/name-cards/layout";
-import { measurer } from "@/admin/name-cards/pdf";
-import { loadNameCards, nameCardQuery, parseNameCardOptions } from "@/admin/name-cards/server";
+import { cardFaces } from "@/admin/name-cards/pdf";
+import { loadNameCards, parseNameCardOptions } from "@/admin/name-cards/server";
 import { getUiLocale } from "@/auth/request";
 import { requireSession } from "@/auth/session";
 import { AdminFrame } from "@/components/admin/frame";
@@ -36,8 +35,9 @@ export default async function NameCardsPage({ searchParams }: PageProps<"/h/app/
   const params = await searchParams;
   const options = parseNameCardOptions((key) => params[key]);
   const data = await loadNameCards(session, options);
-  const measure = await measurer(data.style.font);
-  const sheets = Math.ceil(data.names.length / perSheet(options.format));
+  const faces = await cardFaces(data.names, data.detail, data.style, options.format);
+  const sheet = perSheet(options.format);
+  const sheets = Math.ceil(faces.length / sheet);
   const pageHref = appHref(ADMIN_PATHS.nameCards, locale);
 
   return (
@@ -124,10 +124,20 @@ export default async function NameCardsPage({ searchParams }: PageProps<"/h/app/
                 />
               </div>
             </Fieldset>
-            <div>
+            <div className="flex flex-wrap gap-3">
               <Button type="submit" variant="secondary">
                 {t("admin.guests.nameCards.apply")}
               </Button>
+              {/* Stažení bere aktuálně zaškrtnuté volby, ne jen ty z posledního náhledu */}
+              {faces.length > 0 ? (
+                <Button
+                  type="submit"
+                  formMethod="post"
+                  formAction={appHref(`${ADMIN_PATHS.nameCards}/pdf`, locale)}
+                >
+                  {t("admin.guests.nameCards.download")}
+                </Button>
+              ) : null}
             </div>
           </form>
         </Card>
@@ -136,23 +146,13 @@ export default async function NameCardsPage({ searchParams }: PageProps<"/h/app/
           <h2 id="name-cards-preview" className="text-2xl font-medium">
             {t("admin.guests.nameCards.preview")}
           </h2>
-          {data.names.length === 0 ? (
+          {faces.length === 0 ? (
             <p className="mt-2 text-lg">{t("admin.guests.nameCards.empty")}</p>
           ) : (
             <>
-              <p role="status" className="mt-2" data-testid="name-cards-count">
-                {t("admin.guests.nameCards.count", { cards: data.names.length, sheets })}
+              <p className="mt-2" data-testid="name-cards-count">
+                {t("admin.guests.nameCards.count", { cards: faces.length, sheets })}
               </p>
-              <form
-                method="post"
-                action={appHref(`${ADMIN_PATHS.nameCards}/pdf`, locale)}
-                className="mt-4"
-              >
-                {Object.entries(nameCardQuery(options)).map(([name, value]) => (
-                  <input key={name} type="hidden" name={name} value={value} />
-                ))}
-                <Button type="submit">{t("admin.guests.nameCards.download")}</Button>
-              </form>
               <p className="text-muted mt-3 max-w-prose">
                 {t(
                   options.format === "tent"
@@ -164,16 +164,21 @@ export default async function NameCardsPage({ searchParams }: PageProps<"/h/app/
                 className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3"
                 aria-label={t("admin.guests.nameCards.preview")}
               >
-                {data.names.map((name, index) => (
-                  <li key={`${index}-${name}`}>
+                {faces.slice(0, sheet).map((face, index) => (
+                  <li key={`${index}-${face.name}`}>
                     <NameCardPreview
-                      face={faceLayout(name, data.detail, data.style, options.format, measure)}
+                      face={face}
                       style={data.style}
-                      label={t("admin.guests.nameCards.cardLabel", { name })}
+                      label={t("admin.guests.nameCards.cardLabel", { name: face.name })}
                     />
                   </li>
                 ))}
               </ul>
+              {faces.length > sheet ? (
+                <p className="text-muted mt-4">
+                  {t("admin.guests.nameCards.more", { n: faces.length - sheet })}
+                </p>
+              ) : null}
             </>
           )}
         </Card>

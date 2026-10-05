@@ -83,14 +83,15 @@ describe("velikost jména", () => {
     expect(fitted.sizePt).toBeGreaterThanOrEqual(14);
   });
 
-  it("velmi dlouhé jméno se zalomí za spojovníkem", () => {
+  it("velmi dlouhé jméno se zalomí na mezeře, příjmení zůstane celé", () => {
     const fitted = fitName("Bohumila Nováková-Procházková", 60, measure);
-    expect(fitted.lines).toEqual(["Bohumila Nováková-", "Procházková"]);
-    expect(fitted.sizePt).toBeGreaterThanOrEqual(9);
+    expect(fitted.lines).toEqual(["Bohumila", "Nováková-Procházková"]);
+    expect(fitted.sizePt).toBeGreaterThanOrEqual(6);
   });
 
-  it("zlom bez spojovníku na mezeře nejblíž středu", () => {
+  it("zlom na mezeře nejblíž středu; bez mezery za spojovníkem, který se opakuje", () => {
     expect(splitName("Jan Maria Novák Dvořák")).toEqual(["Jan Maria", "Novák Dvořák"]);
+    expect(splitName("Nováková-Procházková")).toEqual(["Nováková-", "-Procházková"]);
     expect(splitName("Jednoslovné")).toEqual(["Jednoslovné"]);
   });
 

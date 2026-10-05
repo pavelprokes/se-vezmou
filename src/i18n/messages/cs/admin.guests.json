@@ -458,5 +458,6 @@
   "nameCards.pdfTitleCouple": "Jmenovky: {couple}",
   "list.nameCardsTitle": "Jmenovky na stůl",
   "list.nameCardsIntro": "Jmenovky se jmény hostů ve vzhledu vašeho webu, k tisku na A4.",
-  "list.nameCardsLink": "Připravit jmenovky"
+  "list.nameCardsLink": "Připravit jmenovky",
+  "nameCards.more": "Náhled ukazuje první list. Dalších jmenovek v PDF: {n}"
 }

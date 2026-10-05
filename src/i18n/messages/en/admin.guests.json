@@ -458,5 +458,6 @@
   "nameCards.pdfTitleCouple": "Place cards: {couple}",
   "list.nameCardsTitle": "Place cards",
   "list.nameCardsIntro": "Place cards with your guests’ names in the style of your website, for printing on A4.",
-  "list.nameCardsLink": "Prepare place cards"
+  "list.nameCardsLink": "Prepare place cards",
+  "nameCards.more": "The preview shows the first sheet. More place cards in the PDF: {n}"
 }

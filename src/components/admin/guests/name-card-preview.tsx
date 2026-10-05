@@ -1,4 +1,4 @@
-import { DETAIL_SIZE_PT, PT_TO_MM, type FaceLayout } from "@/admin/name-cards/face";
+import { PT_TO_MM, type FaceLayout } from "@/admin/name-cards/face";
 import { ORNAMENTS, type CardStyle } from "@/admin/name-cards/style";
 
 const FONT = {
@@ -65,7 +65,7 @@ export function NameCardPreview({
           y={face.detail.y}
           textAnchor="middle"
           fontFamily={FONT.sans.family}
-          fontSize={DETAIL_SIZE_PT * PT_TO_MM}
+          fontSize={face.detail.sizePt * PT_TO_MM}
           fill={style.detail}
           aria-hidden="true"
         >

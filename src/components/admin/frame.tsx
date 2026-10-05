@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { ADMIN_PATHS, appHref } from "@/admin/paths";
+import { listMyWeddings } from "@/admin/site/server";
 import { logoutAction } from "@/app/h/app/prihlaseni/actions";
+import { getSession } from "@/auth/session";
 import { Button } from "@/components/ui/button";
 import { LanguageSwitcher } from "@/components/ui/language-switcher";
 import { locales, type Locale } from "@/i18n/config";
@@ -30,7 +32,8 @@ export async function AdminFrame({
   locale: Locale;
   /** Cesta obrazovky bez předpony jazyka (přepínač jazyka vede na tutéž obrazovku). */
   path: string;
-  active: NavItem;
+  /** Zvýrazněná položka nabídky; stránka mimo nabídku (výběr svatby) žádnou nemá. */
+  active?: NavItem;
   title: string;
   intro?: ReactNode;
   help: HelpTopic;
@@ -64,6 +67,11 @@ export async function AdminFrame({
     { key: "history", label: t("admin.nav.history"), href: appHref(ADMIN_PATHS.history, locale) },
     { key: "help", label: t("admin.nav.help"), href: appHref(ADMIN_PATHS.help, locale) },
   ];
+  // Čí svatbu správa právě ukazuje: jména vždy, při víc svatbách i odkaz na výběr (`/svatby`).
+  // Výpadek seznamu hlavičku nerozbije, jen se jména neukážou.
+  const session = await getSession();
+  const weddings = session ? await listMyWeddings(session).catch(() => []) : [];
+  const current = weddings.find((wedding) => wedding.isCurrent);
   const hrefs = Object.fromEntries(locales.map((l) => [l, appHref(path, l)])) as Record<
     Locale,
     string
@@ -73,12 +81,33 @@ export async function AdminFrame({
     <>
       <header className="border-hairline border-b px-4 py-3 sm:px-8 print:hidden">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-x-6 gap-y-2">
-          <a
-            href={appHref("/", locale)}
-            className="min-h-target text-ink inline-flex items-center font-serif text-2xl font-medium"
-          >
-            {t("common.brand")}
-          </a>
+          <div className="flex flex-wrap items-center gap-x-4">
+            <a
+              href={appHref("/", locale)}
+              className="min-h-target text-ink inline-flex items-center font-serif text-2xl font-medium"
+            >
+              {t("common.brand")}
+            </a>
+            {current ? (
+              <p className="flex flex-wrap items-center gap-x-3" data-testid="current-wedding">
+                <span>
+                  <span className="text-muted">{t("admin.frame.wedding")} </span>
+                  <span className="text-ink font-medium">
+                    {current.partnerAName} {t("common.and")} {current.partnerBName}
+                  </span>
+                </span>
+                {weddings.length > 1 ? (
+                  <a
+                    href={appHref(ADMIN_PATHS.weddings, locale)}
+                    aria-current={path === ADMIN_PATHS.weddings ? "page" : undefined}
+                    className="min-h-target text-pine inline-flex items-center underline underline-offset-4"
+                  >
+                    {t("admin.frame.switchWedding")}
+                  </a>
+                ) : null}
+              </p>
+            ) : null}
+          </div>
           <nav aria-label={t("admin.nav.label")}>
             <ul className="flex flex-wrap items-center gap-1">
               {items.map((item) => (

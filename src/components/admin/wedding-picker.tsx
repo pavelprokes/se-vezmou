@@ -2,7 +2,7 @@
 
 import { CircleCheck } from "lucide-react";
 import { useActionState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Icon } from "@/components/ui/icon";
 import { useAdminT } from "./i18n";
@@ -21,8 +21,11 @@ export interface PickerWedding {
 export function WeddingPicker({
   weddings,
   action,
+  continueHref,
 }: {
   weddings: PickerWedding[];
+  /** Kam vede „Pokračovat“ u právě spravované svatby (relace už jí patří, nic se nepřepíná). */
+  continueHref: string;
   action: (
     state: { error: "failed" } | null,
     formData: FormData,
@@ -44,10 +47,15 @@ export function WeddingPicker({
               <p className="text-muted text-sm">{wedding.site ?? t("admin.picker.noAddress")}</p>
             </div>
             {wedding.isCurrent ? (
-              <p className="text-pine flex items-center gap-2 font-medium">
-                <Icon icon={CircleCheck} />
-                {t("admin.picker.current")}
-              </p>
+              <div className="flex flex-wrap items-center gap-3">
+                <p className="text-pine flex items-center gap-2 font-medium">
+                  <Icon icon={CircleCheck} />
+                  {t("admin.picker.current")}
+                </p>
+                <a href={continueHref} className={buttonVariants({ variant: "primary" })}>
+                  {t("admin.picker.continue", { names: wedding.names })}
+                </a>
+              </div>
             ) : (
               <Button type="submit" name="weddingId" value={wedding.weddingId} disabled={pending}>
                 {t("admin.picker.switch", { names: wedding.names })}

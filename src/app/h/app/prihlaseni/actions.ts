@@ -2,6 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { ADMIN_PATHS } from "@/admin/paths";
 import { localHref } from "@/auth/local-href";
 import { after } from "next/server";
 import { appOrigin, currentHostConfig } from "@/auth/app-origin";
@@ -91,7 +92,7 @@ async function finish(result: VerifyCodeResult): Promise<FormState> {
     case "ok":
       await startAdminSession(result.weddingId, result.adminId);
       await clearPending();
-      redirect(await localHref("/"));
+      redirect(await localHref(result.choose ? ADMIN_PATHS.weddings : ADMIN_PATHS.overview));
   }
 }
 

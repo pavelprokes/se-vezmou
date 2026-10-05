@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { limited, reasonOf } from "@/lib/rate-guard";
 import { RATE_RULES } from "@/auth/config";
 import {
@@ -480,6 +481,7 @@ async function cardImagesInUse(session: AdminIdentity): Promise<Set<string> | nu
 
 // --- výběr svatby ----------------------------------------------------------------------------------
 
-export async function listMyWeddings(session: AdminIdentity): Promise<MyWedding[]> {
-  return adminMyWeddings(session);
-}
+/** Svatby správce; v rámci požadavku jednou (hlavička správy i stránka výběru, relace je táž). */
+export const listMyWeddings = cache(async (session: AdminIdentity): Promise<MyWedding[]> =>
+  adminMyWeddings(session),
+);

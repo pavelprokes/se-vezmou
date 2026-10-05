@@ -63,12 +63,12 @@ test.describe("axe: obrazovky správy", () => {
     await expectNoViolations(page);
   });
 
-  test("přehled s výběrem svatby", async ({ page, context }) => {
+  test("výběr svatby", async ({ page, context }) => {
     const first = await seedManagedSite();
     await seedManagedSite({ names: ["Eva", "Petr"], adminEmail: first.adminEmail });
     await first.login(context);
-    await page.goto(appUrl("/"));
-    await expect(page.getByRole("heading", { level: 2, name: "Vaše svatby" })).toBeVisible();
+    await page.goto(appUrl("/svatby"));
+    await expect(page.getByRole("heading", { level: 1, name: "Vaše svatby" })).toBeVisible();
     await expectNoViolations(page);
   });
 

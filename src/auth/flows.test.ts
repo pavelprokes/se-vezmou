@@ -260,6 +260,7 @@ describe("verifyLoginCode", () => {
       status: "ok",
       weddingId: WEDDING,
       adminId: ADMIN,
+      choose: false,
     });
     const verify = db.calls.find((c) => c.fn === "auth_verify_challenge")!;
     expect(verify.args).toMatchObject({ p_purpose: "admin_login", p_max_attempts: 5 });
@@ -301,7 +302,26 @@ describe("verifyLoginCode", () => {
       auth_verify_challenge: () => true,
       auth_list_admin_weddings: () => [blocked, ...weddingRows],
     });
-    expect(await verifyLoginCode(input)).toMatchObject({ status: "ok", weddingId: WEDDING });
+    // zablokovaná svatba se nepočítá: jen jedna, bez výběru
+    expect(await verifyLoginCode(input)).toMatchObject({
+      status: "ok",
+      weddingId: WEDDING,
+      choose: false,
+    });
+    fakeDb({
+      rate_limit_hit: allow,
+      auth_verify_challenge: () => true,
+      auth_list_admin_weddings: () => [
+        ...weddingRows,
+        { ...weddingRows[0], wedding_id: "66666666-6666-4666-8666-666666666666" },
+      ],
+    });
+    // víc svateb: relace pro nejstarší a po přihlášení výběr
+    expect(await verifyLoginCode(input)).toMatchObject({
+      status: "ok",
+      weddingId: WEDDING,
+      choose: true,
+    });
     fakeDb({
       rate_limit_hit: allow,
       auth_verify_challenge: () => true,

@@ -148,9 +148,9 @@
   "features.extra.title": "Čím se lišíme",
   "features.extra.1": "Každý text česky i anglicky zvlášť, hosté si jazyk přepnou",
   "features.extra.2": "IBAN, BIC a evropský QR kód (EPC) pro dary ze zahraničí",
-  "features.extra.3": "Osobní odkaz a QR pro každou domácnost s předvyplněnou odpovědí",
+  "features.extra.3": "Osobní odkaz a QR kód pro každou domácnost s předvyplněnou odpovědí",
   "features.extra.4": "Program podle skupiny: host vidí jen to, na co je pozvaný",
-  "features.extra.5": "Přístupnost podle WCAG 2.2 AA, čitelné i pro starší hosty",
+  "features.extra.5": "Navrženo podle WCAG 2.2 AA, čitelné i pro starší hosty",
   "features.extra.6": "PIN na dary, soukromá místa nebo celý web",
   "features.extra.7": "Údaje hostů po svatbě smažeme sami, bez žádosti",
   "features.extra.8": "Žádné reklamy a žádný účet pro hosty",
@@ -183,5 +183,5 @@
   "pricing.cta": "Vytvořit web",
   "testimonials.title": "Co říkají páry",
   "testimonials.wedding": "Svatba, {date}",
-  "testimonials.verified": "Recenze jsou od párů, které svatební web na se-vezmou.cz opravdu použily. Každou ověřujeme podle existence jejich webu v naší databázi a zveřejňujeme se souhlasem páru."
+  "testimonials.verified": "Recenze jsou od párů, které svatební web na se-vezmou.cz opravdu použily. Před zveřejněním každé recenze ověříme, že web páru u nás opravdu byl, a zveřejňujeme ji jen se souhlasem páru."
 }

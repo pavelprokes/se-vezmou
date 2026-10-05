@@ -10,10 +10,14 @@ import type { I18nText } from "@/site/i18n-text";
  * Dokud je seznam prázdný, sekce se na úvodní stránce nevykreslí.
  *
  * Postup přidání:
- * 1. Uložit souhlas páru (e-mail) a datum souhlasu zapsat do `consentOn`.
- * 2. Citát beze změn do jazyka, ve kterém ho pár napsal; překlad do druhého jazyka jen se souhlasem,
+ * 1. Ověřit, že web páru na se-vezmou.cz existoval (provozní administrace, adresa webu), a adresu
+ *    zapsat do `weddingSlug`. Recenze párů, které službu nepoužily (např. jen focení), sem nepatří.
+ * 2. Uložit souhlas páru (e-mail), datum do `consentOn` a rozsah do `consentScope`.
+ * 3. Citát beze změn do jazyka, ve kterém ho pár napsal; překlad do druhého jazyka jen se souhlasem,
  *    jinak druhý jazyk vynechat (stránka ukáže originál s atributem `lang`).
- * 3. Fotku (volitelně, se souhlasem) dát do `public/reference/` a cestu do `photo`.
+ * 4. Fotku (jen se souhlasem `photo`) dát do `public/reference/` a cestu do `photo`.
+ *
+ * Odvolání souhlasu: položku (a fotku) smazat a nasadit; souhlas e-mailem uschovat i s odvoláním.
  */
 export interface Testimonial {
   /** Stabilní klíč, např. `klara-a-matej-2027`. */
@@ -23,8 +27,12 @@ export interface Testimonial {
   /** Měsíc svatby `YYYY-MM`. */
   weddingMonth: string;
   quote: I18nText;
+  /** Adresa (slug) webu páru na se-vezmou.cz, podle které byla recenze ověřena. */
+  weddingSlug: string;
   /** Datum písemného souhlasu se zveřejněním `YYYY-MM-DD`. */
   consentOn: string;
+  /** Co pár dovolil zveřejnit. */
+  consentScope: readonly ("name" | "quote" | "photo")[];
   /** Cesta k fotce v `public/` (volitelně). */
   photo?: string;
 }

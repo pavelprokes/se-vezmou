@@ -9,8 +9,10 @@ const sample = {
   couple: "Klára a Matěj",
   weddingMonth: "2027-06",
   quote: { cs: "Hosté se nás už na nic neptali." },
+  weddingSlug: "klara-a-matej",
   consentOn: "2027-07-01",
-};
+  consentScope: ["name", "quote"],
+} as const;
 
 describe("TestimonialsSection", () => {
   it("bez recenzí se nevykreslí", async () => {
@@ -22,7 +24,7 @@ describe("TestimonialsSection", () => {
     expect(screen.getByRole("heading", { name: "Co říkají páry" })).toBeInTheDocument();
     expect(screen.getByText("Hosté se nás už na nic neptali.")).toBeInTheDocument();
     expect(screen.getByText("Svatba, červen 2027")).toBeInTheDocument();
-    expect(screen.getByText(/ověřujeme podle existence jejich webu/)).toBeInTheDocument();
+    expect(screen.getByText(/ověříme, že web páru u nás opravdu byl/)).toBeInTheDocument();
   });
 
   it("citát bez překladu označí jazykem originálu", async () => {
@@ -34,8 +36,11 @@ describe("TestimonialsSection", () => {
 });
 
 describe("config/testimonials", () => {
-  it("každá reference má souhlas, měsíc svatby a citát", () => {
+  it("každá reference má ověřený web, souhlas v rozsahu, měsíc svatby a citát", () => {
     for (const item of testimonials) {
+      expect(item.weddingSlug, item.id).toMatch(/^[a-z0-9-]+$/);
+      expect(item.consentScope, item.id).toEqual(expect.arrayContaining(["name", "quote"]));
+      if (item.photo) expect(item.consentScope, item.id).toContain("photo");
       expect(item.consentOn, item.id).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       expect(item.weddingMonth, item.id).toMatch(/^\d{4}-\d{2}$/);
       expect(

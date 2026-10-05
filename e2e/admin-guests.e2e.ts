@@ -983,7 +983,7 @@ test.describe("PIN a PDF oznámení", () => {
     await expect(adminForm.getByText(/Tenhle PIN je příliš snadný/)).toBeVisible();
     await adminForm.getByLabel("Nový PIN").fill("12ab");
     await adminForm.getByRole("button", { name: "Nastavit PIN" }).click();
-    await expect(adminForm.getByText(/PIN musí mít šest až osm číslic/)).toBeVisible();
+    await expect(adminForm.getByText(/PIN musí mít šest až dvanáct číslic/)).toBeVisible();
     await adminForm.getByLabel("Nový PIN").fill(GUEST_PIN);
     await adminForm.getByRole("button", { name: "Nastavit PIN" }).click();
     await expect(adminForm.getByText("PIN správy a PIN hostů musí být různé.")).toBeVisible();

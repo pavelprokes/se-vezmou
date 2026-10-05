@@ -107,6 +107,25 @@ describe("klasické šablony: pruh Kdy / Kde / Odpovězte do a čísla sekcí", 
     for (const n of numbers) expect(n).toHaveAttribute("aria-hidden", "true");
     expect(screen.getAllByRole("heading", { level: 2 }).length).toBe(numbers.length);
   });
+
+  it("fotka v úvodu: pod pruhem, s popiskem jako alt; bez výběru žádná", () => {
+    const photo = classic.media.find((m) => !m.decorative)!;
+    const withPhoto: PublicContent = {
+      ...classic,
+      blocks: classic.blocks.map((b) =>
+        b.type === "hero" ? { ...b, data: { ...b.data, photoMediaId: photo.id } } : b,
+      ),
+    };
+    for (const template of ["editorial", "chateau", "modern"] as const) {
+      const { container, unmount } = renderSite({ ...withPhoto, template });
+      const img = container.querySelector(".site-hero .site-hero-photo img");
+      expect(img?.getAttribute("alt")?.replace(/\s/g, " "), template).toBe(photo.alt?.cs);
+      expect(img).toHaveAttribute("loading", "eager");
+      unmount();
+    }
+    const { container } = renderSite(classic);
+    expect(container.querySelector(".site-hero-photo")).toBeNull();
+  });
 });
 
 describe("SiteRenderer: bloky a struktura", () => {

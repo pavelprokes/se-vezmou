@@ -1,7 +1,7 @@
 import { BrandLogo } from "@/components/brand-logo";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { appHref } from "@/admin/paths";
+import { GUIDE_PATH, appHref } from "@/admin/paths";
 import { currentHostConfig } from "@/auth/app-origin";
 import { getHost, getUiLocale } from "@/auth/request";
 import { localHref } from "@/auth/local-href";
@@ -78,7 +78,18 @@ export default async function WizardPage({ searchParams }: PageProps<"/h/app/vyt
         >
           <BrandLogo />
         </a>
-        <LanguageSwitcher current={locale} hrefs={hrefs} label={t("common.language.label")} />
+        <div className="flex flex-wrap items-center gap-4">
+          <a
+            href={appHref(GUIDE_PATH, locale)}
+            target="_blank"
+            rel="noopener"
+            className="min-h-target text-pine inline-flex items-center underline underline-offset-4"
+          >
+            {t("wizard.guide.link")}
+            <span className="sr-only"> {t("wizard.guide.newWindow")}</span>
+          </a>
+          <LanguageSwitcher current={locale} hrefs={hrefs} label={t("common.language.label")} />
+        </div>
       </header>
       <WizardLoader
         uiLocale={locale}

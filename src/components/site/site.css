@@ -376,6 +376,27 @@ html:has(.site-root[data-sticky="true"]) {
     margin-bottom: 0.4rem;
   }
 }
+/* Fotka v úvodu: 3 : 2, na mobilu 4 : 5 (ořez na výšku, motiv uprostřed); rám podle šablony. */
+.site-hero-photo {
+  width: 100%;
+  margin-top: 1.5rem;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border-radius: min(var(--s-radius), 0.75rem);
+  background: var(--s-border);
+}
+.site-hero-photo picture,
+.site-hero-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (min-width: 40rem) {
+  .site-hero-photo {
+    aspect-ratio: 3 / 2;
+  }
+}
 .site-countdown {
   margin: 0.5rem 0 0;
   color: var(--s-accent);

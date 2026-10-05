@@ -230,7 +230,7 @@ describe("PhotosPanel", () => {
     expect(screen.getByText("Fotografie přesunuta na pozici 2 z 3.")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Posunout fotografii 1 níž" }));
     expect(onReorder).toHaveBeenLastCalledWith([ID(3), ID(1), ID(2)]);
-    expect(screen.getByText(/změníte přetažením, nebo tlačítky/)).toBeInTheDocument();
+    expect(screen.getByText(/změníte přetažením, nebo šipkami/)).toBeInTheDocument();
   });
 
   it("smazání se potvrzuje druhým krokem, Zrušit nic nesmaže; po smazání se oznámí a zmizí", async () => {

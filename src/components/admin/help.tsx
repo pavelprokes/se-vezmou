@@ -1,5 +1,5 @@
 import { CircleHelp } from "lucide-react";
-import { ADMIN_PATHS, appHref } from "@/admin/paths";
+import { ADMIN_PATHS, GUIDE_PATH, appHref } from "@/admin/paths";
 import { Icon } from "@/components/ui/icon";
 import type { Locale } from "@/i18n/config";
 import type { NamespaceKey } from "@/i18n/messages";
@@ -64,6 +64,11 @@ export async function HelpBox({ locale, topic }: { locale: Locale; topic: HelpTo
             className="text-pine underline underline-offset-4"
           >
             {t("admin.help.more")}
+          </a>
+        </p>
+        <p>
+          <a href={appHref(GUIDE_PATH, locale)} className="text-pine underline underline-offset-4">
+            {t("admin.help.guide")}
           </a>
         </p>
       </div>

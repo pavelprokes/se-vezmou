@@ -116,6 +116,9 @@ const nextConfig: NextConfig = {
   // Administrace blogu čte články za běhu (stránky blogu a mapa webu je čtou jen při sestavení).
   outputFileTracingIncludes: {
     "/h/app/vytvorit/oznameni": ["./src/wizard/pdf/fonts/**/*"],
+    // Jmenovky: náhled měří jména metrikami písem, PDF je vkládá.
+    "/h/app/hoste/jmenovky": ["./src/wizard/pdf/fonts/**/*"],
+    "/h/app/hoste/jmenovky/pdf": ["./src/wizard/pdf/fonts/**/*"],
     // Obrázky pro sdílení odkazů kreslí server písmy z PDF oznámení.
     "/h/tenant/[slug]/[locale]/og": ["./src/wizard/pdf/fonts/**/*"],
     "/h/marketing/[locale]/og/blog/[slug]": [

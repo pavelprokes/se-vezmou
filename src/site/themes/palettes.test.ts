@@ -22,10 +22,19 @@ const all = templateKeys.flatMap((template) =>
 );
 
 describe("šablony a palety (FR-WEB-3)", () => {
-  it("má čtyři šablony s předem ověřenými paletami (Eukalyptus čtyři, ostatní tři)", () => {
-    expect(templateKeys).toEqual(["editorial", "eukalyptus", "chateau", "modern"]);
+  it("má osm šablon, každou aspoň se čtyřmi předem ověřenými paletami", () => {
+    expect(templateKeys).toEqual([
+      "editorial",
+      "eukalyptus",
+      "chateau",
+      "modern",
+      "statek",
+      "vinice",
+      "louka",
+      "deco",
+    ]);
     for (const template of templateKeys) {
-      expect(templates[template].palettes).toHaveLength(template === "eukalyptus" ? 4 : 3);
+      expect(templates[template].palettes.length).toBeGreaterThanOrEqual(4);
       expect(hasPalette(template, templates[template].defaultPalette)).toBe(true);
     }
   });

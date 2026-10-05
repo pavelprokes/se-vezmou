@@ -440,7 +440,7 @@ test.describe("fotografie chráněné PINem hostů a izolace svateb", () => {
     // (adresa fotografie `/media/{id}/…`; `/_next/static/media/` jsou písma)
     expect(html).not.toMatch(/(?<!static)\/media\/[0-9a-f]{8}-/);
     const region = guest.locator("#galerie");
-    await expect(region.getByLabel("PIN z pozvánky")).toBeVisible();
+    await expect(region.getByLabel("PIN z oznámení")).toBeVisible();
     expect((await visitorGet(request, site.slug, `/media/${row.id}/640`)).status()).toBe(404);
     // ani přes prohlížeč bez relace
     const anonymous = await guest.evaluate(
@@ -449,8 +449,8 @@ test.describe("fotografie chráněné PINem hostů a izolace svateb", () => {
     );
     expect(anonymous).toBe(404);
 
-    // PIN z pozvánky odemkne fotografii i její doručení (cookie hosta)
-    await region.getByLabel("PIN z pozvánky").fill(GUEST_PIN);
+    // PIN z oznámení odemkne fotografii i její doručení (cookie hosta)
+    await region.getByLabel("PIN z oznámení").fill(GUEST_PIN);
     const answered = guest.waitForResponse((r) => r.request().method() === "POST");
     await region.getByRole("button", { name: "Odemknout" }).click();
     await answered;

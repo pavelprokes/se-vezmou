@@ -72,8 +72,8 @@ begin
   perform tap.ok(not exists (select 1 from unnest(v_variants) v where not se_vezmou.slug_available(v)), 'všechny nabízené varianty jsou volné');
   perform tap.ok(exists (select 1 from unnest(v_variants) v where v ~ '-2027$'), 'varianta s rokem svatby');
   perform tap.ok(exists (select 1 from unnest(v_variants) v where v ~ '-2027-06$'), 'varianta s rokem a měsícem');
-  perform tap.ok(exists (select 1 from unnest(v_variants) v where v ~ '-obec$'), 'varianta "obec"');
-  perform tap.ok(exists (select 1 from unnest(v_variants) v where v ~ '-[a-z2-9]{4}$' and v !~ '-(2027|obec)$'), 'neuhádnutelná varianta');
+  perform tap.ok(not exists (select 1 from unnest(v_variants) v where v ~ '-obec$'), 'žádná doslovná varianta „obec“');
+  perform tap.ok(exists (select 1 from unnest(v_variants) v where v ~ '-[a-z2-9]{4}$' and v !~ '-2027$'), 'neuhádnutelná varianta');
 
   -- rezervované slovo
   set local role service_role;

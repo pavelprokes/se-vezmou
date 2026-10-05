@@ -168,8 +168,18 @@ export function Done({ info, uiLocale }: { info: DoneInfo; uiLocale: Locale }) {
         <p className="text-muted text-sm">{t("wizard.done.pdf.note")}</p>
       </Card>
 
+      {/* PIN se ukazuje jen tady: připomenutí před odchodem do správy (3.3.4, v duchu) */}
+      {info.pin ? (
+        <p id="wz-done-pin-reminder" className="bg-linen rounded-button px-3 py-2">
+          {t("wizard.done.pinReminder")}
+        </p>
+      ) : null}
       <p>
-        <a href="/" className={buttonVariants({ variant: "secondary" })}>
+        <a
+          href="/"
+          className={buttonVariants({ variant: "secondary" })}
+          aria-describedby={info.pin ? "wz-done-pin-reminder" : undefined}
+        >
           {t("wizard.done.dashboard")}
         </a>
       </p>

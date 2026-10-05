@@ -1,7 +1,7 @@
 "use client";
 
 import { Fieldset } from "@/components/ui/field";
-import { ScreenGroup, TextField, ToggleField, useErrorText } from "../fields";
+import { Explain, ScreenGroup, TextField, ToggleField, useErrorText } from "../fields";
 import { useT } from "../i18n";
 import type { StepProps } from "./types";
 
@@ -30,10 +30,10 @@ export function StepRsvp({ draft, update, errors, screen, mobile }: StepProps) {
       </ScreenGroup>
 
       <ScreenGroup index={1} screen={screen} mobile={mobile}>
-        <Fieldset legend={t("wizard.rsvp.questions.legend")}>
-          <p className="text-muted mb-1 text-sm">{t("wizard.rsvp.questions.hint")}</p>
+        <Fieldset legend={t("wizard.rsvp.questions.legend")} hint={t("wizard.rsvp.questions.hint")}>
           <ToggleField
             label={t("wizard.rsvp.plusOne")}
+            description={t("wizard.rsvp.plusOneHint")}
             checked={rsvp.plusOne}
             onCheckedChange={(plusOne) => patch({ plusOne })}
           />
@@ -56,6 +56,7 @@ export function StepRsvp({ draft, update, errors, screen, mobile }: StepProps) {
           />
         </Fieldset>
         <p className="text-muted text-sm">{t("wizard.rsvp.later")}</p>
+        <Explain topic="rsvp" />
       </ScreenGroup>
     </>
   );

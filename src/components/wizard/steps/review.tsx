@@ -150,23 +150,28 @@ export function StepReview({
           className="border-cinnamon-deep rounded-2xl border-2 p-4"
           data-testid="review-issues"
         >
-          <h3
+          <h2
             id="wz-review-issues"
             className="text-cinnamon-deep flex items-center gap-2 text-lg font-medium"
           >
             <Icon icon={CircleAlert} size={22} />
             {t("wizard.review.issues.title", { count: issues.length })}
-          </h3>
+          </h2>
           <ul className="mt-2 flex flex-col">
-            {issues.map((issue) => (
+            {issues.map((issue, index) => (
               <li
                 key={`${issue.field}-${issue.code}`}
                 className="flex flex-wrap items-center gap-x-3"
               >
-                <span className="flex-1 basis-56">
+                <span id={`wz-review-issue-${index}`} className="flex-1 basis-56">
                   {t(`wizard.issue.${issue.code}` as WizardKey)}
                 </span>
-                <Button variant="text" onClick={() => onGoTo(issue.step, issue.field)}>
+                {/* opakované „Opravit v kroku 4“ dostane od čtečky i text chyby (2.4.6) */}
+                <Button
+                  variant="text"
+                  aria-describedby={`wz-review-issue-${index}`}
+                  onClick={() => onGoTo(issue.step, issue.field)}
+                >
                   {t("wizard.review.issues.fix", { step: issue.step })}
                 </Button>
               </li>
@@ -181,10 +186,10 @@ export function StepReview({
 
       {gaps.length > 0 ? (
         <section aria-labelledby="wz-review-gaps" className="bg-linen rounded-2xl p-4">
-          <h3 id="wz-review-gaps" className="flex items-center gap-2 text-lg font-medium">
+          <h2 id="wz-review-gaps" className="flex items-center gap-2 text-lg font-medium">
             <Icon icon={TriangleAlert} size={22} />
             {t("wizard.review.gaps.title")}
-          </h3>
+          </h2>
           <p className="mt-2 text-sm">
             {t("wizard.review.gaps.body", {
               parts: gaps.map((gap) => t(`wizard.review.gaps.${gap}` as WizardKey)).join(", "),

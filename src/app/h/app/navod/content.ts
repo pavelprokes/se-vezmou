@@ -62,7 +62,7 @@ export const GUIDE: GuideSection[] = [
       },
       { h3: "3. Šablona a barvy" },
       {
-        p: "Vyberte vzhled webu: **Editorial**, **Eukalyptus**, **Chateau** nebo **Modern**, a k němu barvy. Jak web vypadá, vidíte v náhledu vpravo, na mobilu pod tlačítkem **Náhled**. Vzhled můžete kdykoli později změnit.",
+        p: "Vyberte vzhled webu: **Editorial**, **Eukalyptus**, **Chateau** nebo **Modern**, a k němu barvy. Jak web vypadá, ukazuje náhled vedle formuláře, na mobilu po klepnutí na **Náhled**. Vzhled můžete kdykoli později změnit.",
       },
       {
         tip: "Na úvod webu můžete později dát i velkou fotku, ve všech šablonách. Víc v části Úvodní fotka.",
@@ -130,7 +130,7 @@ export const GUIDE: GuideSection[] = [
       {
         p: "Tlačítko **Stáhnout oznámení (PDF)** připraví stránku k tisku s adresou webu, QR kódem a PINem. Můžete ji vytisknout nebo poslat do tiskárny spolu s oznámením.",
       },
-      { p: "Tlačítkem **Přejít do správy** se dostanete k dalším úpravám." },
+      { p: "Tlačítkem **Přejít do správy webu** se dostanete k dalším úpravám." },
     ],
   },
   {
@@ -285,7 +285,7 @@ export const GUIDE: GuideSection[] = [
       {
         list: [
           "**PIN hostů** (6 až 12 číslic, jiný než PIN správy) nastavíte v části **Přístup** tlačítkem **Nastavit PIN** a pak ho zapnete tlačítkem **Zapnout PIN hostů**, pokud jste to neudělali už v průvodci. Napíšete ho na oznámení. Číslo účtu, adresu soukromého místa a fotky schované za PINem hosté uvidí až po jeho zadání.",
-          "**Zamknout web**: v části **Přístup** zamknete celý web, bez PINu z něj hosté neuvidí nic kromě vašich jmen. Hosté s osobním odkazem nebo QR kódem z pozvánky se dostanou dovnitř i bez PINu. Zamknout jde jen se zapnutým PINem hostů.",
+          "**Zamknout web**: v části **Přístup** zamknete celý web, bez PINu z něj hosté neuvidí nic kromě vašich jmen. Hosté s osobním odkazem nebo QR kódem z oznámení se dostanou dovnitř i bez PINu. Zamknout jde jen se zapnutým PINem hostů.",
           "**PIN správy** je jiné číslo, jen pro vás. Slouží k přihlášení do správy bez e-mailu.",
           "Dary: v sekci **Dary** vyplníte číslo účtu. Hosté ho uvidí s QR kódem pro platbu z mobilu až po zadání PINu hostů, bez zapnutého PINu ho neuvidí nikdo. Na anglické verzi webu se ukáže i IBAN, a když vyplníte **Majitel účtu**, i evropský QR kód pro platbu v eurech.",
         ],

@@ -1,11 +1,13 @@
 "use client";
 
 import { Eye, Rocket } from "lucide-react";
+import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FormAlert } from "@/components/ui/form-alert";
 import { Icon } from "@/components/ui/icon";
 import type { Issue, WizardDraft } from "@/wizard/draft";
+import { Explain } from "../fields";
 import { useT } from "../i18n";
 import { PreviewLink } from "../preview-link";
 
@@ -44,9 +46,15 @@ export function StepFinish({
   const address = draft.slug ? `${draft.slug}.${domain}` : "";
   const publishable = issues.length === 0;
 
+  // Chyba uložení nebo zveřejnění: zaměření na ni, aby ji čtečka přečetla i s kontextem (3.3.1)
+  useEffect(() => {
+    if (error) document.getElementById("wz-finish-error")?.focus();
+  }, [error]);
+
   return (
     <div className="flex flex-col gap-6">
-      <FormAlert>{error}</FormAlert>
+      <FormAlert id="wz-finish-error">{error}</FormAlert>
+      <Explain topic="draft" />
 
       {signedIn ? null : (
         <p className="bg-linen rounded-button px-3 py-2" data-testid="finish-account-note">
@@ -66,12 +74,15 @@ export function StepFinish({
           <li>{t("wizard.finish.save.point.reservation")}</li>
         </ul>
         {canSave ? null : (
-          <p className="text-cinnamon-deep text-sm">{t("wizard.finish.save.blocked")}</p>
+          <p id="wz-finish-save-blocked" className="text-cinnamon-deep text-sm">
+            {t("wizard.finish.save.blocked")}
+          </p>
         )}
         <Button
           className="self-start"
           variant="secondary"
           onClick={onSave}
+          aria-describedby={canSave ? undefined : "wz-finish-save-blocked"}
           disabled={!canSave || busy !== null}
           aria-disabled={!canSave || busy !== null || undefined}
         >
@@ -95,7 +106,7 @@ export function StepFinish({
         </ul>
         {publishable ? null : (
           <div role="note" className="border-cinnamon-deep rounded-button border-2 px-3 py-2">
-            <p className="text-cinnamon-deep font-medium">
+            <p id="wz-finish-publish-blocked" className="text-cinnamon-deep font-medium">
               {t("wizard.finish.publish.blocked", { count: issues.length })}
             </p>
             <Button variant="text" onClick={onGoToReview}>
@@ -106,6 +117,7 @@ export function StepFinish({
         <Button
           className="self-start"
           onClick={onPublish}
+          aria-describedby={publishable ? undefined : "wz-finish-publish-blocked"}
           disabled={!publishable || busy !== null}
           aria-disabled={!publishable || busy !== null || undefined}
         >

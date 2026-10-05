@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useId, type ReactNode } from "react";
 import { Checkbox } from "@/components/ui/choice";
+import { Explainer } from "@/components/ui/explainer";
 import { Field, type FieldProps } from "@/components/ui/field";
 import { TextArea } from "@/components/ui/textarea";
 import type { Locale } from "@/i18n/config";
@@ -14,6 +15,14 @@ export const FIELD_PREFIX = "wz-";
 
 export function fieldId(field: string): string {
   return `${FIELD_PREFIX}${field}`;
+}
+
+/**
+ * Zaměří prvek po překreslení. Po „Odebrat“ zmizí tlačítko, které mělo fokus, a fokus by spadl
+ * na `body` (WCAG 2.4.3); proto se přesune na tlačítko „Přidat…“ téže skupiny.
+ */
+export function focusLater(id: string): void {
+  setTimeout(() => document.getElementById(id)?.focus(), 0);
 }
 
 /** Chyby k zobrazení: pole -> kód chyby (po pokusu o pokračování nebo uložení). */
@@ -135,7 +144,7 @@ export function LocalizedTextArea({
   );
 }
 
-/** Jedno přepínací pole s popiskem a vysvětlením pod ním. */
+/** Jedno přepínací pole s popiskem a vysvětlením pod ním (připojeným přes `aria-describedby`). */
 export function ToggleField({
   label,
   description,
@@ -147,14 +156,48 @@ export function ToggleField({
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
 }) {
+  const descriptionId = useId();
   return (
     <div className="flex flex-col">
       <Checkbox
         label={label}
         checked={checked}
+        aria-describedby={description ? descriptionId : undefined}
         onChange={(event) => onCheckedChange(event.target.checked)}
       />
-      {description ? <p className="text-muted ps-9 text-sm">{description}</p> : null}
+      {description ? (
+        <p id={descriptionId} className="text-muted ps-9 text-sm">
+          {description}
+        </p>
+      ) : null}
     </div>
+  );
+}
+
+/** Vysvětlivky pojmů průvodce: krátký nadpis-otázka a text po odstavcích (`\n\n`). */
+const EXPLAIN_KEYS = {
+  address: { title: "wizard.explain.address.title", body: "wizard.explain.address.body" },
+  draft: { title: "wizard.explain.draft.title", body: "wizard.explain.draft.body" },
+  preview: { title: "wizard.explain.preview.title", body: "wizard.explain.preview.body" },
+  pin: { title: "wizard.explain.pin.title", body: "wizard.explain.pin.body" },
+  rsvp: { title: "wizard.explain.rsvp.title", body: "wizard.explain.rsvp.body" },
+  email: { title: "wizard.explain.email.title", body: "wizard.explain.email.body" },
+  map: { title: "wizard.explain.map.title", body: "wizard.explain.map.body" },
+  skip: { title: "wizard.explain.skip.title", body: "wizard.explain.skip.body" },
+} as const satisfies Record<string, { title: WizardKey; body: WizardKey }>;
+
+export type ExplainTopic = keyof typeof EXPLAIN_KEYS;
+
+/** Vysvětlivka pojmu průvodce („Co je adresa webu?“), rozbalovací pod polem, kterého se týká. */
+export function Explain({ topic, className }: { topic: ExplainTopic; className?: string }) {
+  const t = useT();
+  return (
+    <Explainer title={t(EXPLAIN_KEYS[topic].title)} className={className}>
+      {t(EXPLAIN_KEYS[topic].body)
+        .split("\n\n")
+        .map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+    </Explainer>
   );
 }

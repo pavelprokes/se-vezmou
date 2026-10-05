@@ -145,8 +145,12 @@ for (const locale of locales) {
       const hero = page.locator("section[aria-labelledby='hero-title']");
       const preview = hero.getByTestId("address-preview");
       await expect(preview).toHaveText("klara-a-matej.se-vezmou.cz");
-      await hero.getByLabel(locale.code === "cs" ? "První jméno" : "First name").fill("Šárka");
-      await hero.getByLabel(locale.code === "cs" ? "Druhé jméno" : "Second name").fill("Ondřej");
+      await hero
+        .getByLabel(locale.code === "cs" ? "První jméno" : "Your name", { exact: true })
+        .fill("Šárka");
+      await hero
+        .getByLabel(locale.code === "cs" ? "Druhé jméno" : "Your partner’s name")
+        .fill("Ondřej");
       await expect(preview).toHaveText("sarka-a-ondrej.se-vezmou.cz");
 
       const templates = hero.getByRole("group", {
@@ -169,7 +173,9 @@ for (const locale of locales) {
     test("hero: formulář jmen předvyplní průvodce", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       const hero = page.locator("section[aria-labelledby='hero-title']");
-      await hero.getByLabel(locale.code === "cs" ? "První jméno" : "First name").fill("Šárka");
+      await hero
+        .getByLabel(locale.code === "cs" ? "První jméno" : "Your name", { exact: true })
+        .fill("Šárka");
       await hero
         .getByRole("button", { name: locale.code === "cs" ? "Vytvořit web" : "Create your site" })
         .click();
@@ -260,9 +266,11 @@ for (const locale of locales) {
     test("pole jmen v závěrečné výzvě předvyplní průvodce (query parametry)", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       const form = page.locator("#start form");
-      await form.getByLabel(locale.code === "cs" ? "První jméno" : "First name").fill("Anna");
       await form
-        .getByLabel(locale.code === "cs" ? "Druhé jméno" : "Second name")
+        .getByLabel(locale.code === "cs" ? "První jméno" : "Your name", { exact: true })
+        .fill("Anna");
+      await form
+        .getByLabel(locale.code === "cs" ? "Druhé jméno" : "Your partner’s name")
         .fill("Jiří Novák");
       await form.getByRole("button").click();
       await page.waitForURL(/\/vytvorit\?/);

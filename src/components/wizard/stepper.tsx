@@ -17,7 +17,7 @@ function StateMark({ state }: { state: StepState }) {
   return (
     <>
       <Icon icon={icon} size={16} />
-      <span className="sr-only">{t(`wizard.stepper.state.${state}` as WizardKey)}</span>
+      <span className="sr-only">, {t(`wizard.stepper.state.${state}` as WizardKey)}</span>
     </>
   );
 }

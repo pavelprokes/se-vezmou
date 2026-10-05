@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { BLOCKED_SLUG_WORDS, EXTRA_RESERVED_SLUGS, RESERVED_SLUGS } from "@/config/reserved-slugs";
 import {
   asciiFold,
+  dateSuffix,
   isReservedSlug,
   normalizeSlugInput,
   slugFromNames,
@@ -11,6 +12,7 @@ import {
   slugProblem,
   slugRevealsYear,
   SLUG_MAX,
+  variantBase,
   variantKind,
 } from "./slug";
 
@@ -190,8 +192,20 @@ describe("slugRevealsYear a variantKind", () => {
   it("druh varianty podle koncovky", () => {
     expect(variantKind("klara-a-matej-2027")).toBe("year");
     expect(variantKind("klara-a-matej-2027-06")).toBe("month");
-    expect(variantKind("klara-a-matej-obec")).toBe("place");
+    expect(variantKind("klara-a-matej-obec")).toBe("random");
     expect(variantKind("klara-a-matej-k7m2")).toBe("random");
     expect(variantKind("klara-a-matej")).toBeNull();
+  });
+});
+
+describe("doplněk adresy při kolizi", () => {
+  it("základ varianty bez koncovky roku, měsíce i náhodných znaků", () => {
+    expect(variantBase("klara-a-matej-2027")).toBe("klara-a-matej");
+    expect(variantBase("klara-a-matej-2027-06")).toBe("klara-a-matej");
+    expect(variantBase("klara-a-matej-k7m2")).toBe("klara-a-matej");
+  });
+  it("datum svatby jako doplněk", () => {
+    expect(dateSuffix("2027-06-19")).toBe("19-6-2027");
+    expect(dateSuffix("")).toBe("");
   });
 });

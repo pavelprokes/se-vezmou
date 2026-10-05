@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { MAX_EXTRA_EVENTS, type PlaceDraft, type WizardDraft } from "@/wizard/draft";
 import {
+  Explain,
   fieldId,
+  focusLater,
   LocalizedTextArea,
   ScreenGroup,
   TextField,
@@ -96,13 +98,17 @@ function VenueFields({
         autoComplete="off"
         maxLength={250}
       />
-      {draft.showMap && address !== "" ? (
-        <p role="status" className="text-muted -mt-2 text-sm">
-          {located && part.geo
+      {/* Oblast zůstává v DOM, aby čtečky výsledek hledání ohlásily (vložená i s textem by zmlkla). */}
+      <p
+        role="status"
+        className={draft.showMap && address !== "" ? "text-muted -mt-2 text-sm" : "sr-only"}
+      >
+        {draft.showMap && address !== ""
+          ? located && part.geo
             ? t("wizard.map.found", { place: part.geo.label })
-            : t(`wizard.map.${geoStatus ?? "searching"}`)}
-        </p>
-      ) : null}
+            : t(`wizard.map.${geoStatus ?? "searching"}`)
+          : ""}
+      </p>
       <LocalizedTextArea
         field={`${which}-directions`}
         label={t("wizard.venue.directions.label")}
@@ -149,8 +155,10 @@ export function StepProgram({
     );
   };
 
-  const removeEvent = (id: string) =>
+  const removeEvent = (id: string) => {
     update((d) => ({ ...d, extraEvents: d.extraEvents.filter((event) => event.id !== id) }));
+    focusLater(fieldId("extra-add"));
+  };
 
   const patchEvent = (id: string, change: Partial<WizardDraft["extraEvents"][number]>) =>
     update((d) => ({
@@ -230,12 +238,15 @@ export function StepProgram({
           </>
         ) : null}
         {ceremony.enabled || reception.enabled ? (
-          <ToggleField
-            label={t("wizard.map.enable")}
-            description={t("wizard.map.enableHint")}
-            checked={draft.showMap}
-            onCheckedChange={(showMap) => update((d) => ({ ...d, showMap }))}
-          />
+          <>
+            <ToggleField
+              label={t("wizard.map.enable")}
+              description={t("wizard.map.enableHint")}
+              checked={draft.showMap}
+              onCheckedChange={(showMap) => update((d) => ({ ...d, showMap }))}
+            />
+            <Explain topic="map" />
+          </>
         ) : null}
       </ScreenGroup>
 
@@ -243,9 +254,9 @@ export function StepProgram({
         <p className="text-muted text-sm">{t("wizard.extra.hint")}</p>
         {draft.extraEvents.map((event, index) => (
           <Card key={event.id} tone="linen" className="flex flex-col gap-4">
-            <h3 className="text-ink text-lg font-medium">
+            <h2 className="text-ink text-lg font-medium">
               {t("wizard.extra.item", { number: index + 1 })}
-            </h3>
+            </h2>
             <TextField
               field={`extra-${index}-title`}
               label={t("wizard.extra.title")}
@@ -295,7 +306,12 @@ export function StepProgram({
           </Card>
         ))}
         {draft.extraEvents.length < MAX_EXTRA_EVENTS ? (
-          <Button variant="secondary" className="self-start" onClick={addEvent}>
+          <Button
+            id={fieldId("extra-add")}
+            variant="secondary"
+            className="self-start"
+            onClick={addEvent}
+          >
             {t("wizard.extra.add")}
           </Button>
         ) : (

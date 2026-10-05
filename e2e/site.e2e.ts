@@ -287,8 +287,8 @@ test.describe("dary a soukromé místo za PINem (FR-PRIV-2)", () => {
     page,
   }) => {
     await page.goto(previewUrl("cs"));
-    await expect(page.locator("#dary").getByLabel("PIN z pozvánky")).toBeVisible();
-    await expect(page.locator("#misto").getByLabel("PIN z pozvánky")).toBeVisible();
+    await expect(page.locator("#dary").getByLabel("PIN z oznámení")).toBeVisible();
+    await expect(page.locator("#misto").getByLabel("PIN z oznámení")).toBeVisible();
     const html = await page.content();
     expect(html).not.toContain("19-2000145399");
     expect(html).not.toContain("CZ6508000000192000145399");
@@ -305,7 +305,7 @@ test.describe("dary a soukromé místo za PINem (FR-PRIV-2)", () => {
       page.getByRole("img", { name: /QR kód pro platbu na účet 19-2000145399\/0800/ }),
     ).toBeVisible();
     await expect(page.getByText("Altánová 7, 252 01 Dobřichovice")).toBeVisible();
-    await expect(page.getByLabel("PIN z pozvánky")).toHaveCount(0);
+    await expect(page.getByLabel("PIN z oznámení")).toHaveCount(0);
   });
 });
 

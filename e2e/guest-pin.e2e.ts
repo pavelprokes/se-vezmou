@@ -27,7 +27,7 @@ const LEAKS = [SENSITIVE.account, SENSITIVE.holder, SENSITIVE.address, SENSITIVE
 
 async function enterPin(page: Page, region: string, pin: string): Promise<void> {
   const scope = page.locator(region);
-  await scope.getByLabel("PIN z pozvánky").fill(pin);
+  await scope.getByLabel("PIN z oznámení").fill(pin);
   const response = page.waitForResponse((r) => r.request().method() === "POST");
   await scope.getByRole("button", { name: "Odemknout" }).click();
   await response;
@@ -35,7 +35,7 @@ async function enterPin(page: Page, region: string, pin: string): Promise<void> 
   await expect(async () => {
     // evaluateAll nečeká na prvek, který se právě odstraňuje (odemčení formulář nahradí obsahem)
     const values = await scope
-      .getByLabel("PIN z pozvánky")
+      .getByLabel("PIN z oznámení")
       .evaluateAll((fields) => fields.map((field) => (field as HTMLInputElement).value));
     expect(values.every((value) => value === "")).toBe(true);
   }).toPass();
@@ -72,13 +72,13 @@ test.describe("citlivá data bez PINu (E2E-17)", () => {
       expect(body).not.toMatch(/CZ\d{2}/); // IBAN (samotné „CZ“ je i v og:locale cs_CZ)
       expect(body).not.toMatch(/SPD\*1\.0/);
     }
-    expect(html).toMatch(/PIN z\spozvánky/);
+    expect(html).toMatch(/PIN z\soznámení/);
     expect(html).toContain("self.__next_f"); // payload je součástí dokumentu, tedy zkontrolovaný
 
     // zástupné formuláře jsou vidět v prohlížeči a nic odemčeného
     await page.goto(tenant("/"));
-    await expect(page.locator("#dary").getByLabel("PIN z pozvánky")).toBeVisible();
-    await expect(page.locator("#misto").getByLabel("PIN z pozvánky")).toBeVisible();
+    await expect(page.locator("#dary").getByLabel("PIN z oznámení")).toBeVisible();
+    await expect(page.locator("#misto").getByLabel("PIN z oznámení")).toBeVisible();
     await expect(page.locator("svg.site-qr")).toHaveCount(0);
     const content = await page.content();
     for (const secret of LEAKS) expect(content).not.toContain(secret);
@@ -137,13 +137,13 @@ test.describe("zadání PINu hostů (E2E-17, FR-PRIV-2)", () => {
       gifts.getByRole("img", { name: /QR kód pro platbu na účet 2501234567\/2010/ }),
     ).toBeVisible();
     // formulář zmizel a zaměření přešlo na odemčený obsah (ne na odstraněné tlačítko)
-    await expect(gifts.getByLabel("PIN z pozvánky")).toHaveCount(0);
+    await expect(gifts.getByLabel("PIN z oznámení")).toHaveCount(0);
     await expect(gifts.getByRole("group", { name: "Odemčeno PINem." })).toBeFocused();
     // soukromé místo se odemklo stejnou relací
     const venue = page.getByRole("article", { name: "Soukromý altán" });
     await expect(venue.getByText(SENSITIVE.address)).toBeVisible();
     await expect(venue.getByText(SENSITIVE.directions)).toBeVisible();
-    await expect(venue.getByLabel("PIN z pozvánky")).toHaveCount(0);
+    await expect(venue.getByLabel("PIN z oznámení")).toHaveCount(0);
 
     // cookie: HttpOnly, SameSite=Lax, bez Domain, krátká platnost
     const cookie = (await context.cookies(tenant("/"))).find((c) => c.name === "sv_guest")!;
@@ -168,7 +168,7 @@ test.describe("zadání PINu hostů (E2E-17, FR-PRIV-2)", () => {
     const other = await page.context().browser()!.newContext({ locale: "cs-CZ" });
     const otherPage = await other.newPage();
     await otherPage.goto(tenant("/"));
-    await expect(otherPage.locator("#dary").getByLabel("PIN z pozvánky")).toBeVisible();
+    await expect(otherPage.locator("#dary").getByLabel("PIN z oznámení")).toBeVisible();
     await expect(otherPage.locator("#dary")).not.toContainText(SENSITIVE.account);
     await other.close();
   });
@@ -202,7 +202,7 @@ test.describe("zadání PINu hostů (E2E-17, FR-PRIV-2)", () => {
       ),
     );
     await page.reload();
-    await expect(page.locator("#dary").getByLabel("PIN z pozvánky")).toBeVisible();
+    await expect(page.locator("#dary").getByLabel("PIN z oznámení")).toBeVisible();
     await expect(page.locator("#dary")).not.toContainText(SENSITIVE.account);
 
     // nové zadání vydá novou relaci; odvolání (změna PINu) ji zruší
@@ -215,7 +215,7 @@ test.describe("zadání PINu hostů (E2E-17, FR-PRIV-2)", () => {
       ),
     );
     await page.reload();
-    await expect(page.locator("#dary").getByLabel("PIN z pozvánky")).toBeVisible();
+    await expect(page.locator("#dary").getByLabel("PIN z oznámení")).toBeVisible();
   });
 
   test("chybný PIN: chyba slovy u pole, nic se neodemkne, špatný tvar se nepočítá", async ({
@@ -232,9 +232,9 @@ test.describe("zadání PINu hostů (E2E-17, FR-PRIV-2)", () => {
 
     await enterPin(page, "#dary", WRONG);
     await expect(gifts.getByText(/PIN nesouhlasí\. Zkontrolujte ho na pozvánce/)).toBeVisible();
-    await expect(gifts.getByLabel("PIN z pozvánky")).toHaveAttribute("aria-invalid", "true");
-    await expect(gifts.getByLabel("PIN z pozvánky")).toBeFocused();
-    await expect(gifts.getByLabel("PIN z pozvánky")).toHaveValue("");
+    await expect(gifts.getByLabel("PIN z oznámení")).toHaveAttribute("aria-invalid", "true");
+    await expect(gifts.getByLabel("PIN z oznámení")).toBeFocused();
+    await expect(gifts.getByLabel("PIN z oznámení")).toHaveValue("");
     await expect(gifts).not.toContainText(SENSITIVE.account);
     expect(await guestSessions()).toHaveLength(0);
   });

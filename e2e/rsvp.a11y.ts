@@ -178,12 +178,12 @@ test.describe("axe: PIN hostů a stavy RSVP", () => {
       await wedding({ guestPin: GUEST_PIN });
       await page.goto(tenant("/"));
       const gifts = page.locator("#dary");
-      await gifts.getByLabel("PIN z pozvánky").fill("135790");
+      await gifts.getByLabel("PIN z oznámení").fill("135790");
       await gifts.getByRole("button", { name: "Odemknout" }).click();
       await expect(gifts.getByText(/PIN nesouhlasí/)).toBeVisible();
       expect(await violations(page)).toEqual([]);
 
-      await gifts.getByLabel("PIN z pozvánky").fill(GUEST_PIN);
+      await gifts.getByLabel("PIN z oznámení").fill(GUEST_PIN);
       await gifts.getByRole("button", { name: "Odemknout" }).click();
       await expect(gifts.getByText("2501234567/2010")).toBeVisible();
       expect(await violations(page)).toEqual([]);
@@ -295,7 +295,7 @@ test.describe("axe: zamčený web", () => {
       page.getByRole("heading", { level: 2, name: "Web je jen pro pozvané hosty" }),
     ).toBeVisible();
     expect(await violations(page)).toEqual([]);
-    await page.getByLabel("PIN z pozvánky").fill("12");
+    await page.getByLabel("PIN z oznámení").fill("12");
     await page.getByRole("button", { name: "Odemknout" }).click();
     await expect(page.locator("main").getByRole("alert")).toContainText("PIN");
     expect(await violations(page)).toEqual([]);

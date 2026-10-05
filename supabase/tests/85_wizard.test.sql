@@ -169,7 +169,7 @@ begin
 end
 $$;
 
--- Kolize: nic se nezaloží, nabídnou se varianty (rok, rok-měsíc, obec, neuhádnutelná)
+-- Kolize: nic se nezaloží, nabídnou se varianty (rok, rok-měsíc, neuhádnutelná)
 do $$
 declare
   r record;
@@ -184,9 +184,8 @@ begin
   perform tap.ok(not r.ok and r.wedding_id is null, 'kolize se zveřejněnou adresou: nic se nevytvoří');
   perform tap.ok('klara-a-matej-2027' = any (r.variants), 'varianta s rokem');
   perform tap.ok('klara-a-matej-2027-06' = any (r.variants), 'varianta s rokem a měsícem');
-  perform tap.ok('klara-a-matej-obec' = any (r.variants), 'varianta s obcí');
   perform tap.ok(exists (select 1 from unnest(r.variants) v where v ~ '^klara-a-matej-[abcdefghjkmnpqrstuvwxyz2-9]{4}$'), 'neuhádnutelná varianta se čtyřmi znaky');
-  perform tap.eq(cardinality(r.variants), 4, 'čtyři varianty');
+  perform tap.eq(cardinality(r.variants), 3, 'tři varianty');
   perform tap.eq((select count(*) from se_vezmou.weddings), v_before_w, 'počet svateb se nezměnil');
   perform tap.eq((select count(*) from se_vezmou.wedding_admins), v_before_admins, 'žádný správce navíc');
   perform tap.eq((select count(*) from se_vezmou.slug_registry), v_before_reg, 'registr adres se nezměnil');

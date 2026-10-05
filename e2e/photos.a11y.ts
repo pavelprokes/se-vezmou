@@ -225,7 +225,7 @@ test.describe("axe: web páru s galerií a prohlížečem fotografií", () => {
 
     const guest = await context.newPage();
     await guest.goto(site.url);
-    await expect(guest.locator("#galerie").getByLabel("PIN z pozvánky")).toBeVisible();
+    await expect(guest.locator("#galerie").getByLabel("PIN z oznámení")).toBeVisible();
     await expectNoViolations(guest);
   });
 });

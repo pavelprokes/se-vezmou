@@ -121,16 +121,26 @@ export function slugRevealsYear(slug: string): boolean {
   return /(^|-)(19|20)\d{2}(-(0[1-9]|1[0-2]))?$/.test(slug);
 }
 
-export type VariantKind = "year" | "month" | "place" | "random";
+export type VariantKind = "year" | "month" | "random";
 
 /**
- * Druh varianty nabídnuté při kolizi (`klara-a-matej-2027`, `-2027-06`, `-obec`, `-k7m2`) podle
+ * Druh varianty nabídnuté při kolizi (`klara-a-matej-2027`, `-2027-06`, `-k7m2`) podle
  * její koncovky; `null`, pokud na variantu nevypadá.
  */
 export function variantKind(variant: string): VariantKind | null {
   if (/-(19|20)\d{2}-(0[1-9]|1[0-2])$/.test(variant)) return "month";
   if (/-(19|20)\d{2}$/.test(variant)) return "year";
-  if (variant.endsWith("-obec")) return "place";
   if (/-[a-z0-9]{4}$/.test(variant)) return "random";
   return null;
+}
+
+/** Obsazená adresa, ke které databáze varianty nabídla (bez koncovky roku, měsíce nebo náhodných znaků). */
+export function variantBase(variant: string): string {
+  return variant.replace(/-((19|20)\d{2}(-(0[1-9]|1[0-2]))?|[a-z0-9]{4})$/, "");
+}
+
+/** Datum svatby jako doplněk adresy: `2027-06-19` -> `19-6-2027`. */
+export function dateSuffix(isoDate: string): string {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return year && month && day ? `${day}-${month}-${year}` : "";
 }

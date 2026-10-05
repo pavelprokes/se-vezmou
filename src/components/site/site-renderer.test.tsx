@@ -475,7 +475,7 @@ describe("SiteRenderer: režim poděkování po svatbě (FR-WEB-4)", () => {
     });
     expect(container.querySelector("#dary")).toBeNull();
     expect(container.textContent).not.toContain(sensitiveFixture.gifts!.account);
-    expect(screen.queryByLabelText("PIN z pozvánky")).toBeNull();
+    expect(screen.queryByLabelText("PIN z oznámení")).toBeNull();
   });
 
   it("galerie zůstane", () => {
@@ -638,7 +638,7 @@ describe("SiteRenderer: odkaz na externí fotogalerii", () => {
     it("zamčeno: v HTML není adresa, titulek ani popis, jen formulář PINu", () => {
       const { container } = renderSite(withLink(protectedLink), "cs", { sensitive: secret });
       const gallery = screen.getByRole("region", { name: "Fotografie" });
-      expect(within(gallery).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+      expect(within(gallery).getByLabelText("PIN z oznámení")).toBeInTheDocument();
       expect(container.innerHTML).not.toContain("tajne-abc123");
       expect(container.innerHTML).not.toContain("Soukromé fotky");
       expect(container.innerHTML).not.toContain("Jen pro hosty");
@@ -652,7 +652,7 @@ describe("SiteRenderer: odkaz na externí fotogalerii", () => {
       });
       expect(container.innerHTML).not.toContain("tajne-abc123");
       const gallery = screen.getByRole("region", { name: "Fotografie" });
-      expect(within(gallery).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+      expect(within(gallery).getByLabelText("PIN z oznámení")).toBeInTheDocument();
     });
 
     it("odemčeno: odkaz s kartou je vidět, formulář PINu zmizí", () => {
@@ -660,7 +660,7 @@ describe("SiteRenderer: odkaz na externí fotogalerii", () => {
       const link = screen.getByRole("link", { name: /Tajná galerie/ });
       expect(link).toHaveAttribute("href", "https://fotky.example/tajne-abc123");
       expect(link).toHaveTextContent("Jen pro hosty");
-      expect(screen.queryByLabelText("PIN z pozvánky")).toBeNull();
+      expect(screen.queryByLabelText("PIN z oznámení")).toBeNull();
     });
   });
 });
@@ -670,7 +670,7 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
     const { container } = renderSite(eukalyptusFixture, "cs", { sensitive: sensitiveFixture });
     const gifts = screen.getByRole("region", { name: "Dary" });
     expect(within(gifts).getByRole("form", { name: /chráněna PINem/ })).toBeInTheDocument();
-    expect(within(gifts).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+    expect(within(gifts).getByLabelText("PIN z oznámení")).toBeInTheDocument();
     expect(container.textContent).not.toContain(sensitiveFixture.gifts!.account);
     expect(container.textContent).not.toContain("Klára Ukázková");
     expect(container.querySelector("svg.site-qr")).toBeNull();
@@ -684,14 +684,14 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
       sensitive: { ...sensitiveFixture, gifts: null },
     });
     const gifts = screen.getByRole("region", { name: "Dary" });
-    expect(within(gifts).queryByLabelText("PIN z pozvánky")).toBeNull();
+    expect(within(gifts).queryByLabelText("PIN z oznámení")).toBeNull();
     expect(gifts).toHaveTextContent("Údaje o daru teď nejsou k dispozici");
   });
 
   it("příznak bez citlivých údajů nic neodemkne", () => {
     renderSite(eukalyptusFixture, "cs", { sensitiveUnlocked: true, sensitive: null });
     const gifts = screen.getByRole("region", { name: "Dary" });
-    expect(within(gifts).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+    expect(within(gifts).getByLabelText("PIN z oznámení")).toBeInTheDocument();
   });
 
   it("anglická verze přidá příjemce, IBAN, BIC a zprávu jako text s tlačítkem Kopírovat", () => {
@@ -734,7 +734,7 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
     });
     const gifts = screen.getByRole("region", { name: "Dary" });
     expect(within(gifts).getByText("19-2000145399/0800")).toBeInTheDocument();
-    expect(within(gifts).queryByLabelText("PIN z pozvánky")).toBeNull();
+    expect(within(gifts).queryByLabelText("PIN z oznámení")).toBeNull();
     const qr = within(gifts).getByRole("img", { name: /QR kód pro platbu na účet/ });
     expect(qr.tagName.toLowerCase()).toBe("svg");
     expect(container.querySelector("svg.site-qr path")?.getAttribute("d")?.length).toBeGreaterThan(
@@ -750,7 +750,7 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
     const user = userEvent.setup();
     renderSite(eukalyptusFixture);
     const gifts = screen.getByRole("region", { name: "Dary" });
-    const input = within(gifts).getByLabelText("PIN z pozvánky");
+    const input = within(gifts).getByLabelText("PIN z oznámení");
     await user.type(input, "123 456");
     await user.click(within(gifts).getByRole("button", { name: "Odemknout" }));
     expect(await within(gifts).findByText(/PIN nesouhlasí/)).toBeInTheDocument();
@@ -768,7 +768,7 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
     const user = userEvent.setup();
     renderSite(eukalyptusFixture);
     const gifts = screen.getByRole("region", { name: "Dary" });
-    await user.type(within(gifts).getByLabelText("PIN z pozvánky"), "999999");
+    await user.type(within(gifts).getByLabelText("PIN z oznámení"), "999999");
     await user.click(within(gifts).getByRole("button", { name: "Odemknout" }));
     expect(
       await within(gifts).findByText(/pozastaveno\. Zkuste to znovu za 15 minut/),
@@ -778,7 +778,7 @@ describe("SiteRenderer: dary za PINem (FR-PRIV-2)", () => {
   it("pole PINu je heslové, číselné a bez automatického doplnění", () => {
     renderSite(eukalyptusFixture);
     const gifts = screen.getByRole("region", { name: "Dary" });
-    const input = within(gifts).getByLabelText("PIN z pozvánky");
+    const input = within(gifts).getByLabelText("PIN z oznámení");
     expect(input).toHaveAttribute("type", "password");
     expect(input).toHaveAttribute("inputmode", "numeric");
     expect(input).toHaveAttribute("autocomplete", "off");
@@ -792,7 +792,7 @@ describe("SiteRenderer: soukromé místo za PINem (FR-PRIV-2)", () => {
   it("bez PINu je vidět název a formulář, adresa ani popis cesty nejsou nikde", () => {
     const { container } = renderSite(eukalyptusFixture, "cs", { sensitive: sensitiveFixture });
     const card = screen.getByRole("article", { name: "Soukromý altán" });
-    expect(within(card).getByLabelText("PIN z pozvánky")).toBeInTheDocument();
+    expect(within(card).getByLabelText("PIN z oznámení")).toBeInTheDocument();
     expect(container.textContent).not.toContain("Altánová 7");
     expect(container.textContent).not.toContain("zelené značce");
   });
@@ -802,7 +802,7 @@ describe("SiteRenderer: soukromé místo za PINem (FR-PRIV-2)", () => {
     const card = screen.getByRole("article", { name: "Soukromý altán" });
     expect(within(card).getByText("Altánová 7, 252 01 Dobřichovice")).toBeInTheDocument();
     expect(within(card).getByText(/zelené značce/)).toBeInTheDocument();
-    expect(within(card).queryByLabelText("PIN z pozvánky")).toBeNull();
+    expect(within(card).queryByLabelText("PIN z oznámení")).toBeNull();
   });
 });
 

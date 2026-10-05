@@ -2,7 +2,7 @@
 
 import { CircleAlert, CircleCheck, Info } from "lucide-react";
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { Fieldset } from "@/components/ui/field";
+import { Field, Fieldset } from "@/components/ui/field";
 import { Radio } from "@/components/ui/choice";
 import { Icon } from "@/components/ui/icon";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,9 @@ import {
   normalizeSlugInput,
   slugProblem,
   slugRevealsYear,
+  variantBase,
   variantKind,
+  dateSuffix,
 } from "@/wizard/slug";
 import type { WizardDraft } from "@/wizard/draft";
 import { fieldId } from "./fields";
@@ -53,6 +55,15 @@ export function SlugField({
   const id = useId();
   const hintId = `${id}-hint`;
   const statusId = `${id}-status`;
+  const domainId = `${id}-domain`;
+  // Průvodce adresu při psaní upraví (malá písmena, bez háčků, mezera -> pomlčka); řekne to nahlas.
+  const [adjusted, setAdjusted] = useState(false);
+  const change = (raw: string, final: boolean) => {
+    const next = normalizeSlugInput(raw, { final });
+    // trvale: stačí jedna úprava (třeba velké písmeno na začátku), aby o ní pár věděl
+    if (next !== raw) setAdjusted(true);
+    onSlugChange(next, true);
+  };
   const slug = draft.slug;
   const [remote, setRemote] = useState<Remote | null>(null);
 
@@ -101,6 +112,12 @@ export function SlugField({
     }
   }
 
+  // Vlastní doplněk k obsazené adrese (místo svatby nebo datum): pár ho napíše, nebo vloží datum.
+  const [extra, setExtra] = useState("");
+  const base = conflict?.variants[0] ? variantBase(conflict.variants[0]) : slug;
+  const extraSlug = normalizeSlugInput(extra, { final: true });
+  const weddingDate = dateSuffix(draft.startsOn);
+
   const suggestion = slugFromNames(draft.partnerA, draft.partnerB, draft.defaultLocale);
 
   return (
@@ -124,19 +141,21 @@ export function SlugField({
             spellCheck={false}
             inputMode="url"
             aria-invalid={error ? true : undefined}
-            aria-describedby={[hintId, statusId].join(" ")}
-            onChange={(event) =>
-              onSlugChange(normalizeSlugInput(event.target.value, { final: false }), true)
-            }
-            onBlur={(event) =>
-              onSlugChange(normalizeSlugInput(event.target.value, { final: true }), true)
-            }
+            aria-required="true"
+            // koncovka „.se-vezmou.cz“ patří k adrese, čtečka ji bez ní neuslyší (1.3.1)
+            aria-describedby={[domainId, hintId, statusId].join(" ")}
+            onChange={(event) => change(event.target.value, false)}
+            onBlur={(event) => change(event.target.value, true)}
             className={cn(
               "min-h-target rounded-button bg-parchment text-ink min-w-0 flex-1 basis-48 border-2 px-3 py-2 text-base",
               error ? "border-cinnamon-deep" : "border-field-border",
             )}
           />
-          <span className="text-ink font-semibold break-all" data-testid="slug-domain">
+          <span
+            id={domainId}
+            className="text-ink font-semibold break-all"
+            data-testid="slug-domain"
+          >
             .{domain}
           </span>
         </div>
@@ -162,6 +181,11 @@ export function SlugField({
                 className="mt-0.5 shrink-0"
               />
               <span>{status.text}</span>
+            </p>
+          ) : null}
+          {adjusted ? (
+            <p className="text-muted text-sm" data-testid="slug-adjusted">
+              {t("wizard.slug.adjusted")}
             </p>
           ) : null}
         </div>
@@ -217,6 +241,35 @@ export function SlugField({
               );
             })}
           </Fieldset>
+          <div className="mt-4 flex flex-col gap-2">
+            <Field
+              label={t("wizard.slug.extra.label")}
+              hint={t("wizard.slug.extra.hint", { base })}
+              value={extra}
+              onChange={(event) => setExtra(event.target.value)}
+              autoComplete="off"
+              maxLength={40}
+              data-testid="slug-extra"
+            />
+            <div className="flex flex-wrap gap-2">
+              {weddingDate ? (
+                <Button variant="text" onClick={() => setExtra(weddingDate)}>
+                  {t("wizard.slug.extra.date")}
+                </Button>
+              ) : null}
+              <Button
+                variant="secondary"
+                disabled={extraSlug === ""}
+                onClick={() =>
+                  onSlugChange(normalizeSlugInput(`${base}-${extraSlug}`, { final: true }), true)
+                }
+              >
+                {extraSlug
+                  ? t("wizard.slug.extra.apply", { slug: `${base}-${extraSlug}` })
+                  : t("wizard.slug.extra.applyEmpty")}
+              </Button>
+            </div>
+          </div>
           <Button variant="text" className="mt-2" onClick={onDismissConflict}>
             {t("wizard.slug.conflict.dismiss")}
           </Button>

@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { isLocale, type Locale } from "@/i18n/config";
+import { htmlLang, isLocale, type Locale } from "@/i18n/config";
 import type { MessageKey } from "@/i18n/messages";
 import { localizedPath, type RouteName } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
 import { siteUrl } from "@/lib/site";
+import { pricing } from "@/config/pricing";
+import { faqPageLd, softwareApplicationLd, webPageLd, type JsonLdNode } from "@/seo/json-ld";
 import { pageMetadata } from "@/seo/page-metadata";
 import { CtaSection } from "./cta-section";
+import { getFaqItems, getTemplateFaqItems } from "./faq";
 import { FaqSection } from "./faq-section";
 import { LandingFooter } from "./landing-footer";
 import { LandingHeader } from "./landing-header";
@@ -45,6 +48,12 @@ const KEYS = {
     lead: "marketing.bilingual.lead",
   },
 } as const satisfies Record<InfoRoute, Record<string, MessageKey>>;
+
+/**
+ * Datum poslední věcné úpravy podstránek (`YYYY-MM-DD`): viditelné „Aktualizováno“ i `dateModified`.
+ * Při změně textu podstránky ho posuňte.
+ */
+const UPDATED = "2026-10-05";
 
 /** Jazyk z adresy, pokud je složka `segment` jeho přeloženou cestou k `route`; jinak `null`. */
 function infoLocale(route: InfoRoute, segment: string, localeParam: string): Locale | null {
@@ -115,19 +124,48 @@ export async function InfoPage({
 }) {
   const locale = infoLocale(route, segment, localeParam);
   if (!locale) notFound();
-  const t = await getTranslator(locale, ["common", "marketing"]);
+  const t = await getTranslator(locale, ["common", "landing", "marketing"]);
   const keys = KEYS[route];
+  const pageUrl = new URL(localizedPath(route, locale), siteUrl).toString();
+  const faq = route === "templates" ? await getTemplateFaqItems(locale) : await getFaqItems(locale);
+  const extra: JsonLdNode[] = [
+    webPageLd({
+      siteUrl,
+      url: pageUrl,
+      name: t(keys.h1),
+      description: t(keys.description),
+      locale,
+      dateModified: UPDATED,
+    }),
+    faqPageLd(faq),
+  ];
+  if (route === "pricing") {
+    extra.push(
+      softwareApplicationLd({
+        siteUrl,
+        name: t("common.brand"),
+        description: t("marketing.home.metaDescription"),
+        offerDescription: t("landing.pricing.lead"),
+        locale,
+        pricing,
+      }),
+    );
+  }
+  const updated = new Intl.DateTimeFormat(htmlLang[locale], {
+    dateStyle: "long",
+    timeZone: "UTC",
+  }).format(new Date(UPDATED));
   const crumbs = [
     {
       name: t("marketing.home.breadcrumb"),
       url: new URL(localizedPath("home", locale), siteUrl).toString(),
     },
-    { name: t(keys.breadcrumb), url: new URL(localizedPath(route, locale), siteUrl).toString() },
+    { name: t(keys.breadcrumb), url: pageUrl },
   ];
 
   return (
     <>
-      <SubpageStructuredData locale={locale} crumbs={crumbs} />
+      <SubpageStructuredData locale={locale} crumbs={crumbs} extra={extra} />
       <LandingHeader locale={locale} route={route} />
       <main id="obsah" tabIndex={-1}>
         <Section headingId="page-title">
@@ -137,7 +175,12 @@ export async function InfoPage({
           >
             {t(keys.h1)}
           </h1>
-          <p className="text-muted mt-5 max-w-2xl text-lg text-pretty md:text-xl">{t(keys.lead)}</p>
+          <p id="page-lead" className="text-muted mt-5 max-w-2xl text-lg text-pretty md:text-xl">
+            {t(keys.lead)}
+          </p>
+          <p className="text-muted mt-4 text-sm">
+            <time dateTime={UPDATED}>{t("marketing.updated", { date: updated })}</time>
+          </p>
         </Section>
         {route === "pricing" ? (
           <>
@@ -145,7 +188,12 @@ export async function InfoPage({
             <FaqSection locale={locale} />
           </>
         ) : null}
-        {route === "templates" ? <TemplatesSection locale={locale} /> : null}
+        {route === "templates" ? (
+          <>
+            <TemplatesSection locale={locale} detailed />
+            <FaqSection locale={locale} items={faq} />
+          </>
+        ) : null}
         {route === "bilingual" ? (
           <>
             <BilingualPoints locale={locale} />

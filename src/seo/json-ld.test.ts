@@ -11,6 +11,7 @@ import {
   plain,
   serializeJsonLd,
   softwareApplicationLd,
+  webPageLd,
   websiteLd,
 } from "./json-ld";
 
@@ -140,6 +141,27 @@ describe("FAQPage", () => {
       expect(price.answer).not.toMatch(/navždy|forever/i);
     });
   }
+});
+
+describe("WebPage", () => {
+  it("nese datum aktualizace, jazyk a speakable na nadpis a úvodní větu", () => {
+    const node = webPageLd({
+      siteUrl: "https://se-vezmou.cz",
+      url: "https://se-vezmou.cz/sablony",
+      name: "Šablony\u00a0svatebního webu",
+      description: "Popis",
+      locale: "cs",
+      dateModified: "2026-10-05",
+    });
+    expect(node).toMatchObject({
+      "@type": "WebPage",
+      name: "Šablony svatebního webu",
+      inLanguage: "cs",
+      dateModified: "2026-10-05",
+      isPartOf: { "@id": "https://se-vezmou.cz/#website" },
+      speakable: { cssSelector: ["#page-title", "#page-lead"] },
+    });
+  });
 });
 
 describe("BreadcrumbList", () => {

@@ -1,13 +1,31 @@
 import type { Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
+import { templates } from "@/site/themes/palettes";
 import { Section, SectionHeading, itemTitleClass } from "./section";
 
 /** Šablony: skutečné snímky úvodu webu pro ukázkový pár Klára a Matěj (`public/templates`, cs i en). */
 export const TEMPLATE_KEYS = ["editorial", "eucalyptus", "chateau", "modern"] as const;
 export type TemplateKey = (typeof TEMPLATE_KEYS)[number];
 
-export async function TemplatesSection({ locale, number }: { locale: Locale; number?: number }) {
-  const t = await getTranslator(locale, ["landing"]);
+/** Klíč šablony v textech úvodního webu → klíč v definici šablon (palety). */
+const THEME_KEY = {
+  editorial: "editorial",
+  eucalyptus: "eukalyptus",
+  chateau: "chateau",
+  modern: "modern",
+} as const satisfies Record<TemplateKey, keyof typeof templates>;
+
+/** `detailed`: stránka šablon (popis a názvy palet z jejich definice); úvodní stránka má jen krátký podtitul. */
+export async function TemplatesSection({
+  locale,
+  number,
+  detailed = false,
+}: {
+  locale: Locale;
+  number?: number;
+  detailed?: boolean;
+}) {
+  const t = await getTranslator(locale, ["landing", "marketing"]);
   const suffix = locale === "en" ? "-en" : "";
 
   return (
@@ -38,6 +56,18 @@ export async function TemplatesSection({ locale, number }: { locale: Locale; num
                 <figcaption className="mt-5">
                   <h3 className={itemTitleClass}>{name}</h3>
                   <p className="text-muted mt-1 text-lg">{t(`landing.templates.${key}.text`)}</p>
+                  {detailed ? (
+                    <>
+                      <p className="mt-3 text-lg">{t(`marketing.templates.details.${key}`)}</p>
+                      <p className="text-muted mt-2">
+                        {t("marketing.templates.palettes", {
+                          names: templates[THEME_KEY[key]].palettes
+                            .map((palette) => palette.name[locale])
+                            .join(", "),
+                        })}
+                      </p>
+                    </>
+                  ) : null}
                 </figcaption>
               </figure>
             </li>

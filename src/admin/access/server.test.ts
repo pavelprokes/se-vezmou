@@ -23,6 +23,7 @@ import {
   notifyGuestDataViewed,
   removeAdmin,
   revokeAccess,
+  sendBackupConfirmation,
   setBackupEmail,
   setGuestPinEnabled,
   setSiteLocked,
@@ -285,6 +286,36 @@ describe("setBackupEmail", () => {
     expect(await setBackupEmail(ACTOR, ctx, "nesmysl")).toEqual({ status: "invalid" });
     await flush();
     expect(sent()).toEqual([]);
+  });
+});
+
+describe("sendBackupConfirmation", () => {
+  it("nepotvrzené adrese z databáze pošle jen odkaz na potvrzení", async () => {
+    fakeDb({}, { backupConfirmed: false });
+    expect(await sendBackupConfirmation(ACTOR, ctx)).toEqual({ status: "sent" });
+    await flush();
+    expect(sent().map((m) => m.to)).toEqual(["zaloha@example.test"]);
+    expect(sent()[0].email.subject).toMatch(/Někdo vás uvedl/);
+    const token = sent()[0].email.text.match(/potvrdit-email\?t=(\S+)/)![1];
+    expect(openBackupConfirm(token)).toEqual({
+      weddingId: WEDDING,
+      email: "zaloha@example.test",
+    });
+  });
+
+  it("potvrzené adrese nic neposílá", async () => {
+    fakeDb();
+    expect(await sendBackupConfirmation(ACTOR, ctx)).toEqual({ status: "confirmed" });
+    await flush();
+    expect(sent()).toEqual([]);
+  });
+
+  it("po překročení limitu nic neposílá a ani nečte databázi", async () => {
+    const calls = fakeDb({}, { backupConfirmed: false, rateAllowed: false });
+    expect(await sendBackupConfirmation(ACTOR, ctx)).toEqual({ status: "limited", retryAfter: 55 });
+    await flush();
+    expect(sent()).toEqual([]);
+    expect(calls.map((c) => c.fn)).toEqual(["rate_limit_hit"]);
   });
 });
 

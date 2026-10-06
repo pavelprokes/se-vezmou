@@ -189,9 +189,9 @@ Lhůty výše jsou výchozí návrh zadání (dieta 30 dní, ostatní údaje hos
 
 ### 5.6 Koncept průvodce v prohlížeči (localStorage)
 
-Rozpracovaný průvodce se ukládá **v prohlížeči** pod klíčem `sv-wizard-draft-v1` v `localStorage` (záložně v `sessionStorage`, když trvalé úložiště nejde, `src/components/wizard/storage.ts`). Obsahuje vše, co pár v průvodci vyplnil: **jména páru a datum svatby**, vybranou šablonu, program, místa a adresy, kontakty, texty, a pokud pár zapnul PIN hostů, i **PIN hostů v prostém tvaru** (na server se prostý PIN neukládá, v databázi je jen hash po zveřejnění, `serverDraft`). Neobsahuje e-mail ani údaje hostů. Koncept se maže, až když ho průvodce zveřejněním nebo zjištěním, že web už je zveřejněný jinde (`not_draft`), odstraní (`clearStoredDraft`), nebo když uživatel smaže data webu v prohlížeči; jinak v zařízení zůstává bez časového omezení.
+Rozpracovaný průvodce se ukládá **v prohlížeči** pod klíčem `sv-wizard-draft-v1` v `localStorage` (záložně v `sessionStorage`, když trvalé úložiště nejde, `src/components/wizard/storage.ts`). Obsahuje vše, co pár v průvodci vyplnil: **jména páru a datum svatby**, vybranou šablonu, program, místa a adresy, kontakty, texty a informaci, zda je PIN hostů zapnutý. **PIN hostů v prostém tvaru se do prohlížeče neukládá** (`storableDraft`, verze konceptu 2): drží ho jen paměť stránky, takže po obnovení stránky ho pár zadá znovu; koncepty verze 1, které ho mohly nést, se při načtení očistí a přepíšou. Na server se prostý PIN také neukládá (`serverDraft`), v databázi je jen hash po zveřejnění; PIN pro obrazovku „Hotovo“ drží jen `sessionStorage` karty do jejího zavření. Neobsahuje e-mail ani údaje hostů. Koncept se maže, až když ho průvodce zveřejněním nebo zjištěním, že web už je zveřejněný jinde (`not_draft`), odstraní (`clearStoredDraft`), nebo když uživatel smaže data webu v prohlížeči; jinak v zařízení zůstává bez časového omezení.
 
-Je to osobní údaj uložený v zařízení uživatele (a na sdíleném počítači ho může vidět další uživatel). Zásady zpracování ho musí uvést (účel: nezmizí práce při obnovení stránky; doba: do smazání; nepřenáší se, dokud pár neuloží koncept na server). Zda je to striktně nutné a souhlas není potřeba, posoudí právník `[OTÁZKA]` (kap. 11, bod 21). Zvážit zkrácení doby (například mazání po neaktivitě) a neukládání prostého PINu do prohlížeče (OQ-64).
+Je to osobní údaj uložený v zařízení uživatele (a na sdíleném počítači ho může vidět další uživatel). Zásady zpracování ho musí uvést (účel: nezmizí práce při obnovení stránky; doba: do smazání; nepřenáší se, dokud pár neuloží koncept na server). Zda je to striktně nutné a souhlas není potřeba, posoudí právník `[OTÁZKA]` (kap. 11, bod 21). Zvážit zkrácení doby (například mazání po neaktivitě, OQ-58). Neukládání prostého PINu do prohlížeče je hotové (OQ-64).
 
 ## 6. Mazání a právo na výmaz
 
@@ -290,7 +290,7 @@ Model hrozeb pro sdílený projekt Supabase (ADR 0011):
 18. `[OTÁZKA]` Identifikace provozovatele a kontakt: `[PROVOZOVATEL, IČO]`, `[KONTAKT]`, zda je nutný pověřenec (předpoklad: ne, ověřit).
 19. `[OTÁZKA]` Krátké sdělení pro hosty při RSVP (`rsvp.privacy.notice`) a upozornění u zdravotních údajů (`rsvp.health.notice`, lhůta „30 dní“ napevno): znění, jazyk, zda stačí odkaz na zásady (OQ-61).
 20. `[LHŮTY]` Nové lhůty implementované v M10 a po něm: vypršení konceptu 14 dní, přechod archivovaného webu do smazání po 365 dnech od smazání dat hostů, čekací listina 12 měsíců (OQ-58 až OQ-60).
-21. `[OTÁZKA]` Koncept průvodce v `localStorage` (kap. 5.6), včetně prostého PINu hostů, a zda je nutný souhlas (OQ-64).
+21. `[OTÁZKA]` Koncept průvodce v `localStorage` (kap. 5.6), a zda je nutný souhlas (OQ-64; prostý PIN hostů se už neukládá).
 22. `[OTÁZKA]` Výmaz jednoho hosta bez smazání celé domácnosti a doručení oznámení o nahlédnutí operátora jen nejlepším úsilím (OQ-62, OQ-63).
 
 ## 12. Načtení náhledu externí galerie (SSRF)

@@ -6,11 +6,13 @@ import {
   issuesForSteps,
   parseDraft,
   serverDraft,
+  storableDraft,
   stepState,
   validateDraft,
   withLocales,
   withNames,
   withTemplate,
+  WIZARD_VERSION,
   wizardDraftSchema,
   type WizardDraft,
 } from "./draft";
@@ -54,10 +56,43 @@ describe("createDraft", () => {
   });
 });
 
+describe("PIN hostů mimo localStorage (OQ-64)", () => {
+  const withPin = () => ({
+    ...complete(),
+    guestPin: { enabled: true, pin: "482915" },
+    tracking: { started: true, steps: [1] },
+  });
+
+  it("storableDraft neobsahuje PIN, ostatní údaje i měření zůstanou", () => {
+    const stored = storableDraft(withPin());
+    expect(JSON.stringify(stored)).not.toContain("482915");
+    expect(stored.guestPin).toEqual({ enabled: true, pin: "" });
+    expect(stored.tracking).toEqual({ started: true, steps: [1] });
+    expect(stored.partnerA).toBe(withPin().partnerA);
+  });
+
+  it("starý koncept verze 1 s PINem se při načtení přepíše na verzi 2 bez PINu", () => {
+    const parsed = parseDraft({ ...withPin(), version: 1 });
+    expect(parsed?.version).toBe(WIZARD_VERSION);
+    expect(WIZARD_VERSION).toBe(2);
+    expect(parsed?.guestPin).toEqual({ enabled: true, pin: "" });
+    expect(JSON.stringify(parsed)).not.toContain("482915");
+  });
+
+  it("bez PINu (po obnovení stránky) průvodce chce nový PIN a nic jiného", () => {
+    const restored = storableDraft(withPin());
+    expect(validateDraft(restored).map((issue) => issue.code)).toEqual(["pin_required"]);
+  });
+
+  it("koncept aktuální verze v paměti PIN drží (zveřejnění ho potřebuje)", () => {
+    expect(parseDraft(withPin())?.guestPin.pin).toBe("482915");
+  });
+});
+
 describe("parseDraft", () => {
   it("vrací null pro poškozená data", () => {
     expect(parseDraft(null)).toBeNull();
-    expect(parseDraft({ version: 2 })).toBeNull();
+    expect(parseDraft({ version: 3 })).toBeNull();
     expect(parseDraft("nesmysl")).toBeNull();
     expect(parseDraft({ ...complete(), template: "neexistuje" })).toBeNull();
   });

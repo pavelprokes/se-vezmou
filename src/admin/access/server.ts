@@ -226,6 +226,39 @@ export async function setBackupEmail(
   }
 }
 
+export type BackupConfirmSendResult =
+  { status: "sent" } | { status: "confirmed" } | { status: "none" } | Limited;
+
+/**
+ * Znovu pošle potvrzovací odkaz na aktuální, dosud nepotvrzenou záložní adresu (tlačítko ve správě).
+ * Adresa se bere z databáze, ne z požadavku, takže odkaz nelze poslat na libovolnou cizí adresu.
+ * Limit je podle svatby a počítá se i při odpovědi „nic se nepošle“.
+ */
+export async function sendBackupConfirmation(
+  actor: AccessActor,
+  ctx: AccessContext,
+): Promise<BackupConfirmSendResult> {
+  const retry = await limited(
+    "backup-confirm-send",
+    actor.weddingId,
+    RATE_RULES.backupConfirmSendWedding,
+  );
+  if (retry !== null) return { status: "limited", retryAfter: retry };
+  const view = await loadAccess(actor);
+  if (!view.backup_email) return { status: "none" };
+  if (view.backup_confirmed) return { status: "confirmed" };
+  const confirmUrl = backupConfirmUrl(
+    new URL(ctx.loginUrl).origin,
+    view.default_locale,
+    actor.weddingId,
+    view.backup_email,
+  );
+  sendNotices(ctx, view, actor.weddingId, [{ email: view.backup_email, kind: "backup_added" }], {
+    confirmUrl,
+  });
+  return { status: "sent" };
+}
+
 // --- PIN ------------------------------------------------------------------------------------
 
 export type PinResult =

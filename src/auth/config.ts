@@ -95,6 +95,11 @@ export const RATE_RULES = {
   guestsImportWedding: { limit: 30, windowSeconds: HOUR },
   /** Přístup (M7b): správci, záložní e-mail, PIN, souhlas s nahlédnutím, smazání webu podle svatby. */
   accessChangeWedding: { limit: 60, windowSeconds: HOUR },
+  /**
+   * Přístup (M7b): odeslání potvrzovacího odkazu na záložní e-mail podle svatby. Odkaz jde na cizí
+   * adresu, proto je limit přísnější než u ostatních změn (omezuje zahlcení cizí schránky).
+   */
+  backupConfirmSendWedding: { limit: 5, windowSeconds: HOUR },
   /** Export hostů a RSVP podle svatby. */
   exportWedding: { limit: 30, windowSeconds: HOUR },
 } as const satisfies Record<string, RateRule>;

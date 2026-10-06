@@ -9,12 +9,14 @@ import {
   grantAccess,
   removeAdmin,
   revokeAccess,
+  sendBackupConfirmation,
   setBackupEmail,
   setGuestPinEnabled,
   setSiteLocked,
   type AccessActor,
   type AccessContext,
   type AddAdminResult,
+  type BackupConfirmSendResult,
   type BackupResult,
   type GrantResult,
   type GuestPinToggleResult,
@@ -70,6 +72,12 @@ export async function removeAdminAction(adminId: string): Promise<Guarded<Remove
 export async function setBackupEmailAction(email: string): Promise<Guarded<BackupResult>> {
   return guarded("změna záložního e-mailu", async (session) =>
     setBackupEmail(actor(session), await context(), email),
+  );
+}
+
+export async function sendBackupConfirmationAction(): Promise<Guarded<BackupConfirmSendResult>> {
+  return guarded("potvrzení záložního e-mailu", async (session) =>
+    sendBackupConfirmation(actor(session), await context()),
   );
 }
 

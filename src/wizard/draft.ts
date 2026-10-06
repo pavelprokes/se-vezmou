@@ -12,11 +12,15 @@ import { slugFromNames, slugProblem } from "./slug";
  * serveru k uložení a ze kterého vzniká živý náhled i zveřejněný snímek webu. Texty páru nejsou
  * typograficky upravené (typo() běží až při vykreslení webu).
  *
- * Co smí server uložit, určuje `serverDraft`: PIN hostů v prostém tvaru se na server nikdy
- * neukládá (v databázi je jen jeho hash po zveřejnění).
+ * Co smí server uložit, určuje `serverDraft`; co smí prohlížeč, určuje `storableDraft`: PIN hostů
+ * v prostém tvaru se nikdy neukládá ani na server, ani do localStorage (OQ-64). Drží ho jen paměť
+ * stránky; v databázi je po zveřejnění pouze jeho hash.
+ *
+ * Verze 2: PIN hostů se už neukládá do prohlížeče. Koncepty verze 1 (mohly nést prostý PIN) se při
+ * načtení přepíšou na verzi 2 a PIN se z nich smaže (`parseDraft`).
  */
 
-export const WIZARD_VERSION = 1;
+export const WIZARD_VERSION = 2;
 export const STEP_COUNT = 9;
 /** Kroky potřebné k existenci webu (FR-WZ-2); kroky 4 až 8 jdou přeskočit, krok 9 uzavírá. */
 export const REQUIRED_STEPS = [1, 2, 3] as const;
@@ -271,10 +275,38 @@ export function createDraft(options: CreateDraftOptions): WizardDraft {
   };
 }
 
-/** Bezpečné načtení z úložiště prohlížeče nebo ze serveru; poškozená data jsou `null`. */
+/**
+ * Bezpečné načtení z úložiště prohlížeče nebo ze serveru; poškozená data jsou `null`. Koncept
+ * aktuální verze se čte beze změny (zveřejnění potřebuje PIN hostů z paměti stránky); co přišlo
+ * z úložiště, se navíc čistí přes `storableDraft`.
+ */
 export function parseDraft(raw: unknown): WizardDraft | null {
-  const parsed = wizardDraftSchema.safeParse(raw);
+  const parsed = wizardDraftSchema.safeParse(migrateDraft(raw));
   return parsed.success ? normalizeDraft(parsed.data) : null;
+}
+
+/** Koncept verze 1 přejde na verzi 2; PIN hostů se z něj odstraní už před kontrolou tvaru. */
+function migrateDraft(raw: unknown): unknown {
+  if (typeof raw !== "object" || raw === null || (raw as { version?: unknown }).version !== 1) {
+    return raw;
+  }
+  const { guestPin, ...rest } = raw as { guestPin?: { enabled?: unknown } };
+  return {
+    ...rest,
+    version: WIZARD_VERSION,
+    guestPin: { enabled: guestPin?.enabled === true, pin: "" },
+  };
+}
+
+function scrubPin(draft: WizardDraft): WizardDraft {
+  return draft.guestPin.pin === ""
+    ? draft
+    : { ...draft, guestPin: { enabled: draft.guestPin.enabled, pin: "" } };
+}
+
+/** Podoba draftu pro localStorage: bez PINu hostů v prostém tvaru (ten žije jen v paměti stránky). */
+export function storableDraft(draft: WizardDraft): WizardDraft {
+  return scrubPin(draft);
 }
 
 /** Sjednotí vzájemně závislá pole (výchozí jazyk mezi jazyky, paleta patří šabloně). */

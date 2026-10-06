@@ -24,6 +24,7 @@ import {
   grantAccessAction,
   removeAdminAction,
   revokeAccessAction,
+  sendBackupConfirmationAction,
   setBackupEmailAction,
   setGuestPinEnabledAction,
   setSiteLockedAction,
@@ -69,7 +70,13 @@ export default async function AccessPage({ searchParams }: PageProps<"/h/app/pri
             locale={locale}
             actions={{ addAdmin: addAdminAction, removeAdmin: removeAdminAction }}
           />
-          <BackupPanel view={view} actions={{ setBackupEmail: setBackupEmailAction }} />
+          <BackupPanel
+            view={view}
+            actions={{
+              setBackupEmail: setBackupEmailAction,
+              sendBackupConfirmation: sendBackupConfirmationAction,
+            }}
+          />
           <PinPanel
             view={view}
             actions={{

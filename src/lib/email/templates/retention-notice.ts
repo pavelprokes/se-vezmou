@@ -1,5 +1,5 @@
-import { getEmailPixelUrl } from "../pixel";
 import type { Locale } from "@/i18n/config";
+import { noticePixelUrl } from "@/lib/email/pixel";
 import { composeEmail, formatEventDay, type Block, type RenderedEmail } from "./shared";
 
 /**
@@ -135,11 +135,5 @@ export function renderRetentionNotice({
     { kind: "small", text: copy.small },
   ];
   const subject = `${stage === "final" ? copy.reminder : ""}${kindCopy.subject(when)}`;
-  return composeEmail(
-    locale,
-    subject,
-    blocks,
-    copy.brand,
-    kind === "site_expiry" ? getEmailPixelUrl("smazani-upozorneni") : null,
-  );
+  return composeEmail(locale, subject, blocks, copy.brand, noticePixelUrl("retention", kind));
 }

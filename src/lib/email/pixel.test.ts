@@ -6,20 +6,27 @@ const mockEnv = vi.hoisted(() => ({
 }));
 vi.mock("@/env", () => ({ env: mockEnv }));
 
-import { getEmailPixelUrl } from "./pixel";
-import { renderDeletionNotice, renderRetentionNotice } from "./templates";
+import { buildPixelUrl } from "./pixel";
+import {
+  renderBackupLoginNotice,
+  renderDeletionNotice,
+  renderLoginCode,
+  renderRetentionNotice,
+  renderRsvpConfirmation,
+  renderWizardCode,
+} from "./templates";
 import { composeEmail } from "./templates/shared";
 
 const BASE = "https://analytics.example.cz/p/abc123xyz";
 
-describe("getEmailPixelUrl", () => {
+describe("buildPixelUrl", () => {
   it("bez nastavené adresy pixel nevznikne", () => {
-    expect(getEmailPixelUrl("smazani-upozorneni", undefined)).toBeNull();
-    expect(getEmailPixelUrl("smazani-upozorneni", "")).toBeNull();
+    expect(buildPixelUrl(undefined, "smazani-upozorneni")).toBeNull();
+    expect(buildPixelUrl("", "smazani-upozorneni")).toBeNull();
   });
 
   it("přidá jen pevné značky šablony", () => {
-    const url = new URL(getEmailPixelUrl("smazani-upozorneni", BASE)!);
+    const url = new URL(buildPixelUrl(BASE, "smazani-upozorneni")!);
     expect(url.origin + url.pathname).toBe(BASE);
     expect([...url.searchParams.keys()].sort()).toEqual([
       "utm_content",
@@ -32,16 +39,17 @@ describe("getEmailPixelUrl", () => {
   });
 
   it("zahodí cizí parametry a fragment a odmítne ne-https", () => {
-    const url = new URL(getEmailPixelUrl("x", `${BASE}?email=a@b.cz#h`)!);
+    const url = new URL(buildPixelUrl(`${BASE}?email=a@b.cz#h`, "x")!);
     expect(url.searchParams.has("email")).toBe(false);
     expect(url.hash).toBe("");
-    expect(getEmailPixelUrl("x", "http://analytics.example.cz/p/abc")).toBeNull();
-    expect(getEmailPixelUrl("x", "nesmysl")).toBeNull();
+    expect(buildPixelUrl("https://u:pw@analytics.example.cz/p/abc", "x")).not.toContain("pw");
+    expect(buildPixelUrl("http://analytics.example.cz/p/abc", "x")).toBeNull();
+    expect(buildPixelUrl("nesmysl", "x")).toBeNull();
   });
 });
 
 describe("pixel v e-mailu", () => {
-  const pixel = getEmailPixelUrl("smazani-upozorneni", BASE);
+  const pixel = buildPixelUrl(BASE, "smazani-upozorneni");
 
   it("je jednou, na konci těla, jen v HTML a správně escapovaný", () => {
     const mail = composeEmail(
@@ -61,9 +69,36 @@ describe("pixel v e-mailu", () => {
     expect(mail.text).not.toContain("analytics");
   });
 
-  it("bez pixelu e-mail žádný nenese; přihlašovací a hostovské šablony ho nemají nikdy", () => {
+  it("bez pixelu e-mail žádný nenese", () => {
     const plain = composeEmail("cs", "Předmět", [{ kind: "paragraph", text: "Text" }], "Značka");
     expect(plain.html).not.toContain('width="1" height="1"');
+  });
+
+  it("kódy, bezpečnostní oznámení a e-maily hostům pixel nemají ani při nastavené proměnné", () => {
+    mockEnv.UMAMI_PIXEL_URL = BASE;
+    try {
+      const link = "https://app.se-vezmou.cz/prihlaseni/odkaz?t=abc";
+      const mails = [
+        renderLoginCode({ locale: "cs", code: "048213", link, ttlSeconds: 600 }),
+        renderWizardCode({ locale: "en", code: "731905", ttlSeconds: 600 }),
+        renderBackupLoginNotice({
+          locale: "cs",
+          event: "pin_login",
+          at: new Date("2026-10-02T12:05:00Z"),
+          loginUrl: link,
+        }),
+        renderRsvpConfirmation({
+          locale: "cs",
+          partners: { a: "Klára", b: "Matěj" },
+          people: [{ name: "Jan Novák", rows: [] }],
+          editUrl: link,
+          unlisted: false,
+        }),
+      ];
+      for (const mail of mails) expect(mail.html).not.toContain('width="1" height="1"');
+    } finally {
+      mockEnv.UMAMI_PIXEL_URL = undefined;
+    }
   });
 
   it("oznámení pro pár ho nesou jen s nastavenou proměnnou a s vlastním slugem", () => {

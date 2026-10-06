@@ -65,7 +65,15 @@ const schema = z.object({
    */
   UMAMI_PIXEL_URL: z
     .url()
-    .refine((value) => value.startsWith("https://"), "pixel musí být na https")
+    .refine((value) => {
+      const url = new URL(value);
+      return (
+        url.protocol === "https:" &&
+        !url.username &&
+        !url.password &&
+        /^\/p\/[^/]+$/.test(url.pathname)
+      );
+    }, "očekává se https://<host>/p/<slug> bez přihlašovacích údajů")
     .optional(),
 
   // Jen pro automatické testy (nikdy v produkci, viz src/lib/email/transport.ts)

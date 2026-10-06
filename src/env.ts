@@ -92,6 +92,15 @@ const schema = z.object({
    */
   SEZNAM_WMT: z.string().min(1).optional(),
   OG_FETCH_TEST_HOST: z.string().min(1).optional(),
+  /**
+   * Umami (vlastní instance, bez cookies): adresa bez lomítka na konci, ID webu a koncový bod pro serverové
+   * události. `NEXT_PUBLIC_*` se do prohlížeče vkládají při sestavení doslovným `process.env.…`
+   * (src/components/umami-script.tsx). Bez URL a ID se nic neodesílá.
+   */
+  NEXT_PUBLIC_UMAMI_URL: z.string().url().optional(),
+  NEXT_PUBLIC_UMAMI_WEBSITE_ID: z.string().uuid().optional(),
+  NEXT_PUBLIC_UMAMI_SCRIPT: z.string().min(1).optional(),
+  UMAMI_COLLECT_ENDPOINT: z.string().startsWith("/").optional(),
   /** Jen automatické testy: `1` = mapa bez sítě (pevné souřadnice, šedé dlaždice), src/site/map/server.ts. */
   MAP_STUB: z.string().min(1).optional(),
   // SENTRY_ORG, SENTRY_PROJECT a SENTRY_AUTH_TOKEN čte jen next.config.ts při sestavení (před startem

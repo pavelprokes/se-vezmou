@@ -1,4 +1,5 @@
 import type { Locale } from "@/i18n/config";
+import { noticePixelUrl } from "@/lib/email/pixel";
 import { composeEmail, formatEventDay, type Block, type RenderedEmail } from "./shared";
 
 /**
@@ -116,5 +117,11 @@ export function renderDeletionNotice({
       : []),
     { kind: "small", text: copy.small },
   ];
-  return composeEmail(locale, kindCopy.subject, blocks, copy.brand);
+  return composeEmail(
+    locale,
+    kindCopy.subject,
+    blocks,
+    copy.brand,
+    noticePixelUrl("deletion", kind),
+  );
 }

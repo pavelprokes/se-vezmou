@@ -59,6 +59,23 @@ const schema = z.object({
   /** Konfigurační sada SES (události doručení, vlastní potlačení); nepovinná. */
   SES_CONFIGURATION_SET: z.string().min(1).optional(),
 
+  /**
+   * Volitelný měřicí pixel (vlastní Umami) jen v oznámeních pro pár a správce (docs/adr/0014). Bez proměnné se
+   * pixel nevkládá. Jen `https:`; adresa nikdy nenese údaje o příjemci (src/lib/email/pixel.ts).
+   */
+  UMAMI_PIXEL_URL: z
+    .url()
+    .refine((value) => {
+      const url = new URL(value);
+      return (
+        url.protocol === "https:" &&
+        !url.username &&
+        !url.password &&
+        /^\/p\/[^/]+$/.test(url.pathname)
+      );
+    }, "očekává se https://<host>/p/<slug> bez přihlašovacích údajů")
+    .optional(),
+
   // Jen pro automatické testy (nikdy v produkci, viz src/lib/email/transport.ts)
   /** `outbox`: e-maily se zapisují jako soubory JSON do EMAIL_OUTBOX_DIR. */
   EMAIL_TRANSPORT: z.enum(["ses", "console", "outbox"]).optional(),

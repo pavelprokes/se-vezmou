@@ -1,3 +1,4 @@
+import { getEmailPixelUrl } from "../pixel";
 import type { Locale } from "@/i18n/config";
 import { composeEmail, formatEventDay, type Block, type RenderedEmail } from "./shared";
 
@@ -116,5 +117,11 @@ export function renderDeletionNotice({
       : []),
     { kind: "small", text: copy.small },
   ];
-  return composeEmail(locale, kindCopy.subject, blocks, copy.brand);
+  return composeEmail(
+    locale,
+    kindCopy.subject,
+    blocks,
+    copy.brand,
+    kind === "site_purge" ? getEmailPixelUrl("smazani-potvrzeni") : null,
+  );
 }

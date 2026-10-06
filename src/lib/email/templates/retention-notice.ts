@@ -1,3 +1,4 @@
+import { getEmailPixelUrl } from "../pixel";
 import type { Locale } from "@/i18n/config";
 import { composeEmail, formatEventDay, type Block, type RenderedEmail } from "./shared";
 
@@ -8,6 +9,7 @@ import { composeEmail, formatEventDay, type Block, type RenderedEmail } from "./
  * odpovědí a fotografií stahuje správce po přihlášení (odkaz vyžaduje přihlášení, žádný veřejný export).
  */
 
+/** Pixel jen u vypršení webu; oznámení o zdravotních a hostových údajích ho nemají (ADR 0014). */
 export type RetentionNoticeKind = "site_expiry" | "health_purge" | "guest_purge";
 
 export type RetentionNoticeParams = {
@@ -133,5 +135,11 @@ export function renderRetentionNotice({
     { kind: "small", text: copy.small },
   ];
   const subject = `${stage === "final" ? copy.reminder : ""}${kindCopy.subject(when)}`;
-  return composeEmail(locale, subject, blocks, copy.brand);
+  return composeEmail(
+    locale,
+    subject,
+    blocks,
+    copy.brand,
+    kind === "site_expiry" ? getEmailPixelUrl("smazani-upozorneni") : null,
+  );
 }

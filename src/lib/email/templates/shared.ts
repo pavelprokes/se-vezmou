@@ -134,12 +134,19 @@ ${projects.map((p) => `<p style="margin:0 0 10px"><a href="${escapeHtml(p.href)}
   return { text, html };
 }
 
+/** Průhledný pixel 1×1 na samém konci těla; bez `display:none`, ať ho klienti načtou. Jen v HTML, nikdy v textu. */
+function pixelHtml(url: string): string {
+  return `<img src="${escapeHtml(url)}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;outline:none;" />`;
+}
+
 /** Složí e-mail z bloků: text i HTML vznikají ze stejných dat, takže se nemohou rozejít. */
 export function composeEmail(
   locale: Locale,
   subject: string,
   blocks: readonly Block[],
   brand: string,
+  /** Adresa měřicího pixelu z `getEmailPixelUrl` (jen oznámení pro pár a správce, ADR 0014); jinak `null`. */
+  pixelUrl: string | null = null,
 ): RenderedEmail {
   // Typografie jen na texty; adresa odkazu se nikdy neupravuje.
   const typed = blocks.map((block): Block =>
@@ -172,7 +179,7 @@ export function composeEmail(
 ${typed.map(htmlBlock).join("\n")}
 </div>
 ${extra.html}
-</div>
+</div>${pixelUrl ? `\n${pixelHtml(pixelUrl)}` : ""}
 </body>
 </html>
 `;

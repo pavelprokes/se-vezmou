@@ -193,6 +193,10 @@ Rozpracovaný průvodce se ukládá **v prohlížeči** pod klíčem `sv-wizard-
 
 Je to osobní údaj uložený v zařízení uživatele (a na sdíleném počítači ho může vidět další uživatel). Zásady zpracování ho musí uvést (účel: nezmizí práce při obnovení stránky; doba: do smazání; nepřenáší se, dokud pár neuloží koncept na server). Zda je to striktně nutné a souhlas není potřeba, posoudí právník `[OTÁZKA]` (kap. 11, bod 21). Zvážit zkrácení doby (například mazání po neaktivitě) a neukládání prostého PINu do prohlížeče (OQ-64).
 
+### 5.7 Měřicí pixel v e-mailech správcům (ADR 0014)
+
+Oznámení o vypršení webu (`retention-notice`, druh `site_expiry`) a o trvalém smazání webu (`deletion-notice`, druh `site_purge`) mohou nést průhledný obrázek 1×1 z vlastní instance Umami, jen když je nastavena `UMAMI_PIXEL_URL` (https). Adresa obsahuje jen pevné značky šablony (`utm_source`, `utm_medium`, `utm_content`), nikdy údaje o příjemci ani svatbě; jiné šablony (kódy, bezpečnostní oznámení, e-maily hostům) a oznámení o smazání zdravotních a hostových údajů (`health_purge`, `guest_purge`) pixel nemají. Test `src/lib/email/pixel.test.ts` hlídá tvar adresy, jediný výskyt na konci HTML a nepřítomnost v textu. Právní kvalifikace (oprávněný zájem vs. souhlas, ePrivacy) je `[OTÁZKA]` pro právníka; do doby odpovědi se proměnná v Production nenastavuje.
+
 ## 6. Mazání a právo na výmaz
 
 - **Automatické mazání podle retence:** dietní údaje 30 dní po svatbě, ostatní údaje hostů 3 měsíce po svatbě. Pár předem dostane e-mail s odkazem na export hostů, RSVP a fotografií ve správě (FR-LC-2), včetně připomenutí, a blížící se mazání vidí i v přehledu správy. Export se e-mailem neposílá (e-mail by nesl osobní údaje hostů). Lhůty upozornění `[LHŮTY]`.

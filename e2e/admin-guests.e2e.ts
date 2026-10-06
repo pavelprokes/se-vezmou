@@ -923,7 +923,8 @@ test.describe("správci a záložní e-mail", () => {
     await expect(page.locator("main").getByRole("alert")).toContainText("už je potvrzená");
 
     // upravený odkaz se odmítne hned
-    await page.goto(link.replace(/t=./, "t=X"));
+    // první znak tokenu se vždy změní (token může začínat i na „X“, pak by odkaz zůstal platný)
+    await page.goto(link.replace(/t=(.)/, (_, c: string) => `t=${c === "X" ? "Y" : "X"}`));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Odkaz už neplatí");
   });
 

@@ -17,12 +17,12 @@ export interface ServerEvent {
   /** Krátký kebab-case název, nesmí začínat znakem `= + - @`. */
   name: string;
   data?: Record<string, Value>;
-  /** Cesta, ke které událost patří (např. `/vytvorit`). Výchozí `/`. */
+  /** Cesta, ke které událost patří (např. `/vytvorit`). Výchozí `/`. Referrer se neposílá: `Referer` Server Action může nést token z odkazu v e-mailu. */
   url?: string;
   /** Stabilní identifikátor pro volání bez požadavku (cron, webhook), ať se události spojí. */
   id?: string;
   /**
-   * `true` (výchozí) vezme IP, User-Agent, jazyk a referrer z aktuálního požadavku návštěvníka;
+   * `true` (výchozí) vezme IP, User-Agent a jazyk z aktuálního požadavku návštěvníka;
    * `false` je pro cron a webhooky bez návštěvníka.
    */
   fromRequest?: boolean;
@@ -60,8 +60,6 @@ export async function trackServerEvent(event: ServerEvent): Promise<void> {
       if (ip !== "unknown") payload.ip = ip;
       const userAgent = h.get("user-agent");
       if (userAgent) payload.userAgent = userAgent;
-      const referrer = h.get("referer");
-      if (referrer) payload.referrer = referrer;
       const language = h.get("accept-language")?.split(",")[0]?.trim();
       if (language) payload.language = language;
     }

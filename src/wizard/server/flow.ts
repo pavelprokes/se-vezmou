@@ -31,6 +31,7 @@ import {
 } from "@/lib/db/rpc-wizard";
 import { sendTemplatedEmail } from "@/lib/email/send";
 import { renderAdminNotice, renderWizardCode } from "@/lib/email/templates";
+import { trackServerEvent } from "@/lib/umami";
 import { toPublicContent, toSensitiveContent, toWorkingSet } from "../content";
 import {
   canSaveToServer,
@@ -411,6 +412,16 @@ export async function recordEvent(input: {
   } catch {
     console.error("[měření] událost se nepodařilo zapsat");
   }
+  // Umami: stejné události, bez osobních údajů (jazyk, šablona, číslo kroku).
+  await trackServerEvent({
+    name: input.event.replaceAll("_", "-"),
+    url: "/vytvorit",
+    data: {
+      locale: input.locale,
+      ...(input.template ? { template: input.template } : {}),
+      ...(input.step ? { step: input.step } : {}),
+    },
+  });
 }
 
 /** Událost z prohlížeče: omezení podle IP, tiché zahození při překročení. */

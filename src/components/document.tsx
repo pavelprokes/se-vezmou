@@ -10,6 +10,7 @@ import {
 } from "next/font/google";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { UmamiScript } from "@/components/umami-script";
 import "@/app/globals.css";
 
 // Písma se stáhnou při sestavení a hostují se spolu s aplikací; prohlížeč nevolá Google.
@@ -95,6 +96,7 @@ export function Document({ lang, children, measure = true, className }: Document
           <>
             <Analytics />
             <SpeedInsights />
+            <UmamiScript />
           </>
         ) : null}
       </body>

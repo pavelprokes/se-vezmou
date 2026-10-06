@@ -22,6 +22,7 @@ import { normalizePinInput } from "@/auth/pin";
 import { loginWithPin } from "@/auth/pin-login";
 import { assertSameOrigin, getClientIp, getHost, getUiLocale } from "@/auth/request";
 import { endSession, startAdminSession } from "@/auth/session";
+import { trackServerEvent } from "@/lib/umami";
 import { formatPause } from "@/i18n/duration";
 
 /**
@@ -80,6 +81,7 @@ export async function requestCodeAction(_prev: FormState, formData: FormData): P
   // Rozpracované přihlášení patří prohlížeči, který kód vyžádal (zapečetěný e-mail, 10 minut).
   const spec = cookieSpec("pending", host, PENDING_LOGIN_SECONDS);
   (await cookies()).set({ name: spec.name, value: sealPendingLogin(email), ...spec.options });
+  await trackServerEvent({ name: "login-requested", url: "/prihlaseni" });
   redirect(await localHref("/prihlaseni/kod"));
 }
 
@@ -92,6 +94,11 @@ async function finish(result: VerifyCodeResult): Promise<FormState> {
     case "ok":
       await startAdminSession(result.weddingId, result.adminId);
       await clearPending();
+      await trackServerEvent({
+        name: "login-succeeded",
+        url: "/prihlaseni",
+        data: { method: "code" },
+      });
       redirect(await localHref(result.choose ? ADMIN_PATHS.weddings : ADMIN_PATHS.overview));
   }
 }
@@ -141,6 +148,11 @@ export async function pinLoginAction(_prev: FormState, formData: FormData): Prom
   switch (result.status) {
     case "ok":
       await startAdminSession(result.weddingId, result.adminId);
+      await trackServerEvent({
+        name: "login-succeeded",
+        url: "/prihlaseni",
+        data: { method: "pin" },
+      });
       redirect(await localHref("/"));
     case "locked":
       return {

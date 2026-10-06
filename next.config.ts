@@ -44,6 +44,19 @@ function r2Origin(): string | null {
 }
 const r2 = r2Origin();
 
+/** Původ Umami (vlastní analytika bez cookies): skript do `script-src`, odesílání měření do `connect-src`. */
+function umamiOrigin(): string | null {
+  const value = process.env.NEXT_PUBLIC_UMAMI_URL?.trim();
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
+const umami = umamiOrigin();
+
 /** Cloudflare Turnstile (ochrana formulářů před roboty): skript a rámec výzvy, jen když je nastaven klíč. */
 const turnstile = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
   ? " https://challenges.cloudflare.com"
@@ -59,12 +72,12 @@ const turnstile = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
 const csp = [
   "default-src 'self'",
   // Ve vývoji React potřebuje `eval` a Vercel Analytics načítá ladicí skript.
-  `script-src 'self' 'unsafe-inline'${turnstile}${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
+  `script-src 'self' 'unsafe-inline'${turnstile}${umami ? ` ${umami}` : ""}${isDev ? " 'unsafe-eval' https://va.vercel-scripts.com" : ""}`,
   `frame-src 'self'${turnstile}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob:${r2 ? ` ${r2}` : ""}`,
   "font-src 'self'",
-  `connect-src 'self'${r2 ? ` ${r2}` : ""}${isDev ? " ws: wss:" : ""}`,
+  `connect-src 'self'${r2 ? ` ${r2}` : ""}${umami ? ` ${umami}` : ""}${isDev ? " ws: wss:" : ""}`,
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",

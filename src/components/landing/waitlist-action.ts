@@ -9,6 +9,7 @@ import { rateLimitHit } from "@/lib/db/rpc";
 import { waitlistConfirm } from "@/lib/db/rpc-wizard";
 import { dbWaitlistDeps } from "@/lib/waitlist-db";
 import { TURNSTILE_FIELD, verifyTurnstile } from "@/lib/turnstile";
+import { trackServerEvent } from "@/lib/umami";
 import { HONEYPOT_FIELD, submitWaitlist } from "@/lib/waitlist";
 import type { WaitlistFormState } from "./waitlist-state";
 
@@ -49,6 +50,10 @@ export async function joinWaitlist(
 
   switch (result.status) {
     case "success":
+      // Past na roboty vrací úspěch bez uložení, ten se nepočítá.
+      if (!formData.get(HONEYPOT_FIELD)) {
+        await trackServerEvent({ name: "waitlist-joined", url: "/" });
+      }
       return { status: "success" };
     case "invalid":
       return {

@@ -1,6 +1,7 @@
 import "server-only";
 import type { Locale } from "@/i18n/config";
 import { serviceRpc } from "@/lib/db/rpc";
+import { trackServerEvent } from "@/lib/umami";
 
 /**
  * Analytika dokončení RSVP (ADR 0007): událost `rsvp_completed` jen s jazykem. Nikdy svatba, jméno,
@@ -16,4 +17,11 @@ export async function recordRsvpCompleted(locale: Locale): Promise<void> {
       error instanceof Error ? error.name : "",
     );
   }
+  // Umami: web hosta nesmí vyzradit IP ani prohlížeč hosta (ADR 0007), proto bez požadavku a jen s jazykem.
+  await trackServerEvent({
+    name: "rsvp-completed",
+    url: "/rsvp",
+    data: { locale },
+    fromRequest: false,
+  });
 }

@@ -32,6 +32,7 @@ import { geocodeAddress, type GeocodeResult } from "@/site/map/server";
 import { previewUrl, siteUrl, displayHost } from "@/wizard/urls";
 import { authSessionContext } from "@/lib/db/rpc";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { trackServerEvent } from "@/lib/umami";
 import type { WizardSlugStatus } from "@/lib/db/rpc-wizard";
 import { templateKeys } from "@/site/themes/palettes";
 
@@ -156,6 +157,7 @@ export async function requestSaveCodeAction(input: unknown): Promise<RequestSave
     if (result.status === "limited") return { status: "limited" };
     // Rozpracované ověření patří prohlížeči, který kód vyžádal (zapečetěné e-maily, 10 minut).
     await setWizardCookie(sealPending({ email, backupEmail }), LOGIN_CODE.ttlSeconds);
+    await trackServerEvent({ name: "wizard-code-requested", url: "/vytvorit" });
     return { status: "sent" };
   } catch (error) {
     logFailure("vyžádání kódu", error);
@@ -191,6 +193,7 @@ export async function verifySaveCodeAction(input: unknown): Promise<VerifySaveCo
     if (typeof result === "object") return { status: "limited" };
 
     await setWizardCookie(sealVerified(emails), VERIFIED_SECONDS);
+    await trackServerEvent({ name: "wizard-code-verified", url: "/vytvorit" });
     return { status: "verified" };
   } catch (error) {
     logFailure("ověření kódu", error);
@@ -264,6 +267,11 @@ export async function saveDraftAction(rawDraft: unknown): Promise<SaveDraftResul
 
     await startAdminSession(result.weddingId, result.adminId);
     await clearWizardCookie();
+    await trackServerEvent({
+      name: "wizard-draft-created",
+      url: "/vytvorit",
+      data: { template: draft.template, locale: draft.defaultLocale },
+    });
     const host = await getHost();
     return {
       status: "created",

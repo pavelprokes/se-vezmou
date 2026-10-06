@@ -239,7 +239,7 @@ export function BackupPanel({
   actions,
 }: {
   view: AccessView;
-  actions: Pick<AccessActions, "setBackupEmail">;
+  actions: Pick<AccessActions, "setBackupEmail" | "sendBackupConfirmation">;
 }) {
   const t = useAdminT();
   const id = useId();
@@ -276,6 +276,24 @@ export function BackupPanel({
     else setError(simpleError(result.status));
   };
 
+  const resend = async () => {
+    setError(null);
+    setState("busy");
+    setMessage(t("admin.common.saving"));
+    const result = await actions.sendBackupConfirmation();
+    if (result.status === "sent") {
+      setState("done");
+      setMessage(t("admin.guests.access.backup.resent"));
+      return;
+    }
+    if (result.status === "confirmed" || result.status === "none") {
+      go(window.location.pathname);
+      return;
+    }
+    setState("idle");
+    setError(simpleError(result.status));
+  };
+
   return (
     <Card as="section" aria-labelledby={`${id}-h`}>
       <h2 id={`${id}-h`} className="text-2xl font-medium">
@@ -285,10 +303,28 @@ export function BackupPanel({
       <p className="mt-3 font-medium" data-testid="backup-email">
         {t("admin.guests.access.backup.current", { email: view.backup_email ?? "–" })}
       </p>
-      {view.backup_email && !view.backup_confirmed ? (
-        <p className="text-muted mt-1 max-w-prose" data-testid="backup-unconfirmed">
-          {t("admin.guests.access.backup.unconfirmed")}
+      {view.backup_email && view.backup_confirmed ? (
+        <p className="text-muted mt-1 max-w-prose" data-testid="backup-confirmed-status">
+          {t("admin.guests.access.backup.confirmedStatus")}
         </p>
+      ) : null}
+      {view.backup_email && !view.backup_confirmed ? (
+        <>
+          <p className="text-muted mt-1 max-w-prose" data-testid="backup-unconfirmed">
+            {t("admin.guests.access.backup.unconfirmed")}
+          </p>
+          <div className="mt-3">
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={state === "busy"}
+              onClick={resend}
+              data-testid="backup-resend"
+            >
+              {t("admin.guests.access.backup.resend")}
+            </Button>
+          </div>
+        </>
       ) : null}
       <form onSubmit={ask} noValidate className="mt-4 flex flex-col gap-3">
         <Field

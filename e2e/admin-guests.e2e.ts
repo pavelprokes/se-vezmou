@@ -926,6 +926,53 @@ test.describe("správci a záložní e-mail", () => {
     await page.goto(link.replace(/t=./, "t=X"));
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Odkaz už neplatí");
   });
+
+  test("stav záložního e-mailu: potvrzený, po změně nepotvrzený, odkaz jde poslat znovu a potvrdit", async ({
+    page,
+    context,
+  }) => {
+    const site = await seedSite();
+    await site.login(context);
+    const next = `stav-${site.tag}@example.test`;
+    await page.goto(appUrl("/pristup"));
+    // výchozí adresa je potvrzená: žádné tlačítko k odeslání
+    await expect(page.getByTestId("backup-confirmed-status")).toContainText("Adresa je potvrzená");
+    await expect(page.getByTestId("backup-resend")).toHaveCount(0);
+
+    // změna adresy potvrzení zruší
+    await page.getByLabel("Nový záložní e-mail").fill(next);
+    await page.getByRole("button", { name: "Změnit záložní e-mail" }).click();
+    await page.getByRole("button", { name: "Ano, změnit" }).click();
+    await expect(page.getByTestId("backup-unconfirmed")).toBeVisible();
+    await expect(page.getByTestId("backup-confirmed-status")).toHaveCount(0);
+    const first = await waitForMail(next);
+
+    // tlačítko pošle nový odkaz jen na adresu uloženou v databázi
+    await page.getByTestId("backup-resend").click();
+    await expect(
+      page.getByRole("status").filter({ hasText: "Potvrzovací odkaz jsme poslali" }),
+    ).toBeVisible();
+    const second = await waitForMail(next, 2);
+    expect(norm(second.subject)).toBe("Někdo vás uvedl jako záložní e-mail svatebního webu");
+    expect(linkOf(second)).toContain("/potvrdit-email?t=");
+    expect(linkOf(second)).not.toBe(linkOf(first));
+
+    // potvrzení bez přihlášení; po něm správa ukazuje potvrzený stav
+    const admin = await context.storageState();
+    await context.clearCookies();
+    await page.goto(linkOf(second));
+    await page.getByRole("button", { name: "Potvrdit záložní e-mail" }).click();
+    await expect(page.getByTestId("backup-confirmed")).toContainText("potvrzený");
+    await context.addCookies(admin.cookies);
+    await page.goto(appUrl("/pristup"));
+    await expect(page.getByTestId("backup-confirmed-status")).toBeVisible();
+    await expect(page.getByTestId("backup-resend")).toHaveCount(0);
+    // starší odkaz už nic nepotvrdí (jednorázové potvrzení)
+    await context.clearCookies();
+    await page.goto(linkOf(first));
+    await page.getByRole("button", { name: "Potvrdit záložní e-mail" }).click();
+    await expect(page.locator("main").getByRole("alert")).toContainText("už je potvrzená");
+  });
 });
 
 test.describe("heslo na celý web", () => {

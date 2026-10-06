@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { findTypoViolations, typo } from "@/i18n/typo";
-import { renderOperatorCode, renderOperatorNotice } from "./operator";
+import { renderOperatorCode, renderOperatorNotice, renderOperatorSitePublished } from "./operator";
 
 const AT = new Date("2026-10-02T12:05:00Z");
 
@@ -40,5 +40,29 @@ describe("e-maily operátorům", () => {
   it("e-mail ani kód se nedostanou do předmětu", () => {
     const mail = renderOperatorCode({ code: "048213", ttlSeconds: 600 });
     expect(mail.subject).not.toContain("048213");
+  });
+});
+
+describe("upozornění o zveřejnění webu", () => {
+  const mail = renderOperatorSitePublished({
+    siteUrl: "https://klara-a-matej.se-vezmou.cz/",
+    slug: "klara-a-matej",
+    template: "statek",
+    locale: "cs",
+    at: AT,
+  });
+
+  it("nese adresu, šablonu a čas, odkaz je na vlastním řádku", () => {
+    expect(mail.subject).toBe("Nový web: klara-a-matej");
+    expect(mail.text).toContain("14:05");
+    expect(mail.text).toContain("statek");
+    expect(mail.text.split("\n")).toContain("https://klara-a-matej.se-vezmou.cz/");
+    expect(mail.html).toContain('href="https://klara-a-matej.se-vezmou.cz/"');
+    expect(mail.text).not.toMatch(/undefined|NaN|\{\w+\}/);
+  });
+
+  it("prochází typografií", () => {
+    expect(typo(mail.subject, "cs")).toBe(mail.subject);
+    expect(findTypoViolations(mail.text, "cs")).toEqual([]);
   });
 });

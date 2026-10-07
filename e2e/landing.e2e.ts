@@ -652,7 +652,9 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       };
       for (const question of faq.mainEntity) expect(html).toContain(question.name);
       // nabídka s cenou je na všech podstránkách kromě stránky pro fotografy
-      expect(types.includes("SoftwareApplication")).toBe(!/fotograf/.test(entry.path));
+      expect(types.includes("SoftwareApplication")).toBe(
+        !/fotograf|photographers/.test(entry.path),
+      );
     });
   }
 

@@ -615,7 +615,7 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
     },
     {
       path: "/en/bilingual-wedding-website",
-      h1: "A wedding website for weddings in Prague and Czechia",
+      h1: "A wedding website for your wedding in Prague or Czechia",
       alt: "/dvojjazycny-svatebni-web",
     },
     {

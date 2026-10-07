@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { AboutSection } from "@/components/landing/about-section";
 import { AfterSection } from "@/components/landing/after-section";
 import { CtaSection } from "@/components/landing/cta-section";
+import { FactsSection } from "@/components/landing/facts-section";
 import { FaqSection } from "@/components/landing/faq-section";
 import { FeaturesSection } from "@/components/landing/features-section";
 import { Hero } from "@/components/landing/hero";
@@ -39,9 +40,9 @@ export async function generateMetadata({
 }
 
 /**
- * Úvodní stránka (FR-LP-1 až FR-LP-6): čtrnáct sekcí v pevném pořadí, celá vykreslená na serveru.
+ * Úvodní stránka (FR-LP-1 až FR-LP-6): patnáct sekcí v pevném pořadí, celá vykreslená na serveru.
  * Pořadí: hero, co je služba, problém a řešení, jak se web sestavuje, šablony, co web umí,
- * po svatbě, soukromí a přístupnost, cena, o autorovi, novinky a kontakt, FAQ, závěrečná výzva, patička.
+ * po svatbě, soukromí a přístupnost, cena, základní fakta, o autorovi, novinky a kontakt, FAQ, závěrečná výzva, patička.
  * Obsahové sekce mají nad nadpisem pořadové číslo (01 až 08); úvod, novinky, FAQ a výzva ne.
  */
 export default async function MarketingHome({ params }: PageProps<"/h/marketing/[locale]">) {
@@ -62,6 +63,7 @@ export default async function MarketingHome({ params }: PageProps<"/h/marketing/
         <AfterSection locale={locale} number={5} />
         <TrustSection locale={locale} number={6} />
         <PricingSection locale={locale} number={7} />
+        <FactsSection locale={locale} />
         <AboutSection locale={locale} number={8} />
         <TestimonialsSection locale={locale} />
         <NewsSection locale={locale} />

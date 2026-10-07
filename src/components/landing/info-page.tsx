@@ -13,8 +13,10 @@ import {
   getBilingualFaqItems,
   getFaqItems,
   getPhotographerFaqItems,
+  getRsvpFaqItems,
   getTemplateFaqItems,
 } from "./faq";
+import { FactsSection } from "./facts-section";
 import { FaqSection } from "./faq-section";
 import { LandingFooter } from "./landing-footer";
 import { LandingHeader } from "./landing-header";
@@ -29,7 +31,10 @@ import { TemplatesSection } from "./templates-section";
  * sekcí úvodní stránky, takže texty a ceny mají jediný zdroj. Každý jazyk má vlastní složku
  * (`cenik`, `pricing`, ...) a stránka ověří, že složka patří jazyku z adresy (jinak 404).
  */
-export type InfoRoute = Extract<RouteName, "pricing" | "templates" | "bilingual" | "photographers">;
+export type InfoRoute = Extract<
+  RouteName,
+  "pricing" | "templates" | "bilingual" | "rsvp" | "photographers"
+>;
 
 const KEYS = {
   pricing: {
@@ -52,6 +57,13 @@ const KEYS = {
     breadcrumb: "marketing.bilingual.breadcrumb",
     h1: "marketing.bilingual.h1",
     lead: "marketing.bilingual.lead",
+  },
+  rsvp: {
+    title: "marketing.rsvp.metaTitle",
+    description: "marketing.rsvp.metaDescription",
+    breadcrumb: "marketing.rsvp.breadcrumb",
+    h1: "marketing.rsvp.h1",
+    lead: "marketing.rsvp.lead",
   },
   photographers: {
     title: "marketing.photographers.metaTitle",
@@ -93,35 +105,6 @@ export async function infoMetadata(
   });
 }
 
-/** Základní fakta o službě doslova (`marketing.facts.*`); stejné věty jsou i v `llms.txt`. */
-export const FACT_KEYS = [
-  "templates",
-  "address",
-  "rsvp",
-  "indexing",
-  "languages",
-  "price",
-] as const;
-
-async function FactsSection({ locale }: { locale: Locale }) {
-  const t = await getTranslator(locale, ["marketing"]);
-  return (
-    <Section headingId="facts-title" tone="warm" className="print:hidden">
-      <h2 id="facts-title" className={sectionTitleClass}>
-        {t("marketing.facts.title")}
-      </h2>
-      <dl className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2">
-        {FACT_KEYS.map((key) => (
-          <div key={key} className="border-ink border-t-2 pt-5">
-            <dt className={itemTitleClass}>{t(`marketing.facts.${key}.label`)}</dt>
-            <dd className="text-muted mt-3 text-lg">{t(`marketing.facts.${key}.value`)}</dd>
-          </div>
-        ))}
-      </dl>
-    </Section>
-  );
-}
-
 /** Šablony podle typu svatby (`marketing.templates.byStyle.*`). */
 async function StyleGuide({ locale }: { locale: Locale }) {
   const t = await getTranslator(locale, ["marketing"]);
@@ -145,7 +128,13 @@ async function StyleGuide({ locale }: { locale: Locale }) {
 }
 
 /** Tři body s nadpisem (`marketing.<route>.points.*`). */
-async function Points({ locale, route }: { locale: Locale; route: "bilingual" | "photographers" }) {
+async function Points({
+  locale,
+  route,
+}: {
+  locale: Locale;
+  route: "bilingual" | "rsvp" | "photographers";
+}) {
   const t = await getTranslator(locale, ["marketing"]);
   const points = ([1, 2, 3] as const).map((n) => ({
     title: t(`marketing.${route}.points.${n}.title`),
@@ -225,7 +214,9 @@ export async function InfoPage({
         ? await getPhotographerFaqItems(locale)
         : route === "bilingual"
           ? await getBilingualFaqItems(locale)
-          : await getFaqItems(locale);
+          : route === "rsvp"
+            ? await getRsvpFaqItems(locale)
+            : await getFaqItems(locale);
   const extra: JsonLdNode[] = [
     webPageLd({
       siteUrl,
@@ -299,6 +290,13 @@ export async function InfoPage({
         {route === "bilingual" ? (
           <>
             <Points locale={locale} route="bilingual" />
+            <FactsSection locale={locale} />
+            <FaqSection locale={locale} items={faq} />
+          </>
+        ) : null}
+        {route === "rsvp" ? (
+          <>
+            <Points locale={locale} route="rsvp" />
             <FactsSection locale={locale} />
             <FaqSection locale={locale} items={faq} />
           </>

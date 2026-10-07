@@ -598,8 +598,8 @@ test.describe("právní podstránky", () => {
 
 test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
   const pages = [
-    { path: "/cenik", h1: "Cena svatebního webu", alt: "/en/pricing" },
-    { path: "/en/pricing", h1: "Wedding website pricing", alt: "/cenik" },
+    { path: "/cenik", h1: "Svatební web zdarma", alt: "/en/pricing" },
+    { path: "/en/pricing", h1: "A free wedding website", alt: "/cenik" },
     { path: "/sablony", h1: "Šablony svatebního webu", alt: "/en/templates" },
     { path: "/en/templates", h1: "Wedding website templates", alt: "/sablony" },
     {
@@ -651,7 +651,8 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
         mainEntity: { name: string }[];
       };
       for (const question of faq.mainEntity) expect(html).toContain(question.name);
-      expect(types.includes("SoftwareApplication")).toBe(/cenik|pricing/.test(entry.path));
+      // nabídka s cenou je na všech podstránkách kromě stránky pro fotografy
+      expect(types.includes("SoftwareApplication")).toBe(!/fotograf/.test(entry.path));
     });
   }
 

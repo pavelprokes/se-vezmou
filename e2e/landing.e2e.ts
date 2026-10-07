@@ -145,14 +145,18 @@ for (const locale of locales) {
 
       const hero = page.locator("section[aria-labelledby='hero-title']");
       const preview = hero.getByTestId("address-preview");
-      await expect(preview).toHaveText("klara-a-matej.se-vezmou.cz");
+      await expect(preview).toHaveText(
+        locale.code === "cs" ? "klara-a-matej.se-vezmou.cz" : "emma-and-thomas.se-vezmou.cz",
+      );
       await hero
         .getByLabel(locale.code === "cs" ? "První jméno" : "Your name", { exact: true })
         .fill("Šárka");
       await hero
         .getByLabel(locale.code === "cs" ? "Druhé jméno" : "Your partner’s name")
         .fill("Ondřej");
-      await expect(preview).toHaveText("sarka-a-ondrej.se-vezmou.cz");
+      await expect(preview).toHaveText(
+        locale.code === "cs" ? "sarka-a-ondrej.se-vezmou.cz" : "sarka-and-ondrej.se-vezmou.cz",
+      );
 
       const templates = hero.getByRole("group", {
         name: locale.code === "cs" ? "Šablona náhledu" : "Preview template",
@@ -245,7 +249,7 @@ for (const locale of locales) {
       await extra.screenshot({ path: test.info().outputPath(`cim-se-lisime-${locale.code}.png`) });
     });
 
-    test("šablony: osm skutečných snímků se jmény Klára a Matěj", async ({ page }) => {
+    test("šablony: osm skutečných snímků se jmény ukázkového páru", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       const previews = page.locator("#templates img");
       await expect(previews).toHaveCount(8);

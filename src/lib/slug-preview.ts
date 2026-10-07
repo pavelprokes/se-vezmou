@@ -12,10 +12,17 @@ function slugPart(value: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-/** `Klára`, `Matěj` -> `klara-a-matej`; bez obou jmen vrací `null`. */
-export function previewSlug(first: string, second: string): string | null {
+/** Spojka jmen v adrese podle jazyka: `klara-a-matej`, anglicky `emma-and-thomas`. */
+const JOINER = { cs: "a", en: "and" } as const;
+
+/** `Klára`, `Matěj` -> `klara-a-matej` (anglicky `emma-and-thomas`); bez obou jmen vrací `null`. */
+export function previewSlug(
+  first: string,
+  second: string,
+  locale: keyof typeof JOINER = "cs",
+): string | null {
   const a = slugPart(first);
   const b = slugPart(second);
   if (!a && !b) return null;
-  return [a, b].filter(Boolean).join("-a-");
+  return [a, b].filter(Boolean).join(`-${JOINER[locale]}-`);
 }

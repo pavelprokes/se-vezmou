@@ -58,9 +58,9 @@ for (const locale of locales) {
       expect(response.status()).toBe(200);
       expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
       expect(html).toContain(`<html lang="${locale.lang}"`);
-      // Sekce jsou v HTML už při první odpovědi: čtrnáct oblastí (13 sekcí a patička).
-      expect(html.match(/<section[\s>]/g)?.length).toBeGreaterThanOrEqual(13);
-      expect(html.match(/<h2[\s>]/g)).toHaveLength(12);
+      // Sekce jsou v HTML už při první odpovědi: patnáct oblastí (14 sekcí a patička).
+      expect(html.match(/<section[\s>]/g)?.length).toBeGreaterThanOrEqual(14);
+      expect(html.match(/<h2[\s>]/g)).toHaveLength(13);
       expect(html).toContain("<footer");
     });
 
@@ -203,12 +203,13 @@ for (const locale of locales) {
         "after-title",
         "trust-title",
         "pricing-title",
+        "facts-title",
         "about-title",
         "news-title",
         "faq-title",
         "cta-title",
       ]);
-      // Čtrnáctá oblast je patička.
+      // Poslední oblast je patička.
       await expect(page.locator("footer")).toHaveCount(1);
     });
 
@@ -347,8 +348,9 @@ for (const locale of locales) {
       const nav = page.getByRole("navigation", { name: /Hlavní navigace|Main navigation/ });
       await expect(nav.getByRole("link")).toHaveCount(5);
       await nav.getByRole("link").nth(3).click();
-      await expect(page).toHaveURL(/#faq$/);
-      await expect(page.locator("#faq")).toBeInViewport();
+      await expect(page).toHaveURL(
+        locale.code === "cs" ? /\/dvojjazycny-svatebni-web$/ : /\/en\/bilingual-wedding-website$/,
+      );
       // Šablony a cena mají vlastní stránky.
       await openMenuIfCollapsed(page, isMobile);
       await nav.getByRole("link").nth(2).click();
@@ -609,8 +611,18 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
     },
     {
       path: "/en/bilingual-wedding-website",
-      h1: "A bilingual wedding website",
+      h1: "A wedding website for weddings in Prague and Czechia",
       alt: "/dvojjazycny-svatebni-web",
+    },
+    {
+      path: "/potvrzeni-ucasti-hostu",
+      h1: "Potvrzení účasti hostů na svatbu online",
+      alt: "/en/wedding-rsvp",
+    },
+    {
+      path: "/en/wedding-rsvp",
+      h1: "Online wedding RSVP for your guests",
+      alt: "/potvrzeni-ucasti-hostu",
     },
     {
       path: "/pro-fotografy",
@@ -694,6 +706,8 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       "/bilingual-wedding-website",
       "/for-photographers",
       "/en/pro-fotografy",
+      "/rsvp",
+      "/en/potvrzeni-ucasti-hostu",
     ]) {
       const { response } = await source(request, path);
       expect(response.status(), path).toBe(404);

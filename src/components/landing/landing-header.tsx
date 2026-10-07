@@ -25,7 +25,7 @@ export async function LandingHeader({ locale, route, query }: LandingHeaderProps
     { href: `${home}#how`, label: t("landing.nav.how") },
     { href: localizedPath("templates", locale), label: t("landing.nav.templates") },
     { href: localizedPath("pricing", locale), label: t("landing.nav.pricing") },
-    { href: `${home}#faq`, label: t("landing.nav.faq") },
+    { href: localizedPath("bilingual", locale), label: t("landing.nav.bilingual") },
     { href: localizedPath("blog", locale), label: t("landing.nav.blog") },
   ];
 

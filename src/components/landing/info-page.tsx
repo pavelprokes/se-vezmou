@@ -9,7 +9,12 @@ import { pricing } from "@/config/pricing";
 import { faqPageLd, softwareApplicationLd, webPageLd, type JsonLdNode } from "@/seo/json-ld";
 import { pageMetadata } from "@/seo/page-metadata";
 import { CtaSection } from "./cta-section";
-import { getFaqItems, getPhotographerFaqItems, getTemplateFaqItems } from "./faq";
+import {
+  getBilingualFaqItems,
+  getFaqItems,
+  getPhotographerFaqItems,
+  getTemplateFaqItems,
+} from "./faq";
 import { FaqSection } from "./faq-section";
 import { LandingFooter } from "./landing-footer";
 import { LandingHeader } from "./landing-header";
@@ -61,7 +66,7 @@ const KEYS = {
  * Datum poslední věcné úpravy podstránek (`YYYY-MM-DD`): viditelné „Aktualizováno“ i `dateModified`.
  * Při změně textu podstránky ho posuňte.
  */
-const UPDATED = "2026-10-05";
+const UPDATED = "2026-10-07";
 
 /** Jazyk z adresy, pokud je složka `segment` jeho přeloženou cestou k `route`; jinak `null`. */
 function infoLocale(route: InfoRoute, segment: string, localeParam: string): Locale | null {
@@ -86,6 +91,57 @@ export async function infoMetadata(
     siteName: t("common.brand"),
     imageAlt: t("marketing.home.ogAlt"),
   });
+}
+
+/** Základní fakta o službě doslova (`marketing.facts.*`); stejné věty jsou i v `llms.txt`. */
+export const FACT_KEYS = [
+  "templates",
+  "address",
+  "rsvp",
+  "indexing",
+  "languages",
+  "price",
+] as const;
+
+async function FactsSection({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["marketing"]);
+  return (
+    <Section headingId="facts-title" tone="warm" className="print:hidden">
+      <h2 id="facts-title" className={sectionTitleClass}>
+        {t("marketing.facts.title")}
+      </h2>
+      <dl className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2">
+        {FACT_KEYS.map((key) => (
+          <div key={key} className="border-ink border-t-2 pt-5">
+            <dt className={itemTitleClass}>{t(`marketing.facts.${key}.label`)}</dt>
+            <dd className="text-muted mt-3 text-lg">{t(`marketing.facts.${key}.value`)}</dd>
+          </div>
+        ))}
+      </dl>
+    </Section>
+  );
+}
+
+/** Šablony podle typu svatby (`marketing.templates.byStyle.*`). */
+async function StyleGuide({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["marketing"]);
+  return (
+    <Section headingId="styles-title" tone="warm" className="print:hidden">
+      <h2 id="styles-title" className={sectionTitleClass}>
+        {t("marketing.templates.byStyle.title")}
+      </h2>
+      <dl className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2">
+        {([1, 2, 3, 4, 5, 6] as const).map((n) => (
+          <div key={n} className="border-ink border-t-2 pt-5">
+            <dt className={itemTitleClass}>{t(`marketing.templates.byStyle.${n}.type`)}</dt>
+            <dd className="text-muted mt-3 text-lg">
+              {t(`marketing.templates.byStyle.${n}.names`)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </Section>
+  );
 }
 
 /** Tři body s nadpisem (`marketing.<route>.points.*`). */
@@ -167,7 +223,9 @@ export async function InfoPage({
       ? await getTemplateFaqItems(locale)
       : route === "photographers"
         ? await getPhotographerFaqItems(locale)
-        : await getFaqItems(locale);
+        : route === "bilingual"
+          ? await getBilingualFaqItems(locale)
+          : await getFaqItems(locale);
   const extra: JsonLdNode[] = [
     webPageLd({
       siteUrl,
@@ -179,7 +237,7 @@ export async function InfoPage({
     }),
     faqPageLd(faq),
   ];
-  if (route === "pricing") {
+  if (route !== "photographers") {
     extra.push(
       softwareApplicationLd({
         siteUrl,
@@ -227,19 +285,22 @@ export async function InfoPage({
         {route === "pricing" ? (
           <>
             <PricingSection locale={locale} />
-            <FaqSection locale={locale} />
+            <FactsSection locale={locale} />
+            <FaqSection locale={locale} items={faq} />
           </>
         ) : null}
         {route === "templates" ? (
           <>
             <TemplatesSection locale={locale} detailed />
+            <StyleGuide locale={locale} />
             <FaqSection locale={locale} items={faq} />
           </>
         ) : null}
         {route === "bilingual" ? (
           <>
             <Points locale={locale} route="bilingual" />
-            <FaqSection locale={locale} />
+            <FactsSection locale={locale} />
+            <FaqSection locale={locale} items={faq} />
           </>
         ) : null}
         {route === "photographers" ? (

@@ -10,6 +10,7 @@ import {
   organizationLd,
   plain,
   serializeJsonLd,
+  serviceLd,
   softwareApplicationLd,
   webPageLd,
   websiteLd,
@@ -84,6 +85,41 @@ describe("WebSite", () => {
       inLanguage: "en-GB",
       publisher: { "@id": `${siteUrl}/#organization` },
     });
+  });
+});
+
+describe("Service", () => {
+  const input = {
+    siteUrl,
+    name: "Se vezmou",
+    description: "Popis",
+    offerDescription: "Po dobu zaváděcího provozu zdarma.",
+    locale: "cs" as const,
+    pricing,
+  };
+
+  it("nese cenu z konfigurace, poskytovatele a území", () => {
+    const node = serviceLd(input);
+    expect(node).toMatchObject({
+      "@type": "Service",
+      serviceType: "Svatební web",
+      areaServed: { "@type": "Country", name: "Česko" },
+      provider: { "@id": `${siteUrl}/#organization` },
+      offers: {
+        "@type": "Offer",
+        price: String(pricing.plans[0].price),
+        priceCurrency: pricing.currency,
+      },
+    });
+  });
+
+  it("v angličtině popisuje službu anglicky a cena je stejná jako u aplikace", () => {
+    const node = serviceLd({ ...input, locale: "en" });
+    expect(node).toMatchObject({
+      serviceType: "Wedding website builder",
+      areaServed: { name: "Czechia" },
+    });
+    expect(node.offers).toEqual(softwareApplicationLd({ ...input, locale: "en" }).offers);
   });
 });
 

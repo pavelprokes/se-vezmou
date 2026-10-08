@@ -6,7 +6,13 @@ import { localizedPath, type RouteName } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
 import { siteUrl } from "@/lib/site";
 import { pricing } from "@/config/pricing";
-import { faqPageLd, softwareApplicationLd, webPageLd, type JsonLdNode } from "@/seo/json-ld";
+import {
+  faqPageLd,
+  serviceLd,
+  softwareApplicationLd,
+  webPageLd,
+  type JsonLdNode,
+} from "@/seo/json-ld";
 import { pageMetadata } from "@/seo/page-metadata";
 import { CtaSection } from "./cta-section";
 import {
@@ -229,16 +235,15 @@ export async function InfoPage({
     faqPageLd(faq),
   ];
   if (route !== "photographers") {
-    extra.push(
-      softwareApplicationLd({
-        siteUrl,
-        name: t("common.brand"),
-        description: t("marketing.home.metaDescription"),
-        offerDescription: t("landing.pricing.lead"),
-        locale,
-        pricing,
-      }),
-    );
+    const offerInput = {
+      siteUrl,
+      name: t("common.brand"),
+      description: t("marketing.home.metaDescription"),
+      offerDescription: t("landing.pricing.lead"),
+      locale,
+      pricing,
+    };
+    extra.push(softwareApplicationLd(offerInput), serviceLd(offerInput));
   }
   const updated = new Intl.DateTimeFormat(htmlLang[locale], {
     dateStyle: "long",

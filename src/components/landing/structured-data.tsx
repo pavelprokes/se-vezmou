@@ -10,6 +10,7 @@ import {
   faqPageLd,
   graph,
   organizationLd,
+  serviceLd,
   softwareApplicationLd,
   websiteLd,
   type Crumb,
@@ -25,6 +26,15 @@ export async function HomeStructuredData({ locale }: { locale: Locale }) {
   const description = t("marketing.home.metaDescription");
   const homeUrl = new URL(localizedPath("home", locale), siteUrl).toString();
 
+  const offerInput = {
+    siteUrl,
+    name,
+    description,
+    offerDescription: t("landing.pricing.lead"),
+    locale,
+    pricing,
+  };
+
   return (
     <JsonLd
       data={graph(
@@ -39,14 +49,8 @@ export async function HomeStructuredData({ locale }: { locale: Locale }) {
           profiles: operator.profiles,
         }),
         websiteLd({ siteUrl, name, description, locale }),
-        softwareApplicationLd({
-          siteUrl,
-          name,
-          description,
-          offerDescription: t("landing.pricing.lead"),
-          locale,
-          pricing,
-        }),
+        softwareApplicationLd(offerInput),
+        serviceLd(offerInput),
         faqPageLd(faq.map((item) => ({ question: item.question, answer: item.answer }))),
         breadcrumbLd([{ name: t("marketing.home.breadcrumb"), url: homeUrl }]),
       )}

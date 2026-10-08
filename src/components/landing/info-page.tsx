@@ -29,7 +29,7 @@ import { LandingHeader } from "./landing-header";
 import { PartnerKit } from "./partner-kit";
 import { PricingSection } from "./pricing-section";
 import { Section, itemTitleClass, sectionTitleClass } from "./section";
-import { SubpageStructuredData } from "./structured-data";
+import { SubpageStructuredData, getOfferInput } from "./structured-data";
 import { TemplatesSection } from "./templates-section";
 
 /**
@@ -235,14 +235,7 @@ export async function InfoPage({
     faqPageLd(faq),
   ];
   if (route !== "photographers") {
-    const offerInput = {
-      siteUrl,
-      name: t("common.brand"),
-      description: t("marketing.home.metaDescription"),
-      offerDescription: t("landing.pricing.lead"),
-      locale,
-      pricing,
-    };
+    const offerInput = await getOfferInput(locale);
     extra.push(softwareApplicationLd(offerInput), serviceLd(offerInput));
   }
   const updated = new Intl.DateTimeFormat(htmlLang[locale], {

@@ -94,32 +94,43 @@ describe("Service", () => {
     name: "Se vezmou",
     description: "Popis",
     offerDescription: "Po dobu zaváděcího provozu zdarma.",
+    serviceType: "Svatební web",
     locale: "cs" as const,
     pricing,
   };
 
-  it("nese cenu z konfigurace, poskytovatele a území", () => {
-    const node = serviceLd(input);
-    expect(node).toMatchObject({
+  it("nese identifikátor, adresu, cenu z konfigurace, poskytovatele a území", () => {
+    expect(serviceLd(input)).toEqual({
       "@type": "Service",
+      "@id": `${siteUrl}/#service`,
+      name: "Se vezmou",
       serviceType: "Svatební web",
-      areaServed: { "@type": "Country", name: "Česko" },
-      provider: { "@id": `${siteUrl}/#organization` },
+      url: `${siteUrl}/`,
+      description: "Popis",
+      areaServed: { "@type": "Country", name: "CZ" },
+      isRelatedTo: { "@id": `${siteUrl}/#software` },
       offers: {
         "@type": "Offer",
         price: String(pricing.plans[0].price),
         priceCurrency: pricing.currency,
+        description: "Po dobu zaváděcího provozu zdarma.",
+        availability: "https://schema.org/InStock",
       },
+      provider: { "@id": `${siteUrl}/#organization` },
     });
   });
 
-  it("v angličtině popisuje službu anglicky a cena je stejná jako u aplikace", () => {
-    const node = serviceLd({ ...input, locale: "en" });
-    expect(node).toMatchObject({
-      serviceType: "Wedding website builder",
-      areaServed: { name: "Czechia" },
-    });
-    expect(node.offers).toEqual(softwareApplicationLd({ ...input, locale: "en" }).offers);
+  it("nabídka je shodná s aplikací, včetně konce zaváděcího provozu", () => {
+    const withEnd = { ...input, pricing: { ...pricing, introEndsOn: "2027-06-30" } };
+    expect(serviceLd(withEnd).offers).toEqual(softwareApplicationLd(withEnd).offers);
+    expect(serviceLd(withEnd).offers).toMatchObject({ priceValidUntil: "2027-06-30" });
+    expect(serviceLd(input).offers).not.toHaveProperty("priceValidUntil");
+  });
+
+  it("území je v každém jazyce stejné", () => {
+    expect(
+      serviceLd({ ...input, locale: "en", serviceType: "Wedding website builder" }).areaServed,
+    ).toEqual(serviceLd(input).areaServed);
   });
 });
 
@@ -129,6 +140,7 @@ describe("SoftwareApplication", () => {
     name: "Se vezmou",
     description: "Popis",
     offerDescription: "Po dobu zaváděcího provozu zdarma.",
+    serviceType: "Svatební web",
     locale: "cs" as const,
     pricing,
   };

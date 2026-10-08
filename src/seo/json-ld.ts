@@ -93,6 +93,8 @@ export interface SoftwareApplicationInput {
   description: string;
   /** Text o zaváděcím provozu, který nabídku popisuje (nikdy „zdarma navždy“). */
   offerDescription: string;
+  /** Druh služby pro uzel `Service` (přeložený text, např. „Svatební web“). */
+  serviceType: string;
   locale: Locale;
   pricing: Pricing;
 }
@@ -134,10 +136,12 @@ export function serviceLd(input: SoftwareApplicationInput): JsonLdNode {
     "@type": "Service",
     "@id": idOf(input.siteUrl, "service"),
     name: plain(input.name),
-    serviceType: input.locale === "cs" ? "Svatební web" : "Wedding website builder",
+    serviceType: plain(input.serviceType),
     url: `${input.siteUrl}/`,
     description: plain(input.description),
-    areaServed: { "@type": "Country", name: input.locale === "cs" ? "Česko" : "Czechia" },
+    // ISO 3166-1: stejná hodnota v každém jazyce, ať se uzel nerozchází mezi jazykovými verzemi.
+    areaServed: { "@type": "Country", name: "CZ" },
+    isRelatedTo: { "@id": idOf(input.siteUrl, "software") },
     offers: offerLd(input),
     provider: { "@id": idOf(input.siteUrl, "organization") },
   };

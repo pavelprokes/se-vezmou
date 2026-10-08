@@ -5,8 +5,13 @@ import type { MessageKey } from "@/i18n/messages";
 import { localizedPath, type RouteName } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
 import { siteUrl } from "@/lib/site";
-import { pricing } from "@/config/pricing";
-import { faqPageLd, softwareApplicationLd, webPageLd, type JsonLdNode } from "@/seo/json-ld";
+import {
+  faqPageLd,
+  serviceLd,
+  softwareApplicationLd,
+  webPageLd,
+  type JsonLdNode,
+} from "@/seo/json-ld";
 import { pageMetadata } from "@/seo/page-metadata";
 import { CtaSection } from "./cta-section";
 import {
@@ -23,7 +28,7 @@ import { LandingHeader } from "./landing-header";
 import { PartnerKit } from "./partner-kit";
 import { PricingSection } from "./pricing-section";
 import { Section, itemTitleClass, sectionTitleClass } from "./section";
-import { SubpageStructuredData } from "./structured-data";
+import { SubpageStructuredData, getOfferInput } from "./structured-data";
 import { TemplatesSection } from "./templates-section";
 
 /**
@@ -229,16 +234,8 @@ export async function InfoPage({
     faqPageLd(faq),
   ];
   if (route !== "photographers") {
-    extra.push(
-      softwareApplicationLd({
-        siteUrl,
-        name: t("common.brand"),
-        description: t("marketing.home.metaDescription"),
-        offerDescription: t("landing.pricing.lead"),
-        locale,
-        pricing,
-      }),
-    );
+    const offerInput = await getOfferInput(locale);
+    extra.push(softwareApplicationLd(offerInput), serviceLd(offerInput));
   }
   const updated = new Intl.DateTimeFormat(htmlLang[locale], {
     dateStyle: "long",

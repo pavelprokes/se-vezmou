@@ -10,12 +10,27 @@ import {
   faqPageLd,
   graph,
   organizationLd,
+  serviceLd,
   softwareApplicationLd,
   websiteLd,
   type Crumb,
   type JsonLdNode,
 } from "@/seo/json-ld";
 import { getFaqItems } from "./faq";
+
+/** Společné vstupy pro uzly `SoftwareApplication` a `Service` (jedna cena, jeden text nabídky) na všech stránkách. */
+export async function getOfferInput(locale: Locale) {
+  const t = await getTranslator(locale, ["common", "landing", "marketing"]);
+  return {
+    siteUrl,
+    name: t("common.brand"),
+    description: t("marketing.home.metaDescription"),
+    offerDescription: t("landing.pricing.lead"),
+    serviceType: t("marketing.service.type"),
+    locale,
+    pricing,
+  };
+}
 
 /** Strukturovaná data úvodní stránky: Organization, WebSite, SoftwareApplication, FAQPage, BreadcrumbList. */
 export async function HomeStructuredData({ locale }: { locale: Locale }) {
@@ -24,6 +39,8 @@ export async function HomeStructuredData({ locale }: { locale: Locale }) {
   const name = t("common.brand");
   const description = t("marketing.home.metaDescription");
   const homeUrl = new URL(localizedPath("home", locale), siteUrl).toString();
+
+  const offerInput = await getOfferInput(locale);
 
   return (
     <JsonLd
@@ -39,14 +56,8 @@ export async function HomeStructuredData({ locale }: { locale: Locale }) {
           profiles: operator.profiles,
         }),
         websiteLd({ siteUrl, name, description, locale }),
-        softwareApplicationLd({
-          siteUrl,
-          name,
-          description,
-          offerDescription: t("landing.pricing.lead"),
-          locale,
-          pricing,
-        }),
+        softwareApplicationLd(offerInput),
+        serviceLd(offerInput),
         faqPageLd(faq.map((item) => ({ question: item.question, answer: item.answer }))),
         breadcrumbLd([{ name: t("marketing.home.breadcrumb"), url: homeUrl }]),
       )}

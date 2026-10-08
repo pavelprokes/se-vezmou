@@ -93,11 +93,13 @@ export interface SoftwareApplicationInput {
   description: string;
   /** Text o zaváděcím provozu, který nabídku popisuje (nikdy „zdarma navždy“). */
   offerDescription: string;
+  /** Druh služby pro uzel `Service` (přeložený text, např. „Svatební web“). */
+  serviceType: string;
   locale: Locale;
   pricing: Pricing;
 }
 
-export function softwareApplicationLd(input: SoftwareApplicationInput): JsonLdNode {
+function offerLd(input: SoftwareApplicationInput): JsonLdNode {
   const offer: JsonLdNode = {
     "@type": "Offer",
     price: String(lowestPrice(input.pricing)),
@@ -107,7 +109,10 @@ export function softwareApplicationLd(input: SoftwareApplicationInput): JsonLdNo
   };
   // Konec zaváděcího provozu zatím není určen; bez něj `priceValidUntil` nepíšeme.
   if (input.pricing.introEndsOn) offer.priceValidUntil = input.pricing.introEndsOn;
+  return offer;
+}
 
+export function softwareApplicationLd(input: SoftwareApplicationInput): JsonLdNode {
   return {
     "@type": "SoftwareApplication",
     "@id": idOf(input.siteUrl, "software"),
@@ -117,8 +122,28 @@ export function softwareApplicationLd(input: SoftwareApplicationInput): JsonLdNo
     applicationCategory: "LifestyleApplication",
     operatingSystem: "Web",
     inLanguage: ["cs", "en-GB"],
-    offers: offer,
+    offers: offerLd(input),
     publisher: { "@id": idOf(input.siteUrl, "organization") },
+  };
+}
+
+/**
+ * Tatáž služba jako `Service` (nabídka s cenou, poskytovatel, území): `SoftwareApplication` popisuje aplikaci,
+ * `Service` to, co pár dostane. Cena i text nabídky jsou ze stejných vstupů, takže se uzly nerozejdou.
+ */
+export function serviceLd(input: SoftwareApplicationInput): JsonLdNode {
+  return {
+    "@type": "Service",
+    "@id": idOf(input.siteUrl, "service"),
+    name: plain(input.name),
+    serviceType: plain(input.serviceType),
+    url: `${input.siteUrl}/`,
+    description: plain(input.description),
+    // ISO 3166-1: stejná hodnota v každém jazyce, ať se uzel nerozchází mezi jazykovými verzemi.
+    areaServed: { "@type": "Country", name: "CZ" },
+    isRelatedTo: { "@id": idOf(input.siteUrl, "software") },
+    offers: offerLd(input),
+    provider: { "@id": idOf(input.siteUrl, "organization") },
   };
 }
 

@@ -72,7 +72,7 @@ for (const locale of locales) {
       expect(html).not.toMatch(/\[(PODMÍNKY|TERMS|DD[^\]]*|místo|venue)\]/);
     });
 
-    test("JSON-LD: Organization, WebSite, SoftwareApplication, FAQPage a BreadcrumbList", async ({
+    test("JSON-LD: Organization, WebSite, SoftwareApplication, Service, FAQPage a BreadcrumbList", async ({
       request,
     }) => {
       const { html } = await source(request, locale.path);
@@ -84,6 +84,7 @@ for (const locale of locales) {
         "BreadcrumbList",
         "FAQPage",
         "Organization",
+        "Service",
         "SoftwareApplication",
         "WebSite",
       ]);
@@ -668,9 +669,9 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       };
       for (const question of faq.mainEntity) expect(html).toContain(question.name);
       // nabídka s cenou je na všech podstránkách kromě stránky pro fotografy
-      expect(types.includes("SoftwareApplication")).toBe(
-        !/fotograf|photographers/.test(entry.path),
-      );
+      const withOffer = !/fotograf|photographers/.test(entry.path);
+      expect(types.includes("SoftwareApplication")).toBe(withOffer);
+      expect(types.includes("Service")).toBe(withOffer);
     });
   }
 

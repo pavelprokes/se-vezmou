@@ -5,7 +5,6 @@ import type { MessageKey } from "@/i18n/messages";
 import { localizedPath, type RouteName } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
 import { siteUrl } from "@/lib/site";
-import { pricing } from "@/config/pricing";
 import {
   faqPageLd,
   serviceLd,

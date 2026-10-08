@@ -5,6 +5,7 @@ import { locales } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 import { localizedPath } from "@/i18n/pathnames";
 import { siteUrl } from "@/lib/site";
+import { FACT_KEYS } from "@/components/landing/facts-section";
 import { buildLlmsTxt, type LlmsLink } from "@/seo/llms";
 
 // Stejně jako mapa webu: ISR po minutě, naplánované články po půlnoci načte cron `/api/cron/blog`.
@@ -17,6 +18,7 @@ const pages = [
   ["pricing", "marketing.pricing"],
   ["templates", "marketing.templates"],
   ["bilingual", "marketing.bilingual"],
+  ["rsvp", "marketing.rsvp"],
   ["photographers", "marketing.photographers"],
   ["blog", "blog.index"],
 ] as const;
@@ -25,9 +27,14 @@ export async function GET() {
   const absolute = (path: string) => new URL(path, siteUrl).toString();
   const sections = [];
   const summary = [];
+  const facts: string[] = [];
   for (const locale of locales) {
     const t = await getTranslator(locale, ["marketing", "blog"]);
     summary.push(t("marketing.home.metaDescription"));
+    facts.push(
+      `${locale === "cs" ? "Fakta" : "Facts"}: ` +
+        FACT_KEYS.map((key) => t(`marketing.facts.${key}.value`)).join(" "),
+    );
     const links: LlmsLink[] = pages.map(([route, key]) => ({
       title: t(`${key}.metaTitle`),
       url: absolute(localizedPath(route, locale)),
@@ -47,6 +54,7 @@ export async function GET() {
     name: "Se vezmou (se-vezmou.cz)",
     summary,
     details: [
+      ...facts,
       `Provozovatel / Operator: ${operator.nameAndId}, ${operator.address}. Kontakt / Contact: ${operator.contact}.`,
       "Weby párů (jmeno-a-jmeno.se-vezmou.cz) jsou soukromé a vyhledávače je neindexují. / Couples' websites are private and not indexed.",
     ],

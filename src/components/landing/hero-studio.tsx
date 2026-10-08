@@ -29,7 +29,7 @@ export interface HeroStudioProps {
 /**
  * Hero s živým náhledem: jména z formuláře se hned propíšou do adresy a do náhledu vybrané šablony.
  * Náhled je ozdoba (čtečky ho přeskočí); adresa v liště a přepínač šablon jsou přístupné.
- * Bez JavaScriptu zůstane formulář funkční (GET na průvodce) a náhled ukáže Kláru a Matěje.
+ * Bez JavaScriptu zůstane formulář funkční (GET na průvodce) a náhled ukáže ukázkový pár z textů (česky Klára a Matěj, anglicky Emma a Thomas).
  */
 export function HeroStudio(props: HeroStudioProps) {
   const { formLabels, templates } = props;
@@ -38,8 +38,9 @@ export function HeroStudio(props: HeroStudioProps) {
 
   const first = names.first.trim() || formLabels.firstPlaceholder;
   const second = names.second.trim() || formLabels.secondPlaceholder;
-  const slug = previewSlug(names.first, names.second);
-  const address = slug ?? previewSlug(formLabels.firstPlaceholder, formLabels.secondPlaceholder);
+  const slug = previewSlug(names.first, names.second, props.locale);
+  const address =
+    slug ?? previewSlug(formLabels.firstPlaceholder, formLabels.secondPlaceholder, props.locale);
 
   return (
     <div className="grid items-center gap-12 md:grid-cols-[1.05fr_1fr] lg:gap-16">

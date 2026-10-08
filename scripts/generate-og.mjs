@@ -38,6 +38,8 @@ const texts = {
     invite: "ZVEME VÁS",
     rsvp: "POTVRDIT ÚČAST",
     dateplace: "12. června 2027 · Praha",
+    first: "Klára",
+    second: "Matěj",
   },
   en: {
     size: 50,
@@ -49,6 +51,8 @@ const texts = {
     invite: "YOU ARE INVITED",
     rsvp: "CONFIRM ATTENDANCE",
     dateplace: "12 June 2027 · Prague",
+    first: "Emma",
+    second: "Thomas",
   },
 };
 
@@ -63,12 +67,12 @@ function svg(t) {
   <g transform="translate(150 50) scale(0.84)">
   <circle cx="930" cy="330" r="230" fill="${c.linen}"/>
   <rect x="640" y="150" width="190" height="260" rx="16" fill="${c.cinnamon}" transform="rotate(-5 735 280)"/>
-  <text x="654" y="330" font-family="serif" font-size="120" fill="${c.parchment}" transform="rotate(-5 735 280)">K</text>
+  <text x="654" y="330" font-family="serif" font-size="120" fill="${c.parchment}" transform="rotate(-5 735 280)">${t.first[0]}</text>
   <rect x="720" y="190" width="400" height="290" rx="18" fill="${c.parchment}" stroke="${c.pine}" stroke-opacity="0.25" stroke-width="2"/>
   <path d="M720 208a18 18 0 0 1 18-18h364a18 18 0 0 1 18 18v28H720z" fill="${c.warm}"/>
   <text x="920" y="296" font-family="sans-serif" font-size="14" font-weight="700" letter-spacing="3" text-anchor="middle" fill="${c.cinnamonDeep}">${t.invite}</text>
-  <text x="920" y="350" font-family="serif" font-size="56" text-anchor="middle" fill="${c.pine}">Klára</text>
-  <text x="920" y="408" font-family="serif" font-size="56" text-anchor="middle" fill="${c.pine}">&amp; Matěj</text>
+  <text x="920" y="350" font-family="serif" font-size="56" text-anchor="middle" fill="${c.pine}">${t.first}</text>
+  <text x="920" y="408" font-family="serif" font-size="56" text-anchor="middle" fill="${c.pine}">&amp; ${t.second}</text>
   <text x="920" y="436" font-family="sans-serif" font-size="14" text-anchor="middle" fill="${c.ink}">${t.dateplace}</text>
   <rect x="825" y="446" width="190" height="26" rx="8" fill="${c.pine}"/>
   <text x="920" y="464" font-family="sans-serif" font-size="12" font-weight="700" letter-spacing="1" text-anchor="middle" fill="${c.parchment}">${t.rsvp}</text>

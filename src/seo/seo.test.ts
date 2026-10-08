@@ -66,6 +66,7 @@ describe("sitemap.xml", () => {
       "pricing",
       "templates",
       "bilingual",
+      "rsvp",
       "photographers",
       "blog",
       "privacy",
@@ -82,6 +83,8 @@ describe("sitemap.xml", () => {
       "/en/templates",
       "/dvojjazycny-svatebni-web",
       "/en/bilingual-wedding-website",
+      "/potvrzeni-ucasti-hostu",
+      "/en/wedding-rsvp",
       "/pro-fotografy",
       "/en/for-photographers",
     ]) {

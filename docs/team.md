@@ -36,7 +36,7 @@ Definice rolí, pravidel spolupráce a společných standardů. Odkazuje na ni `
 - Čeština podle Pravidel českého pravopisu a české typografie; čeština a angličtina od začátku.
 - Přístupnost WCAG 2.2 AA je podmínka přijetí.
 - Next.js a Vercel, paleta a zadání podle dokumentu projektu.
-- Ukázková jména párů jsou Klára a Matěj, nikdy Patricie a Pavel.
+- Ukázková jména párů jsou Klára a Matěj, nikdy Patricie a Pavel. V anglické verzi úvodního webu (formulář, náhled, snímky šablon, sdílený obrázek) jsou Emma a Thomas, protože cílí na hosty ze zahraničí.
 
 ## Jak team funguje
 

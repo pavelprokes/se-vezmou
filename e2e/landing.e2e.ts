@@ -58,9 +58,9 @@ for (const locale of locales) {
       expect(response.status()).toBe(200);
       expect(html.match(/<h1[\s>]/g)).toHaveLength(1);
       expect(html).toContain(`<html lang="${locale.lang}"`);
-      // Sekce jsou v HTML už při první odpovědi: čtrnáct oblastí (13 sekcí a patička).
-      expect(html.match(/<section[\s>]/g)?.length).toBeGreaterThanOrEqual(13);
-      expect(html.match(/<h2[\s>]/g)).toHaveLength(12);
+      // Sekce jsou v HTML už při první odpovědi: patnáct oblastí (14 sekcí a patička).
+      expect(html.match(/<section[\s>]/g)?.length).toBeGreaterThanOrEqual(14);
+      expect(html.match(/<h2[\s>]/g)).toHaveLength(13);
       expect(html).toContain("<footer");
     });
 
@@ -72,7 +72,7 @@ for (const locale of locales) {
       expect(html).not.toMatch(/\[(PODMÍNKY|TERMS|DD[^\]]*|místo|venue)\]/);
     });
 
-    test("JSON-LD: Organization, WebSite, SoftwareApplication, FAQPage a BreadcrumbList", async ({
+    test("JSON-LD: Organization, WebSite, SoftwareApplication, Service, FAQPage a BreadcrumbList", async ({
       request,
     }) => {
       const { html } = await source(request, locale.path);
@@ -84,6 +84,7 @@ for (const locale of locales) {
         "BreadcrumbList",
         "FAQPage",
         "Organization",
+        "Service",
         "SoftwareApplication",
         "WebSite",
       ]);
@@ -145,14 +146,18 @@ for (const locale of locales) {
 
       const hero = page.locator("section[aria-labelledby='hero-title']");
       const preview = hero.getByTestId("address-preview");
-      await expect(preview).toHaveText("klara-a-matej.se-vezmou.cz");
+      await expect(preview).toHaveText(
+        locale.code === "cs" ? "klara-a-matej.se-vezmou.cz" : "emma-and-thomas.se-vezmou.cz",
+      );
       await hero
         .getByLabel(locale.code === "cs" ? "První jméno" : "Your name", { exact: true })
         .fill("Šárka");
       await hero
         .getByLabel(locale.code === "cs" ? "Druhé jméno" : "Your partner’s name")
         .fill("Ondřej");
-      await expect(preview).toHaveText("sarka-a-ondrej.se-vezmou.cz");
+      await expect(preview).toHaveText(
+        locale.code === "cs" ? "sarka-a-ondrej.se-vezmou.cz" : "sarka-and-ondrej.se-vezmou.cz",
+      );
 
       const templates = hero.getByRole("group", {
         name: locale.code === "cs" ? "Šablona náhledu" : "Preview template",
@@ -203,12 +208,13 @@ for (const locale of locales) {
         "after-title",
         "trust-title",
         "pricing-title",
+        "facts-title",
         "about-title",
         "news-title",
         "faq-title",
         "cta-title",
       ]);
-      // Čtrnáctá oblast je patička.
+      // Poslední oblast je patička.
       await expect(page.locator("footer")).toHaveCount(1);
     });
 
@@ -244,7 +250,7 @@ for (const locale of locales) {
       await extra.screenshot({ path: test.info().outputPath(`cim-se-lisime-${locale.code}.png`) });
     });
 
-    test("šablony: osm skutečných snímků se jmény Klára a Matěj", async ({ page }) => {
+    test("šablony: osm skutečných snímků se jmény ukázkového páru", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       const previews = page.locator("#templates img");
       await expect(previews).toHaveCount(8);
@@ -347,8 +353,9 @@ for (const locale of locales) {
       const nav = page.getByRole("navigation", { name: /Hlavní navigace|Main navigation/ });
       await expect(nav.getByRole("link")).toHaveCount(5);
       await nav.getByRole("link").nth(3).click();
-      await expect(page).toHaveURL(/#faq$/);
-      await expect(page.locator("#faq")).toBeInViewport();
+      await expect(page).toHaveURL(
+        locale.code === "cs" ? /\/dvojjazycny-svatebni-web$/ : /\/en\/bilingual-wedding-website$/,
+      );
       // Šablony a cena mají vlastní stránky.
       await openMenuIfCollapsed(page, isMobile);
       await nav.getByRole("link").nth(2).click();
@@ -598,8 +605,8 @@ test.describe("právní podstránky", () => {
 
 test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
   const pages = [
-    { path: "/cenik", h1: "Cena svatebního webu", alt: "/en/pricing" },
-    { path: "/en/pricing", h1: "Wedding website pricing", alt: "/cenik" },
+    { path: "/cenik", h1: "Svatební web zdarma", alt: "/en/pricing" },
+    { path: "/en/pricing", h1: "A free wedding website", alt: "/cenik" },
     { path: "/sablony", h1: "Šablony svatebního webu", alt: "/en/templates" },
     { path: "/en/templates", h1: "Wedding website templates", alt: "/sablony" },
     {
@@ -609,8 +616,18 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
     },
     {
       path: "/en/bilingual-wedding-website",
-      h1: "A bilingual wedding website",
+      h1: "A wedding website for your wedding in Prague or Czechia",
       alt: "/dvojjazycny-svatebni-web",
+    },
+    {
+      path: "/potvrzeni-ucasti-hostu",
+      h1: "Potvrzení účasti hostů na svatbu online",
+      alt: "/en/wedding-rsvp",
+    },
+    {
+      path: "/en/wedding-rsvp",
+      h1: "Online wedding RSVP for your guests",
+      alt: "/potvrzeni-ucasti-hostu",
     },
     {
       path: "/pro-fotografy",
@@ -651,7 +668,10 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
         mainEntity: { name: string }[];
       };
       for (const question of faq.mainEntity) expect(html).toContain(question.name);
-      expect(types.includes("SoftwareApplication")).toBe(/cenik|pricing/.test(entry.path));
+      // nabídka s cenou je na všech podstránkách kromě stránky pro fotografy
+      const withOffer = !/fotograf|photographers/.test(entry.path);
+      expect(types.includes("SoftwareApplication")).toBe(withOffer);
+      expect(types.includes("Service")).toBe(withOffer);
     });
   }
 
@@ -691,6 +711,8 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       "/bilingual-wedding-website",
       "/for-photographers",
       "/en/pro-fotografy",
+      "/rsvp",
+      "/en/potvrzeni-ucasti-hostu",
     ]) {
       const { response } = await source(request, path);
       expect(response.status(), path).toBe(404);

@@ -72,3 +72,41 @@ export function renderOperatorNotice({
   });
   return composeEmail("cs", HEADINGS[event], blocks, BRAND);
 }
+
+export type OperatorSitePublishedParams = {
+  /** Adresa webu (už zveřejněná, tedy veřejná); jméno ani e-mail páru zpráva nenese. */
+  siteUrl: string;
+  slug: string;
+  template: string;
+  /** Výchozí jazyk webu. */
+  locale: string;
+  at: Date;
+};
+
+/** Upozornění provozovateli: někdo dokončil průvodce a zveřejnil web. Jen veřejné údaje a technické označení. */
+export function renderOperatorSitePublished({
+  siteUrl,
+  slug,
+  template,
+  locale,
+  at,
+}: OperatorSitePublishedParams): RenderedEmail {
+  const blocks: Block[] = [
+    { kind: "heading", text: "Nový zveřejněný web" },
+    {
+      kind: "paragraph",
+      text: `Dne ${formatMoment(at, "cs")} někdo dokončil průvodce a zveřejnil web.`,
+    },
+    {
+      kind: "list",
+      text: "Údaje:",
+      items: [`Adresa: ${slug}`, `Šablona: ${template}`, `Výchozí jazyk: ${locale}`],
+    },
+    { kind: "link", text: "Otevřít web", href: siteUrl },
+    {
+      kind: "small",
+      text: "Zprávu dostáváte, protože je v nastavení nasazení uvedena adresa pro provozní upozornění. Neobsahuje jména ani e-maily páru.",
+    },
+  ];
+  return composeEmail("cs", `Nový web: ${slug}`, blocks, BRAND);
+}

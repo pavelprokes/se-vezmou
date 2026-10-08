@@ -619,6 +619,7 @@ Zapsáno při implementaci RSVP hostů, PINu hostů a správcovské strany RSVP 
 
 - Odesílá se jen při `email_confirmation` a zadané adrese, po odpovědi (`after()`), šablona `rsvp-confirmation` cs/en bez zdravotních údajů; `email_log` nese jen typ `rsvp_confirmation`, jazyk, HMAC adresy a doménu. Adresa se ukládá do `rsvp_responses.contact_email` jen při zapnutém potvrzení (vynucuje databáze).
 - Upozornění páru (`notify_couple`, `admin_rsvp_notify_get/set`): po každé nové nebo změněné odpovědi (ne při duplicitě) jde správcům krátký e-mail (`rsvp-notice` cs/en, `email_log` typ `rsvp_notice`) se jmény a účastí, nikdy s dietou, alergiemi, kontaktním e-mailem hosta ani volnými odpověďmi. Adresy aktivních správců vrací `rsvp_notify_recipients` (service role, prázdné při vypnutém příznaku), jazyk je výchozí jazyk svatby. Odeslání je best effort po odpovědi (`after()`), s pojistkou 30 upozornění za hodinu a svatbu.
+- Upozornění provozovateli o zveřejnění webu (dokončení průvodce): `publishDraftAction` po úspěšném `publish_site` pošle best effort po odpovědi (`after()`) e-mail `renderOperatorSitePublished` (cs, `email_log` typ `operator_notice`) na `OPERATOR_NOTIFY_EMAIL`; bez proměnné se neposílá. Nese jen adresu webu, šablonu, jazyk a čas, nikdy jména, e-maily ani PIN. Pojistka 30 upozornění za hodinu celkem (`operatorSitePublished`). Zveřejnění je jednorázové (`publish_site` podruhé selže), takže na jeden web přijde nejvýše jedna zpráva.
 
 ## 16. Odchylky a rozhodnutí implementace (M5, průvodce)
 

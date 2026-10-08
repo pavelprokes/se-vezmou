@@ -58,6 +58,8 @@ const schema = z.object({
   EMAIL_FROM: z.string().min(1).optional(),
   /** Konfigurační sada SES (události doručení, vlastní potlačení); nepovinná. */
   SES_CONFIGURATION_SET: z.string().min(1).optional(),
+  /** Kam jde provozní upozornění o zveřejnění nového webu (průvodce dokončen). Bez proměnné se neposílá. */
+  OPERATOR_NOTIFY_EMAIL: z.email().optional(),
 
   /**
    * Volitelný měřicí pixel (vlastní Umami) jen v oznámeních pro pár a správce (docs/adr/0014). Bez proměnné se

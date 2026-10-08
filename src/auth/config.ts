@@ -75,6 +75,8 @@ export const RATE_RULES = {
   rsvpSubmitWedding: { limit: 200, windowSeconds: HOUR },
   /** RSVP, upozornění páru e-mailem za celou svatbu (pojistka proti záplavě zpráv; nad limit se upozornění přeskočí). */
   rsvpNotifyWedding: { limit: 30, windowSeconds: HOUR },
+  /** Provozní upozornění o zveřejnění nového webu, celkem (pojistka proti záplavě v schránce provozovatele; nad limit se přeskočí). */
+  operatorSitePublished: { limit: 30, windowSeconds: HOUR },
   /** Správa webu (M7a): průběžné ukládání konceptu podle svatby (autosave je častý, ale ne neomezený). */
   siteSaveWedding: { limit: 1500, windowSeconds: HOUR },
   /** Správa webu: zveřejnění, stažení, body pro vrácení a vrácení verze podle svatby. */

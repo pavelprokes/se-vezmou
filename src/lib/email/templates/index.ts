@@ -8,6 +8,8 @@ export { renderRsvpConfirmation, type RsvpConfirmationParams } from "./rsvp-conf
 export {
   renderOperatorCode,
   renderOperatorNotice,
+  renderOperatorSitePublished,
+  type OperatorSitePublishedParams,
   type OperatorCodeParams,
   type OperatorNoticeParams,
 } from "./operator";

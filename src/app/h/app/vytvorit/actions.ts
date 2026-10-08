@@ -30,6 +30,7 @@ import {
 } from "@/wizard/server/flow";
 import { geocodeAddress, type GeocodeResult } from "@/site/map/server";
 import { previewUrl, siteUrl, displayHost } from "@/wizard/urls";
+import { notifyOperatorSitePublished } from "@/wizard/server/operator-notice";
 import { authSessionContext } from "@/lib/db/rpc";
 import { verifyTurnstile } from "@/lib/turnstile";
 import { trackServerEvent } from "@/lib/umami";
@@ -326,10 +327,20 @@ export async function publishDraftAction(rawDraft: unknown): Promise<PublishDraf
       case "published": {
         const host = await getHost();
         const root = currentHostConfig().rootDomains[0];
+        const url = siteUrl(result.slug, host, draft.defaultLocale, root);
+        defer(() =>
+          notifyOperatorSitePublished({
+            weddingId: session.weddingId,
+            slug: result.slug,
+            siteUrl: url,
+            template: draft.template,
+            locale: draft.defaultLocale,
+          }),
+        );
         return {
           status: "published",
           slug: result.slug,
-          url: siteUrl(result.slug, host, draft.defaultLocale, root),
+          url,
           host: displayHost(result.slug, host, root),
           pin: draft.guestPin.enabled ? draft.guestPin.pin : null,
         };

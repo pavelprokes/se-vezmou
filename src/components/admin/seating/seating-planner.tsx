@@ -175,7 +175,7 @@ export function SeatingPlanner({
           return;
         }
       }
-      setSaveState("done");
+      if (!dirty.current) setSaveState("done");
     } finally {
       inFlight.current = false;
     }
@@ -192,6 +192,8 @@ export function SeatingPlanner({
 
   function update(next: SeatingPlan) {
     dirty.current = true;
+    // neuložená změna: hláška „uloženo“ by do dalšího uložení lhala
+    setSaveState("idle");
     setNotice(null);
     setPlan(next);
   }

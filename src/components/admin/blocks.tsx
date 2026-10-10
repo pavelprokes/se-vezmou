@@ -527,6 +527,15 @@ function GiftsEditor({ block, ctx }: Props<"gifts">) {
         <Note>{t("admin.gifts.pinMissing")}</Note>
       ) : null}
       <IntroEditor block={block} ctx={ctx} label={t("admin.block.intro")} />
+      <div className="border-hairline bg-parchment flex flex-col gap-1 rounded-xl border p-3">
+        <a
+          href={appHref(ADMIN_PATHS.gifts, t.locale)}
+          className="min-h-target text-pine inline-flex items-center font-medium underline underline-offset-4"
+        >
+          {t("admin.gifts.editorLink")}
+        </a>
+        <p className="text-muted text-sm">{t("admin.gifts.editorHint")}</p>
+      </div>
       <Field
         label={t("admin.gifts.account")}
         hint={t("admin.gifts.accountHint")}

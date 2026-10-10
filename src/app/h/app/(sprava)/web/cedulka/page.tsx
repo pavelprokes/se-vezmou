@@ -52,7 +52,7 @@ export default async function GallerySignPage({ searchParams }: PageProps<"/h/ap
           <Card>
             <p className="text-lg">{t("admin.gallerySign.noLink")}</p>
             <a
-              href={`${appHref(ADMIN_PATHS.site, locale)}#galerie`}
+              href={`${appHref(ADMIN_PATHS.site, locale)}#block-gallery`}
               className="min-h-target text-pine mt-3 inline-flex items-center underline underline-offset-4"
             >
               {t("admin.gallerySign.toEditor")}

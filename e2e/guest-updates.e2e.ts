@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { apiRequest } from "./hosts";
 import { appUrl, tenantUrl } from "./support/admin";
 import { withDb } from "./support/db";
 import { rsvpSettingsRow, seedHouseholds, seedSite } from "./support/guests";
@@ -130,10 +131,11 @@ test.describe("vzkaz a upozornění hostům na změny", () => {
     request,
   }) => {
     const site = await seedSite();
-    const foreign = await request.post(tenantUrl(site.slug, "/upozorneni/odhlasit"), {
+    const { url, options } = apiRequest(`${site.slug}.localhost`, "/upozorneni/odhlasit");
+    const foreign = await request.post(url, {
+      ...options,
       form: { t: "0".repeat(36) },
-      headers: { origin: "https://example.com" },
-      maxRedirects: 0,
+      headers: { ...options.headers, origin: "https://example.com" },
     });
     expect(foreign.status()).toBe(403);
     await page.goto(tenantUrl(site.slug, "/upozorneni"));

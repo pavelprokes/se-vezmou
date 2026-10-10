@@ -65,6 +65,8 @@ export const RATE_RULES = {
   gallerySignPdfWedding: { limit: 30, windowSeconds: HOUR },
   /** Upozornění hostům na změnu (e-mail všem přihlášeným): pár ho pošle jen výjimečně. */
   guestUpdatesWedding: { limit: 5, windowSeconds: DAY },
+  /** Rezervace věcných darů hostem (podle webu a IP): rezervace a zrušení dohromady. */
+  giftReserveIp: { limit: 30, windowSeconds: HOUR },
   /** Odhlášení upozornění z odkazu v e-mailu (podle webu a IP; token má 144 bitů). */
   guestUpdatesUnsubscribeIp: { limit: 30, windowSeconds: HOUR },
   /** Vytvoření konceptu (první uložení) podle IP; chrání před hromaděním rezervací adres. */

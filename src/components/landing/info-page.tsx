@@ -83,7 +83,7 @@ const KEYS = {
  * Datum poslední věcné úpravy podstránek (`YYYY-MM-DD`): viditelné „Aktualizováno“ i `dateModified`.
  * Při změně textu podstránky ho posuňte.
  */
-const UPDATED = "2026-10-07";
+const UPDATED = "2026-10-10";
 
 /** Jazyk z adresy, pokud je složka `segment` jeho přeloženou cestou k `route`; jinak `null`. */
 function infoLocale(route: InfoRoute, segment: string, localeParam: string): Locale | null {

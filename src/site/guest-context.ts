@@ -1,11 +1,12 @@
 import "server-only";
 import { getGuestSession, guestIdentity } from "@/auth/guest-session";
 import type { Locale } from "@/i18n/config";
-import { publicMediaIds } from "@/lib/db/media";
+import { publicMediaIds, visitorIdentity } from "@/lib/db/media";
 import { READ_ONLY, resolveSlug, tenantRpc } from "@/lib/db/rpc";
 import { fetchInviteInfo, fetchRsvpInfo } from "@/lib/rsvp/db";
 import type { RsvpSiteState } from "@/lib/rsvp/form";
 import { initialState } from "@/lib/rsvp/service";
+import { loadGiftRegistry, type GiftRegistryView } from "./gifts";
 import { liveMedia } from "./live-media";
 import { readInvite, readTicket } from "./tenant-request";
 import { sensitiveContentSchema, type Phase, type SensitiveContent } from "./types";
@@ -28,6 +29,8 @@ export interface GuestContext {
   sensitive: SensitiveContent | null;
   /** Host přišel osobním odkazem: události, na které je jeho domácnost pozvaná, a všechny s potvrzováním. */
   invite: { invited: string[]; rsvp: string[] } | null;
+  /** Seznam věcných darů (živě z databáze); `null` bez darů nebo po svatbě. */
+  registry: GiftRegistryView | null;
 }
 
 /**
@@ -89,12 +92,18 @@ export async function loadGuestContext(slug: string, locale: Locale): Promise<Gu
       }
     }
 
+    // Výpadek seznamu darů nesmí shodit stránku: sekce Dary se pak ukáže bez něj.
+    const registry = await loadGiftRegistry(
+      access ? guestIdentity(access) : visitorIdentity(weddingId),
+    ).catch(() => null);
+
     return {
       phase: info.phase,
       rsvp: { initial: state, allowUnlisted: info.allow_unlisted, closesAt: info.closes_at },
       sensitiveUnlocked: access !== null,
       sensitive,
       invite: invite ? { invited: invite.event_ids, rsvp: invite.rsvp_event_ids } : null,
+      registry,
     };
   } catch (error) {
     // Bez osobních údajů: jen druh chyby. Stránka se vykreslí bez živých údajů.

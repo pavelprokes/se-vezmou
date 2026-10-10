@@ -108,4 +108,24 @@ describe("QR kód fotogalerie", () => {
     expect(pickGalleryUrl([block(true, null)])).toBeNull();
     expect(pickGalleryUrl([])).toBeNull();
   });
+
+  it("pickGalleryUrl označí vlastní galerii autora značkami UTM", () => {
+    const own = "https://photos.svatebni-fotograf-cechy.cz/s/abc/klara-a-matej";
+    const block = {
+      id: "00000000-0000-4000-8000-000000000001",
+      type: "gallery",
+      anchor: "fotky",
+      enabled: true,
+      position: 0,
+      sensitive: false,
+      data: {
+        mediaIds: [],
+        photosProtected: false,
+        link: { url: own, label: null, protected: false, card: null },
+      },
+    } as Block;
+    const picked = new URL(pickGalleryUrl([block]) ?? "");
+    expect(picked.searchParams.get("utm_medium")).toBe("qr-oznameni");
+    expect(picked.searchParams.get("utm_source")).toBe("se-vezmou");
+  });
 });

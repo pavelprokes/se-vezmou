@@ -458,3 +458,78 @@ describe("host mimo seznam", () => {
     expect(result.ok && result.payload.people).toHaveLength(20);
   });
 });
+
+describe("vzkaz a upozornění na změny", () => {
+  const on = () =>
+    listed({
+      settings: { enabled_questions: { message: true, updates: true }, email_confirmation: false },
+    });
+
+  it("vzkaz: oříznutý, prázdný se nepošle, delší než 1000 znaků je chyba, vypnutý se ignoruje", () => {
+    const ok = parseSubmission(formOf([...everyone, ["a.message", "  Ať vám to klape!  "]]), on());
+    expect(ok.ok && ok.payload.answers.message).toBe("Ať vám to klape!");
+    const empty = parseSubmission(formOf([...everyone, ["a.message", "   "]]), on());
+    expect(empty.ok && "message" in empty.payload.answers).toBe(false);
+    const long = parseSubmission(formOf([...everyone, ["a.message", "x".repeat(1001)]]), on());
+    expect(!long.ok && long.errors["a.message"]).toBe("too_long");
+    const off = parseSubmission(
+      formOf([...everyone, ["a.message", "Ahoj"]]),
+      listed({ settings: { enabled_questions: {}, email_confirmation: false } }),
+    );
+    expect(off.ok && "message" in off.payload.answers).toBe(false);
+  });
+
+  it("přihlášení: souhlas, e-mail povinný, telefon nepovinný a jen v povoleném tvaru, jazyk stránky", () => {
+    const result = parseSubmission(
+      formOf([
+        ...everyone,
+        ["updates", "1"],
+        ["updatesEmail", " jan@example.test "],
+        ["updatesPhone", "+420 777 123 456"],
+      ]),
+      on(),
+      { locale: "en" },
+    );
+    expect(result.ok && result.payload.updates).toEqual({
+      action: "set",
+      email: "jan@example.test",
+      phone: "+420 777 123 456",
+      locale: "en",
+    });
+    expect(result.ok && result.summary.updates).toBe(true);
+
+    const missing = parseSubmission(formOf([...everyone, ["updates", "1"]]), on());
+    expect(!missing.ok && missing.errors.updatesEmail).toBe("required");
+    const bad = parseSubmission(
+      formOf([
+        ...everyone,
+        ["updates", "1"],
+        ["updatesEmail", "bez-zavinace"],
+        ["updatesPhone", "volejte mi"],
+      ]),
+      on(),
+    );
+    expect(!bad.ok && bad.errors).toMatchObject({ updatesEmail: "email", updatesPhone: "phone" });
+  });
+
+  it("bez souhlasu nic, uložené: prázdný e-mail je ponechá, odškrtnutí odhlásí", () => {
+    const none = parseSubmission(formOf([...everyone, ["updatesEmail", "jan@example.test"]]), on());
+    expect(none.ok && "updates" in none.payload).toBe(false);
+    const keep = parseSubmission(
+      formOf([...everyone, ["updates", "1"], ["updatesSaved", "1"]]),
+      on(),
+    );
+    expect(keep.ok && "updates" in keep.payload).toBe(false);
+    const remove = parseSubmission(formOf([...everyone, ["updatesSaved", "1"]]), on());
+    expect(remove.ok && remove.payload.updates).toEqual({ action: "remove" });
+    expect(remove.ok && remove.summary.updates).toBe(false);
+  });
+
+  it("vypnutá upozornění: pole formuláře se ignorují", () => {
+    const result = parseSubmission(
+      formOf([...everyone, ["updates", "1"], ["updatesEmail", "jan@example.test"]]),
+      listed({ settings: { enabled_questions: {}, email_confirmation: false } }),
+    );
+    expect(result.ok && "updates" in result.payload).toBe(false);
+  });
+});

@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { GiftRegistrySection } from "../../blocks/gift-registry-section";
 import { ArrowDown, ArrowUpRight, ExternalLink, Lock, Mail, Phone } from "lucide-react";
 import { Icon } from "@/components/ui/icon";
 import { formatDateRange } from "@/site/format";
@@ -428,6 +429,12 @@ export function EuGifts({ block, ctx, tone }: EuBlockProps<"gifts">) {
               <PinGate labels={pinGateLabels(t, "gifts")} locale={ctx.locale} unlockKey="gifts" />
             </div>
           )}
+          <GiftRegistrySection
+            ctx={ctx}
+            gateShown={
+              block.data.payment && !gifts && !(ctx.sensitiveUnlocked && ctx.sensitive !== null)
+            }
+          />
         </div>
       </div>
     </SectionShell>

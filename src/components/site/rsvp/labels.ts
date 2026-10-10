@@ -57,6 +57,7 @@ export interface RsvpLabels {
     lodging: { legend: string; need: string; own: string; unsure: string };
     transport: { legend: string; need: string; own: string; offer: string };
     song: { label: string; hint: string };
+    message: { label: string; hint: string };
     yes: string;
     no: string;
     required: string;
@@ -64,6 +65,15 @@ export interface RsvpLabels {
     noHealthDietOff: string;
   };
   email: { label: string; hint: string; saved: string };
+  updates: {
+    legend: string;
+    consent: string;
+    email: string;
+    emailHint: string;
+    phone: string;
+    phoneHint: string;
+    saved: string;
+  };
   submit: { send: string; save: string; sending: string };
   errors: {
     summary: string;
@@ -72,6 +82,7 @@ export interface RsvpLabels {
     name: string;
     age: string;
     email: string;
+    phone: string;
     tooLong: string;
     choice: string;
     invalid: string;
@@ -88,6 +99,8 @@ export interface RsvpLabels {
     summary: string;
     attending: string;
     declining: string;
+    updatesOn: string;
+    updatesOff: string;
   };
   honeypot: string;
 }
@@ -181,6 +194,10 @@ export function rsvpLabels(t: Translator<"rsvp" | "site" | "common">): RsvpLabel
         offer: t("rsvp.questions.transport.offer"),
       },
       song: { label: t("rsvp.questions.song.label"), hint: t("rsvp.questions.song.hint") },
+      message: {
+        label: t("rsvp.questions.message.label"),
+        hint: t("rsvp.questions.message.hint"),
+      },
       yes: t("rsvp.questions.yes"),
       no: t("rsvp.questions.no"),
       required: t("rsvp.questions.required"),
@@ -191,6 +208,15 @@ export function rsvpLabels(t: Translator<"rsvp" | "site" | "common">): RsvpLabel
       label: t("rsvp.email.label"),
       hint: t("rsvp.email.hint"),
       saved: t("rsvp.email.saved"),
+    },
+    updates: {
+      legend: t("rsvp.updates.legend"),
+      consent: t("rsvp.updates.consent"),
+      email: t("rsvp.updates.email"),
+      emailHint: t("rsvp.updates.emailHint"),
+      phone: t("rsvp.updates.phone"),
+      phoneHint: t("rsvp.updates.phoneHint"),
+      saved: t("rsvp.updates.saved"),
     },
     submit: {
       send: t("rsvp.submit.send"),
@@ -204,6 +230,7 @@ export function rsvpLabels(t: Translator<"rsvp" | "site" | "common">): RsvpLabel
       name: t("rsvp.errors.name"),
       age: t("rsvp.errors.age"),
       email: t("rsvp.errors.email"),
+      phone: t("rsvp.errors.phone"),
       tooLong: t("rsvp.errors.tooLong"),
       choice: t("rsvp.errors.choice"),
       invalid: t("rsvp.errors.invalid"),
@@ -220,6 +247,8 @@ export function rsvpLabels(t: Translator<"rsvp" | "site" | "common">): RsvpLabel
       summary: t("rsvp.done.summary"),
       attending: t("rsvp.done.attending"),
       declining: t("rsvp.done.declining"),
+      updatesOn: t("rsvp.done.updatesOn"),
+      updatesOff: t("rsvp.done.updatesOff"),
     },
     honeypot: t("rsvp.honeypot.label"),
   };

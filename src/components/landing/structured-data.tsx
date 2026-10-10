@@ -17,6 +17,7 @@ import {
   type JsonLdNode,
 } from "@/seo/json-ld";
 import { getFaqItems } from "./faq";
+import { EXTRA_FEATURES } from "./features-section";
 
 /** Společné vstupy pro uzly `SoftwareApplication` a `Service` (jedna cena, jeden text nabídky) na všech stránkách. */
 export async function getOfferInput(locale: Locale) {
@@ -27,6 +28,7 @@ export async function getOfferInput(locale: Locale) {
     description: t("marketing.home.metaDescription"),
     offerDescription: t("landing.pricing.lead"),
     serviceType: t("marketing.service.type"),
+    featureList: EXTRA_FEATURES.map((n) => t(`landing.features.extra.${n}`)),
     locale,
     pricing,
   };

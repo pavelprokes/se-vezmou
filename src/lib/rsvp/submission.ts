@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { Locale } from "@/i18n/config";
 import {
   answerField,
   attendanceField,
@@ -22,6 +23,9 @@ const MAX_NAME = 200;
 const MAX_HEALTH = 1000;
 const MAX_SONG = 200;
 const MAX_ANSWER = 1000;
+export const MAX_MESSAGE = 1000;
+/** Telefon pro upozornění: číslice, mezery, závorky a pomlčky, volitelně `+` (stejně jako databáze). */
+const PHONE = /^\+?[0-9 ()-]{6,30}$/;
 const MAX_AGE = 17;
 
 const emailSchema = z.email().max(254);
@@ -50,7 +54,11 @@ function extraIndexes(form: FormData): number[] {
   return [...found].sort((a, b) => a - b).slice(0, MAX_EXTRAS);
 }
 
-export function parseSubmission(form: FormData, model: RsvpFormModel): ParseResult {
+export function parseSubmission(
+  form: FormData,
+  model: RsvpFormModel,
+  options: { locale?: Locale } = {},
+): ParseResult {
   const errors: FieldErrors = {};
   const people: PayloadPerson[] = [];
   const summary: Omit<DoneSummary, "emailSent"> = {
@@ -167,6 +175,11 @@ export function parseSubmission(form: FormData, model: RsvpFormModel): ParseResu
     if (song.length > MAX_SONG) errors[answerField("song")] = "too_long";
     else if (song !== "") answers.song = song;
   }
+  if (model.flags.message) {
+    const message = read(form, answerField("message"));
+    if (message.length > MAX_MESSAGE) errors[answerField("message")] = "too_long";
+    else if (message !== "") answers.message = message;
+  }
   for (const question of model.questions) {
     // Otázka k události se týká jen toho, kdo na ni přijde.
     if (question.eventId !== null && !attendingEvents.has(question.eventId)) continue;
@@ -203,6 +216,34 @@ export function parseSubmission(form: FormData, model: RsvpFormModel): ParseResu
     }
   }
 
+  // 5. upozornění na změny (jen když je pár zapnul): souhlas zaškrtnutím, e-mail povinný, telefon ne
+  let updates: SubmitPayload["updates"];
+  if (model.flags.updates) {
+    const on = read(form, "updates") === "1";
+    const saved = read(form, "updatesSaved") === "1";
+    if (on) {
+      const email = read(form, "updatesEmail");
+      const phone = read(form, "updatesPhone");
+      if (email === "") {
+        // uložená adresa, kterou host nevidí: prázdné pole ji ponechá
+        if (!saved) errors.updatesEmail = "required";
+      } else if (!emailSchema.safeParse(email).success) {
+        errors.updatesEmail = "email";
+      }
+      if (phone !== "" && !PHONE.test(phone)) errors.updatesPhone = "phone";
+      if (email !== "") {
+        updates = {
+          action: "set",
+          email,
+          phone: phone === "" ? null : phone,
+          locale: options.locale ?? "cs",
+        };
+      }
+    } else if (saved) {
+      updates = { action: "remove" };
+    }
+  }
+
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   return {
     ok: true,
@@ -211,7 +252,11 @@ export function parseSubmission(form: FormData, model: RsvpFormModel): ParseResu
       ...(keepEmail ? { keep_email: true } : {}),
       answers,
       people,
+      ...(updates ? { updates } : {}),
     },
-    summary,
+    summary: {
+      ...summary,
+      ...(updates ? { updates: updates.action === "set" } : {}),
+    },
   };
 }

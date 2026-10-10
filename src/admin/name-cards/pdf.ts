@@ -28,7 +28,7 @@ const MM = 72 / 25.4;
 const PAGE = { width: A4_MM.width * MM, height: A4_MM.height * MM };
 const MARK_COLOR = rgb(0, 0, 0);
 
-const NAME_FONT: Record<CardFont, FontName> = {
+export const NAME_FONT: Record<CardFont, FontName> = {
   serif: "Newsreader_500Medium.ttf",
   sans: "DMSans_700Bold.ttf",
 };
@@ -37,7 +37,7 @@ const DETAIL_FONT: FontName = "DMSans_400Regular.ttf";
 type FontkitFont = ReturnType<typeof fontkit.create>;
 const fontkitCache = new Map<FontName, Promise<FontkitFont>>();
 
-function loadFontkit(name: FontName): Promise<FontkitFont> {
+export function loadFontkit(name: FontName): Promise<FontkitFont> {
   let loaded = fontkitCache.get(name);
   if (!loaded) {
     loaded = fontBytes(name).then((bytes) => fontkit.create(new Uint8Array(bytes)));
@@ -46,7 +46,7 @@ function loadFontkit(name: FontName): Promise<FontkitFont> {
   return loaded;
 }
 
-function measureWith(face: FontkitFont): Measure {
+export function measureWith(face: FontkitFont): Measure {
   return (text, sizePt) => (face.layout(text).advanceWidth / face.unitsPerEm) * sizePt * PT_TO_MM;
 }
 
@@ -54,7 +54,7 @@ function measureWith(face: FontkitFont): Measure {
  * Text jen ze znaků, které písmo umí: nezlomitelná mezera na mezeru, pomlčky na spojovník, ostatní
  * (emoji, cizí písma) vypustit. Jména se předem skládají do NFC (č jako jeden znak, ne c + háček).
  */
-function cleanWith(face: FontkitFont): (text: string) => string {
+export function cleanWith(face: FontkitFont): (text: string) => string {
   return (text) =>
     [...text.normalize("NFC")]
       .map((char) => {
@@ -91,7 +91,7 @@ export async function cardFaces(
     .map((name) => faceLayout(name, line || null, style, format, metrics));
 }
 
-function color(hex: string): Color {
+export function color(hex: string): Color {
   const { r, g, b } = parseColor(hex);
   return rgb(r / 255, g / 255, b / 255);
 }

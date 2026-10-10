@@ -60,7 +60,7 @@ export async function getBilingualFaqItems(locale: Locale): Promise<FaqItem[]> {
 /** Otázky ke stránce potvrzení účasti; stejný zdroj pro viditelný seznam i `FAQPage`. */
 export async function getRsvpFaqItems(locale: Locale): Promise<FaqItem[]> {
   const t = await getTranslator(locale, ["marketing"]);
-  return ([1, 2, 3, 4, 5] as const).map((n) => ({
+  return ([1, 2, 3, 4, 5, 6, 7] as const).map((n) => ({
     id: `rsvp-${n}`,
     question: t(`marketing.rsvp.faq.${n}.q`),
     answer: t(`marketing.rsvp.faq.${n}.a`),

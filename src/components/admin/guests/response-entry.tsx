@@ -28,6 +28,7 @@ const ERROR_KEY: Record<string, AdminKey> = {
   name: "admin.guests.entry.error.name",
   age: "admin.guests.entry.error.age",
   email: "admin.guests.entry.error.invalid",
+  phone: "admin.guests.entry.error.invalid",
   too_long: "admin.guests.entry.error.too_long",
   choice: "admin.guests.entry.error.choice",
   invalid: "admin.guests.entry.error.invalid",
@@ -260,6 +261,7 @@ export function ResponseEntry({
       {model.flags.lodging ||
       model.flags.transport ||
       model.flags.song ||
+      model.flags.message ||
       model.questions.length > 0 ? (
         <Card as="section" aria-labelledby={`${id}-answers`}>
           <h2 id={`${id}-answers`} className="text-2xl font-medium">
@@ -288,6 +290,17 @@ export function ResponseEntry({
                 maxLength={200}
                 defaultValue={model.values.answers.song ?? ""}
                 error={errorText(answerField("song"))}
+              />
+            ) : null}
+            {model.flags.message ? (
+              <TextArea
+                id={fieldId(answerField("message"))}
+                name={answerField("message")}
+                label={t("admin.guests.entry.message")}
+                rows={4}
+                maxLength={1000}
+                defaultValue={model.values.answers.message ?? ""}
+                error={errorText(answerField("message"))}
               />
             ) : null}
             {model.questions.map((question) => {

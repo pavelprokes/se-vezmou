@@ -4,6 +4,7 @@ import type { NamespaceKey } from "@/i18n/messages";
 import type { Translator } from "@/i18n/translator";
 import { typo } from "@/i18n/typo";
 import type { RsvpSiteState } from "@/lib/rsvp/form";
+import type { GiftRegistryView } from "@/site/gifts";
 import { pick, resolvedLocale, type I18nText } from "@/site/i18n-text";
 import type {
   Block,
@@ -34,6 +35,8 @@ export interface SiteCtx {
   sensitive: SensitiveContent | null;
   /** Živý stav RSVP z databáze (počáteční stav formuláře, volby páru); bez něj formulář začíná jménem. */
   rsvp: RsvpSiteState | null;
+  /** Seznam věcných darů s rezervací (živá data); `null` = sekce bez seznamu. */
+  registry: GiftRegistryView | null;
   /** Text po jazycích s náhradním jazykem a typografií; bez textu prázdný řetězec. */
   text(value: I18nText | null | undefined): string;
   /** Odstavce oddělené prázdným řádkem. */
@@ -61,6 +64,7 @@ export interface SiteCtxOptions {
   sensitiveUnlocked?: boolean;
   sensitive?: SensitiveContent | null;
   rsvp?: RsvpSiteState | null;
+  registry?: GiftRegistryView | null;
 }
 
 export function createSiteCtx(
@@ -80,6 +84,7 @@ export function createSiteCtx(
     sensitiveUnlocked: options.sensitiveUnlocked ?? false,
     sensitive: options.sensitive ?? null,
     rsvp: options.rsvp ?? null,
+    registry: options.registry ?? null,
     text,
     paragraphs: (value) =>
       text(value)
@@ -136,7 +141,7 @@ function hasContent(block: Block, ctx: SiteCtx): boolean {
     case "rsvp":
       return true;
     case "gifts":
-      return block.data.payment || ctx.text(block.data.intro) !== "";
+      return block.data.payment || ctx.text(block.data.intro) !== "" || ctx.registry !== null;
     case "program":
       return content.events.length > 0;
     case "venue":

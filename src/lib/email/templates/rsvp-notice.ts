@@ -4,7 +4,8 @@ import { composeEmail, type Block, type RenderedEmail } from "./shared";
 /**
  * Upozornění páru na odpověď hosta (volitelné, jen když pár zapnul `notify_couple`). Obsahuje jen
  * jména a to, kdo přijde na kterou událost. NIKDY dietu, alergie, kontaktní e-mail hosta ani volné
- * odpovědi na otázky (docs/security-privacy.md kap. 4): ty jsou ve správě za přihlášením.
+ * odpovědi na otázky (docs/security-privacy.md kap. 4): ty jsou ve správě za přihlášením. U vzkazu pro
+ * novomanžele se pár dozví jen to, že přibyl; text si přečte ve správě.
  */
 
 export type RsvpNoticeParams = {
@@ -18,6 +19,8 @@ export type RsvpNoticeParams = {
   people: { name: string; rows: { event: string; attending: boolean }[] }[];
   /** Odkaz na přehled odpovědí ve správě. */
   manageUrl: string;
+  /** Odpověď nese vzkaz pro novomanžele (text se do zprávy nedává). */
+  message?: boolean;
 };
 
 const COPY = {
@@ -29,6 +32,7 @@ const COPY = {
       kind === "new" ? "Nová odpověď hosta" : "Host změnil odpověď",
     intro: (a: string, b: string) => `K svatbě ${a} a ${b} přišla odpověď. Shrnutí:`,
     unlisted: "Odpověděl host mimo seznam, bez pozvánky.",
+    message: "Host vám nechal i vzkaz. Přečtete si ho ve správě v části Vzkazy od hostů.",
     attending: "přijde",
     declining: "nepřijde",
     linkText: "Otevřít odpovědi ve správě",
@@ -42,6 +46,8 @@ const COPY = {
       kind === "new" ? "New guest reply" : "A guest changed their reply",
     intro: (a: string, b: string) => `A reply came in for the wedding of ${a} and ${b}. Summary:`,
     unlisted: "A guest who is not on the list replied, without an invitation.",
+    message:
+      "The guest also left you a message. Read it in the management under Messages from guests.",
     attending: "attending",
     declining: "not attending",
     linkText: "Open the replies in the management",
@@ -72,6 +78,7 @@ export function renderRsvpNotice({
   unlisted,
   people,
   manageUrl,
+  message = false,
 }: RsvpNoticeParams): RenderedEmail {
   const copy = COPY[locale];
   const blocks: Block[] = [
@@ -85,6 +92,7 @@ export function renderRsvpNotice({
         (row) => `${row.event}: ${row.attending ? copy.attending : copy.declining}`,
       ),
     })),
+    ...(message ? [{ kind: "paragraph", text: copy.message } as const] : []),
     { kind: "link", text: copy.linkText, href: manageUrl },
     { kind: "small", text: copy.why },
   ];

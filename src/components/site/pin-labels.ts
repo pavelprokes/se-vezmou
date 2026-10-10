@@ -4,7 +4,7 @@ import type { PinGateLabels } from "./pin-gate";
 /** Hotové texty formuláře PINu (klient je dostane ze serveru, aby se nenačítaly všechny překlady). */
 export function pinGateLabels(
   t: Translator<"rsvp" | "site" | "common">,
-  kind: "gifts" | "venue" | "gallery" | "site",
+  kind: "gifts" | "venue" | "gallery" | "site" | "registry",
 ): PinGateLabels {
   return {
     title:
@@ -16,11 +16,13 @@ export function pinGateLabels(
     body:
       kind === "gifts"
         ? t("site.gifts.gateBody")
-        : kind === "gallery"
-          ? t("site.gallery.gateBody")
-          : kind === "site"
-            ? t("site.lock.gateBody")
-            : t("site.venue.private.body"),
+        : kind === "registry"
+          ? t("site.registry.gateBody")
+          : kind === "gallery"
+            ? t("site.gallery.gateBody")
+            : kind === "site"
+              ? t("site.lock.gateBody")
+              : t("site.venue.private.body"),
     label: t("site.gifts.pinLabel"),
     submit: t("site.gifts.pinSubmit"),
     hint: t("site.pin.hint"),

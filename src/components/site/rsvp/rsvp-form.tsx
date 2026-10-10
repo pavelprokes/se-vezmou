@@ -351,6 +351,8 @@ function DoneDetails({ labels, done }: { labels: RsvpLabels; done: DoneSummary }
   return (
     <div className="site-done-details">
       {done.emailSent ? <p>{labels.done.email}</p> : null}
+      {done.updates === true ? <p>{labels.done.updatesOn}</p> : null}
+      {done.updates === false ? <p>{labels.done.updatesOff}</p> : null}
       <p>{done.unlisted ? labels.unlisted.noEdit : labels.done.edit}</p>
       {done.people.length > 0 ? (
         <>
@@ -396,6 +398,8 @@ function errorText(
       return labels.errors.age;
     case "email":
       return labels.errors.email;
+    case "phone":
+      return labels.errors.phone;
     case "too_long":
       return labels.errors.tooLong;
     case "choice":
@@ -564,6 +568,10 @@ function GuestForm({
       context = [extra ? extraLabel(extra, index) : "", event?.title].filter(Boolean).join(": ");
     } else if (field === "email") {
       context = labels.email.label;
+    } else if (field === "updatesEmail") {
+      context = labels.updates.email;
+    } else if (field === "updatesPhone") {
+      context = labels.updates.phone;
     } else if (field.startsWith("a.")) {
       const key = field.slice(2);
       context = model.questions.find((q) => q.key === key)?.label ?? questionTitle(key, labels);
@@ -916,6 +924,23 @@ function GuestForm({
           onChange={(value) => setAnswer(setValues, "song", value)}
         />
       ) : null}
+      {model.flags.message ? (
+        <TextField
+          field={answerField("message")}
+          label={labels.questions.message.label}
+          hint={labels.questions.message.hint}
+          value={values.answers.message ?? ""}
+          autoComplete="off"
+          maxLength={1000}
+          multiline
+          error={
+            errors[answerField("message")]
+              ? errorText(answerField("message"), errors[answerField("message")], labels)
+              : undefined
+          }
+          onChange={(value) => setAnswer(setValues, "message", value)}
+        />
+      ) : null}
       {visibleQuestions.map((question) => {
         const field = answerField(question.key);
         const error = errors[field]
@@ -971,6 +996,10 @@ function GuestForm({
         <EmailField labels={labels} values={values} setValues={setValues} errors={errors} />
       ) : null}
 
+      {model.flags.updates ? (
+        <UpdatesFields labels={labels} values={values} setValues={setValues} errors={errors} />
+      ) : null}
+
       <Honeypot label={labels.honeypot} />
 
       <div className="site-actions">
@@ -986,6 +1015,7 @@ function questionTitle(key: string, labels: RsvpLabels): string {
   if (key === "lodging") return labels.questions.lodging.legend;
   if (key === "transport") return labels.questions.transport.legend;
   if (key === "song") return labels.questions.song.label;
+  if (key === "message") return labels.questions.message.label;
   return key;
 }
 
@@ -1027,6 +1057,92 @@ function EmailField({
   );
 }
 
+/**
+ * Upozornění na změny: souhlas zaškrtnutím, pak e-mail (povinný) a telefon (nepovinný). Uložené údaje
+ * host nevidí (lístek z jména dostane kdokoli, kdo jméno zná); prázdné pole je ponechá, zrušení
+ * zaškrtnutí je smaže.
+ */
+function UpdatesFields({
+  labels,
+  values,
+  setValues,
+  errors,
+}: {
+  labels: RsvpLabels;
+  values: FormValues;
+  setValues: (update: (current: FormValues) => FormValues) => void;
+  errors: FieldErrors;
+}) {
+  const id = fieldId("updates");
+  const on = values.updates === true;
+  return (
+    <fieldset
+      className="site-fieldset site-updates"
+      aria-describedby={values.savedUpdates ? `${id}-saved` : undefined}
+    >
+      <legend className="site-legend">{labels.updates.legend}</legend>
+      {values.savedUpdates ? (
+        <>
+          <input type="hidden" name="updatesSaved" value="1" />
+          <p id={`${id}-saved`} className="site-muted site-hint">
+            {labels.updates.saved}
+          </p>
+        </>
+      ) : null}
+      <label className="site-choice">
+        <input
+          id={id}
+          type="checkbox"
+          name="updates"
+          value="1"
+          checked={on}
+          onChange={(event) =>
+            setValues((current) => ({ ...current, updates: event.target.checked }))
+          }
+        />
+        <span>{labels.updates.consent}</span>
+      </label>
+      {on ? (
+        <>
+          <TextField
+            field="updatesEmail"
+            label={labels.updates.email}
+            hint={labels.updates.emailHint}
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            value={values.updatesEmail ?? ""}
+            maxLength={254}
+            required={!values.savedUpdates}
+            error={
+              errors.updatesEmail
+                ? errorText("updatesEmail", errors.updatesEmail, labels)
+                : undefined
+            }
+            onChange={(value) => setValues((current) => ({ ...current, updatesEmail: value }))}
+          />
+          <TextField
+            field="updatesPhone"
+            label={labels.updates.phone}
+            hint={labels.updates.phoneHint}
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={values.updatesPhone ?? ""}
+            maxLength={30}
+            error={
+              errors.updatesPhone
+                ? errorText("updatesPhone", errors.updatesPhone, labels)
+                : undefined
+            }
+            onChange={(value) => setValues((current) => ({ ...current, updatesPhone: value }))}
+          />
+        </>
+      ) : null}
+    </fieldset>
+  );
+}
+
 // --- stavební prvky ------------------------------------------------------------------------
 
 function FieldError({ id, children }: { id: string; children: ReactNode }) {
@@ -1052,6 +1168,7 @@ function TextField({
   maxLength,
   required,
   narrow,
+  multiline,
 }: {
   field: string;
   label: string;
@@ -1060,12 +1177,14 @@ function TextField({
   value: string;
   onChange: (value: string) => void;
   error?: string;
-  type?: "text" | "email";
-  inputMode?: "numeric" | "email";
+  type?: "text" | "email" | "tel";
+  inputMode?: "numeric" | "email" | "tel";
   autoComplete?: string;
   maxLength?: number;
   required?: boolean;
   narrow?: boolean;
+  /** Víceřádkové pole (vzkaz). */
+  multiline?: boolean;
 }) {
   const id = fieldId(field);
   const describedBy = [hint ? `${id}-hint` : null, error ? `${id}-error` : null]
@@ -1081,20 +1200,36 @@ function TextField({
           {hint}
         </p>
       ) : null}
-      <input
-        id={id}
-        name={field}
-        type={type}
-        inputMode={inputMode}
-        autoComplete={autoComplete}
-        maxLength={maxLength}
-        required={required}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy || undefined}
-        className={narrow ? "site-input site-input-narrow" : "site-input"}
-      />
+      {multiline ? (
+        <textarea
+          id={id}
+          name={field}
+          autoComplete={autoComplete}
+          maxLength={maxLength}
+          required={required}
+          rows={4}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy || undefined}
+          className="site-input site-textarea"
+        />
+      ) : (
+        <input
+          id={id}
+          name={field}
+          type={type}
+          inputMode={inputMode}
+          autoComplete={autoComplete}
+          maxLength={maxLength}
+          required={required}
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy || undefined}
+          className={narrow ? "site-input site-input-narrow" : "site-input"}
+        />
+      )}
       <div aria-live="polite">
         {error ? <FieldError id={`${id}-error`}>{error}</FieldError> : null}
       </div>

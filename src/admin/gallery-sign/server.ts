@@ -1,5 +1,5 @@
 import "server-only";
-import { peekSite, type AdminIdentity } from "@/admin/site/server";
+import { loadSite, type AdminIdentity } from "@/admin/site/server";
 import { normalizeHttpsUrl } from "@/admin/site/normalize";
 import { cardStyle, type CardStyle } from "@/admin/name-cards/style";
 import { defaultLocale, locales, type Locale } from "@/i18n/config";
@@ -57,7 +57,8 @@ export async function loadGallerySign(
   session: AdminIdentity,
   options: GallerySignOptions,
 ): Promise<GallerySignData> {
-  const site = await peekSite(session);
+  // jako editor: pracovní kopie bez bloků se doplní ze zveřejněné verze
+  const site = await loadSite(session);
   const wedding = site?.doc.wedding;
   const block = site?.doc.blocks.find((b) => b.type === "gallery");
   const link = block?.type === "gallery" ? block.data.link : null;

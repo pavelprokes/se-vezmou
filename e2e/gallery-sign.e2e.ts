@@ -74,6 +74,28 @@ test.describe("cedulka s QR kódem galerie", () => {
     expect(pdf.subarray(0, 4).toString()).toBe("%PDF");
   });
 
+  test("zveřejněný web bez pracovní kopie: odkaz se vezme ze zveřejněné verze", async ({
+    page,
+    context,
+  }) => {
+    const site = await seedManagedSite({
+      tweak: (blocks) =>
+        blocks.map((b) =>
+          b.type === "gallery"
+            ? ({
+                ...b,
+                enabled: true,
+                data: { ...b.data, link: { url: OWN_GALLERY, protected: false, card: null } },
+              } as typeof b)
+            : b,
+        ),
+    });
+    await site.login(context);
+    await page.goto(appUrl("/web/cedulka"));
+    const url = new URL((await page.getByTestId("gallery-sign-url").textContent()) ?? "");
+    expect(url.origin + url.pathname).toBe(OWN_GALLERY);
+  });
+
   test("bez odkazu na galerii stránka pošle pár do editoru", async ({ page, context }) => {
     const site = await seedManagedSite();
     await site.login(context);

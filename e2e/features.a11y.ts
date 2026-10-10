@@ -114,6 +114,7 @@ test.describe("axe: funkce z plánu 2026-10 ve správě", () => {
     await page.goto(appUrl("/hoste/zasedaci-poradek"));
     await page.getByRole("button", { name: "Vytvořit stoly" }).click();
     await expect(page.getByTestId("seating-map")).toBeVisible();
+    await expect(page.getByText("Plán je uložený.")).toBeVisible();
     await expectNoViolations(page);
     await page.goto(appUrl("/hoste/zasedaci-poradek/tisk"));
     await expect(page.getByRole("heading", { level: 2, name: "Plánek sálu" })).toBeVisible();

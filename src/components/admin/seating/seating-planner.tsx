@@ -190,11 +190,20 @@ export function SeatingPlanner({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [plan]);
 
+  /** Počká, až se uloží všechny změny (i ta, která čeká na prodlevu automatického uložení). */
+  async function settle() {
+    while (dirty.current || inFlight.current) {
+      if (!inFlight.current) await flush();
+      else await new Promise((resolve) => setTimeout(resolve, 100));
+    }
+  }
+
   function update(next: SeatingPlan) {
     dirty.current = true;
     // neuložená změna: hláška „uloženo“ by do dalšího uložení lhala
     setSaveState("idle");
     setNotice(null);
+    latest.current = next;
     setPlan(next);
   }
 
@@ -258,7 +267,16 @@ export function SeatingPlanner({
         <StatusMessage state={saveState}>
           {saveState === "busy" ? t("admin.common.saving") : t("admin.guests.seating.saved")}
         </StatusMessage>
-        <a href={printHref} className={buttonVariants({ variant: "secondary" })}>
+        <a
+          href={printHref}
+          className={buttonVariants({ variant: "secondary" })}
+          onClick={(event) => {
+            // tisk čte uložený plán: poslední změnu nejdřív uložit
+            if (!dirty.current && !inFlight.current) return;
+            event.preventDefault();
+            void settle().then(() => window.location.assign(printHref));
+          }}
+        >
           <Icon icon={Printer} size={18} />
           {t("admin.guests.seating.print")}
         </a>

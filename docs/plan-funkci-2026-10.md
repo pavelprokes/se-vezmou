@@ -39,7 +39,8 @@ Vše v migraci `20261021120000_seating_gifts_notes.sql`, testy `supabase/tests/9
 - `SoftwareApplication` v JSON-LD nese `featureList` se 16 body „Čím se lišíme“, stejnými větami jako viditelný seznam (jeden zdroj `landing.features.extra.*`).
 - Základní fakta (viditelná sekce i `llms.txt`) mají dva nové body: fotky od hostů (galerie a QR cedulka) a plánování (zasedací pořádek, dary, poznámky).
 - Stránka Potvrzení účasti má dvě nové otázky FAQ (vzkaz, upozornění na změny), které jdou i do `FAQPage`; datum „Aktualizováno“ podstránek je posunuté.
-- Zatím chybí samostatné stránky nebo články pro hledané dotazy jako „zasedací pořádek svatba“ a „svatební seznam darů“.
+- Stránka „Zasedací pořádek na svatbu“ (`/zasedaci-poradek-na-svatbu`, `/en/wedding-seating-plan`): rozložení stolů podle počtu hostů, orientační rozměry z rešerše (příloha), FAQ, v mapě webu, `llms.txt` a patičce.
+- Zatím chybí stránka nebo článek pro „svatební seznam darů“.
 
 ## Fáze 3 (poznámky, nic se zatím nestaví)
 

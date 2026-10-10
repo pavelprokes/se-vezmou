@@ -40,6 +40,8 @@ const pages = [
   { name: "bilingual anglicky", path: "/en/bilingual-wedding-website" },
   { name: "potvrzení účasti", path: "/potvrzeni-ucasti-hostu" },
   { name: "rsvp anglicky", path: "/en/wedding-rsvp" },
+  { name: "zasedací pořádek", path: "/zasedaci-poradek-na-svatbu" },
+  { name: "seating plan anglicky", path: "/en/wedding-seating-plan" },
   { name: "pro fotografy", path: "/pro-fotografy" },
   { name: "for photographers anglicky", path: "/en/for-photographers" },
 ];

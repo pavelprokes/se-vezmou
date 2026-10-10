@@ -19,6 +19,7 @@ import {
   getFaqItems,
   getPhotographerFaqItems,
   getRsvpFaqItems,
+  getSeatingFaqItems,
   getTemplateFaqItems,
 } from "./faq";
 import { FactsSection } from "./facts-section";
@@ -38,7 +39,7 @@ import { TemplatesSection } from "./templates-section";
  */
 export type InfoRoute = Extract<
   RouteName,
-  "pricing" | "templates" | "bilingual" | "rsvp" | "photographers"
+  "pricing" | "templates" | "bilingual" | "rsvp" | "seating" | "photographers"
 >;
 
 const KEYS = {
@@ -69,6 +70,13 @@ const KEYS = {
     breadcrumb: "marketing.rsvp.breadcrumb",
     h1: "marketing.rsvp.h1",
     lead: "marketing.rsvp.lead",
+  },
+  seating: {
+    title: "marketing.seating.metaTitle",
+    description: "marketing.seating.metaDescription",
+    breadcrumb: "marketing.seating.breadcrumb",
+    h1: "marketing.seating.h1",
+    lead: "marketing.seating.lead",
   },
   photographers: {
     title: "marketing.photographers.metaTitle",
@@ -138,7 +146,7 @@ async function Points({
   route,
 }: {
   locale: Locale;
-  route: "bilingual" | "rsvp" | "photographers";
+  route: "bilingual" | "rsvp" | "seating" | "photographers";
 }) {
   const t = await getTranslator(locale, ["marketing"]);
   const points = ([1, 2, 3] as const).map((n) => ({
@@ -160,6 +168,52 @@ async function Points({
       </ul>
     </Section>
   );
+}
+
+/** Rozložení stolů podle počtu hostů a orientační rozměry (`marketing.seating.layouts|sizes.*`). */
+async function SeatingGuide({ locale }: { locale: Locale }) {
+  const t = await getTranslator(locale, ["marketing"]);
+  const groups = [
+    {
+      id: "layouts",
+      title: t("marketing.seating.layouts.title"),
+      note: null,
+      items: ([1, 2, 3, 4, 5, 6, 7] as const).map((n) => ({
+        term: t(`marketing.seating.layouts.${n}.name`),
+        text: t(`marketing.seating.layouts.${n}.text`),
+      })),
+    },
+    {
+      id: "sizes",
+      title: t("marketing.seating.sizes.title"),
+      note: t("marketing.seating.sizes.note"),
+      items: ([1, 2, 3, 4, 5] as const).map((n) => ({
+        term: t(`marketing.seating.sizes.${n}.name`),
+        text: t(`marketing.seating.sizes.${n}.text`),
+      })),
+    },
+  ];
+  return groups.map((group) => (
+    <Section
+      key={group.id}
+      headingId={`seating-${group.id}-title`}
+      tone={group.id === "sizes" ? "warm" : "parchment"}
+      className="print:hidden"
+    >
+      <h2 id={`seating-${group.id}-title`} className={sectionTitleClass}>
+        {group.title}
+      </h2>
+      {group.note ? <p className="text-muted mt-5 max-w-2xl text-lg">{group.note}</p> : null}
+      <dl className="mt-12 grid gap-x-10 gap-y-8 md:grid-cols-2">
+        {group.items.map((item) => (
+          <div key={item.term} className="border-ink border-t-2 pt-5">
+            <dt className={itemTitleClass}>{item.term}</dt>
+            <dd className="text-muted mt-3 text-lg">{item.text}</dd>
+          </div>
+        ))}
+      </dl>
+    </Section>
+  ));
 }
 
 async function PartnerKitSection({ locale }: { locale: Locale }) {
@@ -221,7 +275,9 @@ export async function InfoPage({
           ? await getBilingualFaqItems(locale)
           : route === "rsvp"
             ? await getRsvpFaqItems(locale)
-            : await getFaqItems(locale);
+            : route === "seating"
+              ? await getSeatingFaqItems(locale)
+              : await getFaqItems(locale);
   const extra: JsonLdNode[] = [
     webPageLd({
       siteUrl,
@@ -294,6 +350,14 @@ export async function InfoPage({
         {route === "rsvp" ? (
           <>
             <Points locale={locale} route="rsvp" />
+            <FactsSection locale={locale} />
+            <FaqSection locale={locale} items={faq} />
+          </>
+        ) : null}
+        {route === "seating" ? (
+          <>
+            <Points locale={locale} route="seating" />
+            <SeatingGuide locale={locale} />
             <FactsSection locale={locale} />
             <FaqSection locale={locale} items={faq} />
           </>

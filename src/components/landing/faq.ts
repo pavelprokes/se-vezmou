@@ -57,6 +57,16 @@ export async function getBilingualFaqItems(locale: Locale): Promise<FaqItem[]> {
   }));
 }
 
+/** Otázky ke stránce zasedacího pořádku; stejný zdroj pro viditelný seznam i `FAQPage`. */
+export async function getSeatingFaqItems(locale: Locale): Promise<FaqItem[]> {
+  const t = await getTranslator(locale, ["marketing"]);
+  return ([1, 2, 3, 4, 5, 6, 7] as const).map((n) => ({
+    id: `seating-${n}`,
+    question: t(`marketing.seating.faq.${n}.q`),
+    answer: t(`marketing.seating.faq.${n}.a`),
+  }));
+}
+
 /** Otázky ke stránce potvrzení účasti; stejný zdroj pro viditelný seznam i `FAQPage`. */
 export async function getRsvpFaqItems(locale: Locale): Promise<FaqItem[]> {
   const t = await getTranslator(locale, ["marketing"]);

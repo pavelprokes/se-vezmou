@@ -636,6 +636,16 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       alt: "/potvrzeni-ucasti-hostu",
     },
     {
+      path: "/zasedaci-poradek-na-svatbu",
+      h1: "Zasedací pořádek na svatbu",
+      alt: "/en/wedding-seating-plan",
+    },
+    {
+      path: "/en/wedding-seating-plan",
+      h1: "Wedding seating plan",
+      alt: "/zasedaci-poradek-na-svatbu",
+    },
+    {
       path: "/pro-fotografy",
       h1: "Pro svatební fotografy a dodavatele",
       alt: "/en/for-photographers",
@@ -719,6 +729,8 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       "/en/pro-fotografy",
       "/rsvp",
       "/en/potvrzeni-ucasti-hostu",
+      "/wedding-seating-plan",
+      "/en/zasedaci-poradek-na-svatbu",
     ]) {
       const { response } = await source(request, path);
       expect(response.status(), path).toBe(404);

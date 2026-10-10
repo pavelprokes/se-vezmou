@@ -18,6 +18,8 @@ const routes = {
   templates: { cs: "/sablony", en: "/templates" },
   bilingual: { cs: "/dvojjazycny-svatebni-web", en: "/bilingual-wedding-website" },
   rsvp: { cs: "/potvrzeni-ucasti-hostu", en: "/wedding-rsvp" },
+  /** Zasedací pořádek (plánovač ve správě webu, docs/plan-funkci-2026-10.md). */
+  seating: { cs: "/zasedaci-poradek-na-svatbu", en: "/wedding-seating-plan" },
   /** Doporučující odkaz a leták pro fotografy a další dodavatele (docs/konkurence-2026-10.md). */
   photographers: { cs: "/pro-fotografy", en: "/for-photographers" },
   privacy: { cs: "/soukromi", en: "/privacy" },

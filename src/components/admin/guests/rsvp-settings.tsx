@@ -77,6 +77,8 @@ const BUILTIN_KEYS: Record<BuiltinQuestion, { label: AdminKey; hint: AdminKey }>
     hint: "admin.guests.rsvp.q.transport.hint",
   },
   song: { label: "admin.guests.rsvp.q.song", hint: "admin.guests.rsvp.q.song.hint" },
+  message: { label: "admin.guests.rsvp.q.message", hint: "admin.guests.rsvp.q.message.hint" },
+  updates: { label: "admin.guests.rsvp.q.updates", hint: "admin.guests.rsvp.q.updates.hint" },
 };
 
 function randomKey(prefix: string): string {

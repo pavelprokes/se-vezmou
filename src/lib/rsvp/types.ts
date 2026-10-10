@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { locales } from "@/i18n/config";
+import { locales, type Locale } from "@/i18n/config";
 import { phases } from "@/site/types";
 import { i18nTextSchema } from "@/site/i18n-text";
 
@@ -80,6 +80,8 @@ export const rsvpViewSchema = z.object({
       contact_email: z.string().nullable(),
       /** Host (`rsvp_get`): e-mail je uložený, adresa se mu ale neposílá. */
       has_email: z.boolean().optional(),
+      /** Host (`rsvp_get`): odpověď má zapnutá upozornění na změny (adresa ani telefon se neposílají). */
+      has_updates: z.boolean().optional(),
       entered_by: z.enum(["guest", "admin"]),
       people: z.array(dbPersonSchema),
     })
@@ -131,7 +133,12 @@ export interface SubmitPayload {
   people: PayloadPerson[];
   /** Idempotenční klíč odpovědi hosta mimo seznam (UUID z prohlížeče); databáze ho vynucuje jako unikátní. */
   nonce?: string;
+  /** Upozornění na změny: přihlásit (s e-mailem, volitelně telefonem a jazykem) nebo odhlásit. Bez klíče beze změny. */
+  updates?: UpdatesPayload;
 }
+
+export type UpdatesPayload =
+  { action: "set"; email: string; phone: string | null; locale: Locale } | { action: "remove" };
 
 // --- 2. správcovská strana --------------------------------------------------------------
 

@@ -67,7 +67,7 @@
   "features.title": "What your website can do",
   "features.lead": "Everything guests need for the wedding is at one address, with no sign-up. Plus a few extras.",
   "features.rsvp.title": "RSVPs",
-  "features.rsvp.text": "Families, plus-ones, children, dietary needs and your own questions. Each household can get a personal link and QR code with a pre-filled reply. We can email you about replies, and you can export them to a spreadsheet.",
+  "features.rsvp.text": "Families, plus-ones, children, dietary needs, your own questions and a message for you. Each household can get a personal link and QR code with a pre-filled reply, and you enter guests who phone you yourself. We can email you about new replies, and you can export them to a spreadsheet.",
   "features.rsvp.question": "Are you coming?",
   "features.rsvp.yes": "Yes",
   "features.rsvp.no": "No",
@@ -163,7 +163,7 @@
   "after.2.title": "Gifts and replies are hidden",
   "after.2.text": "RSVP and gift details disappear from the site.",
   "after.3.title": "The gallery stays at hand",
-  "after.3.text": "Guests find the link to the photographer’s photos at the same address.",
+  "after.3.text": "Guests find both the photographer’s photos and their own at the same address. Our shared gallery stays online for at least a year, longer on request.",
   "about.title": "A wedding photographer is behind se-vezmou.cz",
   "about.p1": "I am Pavel Prokeš and I have photographed weddings for many years. After hundreds of weddings I know what couples ask about most, what eats their time during the preparations, and how to solve it simply. That is exactly where this service comes from.",
   "about.p2": "Photos are part of a wedding, so the website comes with two more projects of mine.",
@@ -171,7 +171,7 @@
   "about.site.name": "svatebni-fotograf-cechy.cz",
   "about.site.text": "My wedding photography website: samples of my work and contact.",
   "about.photos.name": "photos.svatebni-fotograf-cechy.cz",
-  "about.photos.text": "A shared gallery for guests and the photographer’s final gallery: QR code, live slideshow, ZIP download and offline, in Czech, English and French.",
+  "about.photos.text": "A shared gallery: guests upload their wedding photos there via a QR code, and the photographer adds theirs to the same gallery. Live slideshow on a screen, ZIP download and offline, online for at least a year, in Czech, English and French.",
   "news.title": "News and contact",
   "news.contact.title": "Get in touch",
   "news.contact.text": "The service works and several couples already use it. Have a question, a wish or an idea for a feature? Write to us and we will answer personally.",
@@ -193,5 +193,9 @@
   "templates.louka.name": "Meadow",
   "templates.louka.text": "Wildflowers and spring pastels",
   "templates.deco.name": "Deco",
-  "templates.deco.text": "Art deco with gold on a dark background"
+  "templates.deco.text": "Art deco with gold on a dark background",
+  "features.extra.9": "Guests leave you a message with their reply",
+  "features.extra.10": "Email your guests when the programme changes",
+  "features.extra.11": "Manage the website as two or three, each with their own email",
+  "features.extra.12": "A table sign with the shared gallery QR code, styled like your website"
 }

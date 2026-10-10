@@ -21,6 +21,7 @@ import {
   type EditorDoc,
 } from "@/admin/site/doc";
 import { normalizeHttpsUrl, normalizePhone, normalizeUrl } from "@/admin/site/normalize";
+import { ADMIN_PATHS, appHref } from "@/admin/paths";
 import { EventsEditor, VenuesEditor } from "./events";
 import { AddButton, ItemCard, LocalizedField, Note, SelectField } from "./fields";
 import { useAdminT } from "./i18n";
@@ -703,6 +704,17 @@ function GalleryEditor({ block, ctx }: Props<"gallery">) {
               <Note tone="info">{t("admin.gallery.cardFallback")}</Note>
             ) : null}
           </div>
+          {normalized ? (
+            <div className="border-hairline bg-parchment flex flex-col gap-1 rounded-xl border p-3">
+              <a
+                href={appHref(ADMIN_PATHS.gallerySign, t.locale)}
+                className="min-h-target text-pine inline-flex items-center font-medium underline underline-offset-4"
+              >
+                {t("admin.gallery.signLink")}
+              </a>
+              <p className="text-muted text-sm">{t("admin.gallery.signHint")}</p>
+            </div>
+          ) : null}
           <Checkbox
             label={t("admin.gallery.protected")}
             checked={link.protected}

@@ -74,6 +74,8 @@ export const BUILTIN_QUESTIONS = [
   "lodging",
   "transport",
   "song",
+  "message",
+  "updates",
 ] as const;
 export type BuiltinQuestion = (typeof BUILTIN_QUESTIONS)[number];
 

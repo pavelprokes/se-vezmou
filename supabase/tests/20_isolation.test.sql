@@ -26,7 +26,7 @@ insert into matrix values
   ('operators', 'none', 'id'), ('operator_sessions', 'none', 'id'), ('operator_backup_codes', 'none', 'operator_id'),
   ('waitlist', 'none', 'id'), ('app_settings', 'none', 'key'), ('analytics_event', 'none', 'id'),
   ('job_runs', 'none', 'id'), ('lifecycle_notices', 'none', 'wedding_id'),
-  ('guest_import_batches', 'none', 'wedding_id');
+  ('guest_import_batches', 'none', 'wedding_id'), ('rsvp_updates', 'none', 'wedding_id');
 grant select on matrix to public;
 
 -- Pojistka: každá nová tabulka musí být v matici (jinak test shodí build)

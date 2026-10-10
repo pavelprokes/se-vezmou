@@ -67,7 +67,7 @@
   "features.title": "Co váš web umí",
   "features.lead": "Všechno, co hosté ke svatbě potřebují, najdou na jedné adrese a bez registrace. A pár věcí navíc.",
   "features.rsvp.title": "Potvrzení účasti",
-  "features.rsvp.text": "Rodiny, doprovod, děti, diety a vlastní otázky. Každá domácnost může dostat osobní odkaz a QR kód s předvyplněnou odpovědí. Na nové odpovědi vás můžeme upozornit e-mailem a všechny je exportujete do tabulky.",
+  "features.rsvp.text": "Rodiny, doprovod, děti, diety, vlastní otázky i vzkaz pro vás. Každá domácnost může dostat osobní odkaz a QR kód s předvyplněnou odpovědí, kdo zavolá, toho zapíšete ručně. Na nové odpovědi vás můžeme upozornit e-mailem a všechny je exportujete do tabulky.",
   "features.rsvp.question": "Přijdete?",
   "features.rsvp.yes": "Ano",
   "features.rsvp.no": "Ne",
@@ -163,7 +163,7 @@
   "after.2.title": "Dary a odpovědi se skryjí",
   "after.2.text": "Potvrzování účasti a údaje o darech z webu zmizí.",
   "after.3.title": "Galerie zůstává po ruce",
-  "after.3.text": "Odkaz na fotky od fotografa najdou hosté na stejné adrese.",
+  "after.3.text": "Fotky od fotografa i od hostů najdou hosté na stejné adrese. Naše sdílená galerie zůstává online aspoň rok, déle podle přání.",
   "about.title": "Za se-vezmou.cz stojí svatební fotograf",
   "about.p1": "Jmenuji se Pavel Prokeš a svatby fotím mnoho let. Po stovkách svateb vím, na co se snoubenci ptají nejčastěji, co jim v přípravách bere čas a jak se to dá vyřešit jednoduše. Přesně z toho vznikla tahle služba.",
   "about.p2": "Ke svatbě patří i fotky, proto k webu patří další dva moje projekty.",
@@ -171,7 +171,7 @@
   "about.site.name": "svatebni-fotograf-cechy.cz",
   "about.site.text": "Můj web svatebního fotografa: ukázky práce a kontakt.",
   "about.photos.name": "photos.svatebni-fotograf-cechy.cz",
-  "about.photos.text": "Sdílená galerie pro hosty a finální galerie od fotografa: QR kód, živá prezentace, stažení ZIP i offline, česky, anglicky a francouzsky.",
+  "about.photos.text": "Sdílená galerie: hosté do ní přes QR kód nahrají fotky ze svatby a do stejné galerie pak přidá své fotky i fotograf. Živá prezentace na plátně, stažení ZIP i offline, online aspoň rok, česky, anglicky a francouzsky.",
   "news.title": "Novinky a kontakt",
   "news.contact.title": "Ozvěte se nám",
   "news.contact.text": "Služba funguje a už ji používá několik párů. Máte dotaz, přání nebo nápad na funkci? Napište nám, odpovídáme osobně.",
@@ -193,5 +193,9 @@
   "templates.louka.name": "Louka",
   "templates.louka.text": "Luční kvítí a jarní pastely",
   "templates.deco.name": "Deco",
-  "templates.deco.text": "Art deco se zlatými linkami na tmavém podkladu"
+  "templates.deco.text": "Art deco se zlatými linkami na tmavém podkladu",
+  "features.extra.9": "Hosté vám v odpovědi nechají vzkaz",
+  "features.extra.10": "Při změně programu upozorníte hosty e-mailem",
+  "features.extra.11": "Web spravujete ve dvou nebo ve třech, každý se svým e-mailem",
+  "features.extra.12": "QR cedulka ke sdílené galerii na stůl, ve vzhledu vašeho webu"
 }

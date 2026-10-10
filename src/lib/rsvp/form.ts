@@ -13,8 +13,9 @@ import type { RsvpView, UnlistedFormView } from "./types";
  *   g.<hostId>.diet|allergies   text              zdravotní údaje (jen při zapnuté dietě)
  *   x.<n>.kind                  adult | child     doprovod, dítě doplněné hostem, host mimo seznam
  *   x.<n>.name|age|diet|allergies, x.<n>.ev.<událostId>
- *   a.<klíč>                    odpověď na otázku (vestavěnou i vlastní)
+ *   a.<klíč>                    odpověď na otázku (vestavěnou i vlastní, včetně vzkazu `a.message`)
  *   email, website (skrytá past)
+ *   updates, updatesEmail, updatesPhone, updatesSaved   upozornění na změny (souhlas, e-mail, telefon)
  */
 
 export type Attendance = "yes" | "no";
@@ -62,6 +63,10 @@ export interface FormFlags {
   lodging: boolean;
   transport: boolean;
   song: boolean;
+  /** Vzkaz pro novomanžele (volný text do 1000 znaků). */
+  message: boolean;
+  /** Host může nechat e-mail (a telefon) pro upozornění na změny. */
+  updates: boolean;
   emailConfirmation: boolean;
 }
 
@@ -93,6 +98,12 @@ export interface FormValues {
   savedHealth?: Record<string, boolean>;
   /** Dřívější odpověď má uložený e-mail, který host nevidí. */
   savedEmail?: boolean;
+  /** Souhlas s upozorněním na změny (zaškrtnutí ve formuláři). */
+  updates?: boolean;
+  updatesEmail?: string;
+  updatesPhone?: string;
+  /** Dřívější odpověď má zapnutá upozornění; adresu ani telefon host nevidí. */
+  savedUpdates?: boolean;
 }
 
 export interface RsvpFormModel {
@@ -110,9 +121,9 @@ export interface RsvpFormModel {
 }
 
 export type FieldErrorCode =
-  "required" | "name" | "age" | "email" | "too_long" | "choice" | "invalid";
+  "required" | "name" | "age" | "email" | "phone" | "too_long" | "choice" | "invalid";
 
-/** Chyby podle názvu pole (`g.<id>.ev.<id>`, `x.0.name`, `a.menu`, `email`). */
+/** Chyby podle názvu pole (`g.<id>.ev.<id>`, `x.0.name`, `a.menu`, `email`, `updatesEmail`). */
 export type FieldErrors = Record<string, FieldErrorCode>;
 
 /** Potvrzení po odeslání: kdo přijde na kterou událost (bez zdravotních údajů). */
@@ -121,6 +132,8 @@ export interface DoneSummary {
   emailSent: boolean;
   /** Host mimo seznam: odpověď nejde upravit, rozhraní to řekne. */
   unlisted: boolean;
+  /** Host se právě přihlásil k upozornění na změny (`true`) nebo se odhlásil (`false`). */
+  updates?: boolean;
 }
 
 /**
@@ -190,6 +203,8 @@ function flagsOf(enabled: Record<string, unknown>, emailConfirmation: boolean): 
     lodging: on("lodging"),
     transport: on("transport"),
     song: on("song"),
+    message: on("message"),
+    updates: on("updates"),
     emailConfirmation,
   };
 }
@@ -307,6 +322,10 @@ export function buildListedModel(view: RsvpView, locale: Locale): RsvpFormModel 
     }
     values.email = response.contact_email ?? "";
     if (response.has_email) values.savedEmail = true;
+    if (response.has_updates) {
+      values.savedUpdates = true;
+      values.updates = true;
+    }
   }
 
   return {

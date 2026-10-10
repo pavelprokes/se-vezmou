@@ -239,12 +239,12 @@ for (const locale of locales) {
       await expect(page.locator("#reference")).toHaveCount(testimonials.length === 0 ? 0 : 1);
     });
 
-    test("čím se lišíme: osm bodů pod funkcemi", async ({ page }) => {
+    test("čím se lišíme: dvanáct bodů pod funkcemi", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       const extra = page.locator("#features li").filter({
         has: page.getByRole("heading", { name: /^(Čím se lišíme|What sets us apart)$/ }),
       });
-      await expect(extra.locator("ul > li")).toHaveCount(8);
+      await expect(extra.locator("ul > li")).toHaveCount(12);
       await expect(extra).toContainText(/EPC/);
       await extra.scrollIntoViewIfNeeded();
       await extra.screenshot({ path: test.info().outputPath(`cim-se-lisime-${locale.code}.png`) });

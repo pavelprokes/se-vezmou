@@ -104,3 +104,64 @@ export async function enterResponseManually(
     throw error;
   }
 }
+
+// --- vzkazy a upozornění na změny (docs/plan-funkci-2026-10.md, fáze 1) -------------------------
+
+export const guestMessagesSchema = z.array(
+  z.object({
+    household_id: z.string().nullable(),
+    label: z.string().nullable(),
+    names: z.array(z.string()),
+    message: z.string(),
+    at: z.string(),
+  }),
+);
+export type GuestMessage = z.infer<typeof guestMessagesSchema>[number];
+
+/** Vzkazy hostů pro novomanžele, nejnovější první. */
+export async function listGuestMessages(session: AdminIdentity): Promise<GuestMessage[]> {
+  return guestMessagesSchema.parse(
+    await tenantRpc<unknown>(identity(session), "admin_rsvp_messages"),
+  );
+}
+
+export const updateSubscribersSchema = z.array(
+  z.object({
+    household_id: z.string().nullable(),
+    label: z.string().nullable(),
+    names: z.array(z.string()),
+    email: z.string(),
+    phone: z.string().nullable(),
+    locale: z.enum(["cs", "en"]),
+    since: z.string(),
+  }),
+);
+export type UpdateSubscriber = z.infer<typeof updateSubscribersSchema>[number];
+
+/** Hosté přihlášení k upozornění na změny (jména, e-mail, telefon, jazyk). */
+export async function listUpdateSubscribers(session: AdminIdentity): Promise<UpdateSubscriber[]> {
+  return updateSubscribersSchema.parse(
+    await tenantRpc<unknown>(identity(session), "admin_rsvp_updates"),
+  );
+}
+
+export interface UpdateRecipient {
+  email: string;
+  locale: "cs" | "en";
+  unsubscribeToken: string;
+}
+
+/** Adresy k odeslání upozornění s tokenem pro odhlášení; databáze odeslání zapíše do auditu. */
+export async function updateRecipients(session: AdminIdentity): Promise<UpdateRecipient[]> {
+  const rows = await tenantRpc<{ email: string; locale: string; unsubscribe_token: string }[]>(
+    identity(session),
+    "admin_rsvp_updates_recipients",
+    {},
+    "table",
+  );
+  return rows.map((row) => ({
+    email: row.email,
+    locale: row.locale === "en" ? "en" : "cs",
+    unsubscribeToken: row.unsubscribe_token,
+  }));
+}

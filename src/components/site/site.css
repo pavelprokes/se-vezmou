@@ -1292,6 +1292,16 @@ html:has(dialog.site-lightbox[open]) {
 .site-input-narrow {
   max-width: 8rem;
 }
+.site-textarea {
+  min-height: 7rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+.site-updates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 .site-fieldset {
   min-width: 0;
   margin: 0;

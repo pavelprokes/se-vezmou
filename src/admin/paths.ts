@@ -10,6 +10,7 @@ export const ADMIN_PATHS = {
   weddings: "/svatby",
   site: "/web",
   history: "/web/historie",
+  gallerySign: "/web/cedulka",
   guests: "/hoste",
   guestsImport: "/hoste/import",
   guestCards: "/hoste/karty",

@@ -92,6 +92,12 @@ for (const locale of locales) {
       const app = nodes.find((node) => node["@type"] === "SoftwareApplication");
       expect(app?.offers).toMatchObject({ price: "0", priceCurrency: "CZK" });
       expect(app?.offers).not.toHaveProperty("priceValidUntil");
+      // featureList: tytéž věty jako viditelný seznam „Čím se lišíme“ (citovatelné pro AI vyhledávače)
+      const features = app?.featureList as string[];
+      expect(features).toHaveLength(16);
+      const visible = (text: string) => text.replace(/\s+/g, " ");
+      const page = visible(html.replace(/<[^>]+>/g, " ").replace(/&nbsp;|\u00a0/g, " "));
+      for (const feature of features) expect(page).toContain(visible(feature));
 
       const faq = nodes.find((node) => node["@type"] === "FAQPage") as {
         mainEntity: { name: string }[];
@@ -731,6 +737,9 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
     expect(response.headers()["content-type"]).toContain("text/plain");
     expect(html).toMatch(/^# Se vezmou/);
     for (const entry of pages) expect(html).toContain(`(https://se-vezmou.cz${entry.path})`);
+    // fakta o funkcích z plánu 2026-10 (galerie s QR cedulkou, zasedací pořádek, dary)
+    expect(html).toMatch(/zasedací\s+pořádek/);
+    expect(html).toMatch(/seating\s+plan/);
   });
 });
 

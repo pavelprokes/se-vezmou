@@ -95,6 +95,8 @@ export interface SoftwareApplicationInput {
   offerDescription: string;
   /** Druh služby pro uzel `Service` (přeložený text, např. „Svatební web“). */
   serviceType: string;
+  /** Co aplikace umí, stejnými větami jako viditelný seznam „Čím se lišíme“; prázdný se nepíše. */
+  featureList?: readonly string[];
   locale: Locale;
   pricing: Pricing;
 }
@@ -113,7 +115,7 @@ function offerLd(input: SoftwareApplicationInput): JsonLdNode {
 }
 
 export function softwareApplicationLd(input: SoftwareApplicationInput): JsonLdNode {
-  return {
+  const node: JsonLdNode = {
     "@type": "SoftwareApplication",
     "@id": idOf(input.siteUrl, "software"),
     name: plain(input.name),
@@ -125,6 +127,8 @@ export function softwareApplicationLd(input: SoftwareApplicationInput): JsonLdNo
     offers: offerLd(input),
     publisher: { "@id": idOf(input.siteUrl, "organization") },
   };
+  if (input.featureList?.length) node.featureList = input.featureList.map(plain);
+  return node;
 }
 
 /**

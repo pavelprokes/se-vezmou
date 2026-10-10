@@ -10,6 +10,8 @@ export const FACT_KEYS = [
   "indexing",
   "languages",
   "price",
+  "gallery",
+  "planning",
 ] as const;
 
 export async function FactsSection({ locale }: { locale: Locale }) {

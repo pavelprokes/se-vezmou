@@ -120,6 +120,10 @@
   "facts.languages.value": "The Czech and English versions are separate; you write each text yourself.",
   "facts.price.label": "Price",
   "facts.price.value": "Creating and publishing a website costs 0 CZK right now.",
+  "facts.gallery.label": "Guest photos",
+  "facts.gallery.value": "The website links to your photographer’s gallery or another shared gallery. You can print a table sign with its QR code, styled like your website.",
+  "facts.planning.label": "Planning",
+  "facts.planning.value": "Website management includes a printable seating plan, a gift list guests reserve from, and private notes with supplier contacts.",
   "rsvp.metaTitle": "Wedding RSVP online without registration | Se vezmou",
   "rsvp.metaDescription": "A wedding website with RSVP: guests reply without registering or installing an app, you get email notifications and can export replies to a spreadsheet.",
   "rsvp.breadcrumb": "RSVP",
@@ -141,5 +145,9 @@
   "rsvp.faq.4.q": "Does every guest get a personal link?",
   "rsvp.faq.4.a": "Each household can get a personal link and QR code with a pre-filled reply.",
   "rsvp.faq.5.q": "How much does the RSVP cost?",
-  "rsvp.faq.5.a": "Creating and publishing a website, RSVP included, costs 0 CZK right now. We will announce any price change in advance."
+  "rsvp.faq.5.a": "Creating and publishing a website, RSVP included, costs 0 CZK right now. We will announce any price change in advance.",
+  "rsvp.faq.6.q": "Can guests leave us a message with their reply?",
+  "rsvp.faq.6.a": "Yes, if you turn it on. Guests can add a wish or message of up to 1,000 characters. You find all messages together in the replies overview and in the spreadsheet export.",
+  "rsvp.faq.7.q": "How do we let guests know when the programme changes?",
+  "rsvp.faq.7.a": "Guests can tick that they want updates and leave an email address. You then send a message from the replies overview. Each guest gets it in their language and can unsubscribe with one link."
 }

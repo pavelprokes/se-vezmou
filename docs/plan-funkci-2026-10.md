@@ -34,6 +34,13 @@ Vše v migraci `20261021120000_seating_gifts_notes.sql`, testy `supabase/tests/9
 7. **Soukromé poznámky a dodavatelé** (`/poznamky`, položka „Poznámky“ v hlavní nabídce správy). Kontakty podle druhu (fotograf, video, místo, catering, dort, květiny, hudba, dekorace, šaty, účes, doprava, oddávající, ostatní) se stavem zvažujeme / osloveno / domluveno, webem, cenou a poznámkou; k tomu jeden text poznámek s hlídáním souběžné úpravy. Hostům se nezobrazují.
 8. **Schvalování fotek v g-gallery** (návrh, neimplementováno): přepínač „soukromý sběr“ u galerie hostů, nové fotky čekají na schválení páru nebo fotografa. Rozhodne Pavel (mění rozhodnutí z 23. 8.).
 
+### SEO a citovatelnost pro AI (GEO)
+
+- `SoftwareApplication` v JSON-LD nese `featureList` se 16 body „Čím se lišíme“, stejnými větami jako viditelný seznam (jeden zdroj `landing.features.extra.*`).
+- Základní fakta (viditelná sekce i `llms.txt`) mají dva nové body: fotky od hostů (galerie a QR cedulka) a plánování (zasedací pořádek, dary, poznámky).
+- Stránka Potvrzení účasti má dvě nové otázky FAQ (vzkaz, upozornění na změny), které jdou i do `FAQPage`; datum „Aktualizováno“ podstránek je posunuté.
+- Zatím chybí samostatné stránky nebo články pro hledané dotazy jako „zasedací pořádek svatba“ a „svatební seznam darů“.
+
 ## Fáze 3 (poznámky, nic se zatím nestaví)
 
 - **Hledání obličejů v galerii.** Cena je zanedbatelná (AWS Rekognition zhruba 45 až 55 Kč za svatbu s 1 400 fotkami a 200 hledáními), problém je právní: biometrické údaje podle čl. 9 GDPR, indexace celé galerie vytváří šablony i lidí bez souhlasu (EDPB 3/2019, odst. 84). Pokud vůbec: jen volitelně za souhlasu páru, souhlas hostů předem v RSVP, hledání od selfie, AWS ve Frankfurtu, smazání do 30 dnů, DPIA a skutečný právník. Do té doby nabízet hledání podle času, kapitol (obřad, hostina) a autora fotky, což g-gallery částečně umí.

@@ -120,6 +120,10 @@
   "facts.languages.value": "Česká a anglická verze jsou samostatné, každý text píšete zvlášť.",
   "facts.price.label": "Cena",
   "facts.price.value": "Tvorba i zveřejnění webu teď stojí 0 Kč.",
+  "facts.gallery.label": "Fotky od hostů",
+  "facts.gallery.value": "Web odkáže na galerii od fotografa nebo jinou sdílenou galerii. Cedulku s jejím QR kódem na stůl si vytisknete ve vzhledu webu.",
+  "facts.planning.label": "Plánování",
+  "facts.planning.value": "Součástí správy webu je zasedací pořádek s tiskem, seznam darů, které si hosté rezervují, a soukromé poznámky s kontakty na dodavatele.",
   "rsvp.metaTitle": "Potvrzení účasti na svatbu online bez registrace | Se vezmou",
   "rsvp.metaDescription": "Svatební web s potvrzením účasti: hosté odpovídají bez registrace a aplikace, vy dostanete upozornění e-mailem a odpovědi exportujete do tabulky.",
   "rsvp.breadcrumb": "Potvrzení účasti",
@@ -141,5 +145,9 @@
   "rsvp.faq.4.q": "Dostane každý host vlastní odkaz?",
   "rsvp.faq.4.a": "Každá domácnost může dostat osobní odkaz a QR kód s předvyplněnou odpovědí.",
   "rsvp.faq.5.q": "Kolik potvrzení účasti stojí?",
-  "rsvp.faq.5.a": "Tvorba i zveřejnění webu včetně potvrzení účasti teď stojí 0 Kč. Případnou změnu ceny oznámíme předem."
+  "rsvp.faq.5.a": "Tvorba i zveřejnění webu včetně potvrzení účasti teď stojí 0 Kč. Případnou změnu ceny oznámíme předem.",
+  "rsvp.faq.6.q": "Mohou nám hosté v odpovědi napsat vzkaz?",
+  "rsvp.faq.6.a": "Ano, pokud to zapnete. Host připíše přání nebo vzkaz do 1000 znaků. Vzkazy najdete pohromadě v přehledu odpovědí i v exportu do tabulky.",
+  "rsvp.faq.7.q": "Jak dáme hostům vědět, když se změní program?",
+  "rsvp.faq.7.a": "Host může v odpovědi zaškrtnout, že chce upozornění, a nechat e-mail. Zprávu pak rozešlete z přehledu odpovědí. Každý ji dostane ve svém jazyce a odhlásí se jedním odkazem."
 }

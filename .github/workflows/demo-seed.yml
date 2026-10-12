@@ -1,0 +1,104 @@
+name: Demo web
+
+# Ručně spouštěné založení, aktualizace, obnovení a smazání trvalého demo webu „Test a Test“
+# (scripts/demo-seed.mjs, docs/demo-web.md). Nespouští se automaticky: ani po pushi, ani v CI.
+# Actions → Demo web → Run workflow.
+#
+# Skript volá existující funkce `security definer` (stejné claimy jako aplikace), neodesílá žádné e-maily a
+# nevolá SES. Připojení k databázi je stejné jako ve workflow „Migrace databáze“ (migrate.yml): vlastník
+# schématu přes session pooler, prostředí GitHubu `production`.
+#
+# Tajné hodnoty prostředí `production` (Settings → Environments → production → Environment secrets;
+# repozitářové secrety fungují také):
+#   MIGRATE_DATABASE_URL, MIGRATE_CA_CERT   stejné jako u migrací
+#   PIN_PEPPER                              stejná hodnota jako PIN_PEPPER na Vercelu (jinak PIN neodpovídá)
+#   DEMO_ADMIN_EMAIL                        e-mail správce demo webu (majitel)
+#   DEMO_GUEST_PIN                          PIN hostů: odemyká zamčený web (6 až 12 číslic, ne triviální)
+#   DEMO_SITE_PIN                           PIN správy webu (jiný než PIN hostů)
+#   R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET   (volitelné) ukázkové fotografie
+# Proměnná prostředí (ne tajná, volitelná): ROOT_DOMAIN (výchozí se-vezmou.cz) jen pro výpis adresy.
+#
+# Ruční schválení: v prostředí `production` zapněte „Required reviewers“, pak každé spuštění čeká na schválení.
+# PINy se v CI nikdy negenerují ani nevypisují (--require-pins); chybějící hodnota ukončí běh chybou.
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: "Adresa webu (subdoména), výchozí test-a-test"
+        type: string
+        default: test-a-test
+      action:
+        description: "create = založit nebo aktualizovat, reset = smazat obsah a založit znovu, delete = smazat web"
+        type: choice
+        options: [create, reset, delete]
+        default: create
+
+permissions:
+  contents: read
+
+# Nikdy dva běhy naráz a rozběhnutý se neruší.
+concurrency:
+  group: demo-seed-production
+  cancel-in-progress: false
+
+jobs:
+  demo:
+    # Na produkci jen z větve main (z jiné větve se úloha přeskočí)
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      MIGRATE_DATABASE_URL: ${{ secrets.MIGRATE_DATABASE_URL }}
+      MIGRATE_CA_CERT: ${{ secrets.MIGRATE_CA_CERT }}
+      PIN_PEPPER: ${{ secrets.PIN_PEPPER }}
+      DEMO_ADMIN_EMAIL: ${{ secrets.DEMO_ADMIN_EMAIL }}
+      DEMO_GUEST_PIN: ${{ secrets.DEMO_GUEST_PIN }}
+      DEMO_SITE_PIN: ${{ secrets.DEMO_SITE_PIN }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      ROOT_DOMAIN: ${{ vars.ROOT_DOMAIN }}
+      # vstupy jen přes prostředí (ne přímo do skriptu shellu), ať nejde vložit příkaz
+      INPUT_SLUG: ${{ inputs.slug }}
+      INPUT_ACTION: ${{ inputs.action }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Kontrola vstupů a tajných hodnot
+        run: |
+          fail() { echo "::error::$1"; exit 1; }
+          case "$INPUT_ACTION" in create | reset | delete) ;; *) fail "Neznámá akce: $INPUT_ACTION" ;; esac
+          printf '%s' "$INPUT_SLUG" | grep -Eq '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$' || fail "Neplatná adresa webu."
+          [ -n "$MIGRATE_DATABASE_URL" ] && [ -n "$MIGRATE_CA_CERT" ] \
+            || fail "Chybí tajné hodnoty MIGRATE_DATABASE_URL nebo MIGRATE_CA_CERT (stejné jako u migrací)."
+          if [ "$INPUT_ACTION" != "delete" ]; then
+            [ -n "$PIN_PEPPER" ] || fail "Chybí tajná hodnota PIN_PEPPER (stejná jako na Vercelu)."
+            [ -n "$DEMO_ADMIN_EMAIL" ] || fail "Chybí tajná hodnota DEMO_ADMIN_EMAIL (e-mail správce dema)."
+            [ -n "$DEMO_GUEST_PIN" ] || fail "Chybí tajná hodnota DEMO_GUEST_PIN. PIN se v CI negeneruje, vypsal by se do logu."
+            [ -n "$DEMO_SITE_PIN" ] || fail "Chybí tajná hodnota DEMO_SITE_PIN. PIN se v CI negeneruje, vypsal by se do logu."
+            # tajné hodnoty jsou v logu maskované samy; masku přidáme i pro jistotu
+            echo "::add-mask::$DEMO_GUEST_PIN"
+            echo "::add-mask::$DEMO_SITE_PIN"
+            echo "::add-mask::$DEMO_ADMIN_EMAIL"
+          fi
+          if [ -n "$R2_ACCOUNT_ID" ] && [ -n "$R2_ACCESS_KEY_ID" ] && [ -n "$R2_SECRET_ACCESS_KEY" ] && [ -n "$R2_BUCKET" ]; then
+            echo "Fotografie: R2 je nastavené, ukázkové fotografie se nahrají."
+          else
+            echo "Fotografie: R2 secrety v prostředí chybí (nebo jsou neúplné), fotografie se PŘESKOČÍ. Galerie ukáže jen odkaz na externí galerii."
+          fi
+      - name: Demo web
+        run: |
+          case "$INPUT_ACTION" in
+            create) mode="" ;;
+            reset) mode="--reset" ;;
+            delete) mode="--delete" ;;
+          esac
+          # shellcheck disable=SC2086
+          node --import tsx scripts/demo-seed.mjs --yes --require-pins --slug "$INPUT_SLUG" $mode

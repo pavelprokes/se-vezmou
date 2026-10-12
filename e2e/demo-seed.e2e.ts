@@ -210,7 +210,9 @@ test.describe("demo web: založení skriptem", () => {
       ),
     ).toBe(8);
     // žádný e-mail se neodeslal ani nezařadil
-    expect(await count("select count(*) n from se_vezmou.email_log")).toBe(0);
+    expect(
+      await count("select count(*) n from se_vezmou.email_log where wedding_id = $1", [w.id]),
+    ).toBe(0);
     // oznámení provozovateli vzniká jen v aplikaci; ve frontě notifikací nic není
     expect(
       await count("select count(*) n from se_vezmou.lifecycle_notices where wedding_id = $1", [

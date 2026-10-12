@@ -333,9 +333,12 @@ test.describe("demo web: založení skriptem", () => {
   });
 
   test("osobní odkaz domácnosti zamčený web otevře a ukáže uloženou odpověď", async ({ page }) => {
+    const w = await weddingOf(SLUG);
     const code = await withDb(async (db) => {
+      // jen domácnost dema: jiné testy ve stejné databázi zakládají domácnosti se stejným názvem
       const r = await db.query<{ invite_code: string }>(
-        "select invite_code from se_vezmou.households where label = 'Novákovi'",
+        "select invite_code from se_vezmou.households where wedding_id = $1 and label = 'Novákovi'",
+        [w.id],
       );
       return r.rows[0].invite_code;
     });

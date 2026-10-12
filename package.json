@@ -20,6 +20,7 @@
     "prepare": "husky",
     "db:migrate": "node --env-file-if-exists=.env.migrate.local scripts/db-migrate.mjs",
     "db:migrate:test": "bash scripts/db-migrate-test.sh",
+    "demo:seed": "node --env-file-if-exists=.env.migrate.local --import tsx scripts/demo-seed.mjs",
     "ops:create-owner": "node --env-file-if-exists=.env.migrate.local scripts/ops-bootstrap.mjs create-owner",
     "ops:reset-mfa": "node --env-file-if-exists=.env.migrate.local scripts/ops-bootstrap.mjs reset-mfa"
   },

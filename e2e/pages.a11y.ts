@@ -18,7 +18,7 @@ const pages = [
   { name: "admin", host: HOSTS.admin, path: "/" },
   { name: "web páru česky", host: HOSTS.tenant, path: "/" },
   { name: "web páru anglicky", host: HOSTS.tenant, path: "/en" },
-  { name: "404 webu páru", host: "neexistuje.localhost", path: "/" },
+  { name: "404 webu páru", host: "staging.localhost", path: "/" },
 ];
 
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];

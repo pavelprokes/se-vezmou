@@ -15,6 +15,7 @@ type Loader = () => Promise<{ default: NamespaceMessages }>;
 
 export const loaders: Record<Locale, Record<Namespace, Loader>> = {
   cs: {
+    address: () => import("./messages/cs/address.json"),
     admin: () => import("./messages/cs/admin.json"),
     "admin.guests": () => import("./messages/cs/admin.guests.json"),
     auth: () => import("./messages/cs/auth.json"),
@@ -32,6 +33,7 @@ export const loaders: Record<Locale, Record<Namespace, Loader>> = {
     wizard: () => import("./messages/cs/wizard.json"),
   },
   en: {
+    address: () => import("./messages/en/address.json"),
     admin: () => import("./messages/en/admin.json"),
     "admin.guests": () => import("./messages/en/admin.guests.json"),
     auth: () => import("./messages/en/auth.json"),

@@ -109,6 +109,7 @@ Test běží v CI proti skutečné databázi od M3 a je součástí brány B.
 - Atributy cookies `HttpOnly`, `Secure`, `SameSite`.
 - V záznamech ani chybách (včetně Sentry a analytiky) nejsou jména, e-maily ani dietní údaje.
 - Stránka neexistující adresy nevypisuje ani nenabízí jiné weby (`FR-PRIV-3`).
+- Stránka volné adresy (ADR 0015): jen kořen volné adresy v češtině a angličtině (200, `noindex`, bez `canonical`, `hreflang` a JSON-LD, `Cache-Control: no-store`, odkaz do průvodce s `adresa`); zabraná zveřejněná, zamčená, zablokovaná, rozpracovaná (rezervovaná) a vyhrazená adresa i neplatný tvar zůstávají stejná 404 a podstránky volné adresy také; po vyčerpání limitu podle IP je odpověď stejná 404 a neplatný tvar limit nespotřebuje (`e2e/free-address.e2e.ts`, jednotkově `src/site/free-address*.test.ts`); přístupnost, mobil a 320 px v `e2e/free-address.a11y.ts`.
 - Ověření, že pro novou subdoménu se certifikát nevydá, dokud svatba neexistuje.
 - Tajné hodnoty nejsou v repozitáři (kontrola v CI).
 

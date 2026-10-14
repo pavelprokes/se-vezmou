@@ -13,6 +13,7 @@ import { defaultLocale, isLocale, locales, type Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 import { wizardLoad } from "@/lib/db/rpc-wizard";
 import { NAME_MAX_LENGTH, WIZARD_PARAMS, wizardPath } from "@/lib/wizard-link";
+import { normalizeSlugInput, slugProblem } from "@/wizard/slug";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslator(await getUiLocale(), ["common", "wizard"]);
@@ -25,6 +26,12 @@ function first(value: string | string[] | undefined): string {
 
 function name(value: string | string[] | undefined): string {
   return first(value).replace(/\s+/g, " ").trim().slice(0, NAME_MAX_LENGTH);
+}
+
+/** Adresa z odkazu (`adresa=…`): jen platná a nerezervovaná, jinak prázdný řetězec (ověří ji až server). */
+function addressParam(value: string | string[] | undefined): string {
+  const slug = normalizeSlugInput(first(value));
+  return slugProblem(slug) === null ? slug : "";
 }
 
 /**
@@ -44,6 +51,8 @@ export default async function WizardPage({ searchParams }: PageProps<"/h/app/vyt
       const value = name(params[key]);
       if (value) query.set(key, value);
     }
+    const address = addressParam(params[WIZARD_PARAMS.slug]);
+    if (address) query.set(WIZARD_PARAMS.slug, address);
     query.set(WIZARD_PARAMS.locale, requested);
     redirect(`${wizardPath(requested)}?${query.toString()}`);
   }
@@ -99,6 +108,7 @@ export default async function WizardPage({ searchParams }: PageProps<"/h/app/vyt
           partnerA: name(params[WIZARD_PARAMS.first]),
           partnerB: name(params[WIZARD_PARAMS.second]),
           siteLocale,
+          slug: addressParam(params[WIZARD_PARAMS.slug]),
         }}
         server={server}
         noscript={t("wizard.noscript")}

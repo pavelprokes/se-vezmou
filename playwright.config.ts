@@ -55,12 +55,13 @@ export default defineConfig({
     // Úvodní stránka, průvodce, provozní administrace a vzhled webu páru i v mobilním viewportu (Chromium s rozlišením telefonu, dotykový vstup).
     {
       name: "e2e-mobile",
-      testMatch: /(landing|wizard|ops-mobile|site-layout|name-cards)\.e2e\.ts$/,
+      testMatch: /(landing|wizard|ops-mobile|site-layout|name-cards|free-address)\.e2e\.ts$/,
       use: { ...devices["Pixel 7"] },
     },
     {
       name: "a11y-mobile",
-      testMatch: /(landing|wizard|admin-site|admin-guests|photos|ops|features)\.a11y\.ts$/,
+      testMatch:
+        /(landing|wizard|admin-site|admin-guests|photos|ops|features|free-address)\.a11y\.ts$/,
       use: { ...devices["Pixel 7"] },
     },
   ],

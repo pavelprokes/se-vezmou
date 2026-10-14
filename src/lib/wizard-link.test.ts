@@ -35,6 +35,21 @@ describe("buildWizardUrl", () => {
     );
   });
 
+  it("předá adresu z volné adresy a jazyk odkazu", () => {
+    expect(
+      buildWizardUrl({
+        ...base,
+        locale: "en",
+        first: "David",
+        second: "Lil",
+        slug: "david-and-lil",
+      }),
+    ).toBe(
+      "https://app.se-vezmou.cz/en/vytvorit?jmeno1=David&jmeno2=Lil&adresa=david-and-lil&jazyk=en",
+    );
+    expect(new URL(buildWizardUrl(base)).searchParams.has("adresa")).toBe(false);
+  });
+
   it("jména s úvodními znaky nemohou změnit cíl odkazu", () => {
     const url = new URL(
       buildWizardUrl({ ...base, first: "&jazyk=en#x", second: "//evil.example" }),

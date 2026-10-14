@@ -197,11 +197,11 @@ describe("jmenné prostory podle stránek", () => {
     expect(loaded.has("ops")).toBe(true);
   });
 
-  it("web páru načítá jen rámec a texty webu", () => {
+  it("web páru načítá jen rámec, texty webu a texty stránky volné adresy", () => {
     const loaded = routeNamespaces([
       "app/h/tenant/[slug]/[locale]/layout.tsx",
       "app/h/tenant/[slug]/[locale]/page.tsx",
     ]);
-    expect([...loaded].sort()).toEqual(["common", "rsvp", "site"]);
+    expect([...loaded].sort()).toEqual(["address", "common", "rsvp", "site"]);
   });
 });

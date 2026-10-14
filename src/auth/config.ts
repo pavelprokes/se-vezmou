@@ -46,6 +46,11 @@ export const RATE_RULES = {
   waitlistIp: { limit: 10, windowSeconds: HOUR },
   /** Živá kontrola adresy v průvodci podle IP (informativní, přísná, bez prozrazení; FR-WZ-4). */
   slugCheckIp: { limit: 60, windowSeconds: 10 * MINUTE },
+  /**
+   * Stránka volné adresy na webu páru podle IP (ADR 0015): počítá se každé zobrazení, které se ptá databáze,
+   * a je přísnější než kontrola v průvodci, aby stránka neposloužila k procházení adres.
+   */
+  freeAddressIp: { limit: 20, windowSeconds: 10 * MINUTE },
   /** Hledání souřadnic adresy pro mapu (průvodce i správa) podle IP; volá Nominatim, proto přísně. */
   geocodeIp: { limit: 30, windowSeconds: 10 * MINUTE },
   /** Nominatim dovoluje nejvýš jeden dotaz za sekundu za celou aplikaci (pravidla OSMF). */

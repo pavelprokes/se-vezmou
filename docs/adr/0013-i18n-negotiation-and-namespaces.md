@@ -72,6 +72,7 @@ E-maily mají jazyk příjemce; přihlašovací e-mail správce má jazyk požad
 | `wizard`                 | průvodce, náhled konceptu                             | `app.`: `/vytvorit`, `/vytvorit/nahled`; web páru: `/nahled/<token>`      |
 | `admin`, `admin.guests`  | správa webu, hosté, odpovědi, přístup, data, nápověda | `app.`: stránky správy (rámec správy zobrazuje nabídku z obou)            |
 | `site`, `rsvp`           | web páru, potvrzení účasti                            | web páru, náhled konceptu, živý náhled v průvodci, vývojový náhled šablon |
+| `address`                | stránka volné adresy (ADR 0015)                       | web páru: kořen adresy, na které nikdo nemá web                           |
 | `ops`                    | provozní administrace                                 | `admin.`: všechny stránky                                                 |
 | `catalog`, `placeholder` | vývojářský katalog UI, zástupné texty                 | `/ui-catalog` (mimo produkci)                                             |
 

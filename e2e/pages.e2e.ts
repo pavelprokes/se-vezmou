@@ -179,14 +179,14 @@ test.describe("placeholdery ostatních hostitelů", () => {
   });
 
   test("404 neexistujícího webu páru je stejná stránka bez slugu", async ({ page }) => {
-    const first = await page.goto(pageUrl("neexistuje.localhost", "/"));
+    const first = await page.goto(pageUrl("staging.localhost", "/"));
     expect(first?.status()).toBe(404);
     const second = await page.goto(pageUrl("klara-a-matej.localhost", "/neexistuje"));
     expect(second?.status()).toBe(404);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Stránka nenalezena");
     // titulek 404 není výchozí titulek značky (WCAG 2.4.2)
     await expect(page).toHaveTitle("Stránka nenalezena");
-    expect(await page.content()).not.toContain("neexistuje.localhost");
+    expect(await page.content()).not.toContain("staging.localhost");
   });
 
   test("404 stránka úvodní stránky v češtině i angličtině", async ({ page }) => {

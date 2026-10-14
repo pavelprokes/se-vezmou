@@ -56,6 +56,43 @@ describe("createDraft", () => {
   });
 });
 
+describe("createDraft: adresa ze stránky volné adresy", () => {
+  it("adresa shodná s návrhem z jmen zůstává odvozená z jmen", () => {
+    const draft = createDraft({
+      locale: "en",
+      partnerA: "David",
+      partnerB: "Lil",
+      slug: "david-and-lil",
+      newId,
+      now,
+    });
+    expect(draft.slug).toBe("david-and-lil");
+    expect(draft.slugEdited).toBe(false);
+  });
+
+  it("jiná platná adresa se předvyplní a psaní jmen ji nepřepíše", () => {
+    const draft = createDraft({ locale: "cs", slug: "nase-svatba", newId, now });
+    expect(draft.slug).toBe("nase-svatba");
+    expect(draft.slugEdited).toBe(true);
+    expect(withNames(draft, "Klára", "Matěj").slug).toBe("nase-svatba");
+  });
+
+  it("neplatná nebo rezervovaná adresa se ignoruje", () => {
+    for (const slug of ["", "ab", "a--b", "Velka-Pismena", "admin"]) {
+      const draft = createDraft({
+        locale: "cs",
+        partnerA: "Klára",
+        partnerB: "Matěj",
+        slug,
+        newId,
+        now,
+      });
+      expect(draft.slug, slug).toBe("klara-a-matej");
+      expect(draft.slugEdited, slug).toBe(false);
+    }
+  });
+});
+
 describe("PIN hostů mimo localStorage (OQ-64)", () => {
   const withPin = () => ({
     ...complete(),

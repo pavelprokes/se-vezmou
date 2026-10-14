@@ -7,6 +7,14 @@ updates:
     groups:
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # Typy musí odpovídat verzi Node, na které projekt běží (.nvmrc, Node 24).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # ESLint 10: `eslint-plugin-react` (přes eslint-config-next) ho zatím nepodporuje.
+      # Odstranit, až ho podpoří.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:

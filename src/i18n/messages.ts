@@ -8,6 +8,7 @@ import type { MessageValue } from "./format";
  * (`import type` se při sestavení zahodí, nic se nenačte), ostatní jazyky musí mít stejné klíče
  * (`npm run i18n:check`).
  */
+import type address from "./messages/cs/address.json";
 import type admin from "./messages/cs/admin.json";
 import type adminGuests from "./messages/cs/admin.guests.json";
 import type auth from "./messages/cs/auth.json";
@@ -32,10 +33,11 @@ import type wizard from "./messages/cs/wizard.json";
  * - `marketing` (metadata úvodní stránky), `landing` (sekce úvodní stránky), `legal` (právní stránky),
  *   `blog` (rámec blogu; samotné články jsou v `content/blog`),
  * - `auth` (přihlášení správců), `wizard` (průvodce), `admin` a `admin.guests` (správa),
- * - `site` a `rsvp` (web páru), `ops` (provozní administrace),
+ * - `site` a `rsvp` (web páru), `address` (stránka volné adresy na webu páru, ADR 0015), `ops` (provozní administrace),
  * - `catalog` a `placeholder` (vývojářský katalog a ukázky, mimo produkci).
  */
 export const namespaces = [
+  "address",
   "admin",
   "admin.guests",
   "auth",
@@ -56,6 +58,7 @@ export const namespaces = [
 export type Namespace = (typeof namespaces)[number];
 
 type CatalogFiles = {
+  address: typeof address;
   admin: typeof admin;
   "admin.guests": typeof adminGuests;
   auth: typeof auth;

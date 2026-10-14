@@ -137,11 +137,13 @@ test.describe("interní segmenty /h/* zvenku", () => {
 });
 
 test.describe("neexistující a neplatní hostitelé", () => {
-  test("neexistující web páru vrací stejné 404 jako každý jiný neexistující", async ({
+  test("web páru, který nemůže existovat, vrací stejné 404 jako každý jiný", async ({
     request,
   }) => {
-    const a = await get(request, "neexistuje.localhost");
-    const b = await get(request, "uplne-jiny-par.localhost");
+    // Vyhrazená slova (`staging`, `docs`): adresa, která volná není, ani nemůže být. Volná adresa má od ADR 0015
+    // vlastní stránku (e2e/free-address.e2e.ts), proto ji tenhle test nesmí použít.
+    const a = await get(request, "staging.localhost");
+    const b = await get(request, "docs.localhost");
     expect(a.status()).toBe(404);
     expect(b.status()).toBe(404);
     expect(a.headers()["x-robots-tag"]).toBe("noindex, nofollow");
@@ -159,17 +161,15 @@ test.describe("neexistující a neplatní hostitelé", () => {
         });
       return { rest, rows: payload.join("").split("\\n").filter(Boolean).sort() };
     };
-    expect(normalize(await a.text(), "neexistuje")).toEqual(
-      normalize(await b.text(), "uplne-jiny-par"),
-    );
+    expect(normalize(await a.text(), "staging")).toEqual(normalize(await b.text(), "docs"));
   });
 
   test("neexistující web páru: i podstránky vrací stejné 404 jako samotný web", async ({
     request,
   }) => {
-    const page = await get(request, "neexistuje.localhost", "/");
-    const sub = await get(request, "neexistuje.localhost", "/program");
-    const en = await get(request, "neexistuje.localhost", "/en");
+    const page = await get(request, "staging.localhost", "/");
+    const sub = await get(request, "staging.localhost", "/program");
+    const en = await get(request, "staging.localhost", "/en");
     expect(page.status()).toBe(404);
     expect(sub.status()).toBe(404);
     expect(en.status()).toBe(404);

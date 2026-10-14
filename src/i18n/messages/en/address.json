@@ -1,0 +1,22 @@
+{
+  "meta.title": "{address} is available",
+  "meta.description": "The address {address} is available. Create your wedding website on it, 0 CZK for now.",
+  "statusLabel": "Address status:",
+  "status": "Available",
+  "lead": "This address is available. Build your wedding website on it.",
+  "sub": "Creating and publishing your website costs 0 CZK right now. Choose from eight templates, and your guests can RSVP right on the site, with no sign-up.",
+  "cta": "Create a site at this address",
+  "note": "Nobody is holding this address for you. The guide checks it again and reserves it for you when you first save.",
+  "templates": "See the template examples",
+  "steps.title": "Three steps to your site",
+  "steps.list": "Steps",
+  "steps.1.title": "Names",
+  "steps.1.text": "Tell us who is getting married. You see a first version of the site straight away.",
+  "steps.2.title": "Template",
+  "steps.2.text": "Pick a look and colours from eight templates. The preview updates as you go.",
+  "steps.3.title": "Publish",
+  "steps.3.text": "Look the site over privately first. Publish it with one button.",
+  "footer.label": "Se vezmou",
+  "footer.about": "About Se vezmou",
+  "footer.privacy": "Privacy"
+}

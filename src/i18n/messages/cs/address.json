@@ -1,0 +1,22 @@
+{
+  "meta.title": "Adresa {address} je volná",
+  "meta.description": "Adresa {address} je volná. Vytvořte si na ní svatební web, teď za 0 Kč.",
+  "statusLabel": "Stav adresy:",
+  "status": "Volná",
+  "lead": "Tato adresa je volná. Vytvořte si na ní svatební web.",
+  "sub": "Tvorba i zveřejnění teď stojí 0 Kč. Vyberete z osmi šablon a hosté potvrdí účast přímo na webu, bez registrace.",
+  "cta": "Vytvořit web na této adrese",
+  "note": "Adresu pro vás nikdo nedrží rezervovanou. Průvodce ji ověří znovu a při prvním uložení vám ji zarezervuje.",
+  "templates": "Podívat se na ukázky šablon",
+  "steps.title": "Tři kroky k webu",
+  "steps.list": "Postup",
+  "steps.1.title": "Jména",
+  "steps.1.text": "Napíšete, kdo se bere. Hned vidíte první verzi webu.",
+  "steps.2.title": "Šablona",
+  "steps.2.text": "Vyberete vzhled a barvy z osmi šablon. Náhled vidíte hned.",
+  "steps.3.title": "Zveřejnění",
+  "steps.3.text": "Web si nejdřív prohlédnete soukromě. Zveřejníte ho jedním tlačítkem.",
+  "footer.label": "Se vezmou",
+  "footer.about": "O službě Se vezmou",
+  "footer.privacy": "Ochrana soukromí"
+}

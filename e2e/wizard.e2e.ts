@@ -438,7 +438,8 @@ test.describe("E2E-06: koncept a odkaz na náhled", () => {
     // Web ještě není zveřejněný: veřejná adresa vrací stejnou 404 jako neexistující web.
     const guest = await (await browser.newContext()).newPage();
     const publicResponse = await guest.goto(siteUrl(slug));
-    const missing = await guest.goto(siteUrl(`neexistuje-${tag}`));
+    // (vyhrazené slovo: volná adresa má od ADR 0015 vlastní stránku, viz e2e/free-address.e2e.ts)
+    const missing = await guest.goto(siteUrl("staging"));
     expect(publicResponse?.status()).toBe(404);
     expect(missing?.status()).toBe(404);
 
@@ -538,7 +539,7 @@ test.describe("kontrola adresy: omezení počtu dotazů", () => {
 });
 
 test.describe("web páru: neexistující, nezveřejněná a blokovaná adresa", () => {
-  test("všechny tři dají stejnou 404", async ({ request }) => {
+  test("vyhrazená, nezveřejněná a blokovaná adresa dají stejnou 404", async ({ request }) => {
     const tag = uniqueTag();
     const blocked = `blokovany-${tag}`;
     await seedPublishedSite({
@@ -579,18 +580,14 @@ test.describe("web páru: neexistující, nezveřejněná a blokovaná adresa", 
       };
     };
     const [missing, notPublished, blockedSite] = await Promise.all([
-      get(`neexistuje-${tag}`),
+      get("staging"),
       get(draft),
       get(blocked),
     ]);
     expect(missing.status).toBe(404);
     expect(notPublished).toEqual({ ...missing });
     expect(blockedSite).toEqual({ ...missing });
-    const en = await Promise.all([
-      get(`neexistuje-${tag}`, "/en"),
-      get(draft, "/en"),
-      get(blocked, "/en"),
-    ]);
+    const en = await Promise.all([get("staging", "/en"), get(draft, "/en"), get(blocked, "/en")]);
     expect(en[0].status).toBe(404);
     expect(en[1]).toEqual(en[0]);
     expect(en[2]).toEqual(en[0]);

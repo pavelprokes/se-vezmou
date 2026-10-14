@@ -49,8 +49,8 @@ export interface WizardAppProps {
   messages: WizardMessages;
   /** Doména pro zobrazení adresy webu (`se-vezmou.cz`, lokálně `localhost:3100`). */
   domain: string;
-  /** Jména a jazyk z úvodní stránky (FR-LP-5). */
-  prefill: { partnerA: string; partnerB: string; siteLocale: Locale };
+  /** Jména, jazyk a adresa z úvodní stránky a ze stránky volné adresy (FR-LP-5, ADR 0015); `slug` je prázdný bez adresy. */
+  prefill: { partnerA: string; partnerB: string; siteLocale: Locale; slug: string };
   /** Koncept přihlášeného správce na serveru (návrh z jiného zařízení nebo po obnovení). */
   server: { draft: unknown; previewEnabled: boolean } | null;
 }
@@ -96,22 +96,24 @@ function initialDraft(props: WizardAppProps): WizardDraft {
       siteLocale: props.prefill.siteLocale,
       partnerA: props.prefill.partnerA,
       partnerB: props.prefill.partnerB,
+      slug: props.prefill.slug,
     });
   }
   // Jména z úvodní stránky doplní jen prázdný koncept; rozepsaná data se nikdy nepřepisují.
   if (base.partnerA === "" && base.partnerB === "") {
+    const fresh = createDraft({
+      locale: props.uiLocale,
+      siteLocale: base.defaultLocale,
+      partnerA: props.prefill.partnerA,
+      partnerB: props.prefill.partnerB,
+      slug: props.prefill.slug,
+    });
     return {
       ...base,
       partnerA: props.prefill.partnerA,
       partnerB: props.prefill.partnerB,
-      slug: base.slugEdited
-        ? base.slug
-        : createDraft({
-            locale: props.uiLocale,
-            siteLocale: base.defaultLocale,
-            partnerA: props.prefill.partnerA,
-            partnerB: props.prefill.partnerB,
-          }).slug,
+      slug: base.slugEdited ? base.slug : fresh.slug,
+      slugEdited: base.slugEdited || fresh.slugEdited,
     };
   }
   return base;

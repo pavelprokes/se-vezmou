@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { SITE_NAMESPACES } from "@/components/site/context";
+import { FreeAddress } from "@/components/site/free-address";
 import { LockedSite } from "@/components/site/locked-site";
 import { SiteUnlockedFocus } from "@/components/site/pin-gate";
 import { SiteRenderer } from "@/components/site/site-renderer";
@@ -11,32 +12,59 @@ import { localizedPath } from "@/i18n/pathnames";
 import { getTranslator } from "@/i18n/load";
 import { OG_SIZE } from "@/seo/og-card";
 import { getSiteState } from "@/site/content";
+import { addressHost } from "@/site/free-address";
+import { isAddressFree } from "@/site/free-address-state";
 import { formatDateRange } from "@/site/format";
 import { pick } from "@/site/i18n-text";
 import { loadGuestContext } from "@/site/guest-context";
 import { eventsForGuest, invitePath } from "@/site/invite";
 import { readInvite } from "@/site/tenant-request";
 import { languageAlternates, originFromHeaders } from "@/site/origin";
+import { siteUrl } from "@/lib/site";
 
 type Props = PageProps<"/h/tenant/[slug]/[locale]">;
 
 async function load(slug: string, locale: string) {
   if (!isLocale(locale)) return null;
-  // Neexistující, nezveřejněná i zablokovaná adresa: `null`, tedy stejná 404 (FR-PRIV-3).
+  // Neexistující, nezveřejněná i zablokovaná adresa: dosud `null`, tedy stejná 404 (FR-PRIV-3).
   const state = await getSiteState(slug);
-  // Jazyk, který web nenabízí, je stejná 404 jako neexistující web.
-  if (!state) return null;
+  if (!state) {
+    // Jediná výjimka (ADR 0015): VOLNÁ adresa (nikdo ji nemá ani nedrží rezervovanou, není vyhrazená) ukáže
+    // stránku k založení webu. Všechno ostatní zůstává stejná 404. Dotaz je omezený podle IP a jen pro kořen.
+    if (await isAddressFree(slug)) return { kind: "free" as const, locale };
+    return null;
+  }
   const locales = state.kind === "published" ? state.content.locales : state.gate.locales;
+  // Jazyk, který web nenabízí, je stejná 404 jako neexistující web.
   if (!locales.includes(locale)) return null;
-  return { state, locale };
+  return { kind: "site" as const, state, locale };
+}
+
+/**
+ * Volná adresa (ADR 0015): `noindex, nofollow`, bez `canonical` a `hreflang` (na wildcard doméně by jinak vznikaly
+ * nekonečné indexovatelné stránky), bez náhledu odkazu. Hlavičku `X-Robots-Tag` přidává proxy pro všechny weby párů.
+ */
+async function freeAddressMetadata(
+  slug: string,
+  locale: Locale,
+  host: string | null,
+): Promise<Metadata> {
+  const t = await getTranslator(locale, ["address"]);
+  const address = addressHost(slug, host, new URL(siteUrl).hostname);
+  return {
+    title: t("address.meta.title", { address }),
+    description: t("address.meta.description", { address }),
+    robots: { index: false, follow: false },
+  };
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug, locale } = await params;
   const loaded = await load(slug, locale);
   if (!loaded) return {};
-  const { state } = loaded;
   const h = await headers();
+  if (loaded.kind === "free") return freeAddressMetadata(slug, loaded.locale, h.get("host"));
+  const { state } = loaded;
   const origin = originFromHeaders(h.get("host"), h.get("x-forwarded-proto"));
   const t = await getTranslator(loaded.locale, ["site"]);
   const look = state.kind === "published" ? state.content : state.gate;
@@ -97,6 +125,16 @@ export default async function TenantSite({ params, searchParams }: Props) {
   const { slug, locale } = await params;
   const loaded = await load(slug, locale);
   if (!loaded) notFound();
+  if (loaded.kind === "free") {
+    const host = (await headers()).get("host");
+    return (
+      <FreeAddress
+        locale={loaded.locale}
+        slug={slug}
+        host={addressHost(slug, host, new URL(siteUrl).hostname)}
+      />
+    );
+  }
   const { state } = loaded;
   const locales = state.kind === "published" ? state.content.locales : state.gate.locales;
 

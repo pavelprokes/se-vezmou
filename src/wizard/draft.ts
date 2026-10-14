@@ -210,6 +210,8 @@ export interface CreateDraftOptions {
   partnerB?: string;
   /** Jazyk webu z úvodní stránky (`jazyk=en`); jinak jazyk rozhraní průvodce. */
   siteLocale?: Locale;
+  /** Adresa z stránky volné adresy (`adresa=…`, ADR 0015); použije se jen platná, ověří ji server až při uložení. */
+  slug?: string;
   newId?: UuidFactory;
   now?: Date;
 }
@@ -225,6 +227,8 @@ export function createDraft(options: CreateDraftOptions): WizardDraft {
   const template: TemplateKey = "eukalyptus";
   const partnerA = clean(options.partnerA);
   const partnerB = clean(options.partnerB);
+  const suggestion = slugFromNames(partnerA, partnerB, siteLocale);
+  const wanted = options.slug && slugProblem(options.slug) === null ? options.slug : null;
   const emptyPlace = (): PlaceDraft => ({
     enabled: false,
     time: "",
@@ -255,8 +259,9 @@ export function createDraft(options: CreateDraftOptions): WizardDraft {
     defaultLocale: siteLocale,
     startsOn: "",
     endsOn: "",
-    slug: slugFromNames(partnerA, partnerB, siteLocale),
-    slugEdited: false,
+    slug: wanted ?? suggestion,
+    // Adresa z odkazu, která se liší od návrhu z jmen, se nesmí přepsat při psaní jmen.
+    slugEdited: wanted !== null && wanted !== suggestion,
     template,
     palette: templates[template].defaultPalette,
     ceremony: emptyPlace(),

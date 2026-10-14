@@ -8,7 +8,13 @@ import { localePath, type Locale } from "@/i18n/config";
  * Název cesty i parametrů je jen na tomto místě a formuláře ho berou odsud.
  */
 export const WIZARD_PATH = "/vytvorit";
-export const WIZARD_PARAMS = { first: "jmeno1", second: "jmeno2", locale: "jazyk" } as const;
+export const WIZARD_PARAMS = {
+  first: "jmeno1",
+  second: "jmeno2",
+  locale: "jazyk",
+  /** Adresa webu z stránky volné adresy (ADR 0015); průvodce ji jen předvyplní a ověří znovu. */
+  slug: "adresa",
+} as const;
 
 /** Nejdelší jméno, které formulář přijme (delší text je nejspíš omyl). */
 export const NAME_MAX_LENGTH = 60;
@@ -22,6 +28,8 @@ export interface WizardLinkInput {
   locale: Locale;
   first?: string;
   second?: string;
+  /** Adresa webu (jen předvyplnění, průvodce ji ověří znovu). */
+  slug?: string;
 }
 
 /** Cesta průvodce v jazyce rozhraní (`/vytvorit`, `/en/vytvorit`). */
@@ -29,7 +37,7 @@ export function wizardPath(locale: Locale): string {
   return localePath(WIZARD_PATH, locale);
 }
 
-export function buildWizardUrl({ appUrl, locale, first, second }: WizardLinkInput): string {
+export function buildWizardUrl({ appUrl, locale, first, second, slug }: WizardLinkInput): string {
   const url = new URL(wizardPath(locale).slice(1), `${appUrl.replace(/\/+$/, "")}/`);
   const names: [string, string][] = [
     [WIZARD_PARAMS.first, clean(first)],
@@ -38,6 +46,7 @@ export function buildWizardUrl({ appUrl, locale, first, second }: WizardLinkInpu
   for (const [key, value] of names) {
     if (value) url.searchParams.set(key, value);
   }
+  if (slug) url.searchParams.set(WIZARD_PARAMS.slug, slug);
   url.searchParams.set(WIZARD_PARAMS.locale, locale);
   return url.toString();
 }

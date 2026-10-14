@@ -7,6 +7,7 @@ import { intlLocale, type Locale } from "@/i18n/config";
 import { typo } from "@/i18n/typo";
 import type { Block } from "@/site/types";
 import { qrMatrix, QR_QUIET_ZONE } from "../qr";
+import { trackedGalleryUrl } from "@/site/gallery-url";
 
 /**
  * PDF oznámení k tisku (M5, FR-WZ-1, test E2E-07): adresa webu, QR kód a PIN hostů na jedné
@@ -97,7 +98,11 @@ export interface AnnouncementInput {
  */
 export function pickGalleryUrl(blocks: readonly Block[]): string | null {
   for (const block of blocks) {
-    if (block.type === "gallery" && block.enabled) return block.data.link?.url ?? null;
+    if (block.type === "gallery" && block.enabled) {
+      const url = block.data.link?.url ?? null;
+      // u vlastní galerie autora s UTM (src/site/gallery-url.ts), cizí adresa beze změny
+      return url ? trackedGalleryUrl(url, "qr-oznameni") : null;
+    }
   }
   return null;
 }
@@ -146,7 +151,7 @@ function centered(
 }
 
 /** Vektorový QR kód: vodorovné řady tmavých modulů se spojují do jednoho obdélníku. */
-function drawQr(page: PDFPage, payload: string, x: number, y: number, size: number): void {
+export function drawQr(page: PDFPage, payload: string, x: number, y: number, size: number): void {
   const matrix = qrMatrix(payload);
   const total = matrix.count + QR_QUIET_ZONE * 2;
   const cell = size / total;

@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 import { HelpBox, type HelpTopic } from "./help";
 
 export type NavItem =
-  "overview" | "site" | "guests" | "responses" | "access" | "data" | "history" | "help";
+  "overview" | "site" | "guests" | "responses" | "notes" | "access" | "data" | "history" | "help";
 
 /**
  * Společný rámec obrazovek správy: hlavní nabídka, přepínač jazyka, odhlášení, nadpis a nápověda.
@@ -58,6 +58,7 @@ export async function AdminFrame({
       label: t("admin.guests.nav.responses"),
       href: appHref(ADMIN_PATHS.responses, locale),
     },
+    { key: "notes", label: t("admin.nav.notes"), href: appHref(ADMIN_PATHS.notes, locale) },
     {
       key: "access",
       label: t("admin.guests.nav.access"),

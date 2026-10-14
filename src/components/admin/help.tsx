@@ -18,6 +18,9 @@ export const HELP_TOPICS = [
   "rsvp",
   "access",
   "data",
+  "seating",
+  "gifts",
+  "notes",
 ] as const;
 export type HelpTopic = (typeof HELP_TOPICS)[number];
 
@@ -39,6 +42,9 @@ export const HELP_KEYS: Record<HelpTopic, { title: HelpKey; body: HelpKey }> = {
   rsvp: { title: "admin.guests.help.rsvp.title", body: "admin.guests.help.rsvp.body" },
   access: { title: "admin.guests.help.access.title", body: "admin.guests.help.access.body" },
   data: { title: "admin.guests.help.data.title", body: "admin.guests.help.data.body" },
+  seating: { title: "admin.help.seating.title", body: "admin.help.seating.body" },
+  gifts: { title: "admin.help.gifts.title", body: "admin.help.gifts.body" },
+  notes: { title: "admin.help.notes.title", body: "admin.help.notes.body" },
 };
 
 /**

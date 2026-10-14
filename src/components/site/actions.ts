@@ -3,7 +3,19 @@
 import { after } from "next/server";
 import { PIN_LENGTH } from "@/auth/config";
 import { unlockWithGuestPin } from "@/auth/guest-pin";
-import { setGuestCookie } from "@/auth/guest-session";
+import { getGuestSession, guestIdentity, setGuestCookie } from "@/auth/guest-session";
+import { RATE_RULES } from "@/auth/config";
+import { rateKey } from "@/auth/rate-limit";
+import { requireEnv } from "@/env";
+import { rateLimitHit, tenantRpc } from "@/lib/db/rpc";
+import { visitorIdentity } from "@/lib/db/media";
+import { DbError } from "@/lib/db/transport";
+import {
+  loadGiftRegistry,
+  readGiftTokens,
+  writeGiftTokens,
+  type GiftRegistryView,
+} from "@/site/gifts";
 import type { Defer } from "@/auth/login";
 import { normalizePinInput } from "@/auth/pin";
 import { getClientIp } from "@/auth/request";
@@ -173,4 +185,86 @@ export async function unlockAction(_prev: PinState, formData: FormData): Promise
     console.error("[pin hostů] ověření selhalo", error instanceof Error ? error.name : "");
     return { error: "generic" };
   }
+}
+
+// --- věcné dary --------------------------------------------------------------------------
+
+export type GiftState = {
+  status: "ok" | "taken" | "locked" | "closed" | "limited" | "error";
+  /** Aktuální seznam po akci (stav „zabráno“ i u ostatních darů). */
+  registry?: GiftRegistryView | null;
+};
+
+const GIFT_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * Rezervace a zrušení vlastní rezervace daru. Přístup (PIN hostů, fáze) hlídá databáze; token rezervace
+ * se uloží jen do cookie tohoto prohlížeče. Strop pokusů podle webu a IP (rezervace i zrušení).
+ */
+async function giftStep(
+  formData: FormData,
+  run: (identity: Parameters<typeof tenantRpc>[0], id: string) => Promise<void>,
+): Promise<GiftState> {
+  try {
+    const tenant = await tenantFromRequest(formData.get("locale"));
+    const id = field(formData, "gift");
+    if (!tenant || !GIFT_ID.test(id)) return { status: "error" };
+    const hit = await rateLimitHit(
+      rateKey(
+        requireEnv("RATE_LIMIT_SECRET"),
+        "gift-reserve",
+        `${tenant.slug}\0${await getClientIp()}`,
+      ),
+      RATE_RULES.giftReserveIp.limit,
+      RATE_RULES.giftReserveIp.windowSeconds,
+    );
+    if (!hit.allowed) return { status: "limited" };
+    const access = await getGuestSession(tenant.weddingId);
+    const identity = access ? guestIdentity(access) : visitorIdentity(tenant.weddingId);
+    let status: GiftState["status"] = "ok";
+    try {
+      await run(identity, id);
+    } catch (error) {
+      if (!(error instanceof DbError)) throw error;
+      status =
+        error.reason === "gift_taken"
+          ? "taken"
+          : error.reason === "gift_locked"
+            ? "locked"
+            : error.reason === "gift_closed"
+              ? "closed"
+              : error.reason === "gift_not_found"
+                ? "taken"
+                : "error";
+    }
+    return { status, registry: await loadGiftRegistry(identity) };
+  } catch (error) {
+    console.error("[dary] rezervace selhala", error instanceof Error ? error.name : "");
+    return { status: "error" };
+  }
+}
+
+export async function reserveGiftAction(formData: FormData): Promise<GiftState> {
+  return giftStep(formData, async (identity, id) => {
+    const name = field(formData, "name").trim().slice(0, 80);
+    const token = await tenantRpc<string>(identity, "gift_reserve", {
+      p_id: id,
+      p_name: name === "" ? null : name,
+    });
+    const tokens = await readGiftTokens();
+    tokens.set(id, token);
+    await writeGiftTokens(tokens);
+  });
+}
+
+export async function unreserveGiftAction(formData: FormData): Promise<GiftState> {
+  return giftStep(formData, async (identity, id) => {
+    const tokens = await readGiftTokens();
+    const token = tokens.get(id);
+    if (token) {
+      await tenantRpc<boolean>(identity, "gift_unreserve", { p_id: id, p_token: token });
+      tokens.delete(id);
+      await writeGiftTokens(tokens);
+    }
+  });
 }

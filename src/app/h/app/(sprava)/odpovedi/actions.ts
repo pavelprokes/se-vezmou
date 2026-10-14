@@ -2,6 +2,7 @@
 
 import { guarded } from "@/admin/guard";
 import { saveRsvpSettings, type SaveSettingsResult } from "@/admin/guests/server";
+import { sendGuestUpdates, type GuestUpdateResult } from "@/admin/guests/updates";
 import type { Guarded } from "@/admin/site/action-types";
 import { getUiLocale } from "@/auth/request";
 import type { EntryState } from "@/components/admin/guests/response-entry";
@@ -20,6 +21,11 @@ export async function saveSettingsAction(input: unknown): Promise<Guarded<SaveSe
   return guarded("uložení nastavení RSVP", (session) => saveRsvpSettings(session, input));
 }
 
+/** Upozornění hostům na změnu: e-mail všem, kdo se v odpovědi přihlásili (omezeno počtem za den). */
+export async function sendGuestUpdatesAction(input: unknown): Promise<Guarded<GuestUpdateResult>> {
+  return guarded("upozornění hostům na změnu", (session) => sendGuestUpdates(session, input));
+}
+
 export async function enterResponseAction(
   householdId: string,
   formData: FormData,
@@ -28,8 +34,10 @@ export async function enterResponseAction(
     const view = await getHouseholdForEntry(session, householdId);
     if (!view) return { status: "failed" };
     const model = buildListedModel(view, await getUiLocale());
+    // Souhlas s upozorněním na změny dává jen host sám, ruční zápis ho nenabízí.
     const relaxed = {
       ...model,
+      flags: { ...model.flags, updates: false },
       questions: model.questions.map((question) => ({ ...question, required: false })),
     };
     const parsed = parseSubmission(formData, relaxed);

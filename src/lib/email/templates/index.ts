@@ -24,3 +24,4 @@ export {
   type DeletionNoticeParams,
 } from "./deletion-notice";
 export { renderRsvpNotice, type RsvpNoticeParams } from "./rsvp-notice";
+export { renderGuestUpdate, type GuestUpdateParams } from "./guest-update";

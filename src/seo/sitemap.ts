@@ -10,6 +10,7 @@ export const indexableRoutes: readonly RouteName[] = [
   "templates",
   "bilingual",
   "rsvp",
+  "seating",
   "photographers",
   "blog",
   "privacy",

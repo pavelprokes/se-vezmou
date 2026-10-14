@@ -67,6 +67,7 @@ describe("sitemap.xml", () => {
       "templates",
       "bilingual",
       "rsvp",
+      "seating",
       "photographers",
       "blog",
       "privacy",
@@ -85,6 +86,8 @@ describe("sitemap.xml", () => {
       "/en/bilingual-wedding-website",
       "/potvrzeni-ucasti-hostu",
       "/en/wedding-rsvp",
+      "/zasedaci-poradek-na-svatbu",
+      "/en/wedding-seating-plan",
       "/pro-fotografy",
       "/en/for-photographers",
     ]) {

@@ -1,3 +1,4 @@
+import { trackedGalleryUrl } from "@/site/gallery-url";
 import { localePath, locales, type Locale } from "@/i18n/config";
 import { dayInZone, daysUntil, formatDay, formatTime } from "@/site/format";
 import type { MapPoint } from "@/site/map/view";
@@ -213,7 +214,8 @@ export function galleryModel(block: BlockOf<"gallery">, ctx: SiteCtx) {
   }
   const gated = photosProtected || linkProtected;
   return {
-    url,
+    // odkaz na vlastní galerii autora nese značky UTM (src/site/gallery-url.ts), host se počítá z čisté adresy
+    url: url ? trackedGalleryUrl(url, "web") : null,
     title: ownTitle || fetched?.title || t("site.gallery.linkDefault"),
     titleLang: ownTitle && link ? ctx.lang(link.label) : undefined,
     description: fetched?.description ?? null,

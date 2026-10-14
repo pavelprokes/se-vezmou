@@ -25,6 +25,8 @@ export const COOKIE_KINDS = {
   rsvp: "sv_rsvp",
   /** Kód osobního odkazu domácnosti (`/p/<kód>`) na webu páru: otevře její RSVP a program. */
   invite: "sv_invite",
+  /** Tokeny rezervací věcných darů z tohoto prohlížeče (zrušení vlastní rezervace) na webu páru. */
+  gifts: "sv_gifts",
   /** Relace operátora na `admin.` (M9, docs/adr/0012). */
   operator: "sv_operator",
   /** Rozpracované přihlášení operátora kódem (zapečetěný e-mail) na `admin.`. */

@@ -1292,6 +1292,16 @@ html:has(dialog.site-lightbox[open]) {
 .site-input-narrow {
   max-width: 8rem;
 }
+.site-textarea {
+  min-height: 7rem;
+  resize: vertical;
+  line-height: 1.5;
+}
+.site-updates {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
 .site-fieldset {
   min-width: 0;
   margin: 0;
@@ -1772,4 +1782,87 @@ html:has(dialog.site-lightbox[open]) {
     font-size: 1.75rem;
     letter-spacing: 0.06em;
   }
+}
+
+/* Seznam věcných darů s rezervací (fáze 2) */
+.site-registry {
+  margin-top: 2rem;
+  text-align: left;
+}
+.site-registry > p {
+  margin: 0.5rem 0 0;
+}
+.site-registry-status {
+  min-height: 1.5rem;
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+.site-registry-list {
+  display: grid;
+  gap: 1rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 40rem) {
+  .site-registry-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.site-registry-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid var(--s-border);
+  border-radius: min(var(--s-radius), 1rem);
+  background: var(--s-surface);
+  padding: 1rem;
+}
+.site-section[data-tone="surface"] .site-registry-item {
+  background: var(--s-bg);
+}
+.site-registry-item p {
+  margin: 0;
+}
+.site-registry-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.site-registry-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+.site-registry-state,
+.site-registry-form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+.site-registry-form .site-field {
+  align-self: stretch;
+}
+.site-registry-flag {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+.site-registry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.site-registry .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

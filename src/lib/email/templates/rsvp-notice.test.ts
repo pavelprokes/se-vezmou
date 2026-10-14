@@ -67,4 +67,11 @@ describe.each(locales)("upozornění na odpověď (%s)", (locale) => {
     expect(email.text).not.toMatch(/vegetar|celiak|laktóz|gluten/i);
     expect(email.text).toMatch(locale === "cs" ? /Dietní a\s+alergické/ : /Dietary and\s+allergy/);
   });
+
+  it("vzkaz: zmínka, že přibyl, nikdy jeho text", () => {
+    const without = renderRsvpNotice(base(locale));
+    const withMessage = renderRsvpNotice({ ...base(locale), message: true });
+    expect(withMessage.text.length).toBeGreaterThan(without.text.length);
+    expect(withMessage.text).toMatch(locale === "cs" ? /Vzkazy od hostů/ : /Messages from guests/);
+  });
 });

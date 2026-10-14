@@ -27,6 +27,7 @@ type Labels = {
   lodging: string;
   transport: string;
   song: string;
+  message: string;
   lodgingValues: Record<string, string>;
   transportValues: Record<string, string>;
   contact: string;
@@ -57,6 +58,7 @@ const LABELS: Record<Locale, Labels> = {
     lodging: "Ubytování",
     transport: "Doprava",
     song: "Píseň",
+    message: "Vzkaz",
     lodgingValues: { need: "potřebuje", own: "vlastní", unsure: "nejistě" },
     transportValues: { need: "potřebuje", own: "vlastní", offer: "nabízí místa" },
     contact: "Kontaktní e-mail",
@@ -85,6 +87,7 @@ const LABELS: Record<Locale, Labels> = {
     lodging: "Accommodation",
     transport: "Transport",
     song: "Song",
+    message: "Message",
     lodgingValues: { need: "needed", own: "own", unsure: "not sure" },
     transportValues: { need: "needed", own: "own", offer: "offers seats" },
     contact: "Contact e-mail",
@@ -112,7 +115,7 @@ function text(value: unknown): string | null {
 export function buildGuestTable(data: GuestExport, locale: Locale): Table {
   const l = LABELS[locale];
   const fallback = data.wedding.default_locale;
-  const builtinKeys = new Set(["lodging", "transport", "song"]);
+  const builtinKeys = new Set(["lodging", "transport", "song", "message"]);
   const usesAnswer = (key: string) => data.people.some((p) => text(p.answers[key]) !== null);
 
   const customQuestions = data.questions.filter((q) => !builtinKeys.has(q.key));
@@ -121,6 +124,7 @@ export function buildGuestTable(data: GuestExport, locale: Locale): Table {
       ["lodging", l.lodging],
       ["transport", l.transport],
       ["song", l.song],
+      ["message", l.message],
     ] as const
   ).filter(([key]) => usesAnswer(key));
 

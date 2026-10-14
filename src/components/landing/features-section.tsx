@@ -14,6 +14,9 @@ function Mock({ children, className }: { children: ReactNode; className?: string
   );
 }
 
+/** Body „Čím se lišíme“ (`landing.features.extra.*`); stejné texty jsou i ve `featureList` strukturovaných dat. */
+export const EXTRA_FEATURES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] as const;
+
 interface Feature {
   key: string;
   title: string;
@@ -143,7 +146,7 @@ export async function FeaturesSection({ locale, number }: { locale: Locale; numb
             {t("landing.features.extra.title")}
           </h3>
           <ul className="mt-4 grid gap-x-6 gap-y-2 text-base sm:grid-cols-2 lg:grid-cols-4">
-            {([1, 2, 3, 4, 5, 6, 7, 8] as const).map((n) => (
+            {EXTRA_FEATURES.map((n) => (
               <li key={n} className="flex items-start gap-2">
                 <Icon icon={Check} size={16} className="text-pine mt-1 shrink-0" />
                 {t(`landing.features.extra.${n}`)}

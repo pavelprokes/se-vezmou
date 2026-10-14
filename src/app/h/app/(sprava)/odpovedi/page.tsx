@@ -1,4 +1,4 @@
-import { CircleCheck, CircleHelp, CircleX, Settings } from "lucide-react";
+import { CircleCheck, CircleHelp, CircleX, MessageSquareHeart, Settings } from "lucide-react";
 import type { Metadata } from "next";
 import { ADMIN_PATHS, appHref, responsePath } from "@/admin/paths";
 import { loadGuests, loadRsvpSettings } from "@/admin/guests/server";
@@ -6,14 +6,18 @@ import { rsvpWindow } from "@/admin/guests/types";
 import { getUiLocale } from "@/auth/request";
 import { requireSession } from "@/auth/session";
 import { AdminFrame } from "@/components/admin/frame";
+import { GuestUpdates } from "@/components/admin/guests/guest-updates";
+import { AdminI18nProvider } from "@/components/admin/i18n";
+import { pickAdminMessages } from "@/components/admin/messages";
 import { buttonVariants } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
 import { intlLocale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
-import { getRsvpOverview } from "@/lib/rsvp/admin";
+import { getRsvpOverview, listGuestMessages, listUpdateSubscribers } from "@/lib/rsvp/admin";
 import { householdStatus } from "@/lib/rsvp/types";
 import { pick } from "@/site/i18n-text";
+import { sendGuestUpdatesAction } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -45,11 +49,22 @@ export default async function ResponsesPage({ searchParams }: PageProps<"/h/app/
   const locale = await getUiLocale();
   const t = await getTranslator(locale, ["admin.guests"]);
   const params = await searchParams;
-  const [overview, guests, settings] = await Promise.all([
+  const [overview, guests, settings, messages, subscribers] = await Promise.all([
     getRsvpOverview(session),
     loadGuests(session),
     loadRsvpSettings(session),
+    listGuestMessages(session),
+    listUpdateSubscribers(session),
   ]);
+  const flags = settings.settings.enabled_questions;
+  const messagesOn = flags.message === true;
+  const updatesOn = flags.updates === true;
+  const siteLocales = [
+    settings.default_locale,
+    ...settings.locales.filter((code) => code !== settings.default_locale),
+  ];
+  const names = (row: { label: string | null; names: string[] }) =>
+    row.label?.trim() || row.names.join(", ");
 
   const windowState = rsvpWindow(settings.settings.opens_at, settings.settings.closes_at);
   const day = new Intl.DateTimeFormat(intlLocale[locale], {
@@ -252,6 +267,122 @@ export default async function ResponsesPage({ searchParams }: PageProps<"/h/app/
             </ul>
           )}
         </Card>
+
+        {messagesOn || messages.length > 0 ? (
+          <Card as="section" aria-labelledby="messages-heading">
+            <h2 id="messages-heading" className="flex items-center gap-2 text-2xl font-medium">
+              <Icon icon={MessageSquareHeart} />
+              {t("admin.guests.responses.messages.title", { n: messages.length })}
+            </h2>
+            {!messagesOn ? (
+              <p className="text-muted mt-2">{t("admin.guests.responses.messages.off")}</p>
+            ) : null}
+            {messages.length === 0 ? (
+              <p className="text-muted mt-3">{t("admin.guests.responses.messages.none")}</p>
+            ) : (
+              <ul className="mt-3 flex flex-col gap-3" data-testid="guest-messages">
+                {messages.map((message, index) => (
+                  <li
+                    key={`${message.household_id ?? "x"}-${index}`}
+                    className="border-hairline bg-parchment rounded-2xl border p-4"
+                  >
+                    <blockquote className="max-w-prose text-lg whitespace-pre-line">
+                      {message.message}
+                    </blockquote>
+                    <p className="text-muted mt-2">
+                      {names(message)} · {day.format(new Date(message.at))}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        ) : null}
+
+        {updatesOn || subscribers.length > 0 ? (
+          <Card as="section" aria-labelledby="updates-heading">
+            <h2 id="updates-heading" className="text-2xl font-medium">
+              {t("admin.guests.responses.updates.title")}
+            </h2>
+            {!updatesOn ? (
+              <p className="text-muted mt-2">{t("admin.guests.responses.updates.off")}</p>
+            ) : null}
+            <p className="mt-3 text-lg" data-testid="updates-count">
+              {t("admin.guests.responses.updates.count", { n: subscribers.length })}
+            </p>
+            {subscribers.length === 0 ? (
+              <p className="text-muted mt-2">{t("admin.guests.responses.updates.none")}</p>
+            ) : (
+              <div
+                role="region"
+                aria-label={t("admin.guests.responses.updates.table")}
+                tabIndex={0}
+                className="border-hairline mt-4 overflow-x-auto rounded-2xl border"
+              >
+                <table className="w-full min-w-[34rem] border-collapse text-left">
+                  <caption className="sr-only">{t("admin.guests.responses.updates.table")}</caption>
+                  <thead className="bg-linen">
+                    <tr>
+                      <th scope="col" className="px-3 py-2">
+                        {t("admin.guests.responses.updates.col.names")}
+                      </th>
+                      <th scope="col" className="px-3 py-2">
+                        {t("admin.guests.responses.updates.col.email")}
+                      </th>
+                      <th scope="col" className="px-3 py-2">
+                        {t("admin.guests.responses.updates.col.phone")}
+                      </th>
+                      <th scope="col" className="px-3 py-2">
+                        {t("admin.guests.responses.updates.col.locale")}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {subscribers.map((row, index) => (
+                      <tr key={index} className="border-hairline border-t">
+                        <th scope="row" className="px-3 py-2 font-medium">
+                          {names(row)}
+                        </th>
+                        <td className="px-3 py-2 break-all">{row.email}</td>
+                        <td className="px-3 py-2">
+                          {row.phone ? (
+                            <a
+                              href={`tel:${row.phone.replace(/[^+0-9]/g, "")}`}
+                              className="underline underline-offset-4"
+                            >
+                              {row.phone}
+                            </a>
+                          ) : (
+                            "–"
+                          )}
+                        </td>
+                        <td className="px-3 py-2">
+                          {t(
+                            row.locale === "en"
+                              ? "admin.guests.responses.updates.langEn"
+                              : "admin.guests.responses.updates.langCs",
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="text-muted mt-3 max-w-prose text-sm">
+              {t("admin.guests.responses.updates.privacy")}
+            </p>
+            {subscribers.length > 0 ? (
+              <AdminI18nProvider locale={locale} messages={await pickAdminMessages(locale)}>
+                <GuestUpdates
+                  locales={siteLocales}
+                  count={subscribers.length}
+                  action={sendGuestUpdatesAction}
+                />
+              </AdminI18nProvider>
+            ) : null}
+          </Card>
+        ) : null}
 
         {guests.unlisted.length > 0 ? (
           <Card as="section" aria-labelledby="unlisted-heading">

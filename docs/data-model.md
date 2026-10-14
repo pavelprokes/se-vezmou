@@ -221,6 +221,14 @@ Normalizaci jmen zajišťuje jedna implementace v SQL (nemění se mezi aplikac�
 
 **`rsvp_health`** (zdravotní údaje zvlášť): `person_id` pk, `wedding_id`, `diet text`, `allergies text`, `exported_at null`. Samostatná tabulka umožňuje přísnější politiku, samostatné mazání a vynechání z běžných exportů a operátorských pohledů.
 
+**`rsvp_updates`** (upozornění hostům na změny, migrace `20261020120000_rsvp_message_and_updates.sql`): pk `(wedding_id, response_id)` s kaskádou z `rsvp_responses`, `email citext`, `phone text null` (číslice a oddělovače), `locale` (`cs`, `en`), `unsubscribe_token` (36 hex znaků, unikátní, odhlášení z odkazu v e-mailu přes `rsvp_updates_unsubscribe`), `created_at`, `updated_at`. Zapisuje jen `rsvp_apply` s příznakem `updates` a jen při odpovědi hosta (`entered_by = 'guest'`), žádná role k tabulce nemá přímá práva. Host z lístku vidí jen příznak `has_updates`; správce seznam (`admin_rsvp_updates`) a adresy k odeslání (`admin_rsvp_updates_recipients`, zapíše audit `rsvp.updates_sent`). Vzkaz pro novomanžele je klíč `message` v `rsvp_responses.answers` (do 1000 znaků, příznak `message`), správce ho čte přes `admin_rsvp_messages`.
+
+**Plánování (fáze 2, migrace `20261021120000_seating_gifts_notes.sql`)**, všechny tabulky jen přes funkce security definer, bez práv rolím:
+
+- `seating_plans`: pk `wedding_id`, `plan jsonb` (stoly s geometrií a usazení `{klíč osoby: {table, seat}}`; klíče `g:<id hosta>` nebo `p:<id odpovědi>:<pořadí>`, žádná jména), `rev` proti souběžnému přepsání. Funkce `admin_seating_get` (plán, události, osoby s potvrzenou účastí) a `admin_seating_save(p_plan, p_rev)`. Retence hostů smaže `assignments`.
+- `gift_items`: věcné dary (`title`, `description` jako text po jazycích, `url` https, `price`), rezervace `reserved_at`, nepovinné `reserved_by` (maže se s údaji hostů) a `reservation_hash` (sha256 tokenu, který má jen prohlížeč hosta). Host: `gift_list_public`, `gift_reserve`, `gift_unreserve` (přístup `gift_access`: zveřejněný web mimo fázi poděkování, s PINem hostů jen relace po PINu). Správce: `admin_gifts_list`, `admin_gift_save`, `admin_gift_delete`, `admin_gift_release`, `admin_gift_move`.
+- `vendors` (kontakty na dodavatele podle druhu a stavu) a `wedding_notes` (jeden text do 20 000 znaků s `rev`): `admin_vendors_list`, `admin_vendor_save`, `admin_vendor_delete`, `admin_notes_get`, `admin_notes_save`.
+
 Volný text vlastních otázek pár nemůže technicky odlišit od zdravotních údajů. Rozhraní proto u vlastní otázky upozorní, že zdravotní údaje patří do pole pro dietu `[OTÁZKA k právníkovi]`.
 
 ### 3.6 Operátoři a audit

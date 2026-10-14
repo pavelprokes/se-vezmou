@@ -7,6 +7,7 @@ import { giftsModel } from "../models";
 import { PinGate, UnlockedRegion } from "../pin-gate";
 import { pinGateLabels } from "../pin-labels";
 import { ForeignPayment } from "./foreign-payment";
+import { GiftRegistrySection } from "./gift-registry-section";
 import { PaymentQr } from "./payment-qr";
 import { Paragraphs, Section } from "./section";
 
@@ -72,6 +73,12 @@ export function Gifts({
           <PinGate labels={pinGateLabels(t, "gifts")} locale={ctx.locale} unlockKey="gifts" />
         </div>
       )}
+      <GiftRegistrySection
+        ctx={ctx}
+        gateShown={
+          block.data.payment && !gifts && !(ctx.sensitiveUnlocked && ctx.sensitive !== null)
+        }
+      />
     </Section>
   );
 }

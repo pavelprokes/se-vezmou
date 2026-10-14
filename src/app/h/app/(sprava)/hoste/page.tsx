@@ -1,4 +1,4 @@
-import { Download, FileSpreadsheet, IdCard } from "lucide-react";
+import { Armchair, Download, FileSpreadsheet, IdCard } from "lucide-react";
 import type { Metadata } from "next";
 import { ADMIN_PATHS, appHref, householdPath, responsePath } from "@/admin/paths";
 import { loadGuests } from "@/admin/guests/server";
@@ -68,6 +68,22 @@ export default async function GuestsPage({ searchParams }: PageProps<"/h/app/hos
             inviteOrigin={inviteOrigin}
             actions={{ bulkInvite: bulkInviteAction }}
           />
+
+          <Card as="section" aria-labelledby="seating-heading">
+            <h2 id="seating-heading" className="text-2xl font-medium">
+              {t("admin.guests.list.seatingTitle")}
+            </h2>
+            <p className="text-muted mt-2 max-w-prose">{t("admin.guests.list.seatingIntro")}</p>
+            <p className="mt-4">
+              <a
+                href={appHref(ADMIN_PATHS.seating, locale)}
+                className={buttonVariants({ variant: "secondary" })}
+              >
+                <Icon icon={Armchair} size={18} />
+                {t("admin.guests.list.seatingLink")}
+              </a>
+            </p>
+          </Card>
 
           <Card as="section" aria-labelledby="import-heading">
             <h2 id="import-heading" className="text-2xl font-medium">

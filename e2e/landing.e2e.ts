@@ -92,6 +92,12 @@ for (const locale of locales) {
       const app = nodes.find((node) => node["@type"] === "SoftwareApplication");
       expect(app?.offers).toMatchObject({ price: "0", priceCurrency: "CZK" });
       expect(app?.offers).not.toHaveProperty("priceValidUntil");
+      // featureList: tytéž věty jako viditelný seznam „Čím se lišíme“ (citovatelné pro AI vyhledávače)
+      const features = app?.featureList as string[];
+      expect(features).toHaveLength(16);
+      const visible = (text: string) => text.replace(/\s+/g, " ");
+      const page = visible(html.replace(/<[^>]+>/g, " ").replace(/&nbsp;|\u00a0/g, " "));
+      for (const feature of features) expect(page).toContain(visible(feature));
 
       const faq = nodes.find((node) => node["@type"] === "FAQPage") as {
         mainEntity: { name: string }[];
@@ -239,12 +245,12 @@ for (const locale of locales) {
       await expect(page.locator("#reference")).toHaveCount(testimonials.length === 0 ? 0 : 1);
     });
 
-    test("čím se lišíme: osm bodů pod funkcemi", async ({ page }) => {
+    test("čím se lišíme: šestnáct bodů pod funkcemi", async ({ page }) => {
       await page.goto(pageUrl(HOSTS.marketing, locale.path));
       const extra = page.locator("#features li").filter({
         has: page.getByRole("heading", { name: /^(Čím se lišíme|What sets us apart)$/ }),
       });
-      await expect(extra.locator("ul > li")).toHaveCount(8);
+      await expect(extra.locator("ul > li")).toHaveCount(16);
       await expect(extra).toContainText(/EPC/);
       await extra.scrollIntoViewIfNeeded();
       await extra.screenshot({ path: test.info().outputPath(`cim-se-lisime-${locale.code}.png`) });
@@ -630,6 +636,16 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       alt: "/potvrzeni-ucasti-hostu",
     },
     {
+      path: "/zasedaci-poradek-na-svatbu",
+      h1: "Zasedací pořádek na svatbu",
+      alt: "/en/wedding-seating-plan",
+    },
+    {
+      path: "/en/wedding-seating-plan",
+      h1: "Wedding seating plan",
+      alt: "/zasedaci-poradek-na-svatbu",
+    },
+    {
       path: "/pro-fotografy",
       h1: "Pro svatební fotografy a dodavatele",
       alt: "/en/for-photographers",
@@ -713,6 +729,8 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
       "/en/pro-fotografy",
       "/rsvp",
       "/en/potvrzeni-ucasti-hostu",
+      "/wedding-seating-plan",
+      "/en/zasedaci-poradek-na-svatbu",
     ]) {
       const { response } = await source(request, path);
       expect(response.status(), path).toBe(404);
@@ -731,6 +749,9 @@ test.describe("podstránky cena, šablony a dvojjazyčný web", () => {
     expect(response.headers()["content-type"]).toContain("text/plain");
     expect(html).toMatch(/^# Se vezmou/);
     for (const entry of pages) expect(html).toContain(`(https://se-vezmou.cz${entry.path})`);
+    // fakta o funkcích z plánu 2026-10 (galerie s QR cedulkou, zasedací pořádek, dary)
+    expect(html).toMatch(/zasedací\s+pořádek/);
+    expect(html).toMatch(/seating\s+plan/);
   });
 });
 

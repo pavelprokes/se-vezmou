@@ -168,6 +168,19 @@ describe("SoftwareApplication", () => {
     expect(node.offers).toMatchObject({ priceValidUntil: "2027-06-30" });
   });
 
+  it("bez seznamu funkcí featureList nepíše", () => {
+    expect(softwareApplicationLd(input)).not.toHaveProperty("featureList");
+    expect(softwareApplicationLd({ ...input, featureList: [] })).not.toHaveProperty("featureList");
+  });
+
+  it("featureList nese funkce bez nezlomitelných mezer", () => {
+    const node = softwareApplicationLd({
+      ...input,
+      featureList: ["Zasedací pořádek s\u00a0tiskem", "Seznam darů s rezervací"],
+    });
+    expect(node.featureList).toEqual(["Zasedací pořádek s tiskem", "Seznam darů s rezervací"]);
+  });
+
   it("cena sleduje změnu konfigurace", () => {
     const node = softwareApplicationLd({
       ...input,

@@ -135,6 +135,7 @@ export default async function TenantSite({ params, searchParams }: Props) {
         rsvp={guest?.rsvp ?? null}
         sensitiveUnlocked={guest?.sensitiveUnlocked ?? false}
         sensitive={guest?.sensitive ?? null}
+        registry={guest?.registry ?? null}
       />
     </>
   );

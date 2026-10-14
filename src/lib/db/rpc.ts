@@ -415,7 +415,8 @@ export type EmailLogType =
   | "expiry_notice"
   | "deletion_notice"
   | "operator_notice"
-  | "waitlist_confirm";
+  | "waitlist_confirm"
+  | "guest_update";
 
 export type EmailLogStatus = "queued" | "sent" | "delivered" | "bounced" | "complained" | "failed";
 

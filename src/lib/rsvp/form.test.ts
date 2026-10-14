@@ -41,6 +41,8 @@ describe("model formuláře domácnosti (FR-RSVP-2, FR-RSVP-3)", () => {
       lodging: true,
       transport: true,
       song: true,
+      message: false,
+      updates: false,
       emailConfirmation: true,
     });
     const minimal = buildListedModel(
@@ -278,5 +280,42 @@ describe("názvy polí", () => {
     expect(Object.keys(ALL_FLAGS).sort()).toEqual(
       ["children", "diet", "lodging", "plus_one", "song", "transport"].sort(),
     );
+  });
+});
+
+describe("vzkaz a upozornění na změny", () => {
+  it("příznaky message a updates jen při výslovném zapnutí", () => {
+    const model = buildListedModel(
+      householdView({
+        settings: {
+          enabled_questions: { message: true, updates: true },
+          email_confirmation: false,
+        },
+      }),
+      "cs",
+    );
+    expect(model.flags.message).toBe(true);
+    expect(model.flags.updates).toBe(true);
+  });
+
+  it("zapnutá upozornění z dřívější odpovědi: zaškrtnuto, adresa se nepředvyplní", () => {
+    const view = householdView();
+    const model = buildListedModel(
+      {
+        ...view,
+        response: {
+          answers: { message: "Těšíme se" },
+          contact_email: null,
+          has_updates: true,
+          entered_by: "guest",
+          people: [],
+        },
+      },
+      "cs",
+    );
+    expect(model.values.savedUpdates).toBe(true);
+    expect(model.values.updates).toBe(true);
+    expect(model.values.updatesEmail).toBeUndefined();
+    expect(model.values.answers.message).toBe("Těšíme se");
   });
 });

@@ -1,5 +1,6 @@
 import type { Locale } from "@/i18n/config";
 import type { RsvpSiteState } from "@/lib/rsvp/form";
+import type { GiftRegistryView } from "@/site/gifts";
 import type { PublicContent, SensitiveContent } from "@/site/types";
 import { createSiteCtx, type SiteTranslator } from "./context";
 import { siteLayout } from "./models";
@@ -19,6 +20,8 @@ export interface SiteRendererProps {
   sensitive?: SensitiveContent | null;
   /** Živý stav RSVP (počáteční stav formuláře a volby páru), viz `loadGuestContext`. */
   rsvp?: RsvpSiteState | null;
+  /** Seznam věcných darů s rezervací (živá data), viz `loadGuestContext`. */
+  registry?: GiftRegistryView | null;
 }
 
 /**
@@ -34,8 +37,9 @@ export function SiteRenderer({
   sensitiveUnlocked = false,
   sensitive = null,
   rsvp = null,
+  registry = null,
 }: SiteRendererProps) {
-  const ctx = createSiteCtx(content, t, { now, sensitiveUnlocked, sensitive, rsvp });
+  const ctx = createSiteCtx(content, t, { now, sensitiveUnlocked, sensitive, rsvp, registry });
   const Template = TEMPLATES[content.template];
   return <Template ctx={ctx} layout={siteLayout(ctx, localeHrefs)} />;
 }

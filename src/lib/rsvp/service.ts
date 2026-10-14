@@ -181,7 +181,7 @@ export async function submitStep(input: {
     model = buildUnlistedModel(view, input.locale);
   }
 
-  const parsed = parseSubmission(input.form, model);
+  const parsed = parseSubmission(input.form, model, { locale: input.locale });
   if (!parsed.ok) return { state: { stage: "form", error: "invalid", errors: parsed.errors } };
 
   // Odpověď hosta mimo seznam nese idempotenční klíč z prohlížeče (dvojklik, opakování po výpadku sítě);
@@ -228,6 +228,7 @@ export async function submitStep(input: {
         weddingId: input.weddingId,
         summary: parsed.summary,
         kind: input.mode === "listed" && !firstResponse ? "changed" : "new",
+        message: typeof parsed.payload.answers.message === "string",
       }),
     );
   }
@@ -287,6 +288,7 @@ async function notifyCouple(input: {
   weddingId: string;
   summary: Omit<DoneSummary, "emailSent">;
   kind: "new" | "changed";
+  message: boolean;
 }): Promise<void> {
   try {
     const recipients = await rsvpNotifyRecipients(input.weddingId);
@@ -309,6 +311,7 @@ async function notifyCouple(input: {
         unlisted: input.summary.unlisted,
         people: input.summary.people,
         manageUrl: `https://app.${root}${localePath(ADMIN_PATHS.responses, locale)}`,
+        message: input.message,
       });
       await sendTemplatedEmail({
         type: "rsvp_notice",

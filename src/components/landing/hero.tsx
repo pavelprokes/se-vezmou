@@ -4,6 +4,7 @@ import { Icon } from "@/components/ui/icon";
 import type { Locale } from "@/i18n/config";
 import { getTranslator } from "@/i18n/load";
 import { appUrl, siteUrl } from "@/lib/site";
+import { WeddingCounter } from "@/components/wedding-counter/WeddingCounter";
 import { HeroStudio } from "./hero-studio";
 import { HERO_TEMPLATE_KEYS } from "./templates-section";
 
@@ -77,6 +78,19 @@ export async function Hero({ locale }: { locale: Locale }) {
                   </li>
                 ))}
               </ul>
+              <div className="flex flex-col gap-1">
+                <WeddingCounter
+                  locale={locale === "cs" ? "cs-CZ" : "en-GB"}
+                  initials={["K", "M", "A"]}
+                  label={t("landing.hero.counter.label")}
+                  unit={{
+                    one: t("landing.hero.counter.unitOne"),
+                    few: t("landing.hero.counter.unitFew"),
+                    other: t("landing.hero.counter.unitOther"),
+                  }}
+                />
+                <p className="text-muted text-sm">{t("landing.hero.counter.source")}</p>
+              </div>
             </div>
           }
         />
